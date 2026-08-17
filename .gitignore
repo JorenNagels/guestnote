@@ -1,0 +1,49 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Dependencies and build output
+node_modules
+dist
+dist-ssr
+.next/
+out/
+*.tsbuildinfo
+*.local
+
+# CDK
+infra/cdk.out
+cdk.out
+
+# Lambda build artifacts
+*.zip
+
+# Tests
+coverage/
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.sw?
+
+# Environment. .env.example is committed, with keys and no values.
+.env
+.env.*
+!.env.example
+
+# Claude Code per-user state. Two deliberate exceptions:
+#   .claude/settings.json  — pins AWS_PROFILE=guestnote. The `default` profile on
+#     this machine is the employer's shared production account, so this file is a
+#     guardrail, not a preference. It belongs in the repo.
+#   .claude/skills/        — project-level skills, shared.
+.claude/*
+!.claude/settings.json
+!.claude/skills
+!.claude/skills/**
+
+# Generated share image for the holding page; deploy.sh re-renders it from og.html.
+coming-soon/og.png

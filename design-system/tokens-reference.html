@@ -1,0 +1,358 @@
+<title>Guestnote design tokens &middot; planner platform</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root {
+  --paper:#F7F6F5; --surface:#FFFFFF; --ink:#2C2A27; --ink-soft:#5C5854;
+  --rule:#DEDBD7; --rule-soft:#EEECEA; --accent:#206560; --gold:#886A20;
+  --bad:#A94F4A; --good:#417E50;
+  --fd:ui-serif,"New York",Georgia,"Iowan Old Style",Palatino,serif;
+  --fb:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --fm:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+  --r:0.5rem;
+}
+@media (prefers-color-scheme:dark) { :root:not([data-theme="light"]) {
+  --paper:#181715; --surface:#2C2A27; --ink:#EEECEA; --ink-soft:#BAB5B0;
+  --rule:#5C5854; --rule-soft:#474441; --accent:#9AD8D2; --gold:#E2C78F;
+  --bad:#F9978F; --good:#A6D9AF;
+} }
+:root[data-theme="dark"] {
+  --paper:#181715; --surface:#2C2A27; --ink:#EEECEA; --ink-soft:#BAB5B0;
+  --rule:#5C5854; --rule-soft:#474441; --accent:#9AD8D2; --gold:#E2C78F;
+  --bad:#F9978F; --good:#A6D9AF;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--fb);
+ font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px;margin:0 auto;padding:clamp(1.5rem,4vw,4rem) clamp(1rem,4vw,3rem) 6rem}
+.prose{max-width:68ch}
+h1,h2,h3{font-family:var(--fd);font-weight:600;text-wrap:balance;margin:0}
+h1{font-size:clamp(2rem,5vw,3.1rem);line-height:1.05;letter-spacing:-.02em}
+h2{font-size:clamp(1.4rem,3vw,1.9rem);line-height:1.15;letter-spacing:-.01em}
+h3{font-size:1.05rem;display:flex;align-items:center;gap:.6rem}
+p{margin:0} a{color:var(--accent)}
+code,.mono{font-family:var(--fm);font-variant-numeric:tabular-nums}
+code{font-size:.82em;background:var(--rule-soft);padding:.12em .38em;border-radius:.25rem}
+.eyebrow{font-family:var(--fm);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;
+ color:var(--gold);margin:0 0 1rem}
+.lede{font-size:1.12rem;color:var(--ink-soft);margin-top:1.25rem}
+.masthead{border-bottom:2px solid var(--ink);padding-bottom:2rem}
+.meta{display:flex;flex-wrap:wrap;gap:.4rem 1.6rem;margin-top:1.75rem;
+ font-family:var(--fm);font-size:.75rem;color:var(--ink-soft)}
+section.band{margin-top:4.5rem}
+section.band>h2{padding-bottom:.6rem;border-bottom:1px solid var(--rule)}
+section.band>.prose{margin-top:1.25rem;color:var(--ink-soft);display:flex;flex-direction:column;gap:1rem}
+.card{background:var(--surface);border:1px solid var(--rule);border-radius:var(--r);padding:1.5rem}
+.thesis{margin-top:2rem;display:grid;gap:1.25rem;grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+.card h3{margin-bottom:1rem;font-size:.95rem}
+.pair{display:flex;gap:.7rem} .pair>div{flex:1;height:78px;border-radius:calc(var(--r) - 2px);border:1px solid var(--rule)}
+.grey .pair{filter:grayscale(1)}
+.verdict{font-family:var(--fm);font-size:.76rem;margin-top:1rem;display:flex;
+ justify-content:space-between;gap:1rem;color:var(--ink-soft)}
+.verdict b{color:var(--bad);font-weight:600} .verdict b.g{color:var(--good)}
+.ramp{margin-top:2.5rem}
+.rh{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;
+ padding-bottom:.65rem;border-bottom:1px solid var(--rule-soft)}
+.rh h3{font-family:var(--fm);font-size:.88rem}
+.tag{font-size:.61rem;letter-spacing:.1em;text-transform:uppercase;padding:.16em .5em;
+ border-radius:.2rem;border:1px solid var(--rule);color:var(--ink-soft);font-family:var(--fm)}
+.tag.brand{color:var(--gold);border-color:var(--gold)}
+.hue{font-family:var(--fm);font-size:.73rem;color:var(--ink-soft)}
+.scroll{overflow-x:auto;margin-top:.85rem;padding-bottom:.3rem}
+.grid{display:grid;gap:0 6px}
+.sw{height:58px;border-radius:.3rem;border:1px solid rgba(0,0,0,.10)}
+.cs{font-family:var(--fm);font-size:.71rem;margin-top:.42rem;font-weight:600}
+.ch{font-family:var(--fm);font-size:.62rem;color:var(--ink-soft);letter-spacing:-.02em}
+.cr{font-family:var(--fm);font-size:.62rem;color:var(--ink-soft);opacity:.7;font-variant-numeric:tabular-nums}
+.mark{grid-row:2;font-family:var(--fm);font-size:.65rem;margin-top:.7rem;
+ padding-top:.38rem;border-top:2px solid currentColor}
+.mark.ui{grid-column:7/8;color:var(--ink-soft)}
+.mark.body{grid-column:8/12;color:var(--accent)}
+.legend{font-family:var(--fm);font-size:.7rem;color:var(--ink-soft);margin-top:1.4rem}
+.tscroll{overflow-x:auto;margin-top:1.75rem}
+table{border-collapse:collapse;width:100%;min-width:540px;font-size:.86rem}
+th,td{text-align:left;padding:.6rem .8rem;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+th{font-family:var(--fm);font-size:.67rem;letter-spacing:.09em;text-transform:uppercase;
+ color:var(--ink-soft);border-bottom:1px solid var(--rule)}
+td.tk{font-family:var(--fm);font-size:.78rem}
+td.num,th.num{text-align:right;font-family:var(--fm);font-variant-numeric:tabular-nums}
+td.need,td.why{color:var(--ink-soft)} td.why{font-size:.8rem}
+td.was{font-family:var(--fm);font-size:.76rem;color:var(--ink-soft);text-decoration:line-through}
+td.now{color:var(--accent);font-weight:600}
+.dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:.5rem;
+ vertical-align:baseline;border:1px solid rgba(0,0,0,.15)}
+.dot.dk{border-color:rgba(255,255,255,.25)}
+.stwrap{display:grid;gap:1.25rem;margin-top:2rem;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.stcol{border:1px solid var(--rule);border-radius:var(--r);padding:1.25rem;
+ display:flex;flex-direction:column;gap:.6rem}
+.stmode{font-family:var(--fm);font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;
+ color:#8A8580;margin:0 0 .3rem}
+.strow{display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.stchip{display:inline-flex;align-items:center;gap:.5rem;padding:.3rem .7rem;
+ border-radius:999px;font-size:.82rem;font-weight:500}
+.stchip i{width:8px;height:8px;border-radius:50%;flex:none}
+.stratio{font-family:var(--fm);font-size:.72rem;color:#8A8580;font-variant-numeric:tabular-nums}
+.caps{display:grid;gap:1rem;margin-top:1.75rem;grid-template-columns:repeat(auto-fit,minmax(270px,1fr))}
+.cap{border-left:3px solid var(--accent);padding:.1rem 0 .1rem 1rem}
+.cap.hard{border-left-color:var(--bad)}
+.cap b{display:block;font-family:var(--fm);font-size:.76rem;margin-bottom:.3rem}
+.cap span{font-size:.86rem;color:var(--ink-soft)}
+footer{margin-top:5rem;padding-top:1.5rem;border-top:1px solid var(--rule);
+ font-family:var(--fm);font-size:.73rem;color:var(--ink-soft);line-height:1.7}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+<header class="masthead">
+  <p class="eyebrow">Guestnote &middot; pro.guestnote.be</p>
+  <h1>Tokens for the planner platform</h1>
+  <p class="lede">V4 is the B2B product, and its real job is status at a glance across
+  hundreds of guests and a dozen weddings. So the hard part isn&rsquo;t the brand palette
+  &mdash; it&rsquo;s the six RSVP states and a chart palette that survives colour blindness.</p>
+  <div class="meta"><span>2026-08-13</span><span>design-system/tokens.css</span>
+  <span>Tailwind v4 &middot; shadcn names</span><span>tenant theming parked</span></div>
+</header>
+
+<section class="band">
+  <h2>What changed now that this is a data tool</h2>
+  <div class="tscroll"><table>
+  <thead><tr><th>token</th><th>was</th><th>now</th><th>why</th></tr></thead>
+  <tbody><tr><td class="tk">--radius</td><td class="was">0.9rem</td><td class="tk now">0.5rem</td><td class="why">0.9rem came from an editorial wedding site; a 32px table row needs a crisper corner</td></tr>
+<tr><td class="tk">dark ground</td><td class="was">neutral-950</td><td class="tk now">neutral-1000</td><td class="why">cards move to 950, giving charts a genuinely dark surface to hit 3:1 against</td></tr>
+<tr><td class="tk">density</td><td class="was">&mdash;</td><td class="tk now">44 / 32px</td><td class="why">a 300-guest list is unusable at comfortable spacing</td></tr>
+<tr><td class="tk">status</td><td class="was">3 generic</td><td class="tk now">6 RSVP states</td><td class="why">G4 per-event RSVP and G9 plus-ones are both states a planner must act on</td></tr></tbody></table></div>
+</section>
+
+<section class="band">
+  <h2>The logo colours are not UI colours</h2>
+  <div class="prose">
+    <p>The mark&rsquo;s teal and gold both sit at <strong>OKLCH L&thinsp;&asymp;&thinsp;0.80</strong>.
+    Different hues, same lightness &mdash; no tonal contrast against each other, ~1.8:1 on white.</p>
+    <p>Fine for a logo, which is exempt from WCAG 1.4.3 and 1.4.11. Not fine for text, borders,
+    state or chart series. The two hexes stay frozen; the UI draws from ramps on the
+    <em>same two hues</em>.</p>
+  </div>
+  <div class="thesis">
+    <div class="card"><h3>In colour</h3>
+      <div class="pair"><div style="background:#94CFC9"></div><div style="background:#D6B776"></div></div>
+      <p class="verdict"><span class="mono">#94CFC9 &middot; #D6B776</span><b>1.10:1</b></p></div>
+    <div class="card grey"><h3>Desaturated</h3>
+      <div class="pair"><div style="background:#94CFC9"></div><div style="background:#D6B776"></div></div>
+      <p class="verdict"><span>mono print, engraving</span><b>gone</b></p></div>
+    <div class="card"><h3>UI pair, same hues</h3>
+      <div class="pair"><div style="background:#206560"></div><div style="background:#E2C78F"></div></div>
+      <p class="verdict"><span class="mono">teal-800 &middot; gold-300</span><b class="g">6.6:1</b></p></div>
+  </div>
+</section>
+
+<section class="band">
+  <h2>Six RSVP states, not three</h2>
+  <div class="prose">
+    <p>The spec forces this. <strong>G4</strong> makes RSVP per-event &mdash; ceremony, dinner,
+    party &mdash; so attending isn&rsquo;t binary. <strong>G9</strong> adds plus-ones, so a guest
+    can have replied while their&nbsp;+1 is still unnamed. Both are things a planner must act on.</p>
+    <p><strong>Declined is neutral, not red.</strong> A polite no is not an error. Painting declines
+    red makes a healthy guest list look like a fire and teaches the planner to ignore red &mdash;
+    so red is reserved for what&rsquo;s genuinely broken: a dead address, a shuttle past capacity.</p>
+    <p>Every chip is <em>dot plus label</em>, never colour alone. The <strong>D2</strong> place-card
+    and <strong>D3</strong> caterer exports get printed in mono at a venue.</p>
+  </div>
+  <div class="stwrap"><div class="stcol" style="background:#FFFFFF"><p class="stmode">light</p><div class="strow"><span class="stchip" style="background:#DEF4E1;color:#32663F"><i style="background:#417E50"></i>Attending</span><span class="stratio">5.83:1</span></div><div class="strow"><span class="stchip" style="background:#EEECEA;color:#5C5854"><i style="background:#726E69"></i>Declined</span><span class="stratio">5.98:1</span></div><div class="strow"><span class="stchip" style="background:#FFE7D5;color:#7E4A1D"><i style="background:#9C5D28"></i>Awaiting reply</span><span class="stratio">6.12:1</span></div><div class="strow"><span class="stchip" style="background:#DCEFFF;color:#2F5C85"><i style="background:#3D73A4"></i>Partial</span><span class="stratio">5.96:1</span></div><div class="strow"><span class="stchip" style="background:#F7ECD4;color:#6E5416"><i style="background:#886A20"></i>Plus-one unnamed</span><span class="stratio">6.08:1</span></div><div class="strow"><span class="stchip" style="background:#FFE3DF;color:#893E3A"><i style="background:#A94F4A"></i>Bounced / over capacity</span><span class="stratio">6.15:1</span></div></div><div class="stcol" style="background:#2C2A27"><p class="stmode">dark</p><div class="strow"><span class="stchip" style="background:#264F30;color:#C1E7C8"><i style="background:#88C895"></i>Attending</span><span class="stratio">6.92:1</span></div><div class="strow"><span class="stchip" style="background:#474441;color:#DEDBD7"><i style="background:#BAB5B0"></i>Declined</span><span class="stratio">7.01:1</span></div><div class="strow"><span class="stchip" style="background:#623916;color:#FCD2B3"><i style="background:#E9A570"></i>Awaiting reply</span><span class="stratio">7.09:1</span></div><div class="strow"><span class="stchip" style="background:#244768;color:#BEE0FF"><i style="background:#83BBF1"></i>Partial</span><span class="stratio">7.03:1</span></div><div class="strow"><span class="stchip" style="background:#554111;color:#EDD9B0"><i style="background:#D2B16B"></i>Plus-one unnamed</span><span class="stratio">7.05:1</span></div><div class="strow"><span class="stchip" style="background:#6B302C;color:#FFCAC4"><i style="background:#F9978F"></i>Bounced / over capacity</span><span class="stratio">6.96:1</span></div></div></div>
+</section>
+
+<section class="band">
+  <h2>Chart palette</h2>
+  <div class="prose">
+    <p>Run through a colour-vision validator, not eyeballed. The status hues are
+    <strong>reserved</strong> &mdash; never reused as a series &mdash; so the categorical set
+    avoids them. Assign in fixed order; never cycle.</p>
+  </div>
+  <div class="tscroll"><table>
+  <thead><tr><th class="num">slot</th><th>hue</th><th>light</th><th>dark (re-stepped)</th></tr></thead>
+  <tbody><tr><td class="num">1</td><td class="tk">teal 188&deg;</td><td><span class="dot" style="background:#00968C"></span><code>#00968C</code></td><td><span class="dot dk" style="background:#00A398"></span><code>#00A398</code></td></tr>
+<tr><td class="num">2</td><td class="tk">gold 85&deg;</td><td><span class="dot" style="background:#A37000"></span><code>#A37000</code></td><td><span class="dot dk" style="background:#B88100"></span><code>#B88100</code></td></tr>
+<tr><td class="num">3</td><td class="tk">blue 248&deg;</td><td><span class="dot" style="background:#005FB7"></span><code>#005FB7</code></td><td><span class="dot dk" style="background:#007ED3"></span><code>#007ED3</code></td></tr>
+<tr><td class="num">4</td><td class="tk">lime 110&deg;</td><td><span class="dot" style="background:#8D8D00"></span><code>#8D8D00</code></td><td><span class="dot dk" style="background:#939300"></span><code>#939300</code></td></tr>
+<tr><td class="num">5</td><td class="tk">magenta 330&deg;</td><td><span class="dot" style="background:#A64BA0"></span><code>#A64BA0</code></td><td><span class="dot dk" style="background:#B357AD"></span><code>#B357AD</code></td></tr></tbody></table></div>
+  <div class="caps">
+    <div class="cap"><b>Stacks, bars, lines &mdash; all 5</b>
+      <span>Adjacent pairs only. Worst CVD &Delta;E 14.5 against a &ge;8 target, both modes.</span></div>
+    <div class="cap hard"><b>Scatter, small multiples &mdash; 3</b>
+      <span>Slots 2 and 4 are both yellow-family and collide at &Delta;E 3.7 deutan when every pair
+      is on screen. Past three, facet.</span></div>
+  </div>
+  <p class="legend">Rejected on measurement: violet 295&deg; beside blue 248&deg; (&Delta;E 1.6 deutan)
+  and magenta beside blue (&Delta;E 3.3 protan). Magenta is slot 5 so it never sits next to blue.
+  &middot; RSVP breakdown charts use the <em>status</em> colours, not these &mdash; the segments are
+  states, not identities.</p>
+</section>
+
+<section class="band">
+  <h2>Ramps</h2>
+  <div class="prose"><p>One lightness scale across all seven families, so step&nbsp;<em>N</em> is
+  tonally interchangeable. The figure under each chip is contrast on white. Neutral carries a
+  twelfth step for the dark page ground.</p></div>
+  <section class="ramp">
+<header class="rh"><h3>teal<span class="tag brand">brand</span></h3>
+<p class="hue">hue 188.1&deg;</p></header>
+<div class="scroll"><div class="grid" style="grid-template-columns:repeat(11,minmax(62px,1fr));min-width:748px">
+<div class="chip"><div class="sw" style="background:#ECFAF9"></div><div class="cs">50</div><div class="ch">#ECFAF9</div><div class="cr">1.07</div></div>
+<div class="chip"><div class="sw" style="background:#D9F3F0"></div><div class="cs">100</div><div class="ch">#D9F3F0</div><div class="cr">1.16</div></div>
+<div class="chip"><div class="sw" style="background:#B9E6E1"></div><div class="cs">200</div><div class="ch">#B9E6E1</div><div class="cr">1.36</div></div>
+<div class="chip"><div class="sw" style="background:#9AD8D2"></div><div class="cs">300</div><div class="ch">#9AD8D2</div><div class="cr">1.60</div></div>
+<div class="chip"><div class="sw" style="background:#78C6BF"></div><div class="cs">400</div><div class="ch">#78C6BF</div><div class="cr">1.98</div></div>
+<div class="chip"><div class="sw" style="background:#59B0A8"></div><div class="cs">500</div><div class="ch">#59B0A8</div><div class="cr">2.56</div></div>
+<div class="chip"><div class="sw" style="background:#3E9790"></div><div class="cs">600</div><div class="ch">#3E9790</div><div class="cr">3.48</div></div>
+<div class="chip"><div class="sw" style="background:#2C7D77"></div><div class="cs">700</div><div class="ch">#2C7D77</div><div class="cr">4.88</div></div>
+<div class="chip"><div class="sw" style="background:#206560"></div><div class="cs">800</div><div class="ch">#206560</div><div class="cr">6.79</div></div>
+<div class="chip"><div class="sw" style="background:#184E4A"></div><div class="cs">900</div><div class="ch">#184E4A</div><div class="cr">9.43</div></div>
+<div class="chip"><div class="sw" style="background:#0A312E"></div><div class="cs">950</div><div class="ch">#0A312E</div><div class="cr">14.08</div></div>
+<div class="mark ui">600</div>
+<div class="mark body">700&ndash;950 &middot; body text</div>
+</div></div></section><section class="ramp">
+<header class="rh"><h3>gold<span class="tag brand">brand</span></h3>
+<p class="hue">hue 84.9&deg;</p></header>
+<div class="scroll"><div class="grid" style="grid-template-columns:repeat(11,minmax(62px,1fr));min-width:748px">
+<div class="chip"><div class="sw" style="background:#FDF6E9"></div><div class="cs">50</div><div class="ch">#FDF6E9</div><div class="cr">1.07</div></div>
+<div class="chip"><div class="sw" style="background:#F7ECD4"></div><div class="cs">100</div><div class="ch">#F7ECD4</div><div class="cr">1.17</div></div>
+<div class="chip"><div class="sw" style="background:#EDD9B0"></div><div class="cs">200</div><div class="ch">#EDD9B0</div><div class="cr">1.39</div></div>
+<div class="chip"><div class="sw" style="background:#E2C78F"></div><div class="cs">300</div><div class="ch">#E2C78F</div><div class="cr">1.64</div></div>
+<div class="chip"><div class="sw" style="background:#D2B16B"></div><div class="cs">400</div><div class="ch">#D2B16B</div><div class="cr">2.05</div></div>
+<div class="chip"><div class="sw" style="background:#BC994C"></div><div class="cs">500</div><div class="ch">#BC994C</div><div class="cr">2.69</div></div>
+<div class="chip"><div class="sw" style="background:#A38131"></div><div class="cs">600</div><div class="ch">#A38131</div><div class="cr">3.66</div></div>
+<div class="chip"><div class="sw" style="background:#886A20"></div><div class="cs">700</div><div class="ch">#886A20</div><div class="cr">5.09</div></div>
+<div class="chip"><div class="sw" style="background:#6E5416"></div><div class="cs">800</div><div class="ch">#6E5416</div><div class="cr">7.14</div></div>
+<div class="chip"><div class="sw" style="background:#554111"></div><div class="cs">900</div><div class="ch">#554111</div><div class="cr">9.77</div></div>
+<div class="chip"><div class="sw" style="background:#362806"></div><div class="cs">950</div><div class="ch">#362806</div><div class="cr">14.35</div></div>
+<div class="mark ui">600</div>
+<div class="mark body">700&ndash;950 &middot; body text</div>
+</div></div></section><section class="ramp">
+<header class="rh"><h3>neutral<span class="tag ui">ui</span></h3>
+<p class="hue">hue 70&deg;</p></header>
+<div class="scroll"><div class="grid" style="grid-template-columns:repeat(12,minmax(62px,1fr));min-width:816px">
+<div class="chip"><div class="sw" style="background:#F7F6F5"></div><div class="cs">50</div><div class="ch">#F7F6F5</div><div class="cr">1.08</div></div>
+<div class="chip"><div class="sw" style="background:#EEECEA"></div><div class="cs">100</div><div class="ch">#EEECEA</div><div class="cr">1.18</div></div>
+<div class="chip"><div class="sw" style="background:#DEDBD7"></div><div class="cs">200</div><div class="ch">#DEDBD7</div><div class="cr">1.38</div></div>
+<div class="chip"><div class="sw" style="background:#CDC9C5"></div><div class="cs">300</div><div class="ch">#CDC9C5</div><div class="cr">1.65</div></div>
+<div class="chip"><div class="sw" style="background:#BAB5B0"></div><div class="cs">400</div><div class="ch">#BAB5B0</div><div class="cr">2.03</div></div>
+<div class="chip"><div class="sw" style="background:#A39D98"></div><div class="cs">500</div><div class="ch">#A39D98</div><div class="cr">2.68</div></div>
+<div class="chip"><div class="sw" style="background:#8A8580"></div><div class="cs">600</div><div class="ch">#8A8580</div><div class="cr">3.65</div></div>
+<div class="chip"><div class="sw" style="background:#726E69"></div><div class="cs">700</div><div class="ch">#726E69</div><div class="cr">5.06</div></div>
+<div class="chip"><div class="sw" style="background:#5C5854"></div><div class="cs">800</div><div class="ch">#5C5854</div><div class="cr">7.05</div></div>
+<div class="chip"><div class="sw" style="background:#474441"></div><div class="cs">900</div><div class="ch">#474441</div><div class="cr">9.67</div></div>
+<div class="chip"><div class="sw" style="background:#2C2A27"></div><div class="cs">950</div><div class="ch">#2C2A27</div><div class="cr">14.31</div></div>
+<div class="chip"><div class="sw" style="background:#181715"></div><div class="cs">1000</div><div class="ch">#181715</div><div class="cr">17.91</div></div>
+<div class="mark ui">600</div>
+<div class="mark body">700&ndash;950 &middot; body text</div>
+</div></div></section><section class="ramp">
+<header class="rh"><h3>success<span class="tag state">state</span></h3>
+<p class="hue">hue 150&deg;</p></header>
+<div class="scroll"><div class="grid" style="grid-template-columns:repeat(11,minmax(62px,1fr));min-width:748px">
+<div class="chip"><div class="sw" style="background:#EEFBF0"></div><div class="cs">50</div><div class="ch">#EEFBF0</div><div class="cr">1.07</div></div>
+<div class="chip"><div class="sw" style="background:#DEF4E1"></div><div class="cs">100</div><div class="ch">#DEF4E1</div><div class="cr">1.16</div></div>
+<div class="chip"><div class="sw" style="background:#C1E7C8"></div><div class="cs">200</div><div class="ch">#C1E7C8</div><div class="cr">1.35</div></div>
+<div class="chip"><div class="sw" style="background:#A6D9AF"></div><div class="cs">300</div><div class="ch">#A6D9AF</div><div class="cr">1.60</div></div>
+<div class="chip"><div class="sw" style="background:#88C895"></div><div class="cs">400</div><div class="ch">#88C895</div><div class="cr">1.95</div></div>
+<div class="chip"><div class="sw" style="background:#6CB17B"></div><div class="cs">500</div><div class="ch">#6CB17B</div><div class="cr">2.56</div></div>
+<div class="chip"><div class="sw" style="background:#549864"></div><div class="cs">600</div><div class="ch">#549864</div><div class="cr">3.47</div></div>
+<div class="chip"><div class="sw" style="background:#417E50"></div><div class="cs">700</div><div class="ch">#417E50</div><div class="cr">4.86</div></div>
+<div class="chip"><div class="sw" style="background:#32663F"></div><div class="cs">800</div><div class="ch">#32663F</div><div class="cr">6.76</div></div>
+<div class="chip"><div class="sw" style="background:#264F30"></div><div class="cs">900</div><div class="ch">#264F30</div><div class="cr">9.36</div></div>
+<div class="chip"><div class="sw" style="background:#15311C"></div><div class="cs">950</div><div class="ch">#15311C</div><div class="cr">14.11</div></div>
+<div class="mark ui">600</div>
+<div class="mark body">700&ndash;950 &middot; body text</div>
+</div></div></section><section class="ramp">
+<header class="rh"><h3>warning<span class="tag state">state</span></h3>
+<p class="hue">hue 58&deg;</p></header>
+<div class="scroll"><div class="grid" style="grid-template-columns:repeat(11,minmax(62px,1fr));min-width:748px">
+<div class="chip"><div class="sw" style="background:#FFF4EA"></div><div class="cs">50</div><div class="ch">#FFF4EA</div><div class="cr">1.08</div></div>
+<div class="chip"><div class="sw" style="background:#FFE7D5"></div><div class="cs">100</div><div class="ch">#FFE7D5</div><div class="cr">1.19</div></div>
+<div class="chip"><div class="sw" style="background:#FCD2B3"></div><div class="cs">200</div><div class="ch">#FCD2B3</div><div class="cr">1.40</div></div>
+<div class="chip"><div class="sw" style="background:#F5BC92"></div><div class="cs">300</div><div class="ch">#F5BC92</div><div class="cr">1.68</div></div>
+<div class="chip"><div class="sw" style="background:#E9A570"></div><div class="cs">400</div><div class="ch">#E9A570</div><div class="cr">2.08</div></div>
+<div class="chip"><div class="sw" style="background:#D48B52"></div><div class="cs">500</div><div class="ch">#D48B52</div><div class="cr">2.76</div></div>
+<div class="chip"><div class="sw" style="background:#B97339"></div><div class="cs">600</div><div class="ch">#B97339</div><div class="cr">3.77</div></div>
+<div class="chip"><div class="sw" style="background:#9C5D28"></div><div class="cs">700</div><div class="ch">#9C5D28</div><div class="cr">5.24</div></div>
+<div class="chip"><div class="sw" style="background:#7E4A1D"></div><div class="cs">800</div><div class="ch">#7E4A1D</div><div class="cr">7.28</div></div>
+<div class="chip"><div class="sw" style="background:#623916"></div><div class="cs">900</div><div class="ch">#623916</div><div class="cr">9.92</div></div>
+<div class="chip"><div class="sw" style="background:#3F2209"></div><div class="cs">950</div><div class="ch">#3F2209</div><div class="cr">14.54</div></div>
+<div class="mark ui">600</div>
+<div class="mark body">700&ndash;950 &middot; body text</div>
+</div></div></section><section class="ramp">
+<header class="rh"><h3>danger<span class="tag state">state</span></h3>
+<p class="hue">hue 25&deg;</p></header>
+<div class="scroll"><div class="grid" style="grid-template-columns:repeat(11,minmax(62px,1fr));min-width:748px">
+<div class="chip"><div class="sw" style="background:#FFF1EF"></div><div class="cs">50</div><div class="ch">#FFF1EF</div><div class="cr">1.10</div></div>
+<div class="chip"><div class="sw" style="background:#FFE3DF"></div><div class="cs">100</div><div class="ch">#FFE3DF</div><div class="cr">1.21</div></div>
+<div class="chip"><div class="sw" style="background:#FFCAC4"></div><div class="cs">200</div><div class="ch">#FFCAC4</div><div class="cr">1.45</div></div>
+<div class="chip"><div class="sw" style="background:#FFB1AA"></div><div class="cs">300</div><div class="ch">#FFB1AA</div><div class="cr">1.73</div></div>
+<div class="chip"><div class="sw" style="background:#F9978F"></div><div class="cs">400</div><div class="ch">#F9978F</div><div class="cr">2.13</div></div>
+<div class="chip"><div class="sw" style="background:#E47C75"></div><div class="cs">500</div><div class="ch">#E47C75</div><div class="cr">2.82</div></div>
+<div class="chip"><div class="sw" style="background:#C8635D"></div><div class="cs">600</div><div class="ch">#C8635D</div><div class="cr">3.89</div></div>
+<div class="chip"><div class="sw" style="background:#A94F4A"></div><div class="cs">700</div><div class="ch">#A94F4A</div><div class="cr">5.38</div></div>
+<div class="chip"><div class="sw" style="background:#893E3A"></div><div class="cs">800</div><div class="ch">#893E3A</div><div class="cr">7.46</div></div>
+<div class="chip"><div class="sw" style="background:#6B302C"></div><div class="cs">900</div><div class="ch">#6B302C</div><div class="cr">10.08</div></div>
+<div class="chip"><div class="sw" style="background:#451B19"></div><div class="cs">950</div><div class="ch">#451B19</div><div class="cr">14.75</div></div>
+<div class="mark ui">600</div>
+<div class="mark body">700&ndash;950 &middot; body text</div>
+</div></div></section><section class="ramp">
+<header class="rh"><h3>info<span class="tag state">state</span></h3>
+<p class="hue">hue 248&deg;</p></header>
+<div class="scroll"><div class="grid" style="grid-template-columns:repeat(11,minmax(62px,1fr));min-width:748px">
+<div class="chip"><div class="sw" style="background:#EDF8FF"></div><div class="cs">50</div><div class="ch">#EDF8FF</div><div class="cr">1.08</div></div>
+<div class="chip"><div class="sw" style="background:#DCEFFF"></div><div class="cs">100</div><div class="ch">#DCEFFF</div><div class="cr">1.18</div></div>
+<div class="chip"><div class="sw" style="background:#BEE0FF"></div><div class="cs">200</div><div class="ch">#BEE0FF</div><div class="cr">1.37</div></div>
+<div class="chip"><div class="sw" style="background:#A1CFFB"></div><div class="cs">300</div><div class="ch">#A1CFFB</div><div class="cr">1.64</div></div>
+<div class="chip"><div class="sw" style="background:#83BBF1"></div><div class="cs">400</div><div class="ch">#83BBF1</div><div class="cr">2.03</div></div>
+<div class="chip"><div class="sw" style="background:#67A4DD"></div><div class="cs">500</div><div class="ch">#67A4DD</div><div class="cr">2.65</div></div>
+<div class="chip"><div class="sw" style="background:#4F8BC2"></div><div class="cs">600</div><div class="ch">#4F8BC2</div><div class="cr">3.62</div></div>
+<div class="chip"><div class="sw" style="background:#3D73A4"></div><div class="cs">700</div><div class="ch">#3D73A4</div><div class="cr">5.02</div></div>
+<div class="chip"><div class="sw" style="background:#2F5C85"></div><div class="cs">800</div><div class="ch">#2F5C85</div><div class="cr">7.02</div></div>
+<div class="chip"><div class="sw" style="background:#244768"></div><div class="cs">900</div><div class="ch">#244768</div><div class="cr">9.65</div></div>
+<div class="chip"><div class="sw" style="background:#132C43"></div><div class="cs">950</div><div class="ch">#132C43</div><div class="cr">14.30</div></div>
+<div class="mark ui">600</div>
+<div class="mark body">700&ndash;950 &middot; body text</div>
+</div></div></section>
+  <p class="legend">50&ndash;200 surfaces and tints, never text &middot; 300&ndash;500 decorative
+  fills &middot; 600 large text and UI edges &middot; 700&ndash;950 body text &middot;
+  1000 dark page ground.</p>
+</section>
+
+<section class="band">
+  <h2>Semantic tokens</h2>
+  <div class="prose"><p>What components reference. Retheming touches this layer only.
+  Both modes verified: <strong>zero failures</strong>.</p></div>
+  <div class="tscroll"><table>
+  <thead><tr><th>pair</th><th class="num">light</th><th class="num">dark</th><th class="num">needs</th></tr></thead>
+  <tbody><tr><td class="tk">foreground / background</td><td class="num">8.96</td><td class="num">15.20</td><td class="num need">4.5</td></tr>
+<tr><td class="tk">card-foreground / card</td><td class="num">9.67</td><td class="num">12.14</td><td class="num need">4.5</td></tr>
+<tr><td class="tk">muted-foreground / muted</td><td class="num">5.98</td><td class="num">4.76</td><td class="num need">4.5</td></tr>
+<tr><td class="tk">primary-foreground / primary</td><td class="num">6.79</td><td class="num">8.80</td><td class="num need">4.5</td></tr>
+<tr><td class="tk">accent-foreground / accent</td><td class="num">8.33</td><td class="num">7.05</td><td class="num need">4.5</td></tr>
+<tr><td class="tk">destructive-fg / destructive</td><td class="num">5.38</td><td class="num">6.92</td><td class="num need">4.5</td></tr>
+<tr><td class="tk">input / card</td><td class="num">3.65</td><td class="num">5.34</td><td class="num need">3.0</td></tr>
+<tr><td class="tk">ring / card</td><td class="num">3.48</td><td class="num">7.24</td><td class="num need">3.0</td></tr></tbody></table></div>
+  <p class="legend"><code>--border</code> has no minimum: WCAG 1.4.11 covers control boundaries,
+  not decorative dividers &mdash; a table with 3:1 gridlines is a spreadsheet from 1997.
+  <code>--input</code> <em>does</em>: a field&rsquo;s edge is what tells you the control is there.</p>
+</section>
+
+<section class="band">
+  <h2>Because it&rsquo;s mostly tables</h2>
+  <div class="prose">
+    <p>Numeric columns are right-aligned with <code>tabular-nums</code> in <code>@layer base</code>,
+    so headcounts line up without per-table work. Rows separate by hairline, not zebra &mdash; zebra
+    fights the status chips and breaks under filtering. Sticky header, sticky guest-name column when
+    narrow. <code>[data-density="compact"]</code> drops rows 44px&rarr;32px for a 300-guest list.</p>
+    <p>Empty, loading and filtered-to-zero are three states with three messages. &ldquo;No guests
+    yet&rdquo; and &ldquo;No guests match these filters&rdquo; are different problems for the person
+    reading them.</p>
+  </div>
+</section>
+
+<footer>
+  Ramps generated in OKLCH, chroma reduced to fit sRGB &middot; ratios per WCAG 2.1 relative
+  luminance &middot; chart palette validated for protan / deutan / tritan separation in both modes<br>
+  Parked until F4/V7: tenant wedding-site theming, <code>design-system/theme-contract.ts</code>
+</footer>
+</div>

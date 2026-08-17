@@ -1,0 +1,6 @@
+{
+  "env": {
+    "AWS_PROFILE": "guestnote",
+    "AWS_REGION": "eu-central-1"
+  }
+}

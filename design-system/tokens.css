@@ -1,0 +1,188 @@
+/* ============================================================================
+   Guestnote design tokens -- pro.guestnote.be (planner platform)
+   Generated. Every pair below is contrast-verified; the chart palette is
+   validated for colour-vision deficiency. See research/08-design-system.md.
+
+   Scope: the planner dashboard only. Tenant wedding-site theming is parked --
+   design-system/theme-contract.ts stays valid for when F4/V7 come round.
+   ============================================================================ */
+
+@import "tailwindcss";
+
+/* ---------- 1. primitives -- never referenced in a component --------------- */
+:root {
+  /* teal */
+  --teal-50: #ECFAF9; --teal-100: #D9F3F0; --teal-200: #B9E6E1; --teal-300: #9AD8D2; --teal-400: #78C6BF; --teal-500: #59B0A8; --teal-600: #3E9790; --teal-700: #2C7D77; --teal-800: #206560; --teal-900: #184E4A; --teal-950: #0A312E;
+  /* gold */
+  --gold-50: #FDF6E9; --gold-100: #F7ECD4; --gold-200: #EDD9B0; --gold-300: #E2C78F; --gold-400: #D2B16B; --gold-500: #BC994C; --gold-600: #A38131; --gold-700: #886A20; --gold-800: #6E5416; --gold-900: #554111; --gold-950: #362806;
+  /* neutral */
+  --neutral-50: #F7F6F5; --neutral-100: #EEECEA; --neutral-200: #DEDBD7; --neutral-300: #CDC9C5; --neutral-400: #BAB5B0; --neutral-500: #A39D98; --neutral-600: #8A8580; --neutral-700: #726E69; --neutral-800: #5C5854; --neutral-900: #474441; --neutral-950: #2C2A27; --neutral-1000: #181715;
+  /* success */
+  --success-50: #EEFBF0; --success-100: #DEF4E1; --success-200: #C1E7C8; --success-300: #A6D9AF; --success-400: #88C895; --success-500: #6CB17B; --success-600: #549864; --success-700: #417E50; --success-800: #32663F; --success-900: #264F30; --success-950: #15311C;
+  /* warning */
+  --warning-50: #FFF4EA; --warning-100: #FFE7D5; --warning-200: #FCD2B3; --warning-300: #F5BC92; --warning-400: #E9A570; --warning-500: #D48B52; --warning-600: #B97339; --warning-700: #9C5D28; --warning-800: #7E4A1D; --warning-900: #623916; --warning-950: #3F2209;
+  /* danger */
+  --danger-50: #FFF1EF; --danger-100: #FFE3DF; --danger-200: #FFCAC4; --danger-300: #FFB1AA; --danger-400: #F9978F; --danger-500: #E47C75; --danger-600: #C8635D; --danger-700: #A94F4A; --danger-800: #893E3A; --danger-900: #6B302C; --danger-950: #451B19;
+  /* info */
+  --info-50: #EDF8FF; --info-100: #DCEFFF; --info-200: #BEE0FF; --info-300: #A1CFFB; --info-400: #83BBF1; --info-500: #67A4DD; --info-600: #4F8BC2; --info-700: #3D73A4; --info-800: #2F5C85; --info-900: #244768; --info-950: #132C43;
+
+  /* Logo colours. THE MARK ONLY. Both sit at OKLCH L=0.80, so they have no
+     tonal contrast against each other (1.10:1) and ~1.8:1 on white. Legible UI
+     comes from the ramps above, on the same two hues. */
+  --logo-teal: #94CFC9;
+  --logo-gold: #D6B776;
+}
+
+/* ---------- 2. semantic ---------------------------------------------------- */
+:root {
+  --background: var(--neutral-50);
+  --foreground: var(--neutral-900);
+  --card: #FFFFFF;
+  --card-foreground: var(--neutral-900);
+  --popover: #FFFFFF;
+  --popover-foreground: var(--neutral-900);
+  --muted: var(--neutral-100);
+  --muted-foreground: var(--neutral-800);
+  --secondary: var(--neutral-100);
+  --secondary-foreground: var(--neutral-800);
+  --primary: var(--teal-800);
+  --primary-foreground: #FFFFFF;
+  --accent: var(--gold-100);
+  --accent-foreground: var(--gold-900);
+  --destructive: var(--danger-700);
+  --destructive-foreground: #FFFFFF;
+  --border: var(--neutral-200);
+  --input: var(--neutral-600);
+  --ring: var(--teal-600);
+
+  /* RSVP state. `declined` is NEUTRAL on purpose: a polite no is not an error,
+     and painting it red makes a healthy guest list look like a fire. Red is
+     reserved for things that are actually wrong -- bounced email, over capacity. */
+  --st-attending-bg: var(--success-100); --st-attending-fg: var(--success-800); --st-attending-dot: var(--success-700);
+  --st-declined-bg: var(--neutral-100); --st-declined-fg: var(--neutral-800); --st-declined-dot: var(--neutral-700);
+  --st-awaiting-bg: var(--warning-100); --st-awaiting-fg: var(--warning-800); --st-awaiting-dot: var(--warning-700);
+  --st-partial-bg: var(--info-100); --st-partial-fg: var(--info-800); --st-partial-dot: var(--info-700);
+  --st-plusone-bg: var(--gold-100); --st-plusone-fg: var(--gold-800); --st-plusone-dot: var(--gold-700);
+  --st-alert-bg: var(--danger-100); --st-alert-fg: var(--danger-800); --st-alert-dot: var(--danger-700);
+
+  /* charts -- see research/08-design-system.md for the validated caps */
+  --series-1: #00968C;
+  --series-2: #A37000;
+  --series-3: #005FB7;
+  --series-4: #8D8D00;
+  --series-5: #A64BA0;
+  --series-grid: var(--neutral-200);
+  --series-axis: var(--neutral-800);
+
+  /* data density: 300-guest lists need compact */
+  --row-h: 44px;
+  --cell-x: 0.8rem;
+  --control-h: 36px;
+
+  /* 0.5rem, not the 0.9rem inherited from se-parti-rsvp. That radius was set
+     for an editorial wedding site; a dense table grid needs a crisper corner. */
+  --radius: 0.5rem;
+  --ring-width: 2px;
+  --ring-offset: 2px;
+}
+
+:root[data-density="compact"] {
+  --row-h: 32px;
+  --cell-x: 0.55rem;
+  --control-h: 30px;
+}
+
+.dark {
+  --background: var(--neutral-1000);
+  --foreground: var(--neutral-100);
+  --card: var(--neutral-950);
+  --card-foreground: var(--neutral-100);
+  --popover: var(--neutral-950);
+  --popover-foreground: var(--neutral-100);
+  --muted: var(--neutral-900);
+  --muted-foreground: var(--neutral-400);
+  --secondary: var(--neutral-800);
+  --secondary-foreground: var(--neutral-100);
+  --primary: var(--teal-300);
+  --primary-foreground: var(--teal-950);
+  --accent: var(--gold-900);
+  --accent-foreground: var(--gold-200);
+  --destructive: var(--danger-400);
+  --destructive-foreground: var(--danger-950);
+  --border: var(--neutral-800);
+  --input: var(--neutral-500);
+  --ring: var(--teal-400);
+  --st-attending-bg: var(--success-900); --st-attending-fg: var(--success-200); --st-attending-dot: var(--success-400);
+  --st-declined-bg: var(--neutral-900); --st-declined-fg: var(--neutral-200); --st-declined-dot: var(--neutral-400);
+  --st-awaiting-bg: var(--warning-900); --st-awaiting-fg: var(--warning-200); --st-awaiting-dot: var(--warning-400);
+  --st-partial-bg: var(--info-900); --st-partial-fg: var(--info-200); --st-partial-dot: var(--info-400);
+  --st-plusone-bg: var(--gold-900); --st-plusone-fg: var(--gold-200); --st-plusone-dot: var(--gold-400);
+  --st-alert-bg: var(--danger-900); --st-alert-fg: var(--danger-200); --st-alert-dot: var(--danger-400);
+  --series-1: #00A398;
+  --series-2: #B88100;
+  --series-3: #007ED3;
+  --series-4: #939300;
+  --series-5: #B357AD;
+  --series-grid: var(--neutral-800);
+  --series-axis: var(--neutral-400);
+}
+
+/* ---------- 3. Tailwind v4 mapping ---------------------------------------- */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-st-attending-bg: var(--st-attending-bg); --color-st-attending-fg: var(--st-attending-fg); --color-st-attending-dot: var(--st-attending-dot);
+  --color-st-declined-bg: var(--st-declined-bg); --color-st-declined-fg: var(--st-declined-fg); --color-st-declined-dot: var(--st-declined-dot);
+  --color-st-awaiting-bg: var(--st-awaiting-bg); --color-st-awaiting-fg: var(--st-awaiting-fg); --color-st-awaiting-dot: var(--st-awaiting-dot);
+  --color-st-partial-bg: var(--st-partial-bg); --color-st-partial-fg: var(--st-partial-fg); --color-st-partial-dot: var(--st-partial-dot);
+  --color-st-plusone-bg: var(--st-plusone-bg); --color-st-plusone-fg: var(--st-plusone-fg); --color-st-plusone-dot: var(--st-plusone-dot);
+  --color-st-alert-bg: var(--st-alert-bg); --color-st-alert-fg: var(--st-alert-fg); --color-st-alert-dot: var(--st-alert-dot);
+  --color-series-1: var(--series-1);
+  --color-series-2: var(--series-2);
+  --color-series-3: var(--series-3);
+  --color-series-4: var(--series-4);
+  --color-series-5: var(--series-5);
+
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 2px);
+  --radius-xl: calc(var(--radius) + 6px);
+
+  --font-sans: "Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --text-xs: 0.75rem;   --text-xs--line-height: 1.5;
+  --text-sm: 0.875rem;  --text-sm--line-height: 1.45;
+  --text-base: 1rem;    --text-base--line-height: 1.55;
+  --text-lg: 1.125rem;  --text-lg--line-height: 1.45;
+  --text-xl: 1.25rem;   --text-xl--line-height: 1.35;
+  --text-2xl: 1.5rem;   --text-2xl--line-height: 1.25;
+  --text-3xl: 1.875rem; --text-3xl--line-height: 1.2;
+  --text-4xl: 2.25rem;  --text-4xl--line-height: 1.1;
+}
+
+@layer base {
+  * { @apply border-border; }
+  body { @apply bg-background text-foreground font-sans; }
+  /* a control's focus ring is a UI boundary: verified >=3:1, never remove it */
+  :focus-visible { outline: var(--ring-width) solid var(--ring); outline-offset: var(--ring-offset); }
+  /* every guest count, headcount and money column lines up */
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+}
