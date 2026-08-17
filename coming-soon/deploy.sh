@@ -85,37 +85,59 @@ aws s3 cp "$HERE/og.png" "s3://$BUCKET/og.png" \
 echo "index.html, robots.txt, sitemap.xml, og.png"
 
 # ------------------------------------------------------------------ ACM -------
-say "Certificate for $DOMAIN + $WWW (us-east-1 — required by CloudFront)"
-CERT_ARN="$(aws acm list-certificates --region us-east-1 \
-  --query "CertificateSummaryList[?DomainName=='$DOMAIN'].CertificateArn | [0]" --output text)"
-if [[ "$CERT_ARN" == "None" || -z "$CERT_ARN" ]]; then
-  CERT_ARN="$(aws acm request-certificate --region us-east-1 \
-    --domain-name "$DOMAIN" --subject-alternative-names "$WWW" \
-    --validation-method DNS --query CertificateArn --output text)"
-  echo "requested $CERT_ARN"
-else
-  echo "reusing $CERT_ARN"
+# The certificate is NOT discovered by name and NOT requested here.
+#
+# It used to be found with:
+#   CertificateSummaryList[?DomainName=='guestnote.be'].CertificateArn | [0]
+#
+# That was safe only while exactly one certificate carried that DomainName. As of
+# 2026-08-17 there are two -- the original apex+www one, and the apex+www+wildcard
+# one the multi-tenant app needs -- so `[0]` returns whichever ACM happens to list
+# first. A re-run of this script could then silently swap the live certificate on
+# the holding page's distribution.
+#
+# So: one certificate, its ARN pinned in SSM, and this script only ever reads it.
+# Rotating the certificate is a deliberate `ssm put-parameter`, not a side effect
+# of deploying a copy change.
+say "Certificate (us-east-1 — required by CloudFront), pinned in SSM"
+CERT_PARAM="${CERT_PARAM:-/guestnote/prod/acm/cert-arn}"
+CERT_ARN="${CERT_ARN:-$(aws ssm get-parameter --name "$CERT_PARAM" \
+  --query Parameter.Value --output text 2>/dev/null || echo '')}"
+if [[ -z "$CERT_ARN" || "$CERT_ARN" == "None" ]]; then
+  echo "REFUSING TO DEPLOY." >&2
+  echo "  No certificate ARN at SSM parameter $CERT_PARAM." >&2
+  echo "  Request one certificate covering the apex, www and the wildcard, then pin it:" >&2
+  echo "    aws acm request-certificate --region us-east-1 \\" >&2
+  echo "      --domain-name $DOMAIN --subject-alternative-names $WWW '*.$DOMAIN' \\" >&2
+  echo "      --validation-method DNS" >&2
+  echo "    # write the DNS validation CNAMEs into zone $ZONE_ID, wait for ISSUED, then:" >&2
+  echo "    aws ssm put-parameter --name $CERT_PARAM --type String --overwrite --value <arn>" >&2
+  exit 1
 fi
-
-say "Writing DNS validation records"
-for i in $(seq 1 20); do
-  RECORDS="$(aws acm describe-certificate --region us-east-1 --certificate-arn "$CERT_ARN" \
-    --query "Certificate.DomainValidationOptions[?ResourceRecord!=null].ResourceRecord" --output json)"
-  [[ "$(python3 -c "import json,sys;print(len(json.load(sys.stdin)))" <<<"$RECORDS")" -ge 1 ]] && break
-  sleep 3
+CERT_STATUS="$(aws acm describe-certificate --region us-east-1 \
+  --certificate-arn "$CERT_ARN" --query Certificate.Status --output text)"
+if [[ "$CERT_STATUS" != "ISSUED" ]]; then
+  echo "REFUSING TO DEPLOY. Certificate $CERT_ARN is $CERT_STATUS, not ISSUED." >&2
+  exit 1
+fi
+# A CloudFront viewer certificate that does not cover the aliases below is a TLS
+# error for every visitor, and the distribution update is what surfaces it. Check
+# here instead, where it costs one API call.
+# One name per line, and matched exactly (-F -x). Substring matching would be
+# wrong here: "guestnote.be" occurs inside "www.guestnote.be", so a loose check
+# passes on a certificate that covers only www and would break the apex.
+CERT_NAMES="$(aws acm describe-certificate --region us-east-1 \
+  --certificate-arn "$CERT_ARN" \
+  --query 'Certificate.SubjectAlternativeNames[]' --output text | tr '\t' '\n')"
+for NEEDED in "$DOMAIN" "$WWW"; do
+  grep -qxF -- "$NEEDED" <<<"$CERT_NAMES" || {
+    echo "REFUSING TO DEPLOY. Certificate does not cover $NEEDED." >&2
+    echo "  covers: $(tr '\n' ' ' <<<"$CERT_NAMES")" >&2
+    exit 1
+  }
 done
-python3 - "$RECORDS" > /tmp/gn-val.json <<'PY'
-import json,sys
-recs={ (r["Name"],r["Value"]) for r in json.loads(sys.argv[1]) }   # dedupe: apex+www often share one
-print(json.dumps({"Comment":"ACM validation","Changes":[
-  {"Action":"UPSERT","ResourceRecordSet":{"Name":n,"Type":"CNAME","TTL":300,
-   "ResourceRecords":[{"Value":v}]}} for n,v in sorted(recs)]}))
-PY
-aws route53 change-resource-record-sets --hosted-zone-id "$ZONE_ID" \
-  --change-batch "file:///tmp/gn-val.json" >/dev/null
-echo "written; waiting for issuance (usually 1-4 min)"
-aws acm wait certificate-validated --region us-east-1 --certificate-arn "$CERT_ARN"
-echo "certificate ISSUED"
+echo "$CERT_ARN"
+echo "covers: $(tr '\n' ' ' <<<"$CERT_NAMES")"
 
 # ----------------------------------------------------------- CloudFront -------
 say "Origin access control"
@@ -223,7 +245,7 @@ fi
 
 aws cloudfront create-invalidation --distribution-id "$DIST_ID" \
   --paths "/" "/index.html" "/robots.txt" "/sitemap.xml" "/og.png" >/dev/null
-rm -f /tmp/gn-val.json /tmp/gn-dist.json /tmp/gn-bucket.json /tmp/gn-dns.json
+rm -f /tmp/gn-dist.json /tmp/gn-bucket.json /tmp/gn-dns.json
 
 cat <<DONE
 
