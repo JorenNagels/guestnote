@@ -226,7 +226,66 @@ export const AS = {
   coupleA1Unpinned: { userId: F.coupleA1, orgId: F.orgA, weddingRole: 'couple' } as Gucs,
 } as const
 
+/**
+ * What the seed role actually is, and whether it can bypass RLS.
+ *
+ * `bypassesRls` is true for a superuser OR a role with BYPASSRLS. Both are needed cases:
+ * locally the seed role is a superuser, on Neon it is `neondb_owner`, which gets BYPASSRLS
+ * through `neon_superuser`. Ownership alone is NOT sufficient -- `0001_rls.sql` sets FORCE
+ * ROW LEVEL SECURITY, which binds the owner to its own policies.
+ */
+let seedRoleCache: Promise<{ role: string; bypassesRls: boolean }> | undefined
+
+export function seedRoleInfo(): Promise<{ role: string; bypassesRls: boolean }> {
+  seedRoleCache ??= (async () => {
+    const pool = new NodePool({ connectionString: SEED_URL, max: 1 })
+    try {
+      const { rows } = await pool.query(
+        `select current_user as role, (rolsuper or rolbypassrls) as bypasses_rls
+           from pg_roles where rolname = current_user`,
+      )
+      const r = rows[0] as { role: string; bypasses_rls: boolean }
+      return { role: r.role, bypassesRls: r.bypasses_rls }
+    } finally {
+      await pool.end()
+    }
+  })()
+  return seedRoleCache
+}
+
+/**
+ * Checked at the top of `reseed()` rather than only in a test.
+ *
+ * A misconfigured seed role makes the INSERTs fail inside `beforeAll`, and vitest reports
+ * that as dozens of SKIPPED tests -- which reads like "nothing to run here" rather than
+ * "your fixture role is wrong". Worse, a test asserting the role is correct is itself
+ * skipped, so the assertion designed to explain the failure never executes. Verified: with
+ * SEED_DATABASE_URL pointed at app_user, the suite reported 47 passed / 48 skipped and
+ * zero failures.
+ *
+ * So the check has to happen before the first INSERT, and it has to throw with the
+ * explanation attached.
+ */
+async function assertSeedRoleUsable(): Promise<void> {
+  const seed = await seedRoleInfo()
+  if (!seed.bypassesRls) {
+    throw new Error(
+      `SEED_DATABASE_URL connects as '${seed.role}', which cannot bypass RLS.\n` +
+        'The fixture deliberately contains rows for two different tenants, which no single\n' +
+        'tenant context may create -- and it must be ground truth, independent of the\n' +
+        'policies under test. Ownership alone is NOT enough: 0001_rls.sql sets FORCE ROW\n' +
+        'LEVEL SECURITY, which binds even the table owner to its own policies.\n' +
+        '  On Neon:  use the project owner (neondb_owner), which has BYPASSRLS via\n' +
+        '            neon_superuser.\n' +
+        '  Locally:  use a superuser (postgres).\n' +
+        'It must NOT be the same role as TEST_DATABASE_URL, or every assertion in this\n' +
+        'suite becomes vacuous.',
+    )
+  }
+}
+
 export async function reseed(): Promise<void> {
+  await assertSeedRoleUsable()
   const pool = new NodePool({ connectionString: SEED_URL, max: 1 })
   try {
     await pool.query(`truncate table

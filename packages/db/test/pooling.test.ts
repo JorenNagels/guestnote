@@ -2,7 +2,16 @@ import { sql } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { Principal } from '../src/tenant.ts'
 import { withTenant } from '../src/tenant.ts'
-import { AS, CAN_TEST_POOLER, connect, F, type Harness, reseed, TEST_URL } from './harness.ts'
+import {
+  AS,
+  CAN_TEST_POOLER,
+  connect,
+  F,
+  type Harness,
+  reseed,
+  seedRoleInfo,
+  TEST_URL,
+} from './harness.ts'
 
 /**
  * Everything RLS depends on that is NOT about policy text.
@@ -89,6 +98,58 @@ describe('5. the connected role cannot bypass RLS', () => {
     const c = await h.pool.connect()
     try {
       await expect(c.query('alter table tasks disable row level security')).rejects.toThrow()
+    } finally {
+      c.release()
+    }
+  })
+})
+
+describe('the two-role split', () => {
+  /**
+   * Why seeding uses a privileged role at all, since it looks like a shortcut.
+   *
+   * **The fixture must be ground truth, independent of the mechanism under test.** If the
+   * seed went through RLS, a policy bug that permitted too much would produce a fixture
+   * consistent with the broken policy, and these tests could pass. The seed also has to
+   * write rows for two different tenants in one pass, which no single tenant context can
+   * legitimately do -- that is the whole point of the fixture.
+   *
+   * Practically, `app_user` cannot seed regardless: it has no TRUNCATE, and its WITH CHECK
+   * forbids inserting another tenant's rows.
+   *
+   * Measured, isolating the two attributes on PG 17 with a role that owned the table but
+   * had neither superuser nor BYPASSRLS:
+   *
+   *   owner, RLS ENABLED not FORCED  -> 2 rows   (the owner exemption)
+   *   owner, RLS FORCED              -> 0 rows   (FORCE binds the owner)
+   *   owner, FORCED, + BYPASSRLS     -> 2 rows   (BYPASSRLS overrides FORCE)
+   *
+   * So on Neon the seed works via BYPASSRLS (from neon_superuser), NOT via ownership --
+   * 0001_rls.sql sets FORCE, so a plain owner would see nothing and the seed would fail.
+   *
+   * The dangerous direction is already covered above: point TEST_DATABASE_URL at the
+   * privileged role and `rolbypassrls = false` fails. This asserts the other direction, so
+   * a misconfigured seed role produces a clear message instead of a confusing mid-seed
+   * error.
+   */
+  it('the seed role can see across tenants and the test role cannot', async () => {
+    const seed = await seedRoleInfo()
+    expect(
+      seed.bypassesRls,
+      `the seed role (${seed.role}) cannot bypass RLS, so it cannot create the ` +
+        'cross-tenant fixture this suite exists to detect. On Neon use the project owner ' +
+        '(neondb_owner); locally use a superuser. SEED_DATABASE_URL and TEST_DATABASE_URL ' +
+        'must not be the same role.',
+    ).toBe(true)
+
+    const c = await h.pool.connect()
+    try {
+      const { rows } = await c.query('select current_user as who')
+      expect(
+        (rows[0] as { who: string }).who,
+        'SEED_DATABASE_URL and TEST_DATABASE_URL point at the same role, which makes every ' +
+          'assertion in this suite vacuous.',
+      ).not.toBe(seed.role)
     } finally {
       c.release()
     }

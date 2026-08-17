@@ -44,10 +44,39 @@ so they stop diverging.
 Neon host. Without it the pooler tests still run, but against a plain pool — which is a
 weaker claim, and `pooling.test.ts` prints which tier it ran.
 
-**Two roles, not one.** `TEST_DATABASE_URL` is `app_user`; `SEED_DATABASE_URL` is
-privileged. `0001_rls.sql` sets `FORCE ROW LEVEL SECURITY`, so even the table owner obeys
-the policies — and a seed that had to satisfy them could not create the cross-tenant rows
-the suite exists to detect. If both point at the same role, every assertion goes vacuous.
+### Two roles, and why the seed one is privileged
+
+`TEST_DATABASE_URL` is `app_user`. `SEED_DATABASE_URL` is the project owner on Neon, or a
+superuser locally. They must not be the same role.
+
+**The fixture has to be ground truth, independent of the mechanism under test.** If seeding
+went through RLS, a policy bug that permitted *too much* would produce a fixture consistent
+with the broken policy, and these tests would pass. The seed also writes rows for two
+different tenants in one pass, which no single tenant context may legitimately do — that
+*is* the fixture.
+
+`app_user` could not seed anyway: no `TRUNCATE` privilege, and its `WITH CHECK` forbids
+another tenant's rows.
+
+**It is `BYPASSRLS` doing the work, not ownership.** Measured on PG 17 with a role that
+owned the table but had neither superuser nor `BYPASSRLS`:
+
+| role state | rows visible, no GUCs |
+|---|---|
+| owner, RLS `ENABLED` only | 2 — the owner exemption |
+| owner, RLS **`FORCED`** | **0** — `FORCE` binds the owner |
+| owner, `FORCED`, + `BYPASSRLS` | 2 — `BYPASSRLS` overrides `FORCE` |
+
+So a plain owner would see nothing and the seed would fail. On Neon it works because
+`neondb_owner` has `BYPASSRLS` via `neon_superuser`; locally because `postgres` is a
+superuser.
+
+Both directions are guarded. Point `TEST_DATABASE_URL` at the privileged role and
+`rolbypassrls = false` fails. Point `SEED_DATABASE_URL` at `app_user` and `reseed()` throws
+with an explanation **before** its first `INSERT` — which matters, because a seed that fails
+inside `beforeAll` makes vitest report skipped tests rather than failures. Measured before
+that fix: 47 passed, 48 skipped, zero failures, and the test written to explain the problem
+was itself skipped.
 
 ### ⚠️ On Neon, create `app_user` with SQL — never via the Console, CLI or API
 
