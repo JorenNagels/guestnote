@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "compilerOptions": {
+    // TypeScript 6 already defaults to strict, module: esnext, target: es2025 and
+    // noUncheckedSideEffectImports. Only the things it does NOT default to are set here.
+    "moduleResolution": "bundler",
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+
+    // TS 6 defaults `types` to [] rather than every @types package on disk. Anything
+    // that touches process.env or node: imports has to opt in explicitly.
+    "types": ["node"],
+
+    // Beyond `strict`. noUncheckedIndexedAccess is the one that matters most here:
+    // a lot of this code indexes into query results and CSV rows.
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": true,
+
+    // No emit anywhere. Packages are consumed as TypeScript source (see the note in
+    // packages/db/package.json), and apps/web is compiled by Next.
+    "noEmit": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+
+    // No `baseUrl` and no `paths`. It was removed as a resolution root in TS 6, and it
+    // isn't needed: npm workspaces symlink @guestnote/* into node_modules, so ordinary
+    // node resolution finds them. One less thing to keep in sync with Next and Vitest.
+    "lib": ["ES2025"]
+  }
+}
