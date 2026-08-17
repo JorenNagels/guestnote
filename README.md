@@ -88,20 +88,32 @@ Scoped to the **planner platform**. Tenant wedding-site theming is parked.
 | `../se-parti-rsvp` | Multi-wedding RSVP app, one AWS stack per wedding, Clerk-org-scoped admin | **The seed of the product.** Needs config-as-data + a single multi-tenant stack before it's sellable |
 | `../emma-joren` | Joren & Emma's own site, 31 July 2027 | Feature lab — prove features here, promote the good ones |
 
-## The blocker
+## The bar
 
-Right now every new wedding is a code change, a commit and a `cdk deploy` by Joren. That's
-a bespoke-site factory, not a SaaS. Three things gate everything else:
+**A planner runs one real wedding entirely in Guestnote instead of a spreadsheet.**
+That is `research/09-planner-app.md`'s P1 gate, and since the 2026-08-14 pivot it is *the*
+goal — not a milestone on the way to one. The competitor to beat is not software; it is
+Excel and WhatsApp, which sets the bar: anything slower to use than a spreadsheet loses.
 
-1. **Config → database.** `shared/src/weddings/*.ts` becomes rows. No deploy to add a wedding.
-   → spec **F1**, milestone **M2/M4**
-2. **Single multi-tenant stack.** One Postgres database scoped by `wedding_id`, one Lambda,
-   one CloudFront with wildcard subdomains. One-stack-per-wedding dies around ~20 weddings.
-   → spec **F2**, milestone **M1**
-3. **Self-serve onboarding.** Sign up → pick a template → fill a form → site is live, with
-   no Joren in the loop. → spec **S1**, milestone **M8**
+Three things gate it:
 
-Day-90 goal: a stranger can create a live wedding site without Joren touching a keyboard.
+1. **Tenancy that provably holds.** One Postgres database scoped by `org_id` + `wedding_id`,
+   RLS as the backstop, and a `withTenant()` that cannot be called without a tenant context.
+   This is the only part that cannot be retrofitted. → milestone **M2**, spec **F6/T5**
+2. **The two-table authz model.** `org_members` is staff; the couple is never an org member,
+   `wedding_members` carries them. Tasks carry `visibility`, so a planner's internal notes
+   exist from the first migration rather than leaking on the day the couple portal ships.
+   → `research/07-auth-and-tenancy.md`, `09-planner-app.md` §b
+3. **The task engine.** Shared checklist, assigned to planner *or* couple, due dates anchored
+   to the wedding date, applied from a template in one click. → **T3/T6/T8/T9**
+
+### Deferred, not cancelled
+
+The original blocker — every new wedding being a code change, a commit and a `cdk deploy` —
+is real and still stands, but it belongs to the guest-site product, which
+`research/09-planner-app.md` moved to **P4**: config → database (**F1**), wildcard-subdomain
+rendering with per-tenant ISR (**F2**), self-serve onboarding (**S1**). `se-parti-rsvp`
+therefore sits idle longer. That is the acknowledged cost of the reordering.
 
 ## Technical decisions (2026-08-11)
 
@@ -129,8 +141,27 @@ the permanent free tiers (CloudFront 1 TB, Lambda 1M requests) absorb it comfort
 - [ ] Designer budget for 5–6 templates — **€2,000–5,000, and the highest-ROI euro available**
 - [ ] Is French a launch requirement or a Wallonia-expansion feature? (Changes T2 materially)
 
+## The schema lives in code
+
+`packages/db/src/schema/*.ts` is the **authoritative schema**. `research/05-architecture.md` §4,
+`07-auth-and-tenancy.md` §4 and `09-planner-app.md` §b–§c are the *reasoning* behind it and are
+not kept in sync column by column. Where they disagree with the Drizzle schema, the schema wins.
+
 ## Next action
 
-Validation calls: 15 Flemish planners + 5 venues, before writing any product code.
-Take `research/04-speclist.md` into the calls; its final section lists the six questions
-those calls need to settle. See also §7 of `research/02-strategy-and-verdict.md`.
+**Two tracks, in parallel.**
+
+1. **Build.** Repo skeleton, then the P0 schema, then RLS + `withTenant()` + the isolation
+   suite — which is the gate: no feature work until `npm run test:db` exits 0. Then auth, then
+   the task engine, then hosting. `05-architecture.md` §9's **M1** is split: its infrastructure
+   half (a deployed, authenticated `pro.guestnote.be`) stays; its per-tenant-ISR half moves to
+   the P4 boundary, because no P0–P3 surface is cached.
+2. **Validate.** 15 Flemish planners + 5 venues, as the non-coding evenings rather than as a
+   gate. Take `research/04-speclist.md` into the calls; its final section lists the six
+   questions they need to settle, and `09-planner-app.md` §Open adds the one that matters most:
+   **how many professional wedding planners actually exist in Flanders.** A planner-seat product
+   is capped by that number. See also §7 of `research/02-strategy-and-verdict.md`.
+
+Track 1's first three weekends are *stack* validation — RLS through Neon's pooler, the
+`withTenant` guard, the id type — and are needed identically whichever answer track 2 returns.
+The first sitting that commits to the pivot is the task engine.

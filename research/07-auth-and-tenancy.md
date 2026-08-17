@@ -7,6 +7,34 @@ decision and extends with the org/role model that document only implied.
 Clerk numbers that were checked, so the comparison doesn't get re-run every time someone
 remembers that `se-parti-rsvp` already uses Clerk.
 
+> ⚠️ **Scope narrowed 2026-08-17: Better Auth for authentication only.**
+>
+> It owns `users`, `sessions`, `accounts`, `verifications` and magic link. **`organizations`,
+> `org_members` and the merged `invitations` table (§4b) are hand-rolled in Drizzle** — the
+> Organization plugin is not used.
+>
+> This does not reverse the decision below; all four reasons Better Auth won (one database, every
+> permission check as SQL inside the transaction that sets `app.org_id`, EU residency, auth email
+> riding the SES + `react-email` + `next-intl` pipeline) are properties of **self-hosting**, not of
+> the plugin. Three reasons the plugin is out:
+>
+> 1. §1 already concedes vendor org features cover only ~30% of the model, and the plugin
+>    **cannot express a role scoped below the organization** — so `wedding_members` is custom
+>    regardless, which is the layer that actually matters.
+> 2. It puts "which org am I acting as" in `session.activeOrganizationId`. That is a second source
+>    of truth next to the two membership tables, and §3 is explicit that authorization resolves
+>    from those tables and that `app.org_id` "is a data-scoping mechanism, never a permission."
+>    The Principal is resolved from the **URL** joined against `org_members` / `wedding_members`,
+>    full stop.
+> 3. Its schema and `drizzle-kit` would both want to own the same tables, and its default **`text`
+>    ids** collide with the `::uuid` casts in §4a. Force `advanced.database.generateId` to uuid
+>    before the first migration — otherwise it is a column-type migration across
+>    `wedding_members.user_id`, `org_members.user_id`, `audit_log.actor_user_id` and
+>    `invitations.invited_by` after real users exist.
+>
+> Cost: the org switcher and the invite/accept endpoints are hand-written. Roughly a day, and
+> `08-design-system.md` already settled the components.
+
 ---
 
 ## 1. Why not Clerk — the honest version
@@ -166,6 +194,24 @@ planner's entire book of business. Enforce it inside `withTenant()`: if the prin
 org member, `weddingId` is required, not optional. Five lines, and the highest-risk path in the
 model — it gets its own case in the **F6** suite.
 
+> **Better: make it unrepresentable.** A runtime check is a belt; the type is the braces.
+> `withTenant` takes a discriminated union, never a loose `{ orgId?, weddingId? }` bag:
+>
+> ```ts
+> type Principal =
+>   | { kind: 'orgStaff';      orgId; role: 'owner' | 'admin' }
+>   | { kind: 'assignedStaff'; orgId; weddingId; role: 'member' }
+>   | { kind: 'weddingMember'; orgId; weddingId; role: 'couple' | 'editor' }
+> ```
+>
+> No inhabitant carries an `orgId` without a `weddingId` unless it is org-wide staff.
+
+> **And note the second half of the trap** (see the correction in `05-architecture.md` §4): because
+> a couple's session sets `app.org_id` to the planner's org, **the couple's GUCs and the planner's
+> GUCs are identical.** So the two GUCs above cannot express `tasks.visibility = 'internal'`.
+> `withTenant` sets a third, `app.wedding_role`, from the resolved membership, and the policy on
+> any table with an internal/shared split tests it.
+
 ---
 
 ## 4. Two schema deltas
@@ -174,7 +220,8 @@ model — it gets its own case in the **F6** suite.
 
 It is the table read *before* the tenant is known, in order to determine it. So it is the one
 exception to §4's rule that every tenant-scoped table carries both `org_id` and `wedding_id` —
-line 259 having no `org_id` is correct, not an oversight. Its RLS policy runs on a different
+`wedding_members` in `05-architecture.md` §4 having no `org_id` is correct, not an oversight — it and
+`org_members` are the **only** two exceptions to that section's both-keys rule. Its RLS policy runs on a different
 axis:
 
 ```sql
@@ -204,7 +251,7 @@ Resolve the wedding from the **URL**, never from a client-supplied list.
 
 **b. There are two invitation flows; the schema has one.**
 
-`invitations_org` (line 252) covers "Ilse invites Tom as staff." Nothing covers "Ilse invites Jan
+`invitations_org` in `05-architecture.md` §4 covers "Ilse invites Tom as staff." Nothing covers "Ilse invites Jan
 and Els to their wedding" — which is the *more common* flow, and the only way a couple gets an
 account. Replace it with one table rather than adding a second:
 
@@ -234,7 +281,12 @@ rule is the whole design.
 - **M2** — add the `own_memberships` RLS policies and the `withTenant()` guard from §3 to the
   **F6** suite. Two cases: a couple session without `app.wedding_id` must see zero rows, and
   tenant A's user must resolve zero of tenant B's memberships.
-- **M3** — Better Auth with the Organization plugin, plus the merged `invitations` table and both
-  accept flows. Build `packages/core/auth` first; nothing else imports Better Auth directly.
+  > **Do this with a fake session** — a bare `userId` string. "From the verified session" in §4a
+  > reads as though these tests wait for M3; they must not. The highest-value test in the repo does
+  > not get gated on the dependency with the most unknowns. M3 swaps in a real session later.
+- **M3** — Better Auth for authentication only (see the scope note at the top), the hand-rolled
+  `organizations` / `org_members` / merged `invitations` tables, and both accept flows. Build
+  `packages/core/auth` first; nothing else imports Better Auth directly, enforced by a test rather
+  than only by a lint rule.
 - **M9** — feature gating reads `organizations.plan`, which is why the wedding belongs to the
   *planner's* org and not the couple's.

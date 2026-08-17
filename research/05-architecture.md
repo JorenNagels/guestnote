@@ -237,6 +237,24 @@ drop-in swap, or RDS at ~$54/mo all-in.
 
 ### Schema
 
+> ⚠️ **This block is reasoning, not the schema.** The authoritative schema is
+> `packages/db/src/schema/*.ts`; where the two disagree, the code wins. Three corrections
+> since this was written:
+>
+> - **`invitations_org` is superseded** by the single merged `invitations` table in
+>   `07-auth-and-tenancy.md` §4b (`wedding_id NULL` ⇒ staff invite). There is one invitation
+>   table, not two.
+> - **This block is P0 and P4 combined.** Under the 2026-08-14 pivot only `organizations`,
+>   `org_members`, the Better Auth tables, `weddings`, `wedding_members`, `wedding_domains`,
+>   `invitations` and `audit_log` are built now — plus `tasks` and `task_comments` from
+>   `09-planner-app.md` §b, which this block predates. Everything guest-facing (`site_pages`,
+>   `site_blocks`, `media_assets`, `locations`, `events`, `guest_groups`, `guests`,
+>   `group_event_invites`, `rsvps`, `questions`, `rsvp_answers`, `seating_*`,
+>   `guest_invitations`, `email_log`) is P4. Twenty unused tables means twenty unused RLS
+>   policies and twenty isolation cases to maintain against features two quarters out.
+> - **Roles and statuses are `text` + `CHECK`, not Postgres `enum`.** `09-planner-app.md` §a
+>   already needs to widen `wedding_members.role`, and enum values can never be removed.
+
 Every tenant-scoped table carries **both** `org_id` and `wedding_id`, denormalised onto
 children on purpose: it makes every RLS policy a single-column check with no joins, and every
 index a composite starting with the tenant column.
@@ -339,6 +357,33 @@ the transaction**. The `true` makes it transaction-local — non-negotiable with
 connections, or one request's tenant leaks into the next. The dashboard sets only `app.org_id`
 (cross-wedding reads within the org); a guest request sets both, derived from the *verified
 token*, never from user input.
+
+> ⚠️ **Correction 2026-08-17: there is a third GUC, `app.wedding_role`.**
+>
+> The policy above is **one-dimensional**, but the model is two-dimensional. `07-auth-and-tenancy.md`
+> §3 establishes that a couple's session sets `app.org_id` to *the planner's* org — it must, or the
+> policy rejects every row. So **a couple's session and a planner's session set identical GUCs**,
+> and `tasks.visibility = 'internal'` (`09-planner-app.md` §b) and `budget_lines.internal` (§c) have
+> **no RLS backstop at all** — for precisely the data `09` identifies as most damaging to leak
+> ("chasing a late invoice", "couple is being difficult about the seating").
+>
+> `withTenant` therefore sets a third transaction-local GUC from the *resolved membership*, and the
+> policy on any table with an internal/shared split gains one clause:
+>
+> ```sql
+> AND (visibility = 'shared'
+>      OR current_setting('app.wedding_role', true) IN ('owner','admin','member','editor'))
+> ```
+>
+> Five lines, and they belong in the **first** migration — the same retrofit argument `09 §b` makes
+> about the column itself applies to its backstop.
+
+> ⚠️ **Correction 2026-08-17: the driver split below states a wrong mechanism, and P0 doesn't need
+> it.** `neon.transaction([...])` *is* a single real transaction batched into one HTTP request; the
+> HTTP driver's actual limitation is that it cannot run *interactive* logic between statements, which
+> is what `withTenant` needs. The conclusion (WebSocket/pooled driver inside `withTenant`) stands —
+> but under planner-first there are **no cached reads**, so the HTTP driver has no P0–P3 use case.
+> Ship only the pooled path; `client.ts` stays simpler and adding HTTP later is one export.
 
 **Test it (F6).** A `vitest` suite that, for each tenant table, asserts a query under tenant
 A's GUCs returns zero of tenant B's rows. ~50 lines, runs in CI, and it is the highest-value
@@ -577,12 +622,27 @@ dev plus a `workflow_dispatch` push to the shared `dev` deployment. **Rollback i
 
 ## 9. Build order
 
+> ⚠️ **Revised 2026-08-17: execution order is `M0 → M2 → M3 → task engine → M1a`, and the gate
+> moved.** Local-first. `M2` (Neon, RLS, `withTenant`, the isolation suite) is the thing P0 cannot
+> retrofit and the thing whose failure cannot be walked back — you are the GDPR *processor* for
+> other people's client data — so **that** is where "build no features until this is green" belongs.
+> M1a's deploy is deferred to the fifth weekend, and M1b to the P4 boundary. `M4`–`M7` are all P4
+> under `09-planner-app.md`; the task engine, couple portal, templates and budget slot in between
+> M3 and M4.
+>
+> The accepted cost: "works locally, breaks on Lambda" is discovered later. The hedge is that a
+> `no-store` dashboard has three viable hosts — §2's objection to Lambda Web Adapter and Fargate
+> was *broken ISR across instances*, which cannot apply to a surface that never caches, and
+> Amplify's rejection was a 50-subdomain cap that bites *tenant* subdomains, not `pro.`. So the
+> hosting decision stays reversible in a weekend, and reversible risks don't earn a gate.
+
 | # | Milestone | Effort | Gate |
 |---|---|---|---|
-| **M0** | Register domains, Route 53 zone, ACM cert (`guestnote.be` + `*.guestnote.be`) in **us-east-1**, scoped deploy role, budget alarms | ½ wknd | |
-| **M1** | **Skeleton proving the hard parts** — Next 16 + OpenNext + CDK behind CloudFront. Prove: two hardcoded tenants render differently · ISR caches per host · `revalidateTag` busts one and not the other · `x-forwarded-host` arrives intact | 2 | **Build no features until this is green** |
-| **M2** | Neon + Drizzle schema + RLS + `withTenant` + F6 isolation suite + migrations in CI. Seed from the two existing `se-parti-rsvp` weddings | 1–2 | |
-| **M3** | Better Auth: orgs, magic link, invitations. `pro.guestnote.be` login → org switcher → wedding list | 1–2 | |
+| **M0** | Register domains, Route 53 zone, ACM cert (`guestnote.be` + `www` + `*.guestnote.be`, one cert, three SANs) in **us-east-1**, scoped deploy role, budget alarms | ½ wknd | |
+| **M1a** | **Deployable skeleton** — Next 16 + OpenNext + CDK behind CloudFront, one alias `pro.guestnote.be`, `private, no-store`, `/api/health` doing a real `withTenant` round-trip, `proxy.ts` with all four host branches (wildcard and custom → 404). Prove: `x-forwarded-host` arrives intact · a `__Host-` session cookie survives CloudFront → Function URL · `/pro/*` is never cached · rollback by `git revert` works | 1 | Hard timebox. Fallback written into `infra/README.md` |
+| **M1b** | **Per-tenant ISR** — two hardcoded tenants render differently · ISR caches per host · `revalidateTag` busts one and not the other · `x-forwarded-host` in the CloudFront cache key policy | 1–1.5 | **Moved to immediately before M4/P4.** Gate becomes "build no *guest-site* features until this is green" |
+| **M2** | Neon + Drizzle schema + RLS + `withTenant` + F6 isolation suite + migrations in CI. **Seed a synthetic two-org / three-wedding fixture**, not the two `se-parti-rsvp` weddings — those seed nothing useful for a planner app, and the fixture is what the isolation suite needs anyway | 1–2 | **← the gate. `npm run test:db` exits 0** |
+| **M3** | Better Auth for **authentication only** (`users`/`sessions`/`accounts`/`verifications` + magic link) behind `packages/core/auth`; `organizations`, `org_members` and the merged `invitations` are hand-rolled in Drizzle. `pro.guestnote.be` login → org switcher → wedding list. See `07-auth-and-tenancy.md` §1 for why the scope narrowed | 1–2 | |
 | **M4** | Guest site rendered from the database. One template from `site_blocks`, theme from `weddings.theme` (port `contrast.ts`), NL/EN via `next-intl`, publish → `revalidateTag` | 2 | **Config stops being code** |
 | **M5** | RSVP: invitation tokens, guest cookie, per-event, dynamic questions, confirmation email | 2 | Revenue-critical path |
 | **M6** | Planner dashboard: guest table, CSV import/export, households, invite sending, counts per event | 2–3 | **The B2B product** |

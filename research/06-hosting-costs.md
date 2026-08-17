@@ -7,6 +7,18 @@ All AWS figures below were pulled from the **AWS Pricing API for `eu-central-1`*
 2026-08-11, not from memory or blog posts. Third-party prices are list prices and should be
 treated as ±10%.
 
+> ⚠️ **Note 2026-08-17: this models the wrong traffic profile for what is being built first.**
+> Everything below is 100 weddings of *guest* traffic — many readers, one absorbable spike per
+> wedding, CloudFront doing the work. The planner dashboard (`09-planner-app.md`) is the opposite
+> shape: few users, no spike to absorb, but **per-request Lambda and per-request Neon compute**
+> because it is `private, no-store` by design.
+>
+> Nothing below is wrong; it is computed for the other half of the product. The number to watch
+> during PH0–PH3 is **Neon's 100 CU-hours/month with scale-to-zero**, not CloudFront GB — and
+> especially so once OpenNext's warmer function starts poking the app every five minutes, which
+> defeats scale-to-zero if the health check touches the database. Re-model when the guest sites
+> land at PH4.
+
 ---
 
 ## The short answer

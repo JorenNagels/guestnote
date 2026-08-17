@@ -8,7 +8,7 @@
 > `../se-parti-rsvp`.
 >
 > This document supersedes the *tiering* of `04-speclist.md`, not its content. Every
-> G/C/S/V item there still stands; it now sits in **P4** below.
+> G/C/S/V item there still stands; it now sits in **PH4** below.
 
 ## Why this order
 
@@ -25,10 +25,10 @@ intersection* —
 
 A planner app **without** the guest site is a fifth CRM competing with Aisle Planner
 (\$39.99–69.99/mo), HoneyBook (\$36–59/mo), Dubsado (\$20–40/mo) and Planning Pod
-(\$39–74/mo) — all mature, all funded. So P4 is not optional; it is what makes the
+(\$39–74/mo) — all mature, all funded. So PH4 is not optional; it is what makes the
 product defensible. It is a sequencing decision, not a scope cut.
 
-**The competitor to beat in P0–P1 is not software. It is Excel and WhatsApp.** That is
+**The competitor to beat in PH0–PH1 is not software. It is Excel and WhatsApp.** That is
 what Flemish planners run on today, and it sets the bar: anything slower to use than a
 spreadsheet loses.
 
@@ -36,12 +36,21 @@ spreadsheet loses.
 
 | | |
 |---|---|
+| **Phases** | **PH0**–**PH4**, the section headings below |
+| **Items** | **P1**–**P20**, the rows inside them |
 | **Personas** | 🎩 Planner · 👰 Couple · 🏛 Venue · 🤝 Vendor · ⚙️ Ops |
 | **Effort** | **S** under a day · **M** one weekend · **L** 2–3 weekends · **XL** a month+ |
 
+> Phases were renamed `P0`–`P4` → **`PH0`–`PH4`** on 2026-08-17. As originally written, `P1` meant
+> both "phase 1 — The switch" and "item P1 — Wedding as a first-class record" (which lives in phase
+> 0), and `P4` meant both "phase 4 — fold in the wedding site" and "item P4 — Comments on a task".
+> Alongside `05-architecture.md`'s `M0`–`M10` and `04-speclist.md`'s `F/G/C/S/V/D` items and `T0`–`T4`
+> tiers, you could not write an unambiguous commit message. Items keep `P`; the tier letter `T` was
+> not available because `04-speclist.md` still uses it.
+
 ---
 
-## P0 — Foundation
+## PH0 — Foundation
 
 Nothing below works without these. Smaller than `04-speclist.md`'s T0 because no public
 site rendering is involved yet.
@@ -56,7 +65,7 @@ site rendering is involved yet.
 
 ---
 
-## P1 — The switch
+## PH1 — The switch
 
 The bar: **a planner runs one real wedding entirely in Guestnote instead of a spreadsheet.**
 
@@ -70,7 +79,7 @@ The bar: **a planner runs one real wedding entirely in Guestnote instead of a sp
 
 ---
 
-## P2 — Daily driver
+## PH2 — Daily driver
 
 Where it stops being a to-do list and starts replacing the spreadsheet.
 
@@ -84,7 +93,7 @@ Where it stops being a to-do list and starts replacing the spreadsheet.
 
 ---
 
-## P3 — Stickiness
+## PH3 — Stickiness
 
 | ID | Item | Persona | Effort | Notes |
 |---|---|---|---|---|
@@ -96,10 +105,10 @@ Where it stops being a to-do list and starts replacing the spreadsheet.
 
 ---
 
-## P4 — Fold in the wedding site + RSVP
+## PH4 — Fold in the wedding site + RSVP
 
 **All of `04-speclist.md` lands here**, essentially unchanged. The order inside it holds
-(T0 → T1 → T2); it simply starts after P3 rather than first.
+(T0 → T1 → T2); it simply starts after PH3 rather than first.
 
 The join between the two halves is worth designing early even though it is built late:
 
@@ -132,6 +141,13 @@ Naming these now stops them creeping in later.
 
 Against `07-auth-and-tenancy.md`, which was written for the RSVP product.
 
+> The authoritative schema is `packages/db/src/schema/*.ts`. The sketches below are the *reasoning*.
+> **`org_id` was added to `tasks` and `budget_lines` on 2026-08-17** — they were missing it, which
+> contradicted `05-architecture.md` §4's rule that every tenant-scoped table carries **both** keys,
+> denormalised so each RLS policy is a single-column check with no joins. A `schema-coverage` test in
+> `packages/db` now fails CI if any tenant-scoped table lacks `org_id`, `FORCE ROW LEVEL SECURITY`,
+> a policy, or a case in the isolation suite — so this class of omission cannot recur silently.
+
 **a. `wedding_members.role` gains `vendor`.**
 Currently `couple | editor`. **P18** needs a third, much narrower role: sees its own run-sheet
 rows and its own tasks; never the budget, never the guest list. The `invitations` table
@@ -140,7 +156,7 @@ already carries wedding-scoped invites, so only the enum and the permission chec
 **b. Tasks need visibility, not just an assignee.**
 
 ```
-tasks   id, wedding_id, title, notes, assignee_user_id NULL,
+tasks   id, org_id, wedding_id, title, notes, assignee_user_id NULL,
         assignee_role,            -- planner | couple | vendor
         due_at, due_offset_days,  -- offset from the wedding date, for templates
         visibility,               -- shared | internal
@@ -151,10 +167,18 @@ tasks   id, wedding_id, title, notes, assignee_user_id NULL,
 see — chasing a late invoice, checking a margin, "couple is being difficult about the seating".
 Retrofitting this after the couple portal ships means leaking those on the day you add it.
 
+> **The column alone is not enough.** A couple's session sets `app.org_id` to the planner's org
+> (`07 §3` — it must), so the couple's GUCs and the planner's are *identical* and the RLS policy in
+> `05 §4` cannot see the difference. `visibility` would be enforced only in the repository layer,
+> with **no backstop**, for exactly the data this section says is most damaging to leak. The fix is a
+> third GUC, `app.wedding_role`, set inside `withTenant` from the resolved membership; see the
+> correction in `05-architecture.md` §4. It belongs in the same first migration as the column, for
+> the same reason.
+
 **c. Budget is shared, with one cheap escape hatch.**
 
 ```
-budget_lines   id, wedding_id, category, label, vendor_id NULL,
+budget_lines   id, org_id, wedding_id, category, label, vendor_id NULL,
                estimated_cents, actual_cents, paid_cents, due_at,
                internal BOOLEAN DEFAULT false
 ```
@@ -186,12 +210,12 @@ Against `05-architecture.md` §9:
 
 - **M1–M3 stand.** Multi-tenant stack, weddings-as-rows and Better Auth are needed either
   way. `F1` (config → database) still applies — it is the same table
-- **M4–M7 slide** — template rendering, the site editor and publishing are all P4 now
+- **M4–M7 slide** — template rendering, the site editor and publishing are all PH4 now
 - **New, between M3 and M4:** the task engine, couple portal, templates, budget
 - **F6 isolation tests grow** to cover tasks, budget and vendors from day one, not later
 
 `se-parti-rsvp` sits idle longer under this plan. That is the real cost of the reordering,
-and it is acceptable only because P4 is committed rather than hypothetical.
+and it is acceptable only because PH4 is committed rather than hypothetical.
 
 ## Open
 
