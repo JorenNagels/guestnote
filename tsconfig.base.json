@@ -7,6 +7,13 @@
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
 
+    // Imports carry explicit `.ts` extensions. Legal because nothing here emits
+    // (`noEmit` below): Next compiles apps/web, and packages are consumed as
+    // TypeScript source rather than built to dist. Explicit extensions also mean
+    // Node 24 can run these files directly with its native type stripping, which
+    // is useful for one-off scripts and migration runners.
+    "allowImportingTsExtensions": true,
+
     // TS 6 defaults `types` to [] rather than every @types package on disk. Anything
     // that touches process.env or node: imports has to opt in explicitly.
     "types": ["node"],

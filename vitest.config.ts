@@ -21,8 +21,11 @@ export default defineConfig({
         test: {
           name: 'unit',
           environment: 'node',
-          include: ['packages/*/test/**/*.test.ts', 'apps/*/src/**/*.test.ts'],
-          exclude: ['packages/db/test/**'],
+          // Co-located with the source they cover, and needing nothing external. The
+          // split is by location rather than by an exclude list, so a new test cannot
+          // land in the wrong project by accident: anything under `test/` needs a
+          // database, anything beside the source does not.
+          include: ['packages/*/src/**/*.test.ts', 'apps/*/src/**/*.test.ts'],
         },
       },
       {
