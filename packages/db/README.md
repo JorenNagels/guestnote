@@ -41,6 +41,24 @@ privileged. `0001_rls.sql` sets `FORCE ROW LEVEL SECURITY`, so even the table ow
 the policies — and a seed that had to satisfy them could not create the cross-tenant rows
 the suite exists to detect. If both point at the same role, every assertion goes vacuous.
 
+### ⚠️ On Neon, create `app_user` with SQL — never via the Console, CLI or API
+
+Neon's `neon_superuser` role includes **`BYPASSRLS`** (for projects created after
+2023-08-15), and it is **granted automatically to every role created through the Console,
+CLI or API**. Roles created with plain `CREATE ROLE` in SQL do *not* get it.
+
+So a console-created `app_user` bypasses every policy in `0001_rls.sql` — silently. No
+error, no failing query, nothing in the logs, and an isolation suite that passes because
+the fixtures line up rather than because the policies work.
+
+```sql
+-- correct: SQL, so no neon_superuser membership
+CREATE ROLE app_user WITH LOGIN PASSWORD '...';
+```
+
+`pooling.test.ts` asserts `rolbypassrls = false` on whatever role it connected as, which
+is what catches this. If that test fails on Neon, this is why.
+
 ## The four GUCs
 
 Set transaction-locally by `withTenant()`, always as the first statements in the
@@ -57,6 +75,26 @@ a pooled connection and one request's tenant leaks into the next.
 Every policy reads them via `nullif(current_setting(name, true), '')`, so an unset GUC
 yields NULL, `org_id = NULL` yields NULL, and the row is filtered. **The schema fails
 closed: no GUCs means no rows.**
+
+### Why `set_config(..., true)` and not `SET`
+
+Neon's pooled endpoint is **PgBouncer in transaction mode**, and its documented limits say
+plainly that `SET` / `RESET` are unsupported and that session variables do not persist
+across transactions.
+
+That is not a problem for this design — it is the reason for it. `set_config(name, value,
+true)` is *transaction-local*, and a transaction-mode pooler holds one connection for the
+duration of a transaction, so the setting lives exactly as long as the statements that need
+it and is gone when the connection is recycled. A session-level `SET` would be both
+unsupported *and* a cross-tenant leak.
+
+`pooling.test.ts` is what turns that reasoning into a fact, which is why it has to run
+against a real pooled Neon host and not only a local pool.
+
+Also unsupported on the pooled endpoint, none of which this schema uses: temporary tables,
+`LISTEN`/`NOTIFY`, advisory locks, `WITH HOLD` cursors, and SQL-level `PREPARE`.
+**Migrations must therefore run over the direct (unpooled) endpoint** — `drizzle.config.ts`
+uses `DATABASE_URL_UNPOOLED` for exactly this reason.
 
 ### `app.wedding_role` is an addition, not part of the original design
 
