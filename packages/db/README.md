@@ -27,10 +27,18 @@ npm run test:db
 ```bash
 # Tier 2 -- Neon. Proves the POOLER: that a transaction-local GUC does not survive
 # COMMIT on a recycled connection. Nothing else can answer that question.
-TEST_DATABASE_URL='postgres://app_user:...@ep-xxx-pooler.eu-central-1.aws.neon.tech/guestnote' \
-SEED_DATABASE_URL='postgres://owner:...@ep-xxx.eu-central-1.aws.neon.tech/guestnote' \
+# The values live in .env.local (gitignored); TEST_DATABASE_URL must be the app_user
+# POOLED url and SEED_DATABASE_URL the owner's DIRECT url.
+set -a; . ./.env.local; set +a
 REQUIRE_NEON_TIER=1 npm run test:db
 ```
+
+**Result, 2026-08-17: 94 passed** against `-pooler` on PostgreSQL **18.4**. This settles
+`research/05-architecture.md` §11.2 — see `docs/adr/0001-rls-through-neon-pooler.md`.
+
+Note the version skew: the local container is `postgres:17-alpine`, Neon is on 18.4. Both
+tiers pass, so nothing depends on the difference today, but the container should move to 18
+so they stop diverging.
 
 `REQUIRE_NEON_TIER=1` makes the suite **fail** if it is not actually pointed at a pooled
 Neon host. Without it the pooler tests still run, but against a plain pool — which is a

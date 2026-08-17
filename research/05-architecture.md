@@ -678,8 +678,22 @@ they're strictly worse.
    **M1 exists to find this out in a weekend rather than three months in.** Also watch the
    official AWS adapter built on the stable Adapter API (Next 16.2) — it may become the better
    target inside the build window.
-2. **Neon + RLS via the WebSocket driver** — confirm `set_config(..., true)` survives their
-   pooler as expected. Test in M2, not M6.
+2. ~~**Neon + RLS via the WebSocket driver** — confirm `set_config(..., true)` survives their
+   pooler as expected. Test in M2, not M6.~~
+   ✅ **Settled 2026-08-17. It does.** 94 assertions green against the real `-pooler`
+   endpoint on PostgreSQL 18.4, including a GUC proven absent after `COMMIT` across six
+   successive checkouts and 20 interleaved two-tenant transactions on a pool capped at 2.
+   Neon's docs *do* say `SET`/`RESET` are unsupported and session variables do not survive a
+   transaction on the pooled endpoint — which is the reason for `set_config(..., true)`
+   rather than a problem with it: transaction-local is exactly what a transaction-mode
+   pooler preserves. Full result, and the fallback that was not needed, in
+   `docs/adr/0001-rls-through-neon-pooler.md`.
+
+   > ⚠️ **The real trap was the role, not the pooler.** `neon_superuser` includes
+   > **`BYPASSRLS`** and is granted automatically to any role created through the Neon
+   > Console, CLI or API — measured here: `neondb_owner` has `rolbypassrls = true`. Connect
+   > the application as that role and **every policy is bypassed silently**. `app_user` must
+   > be created with `CREATE ROLE` in **SQL**, which gets no such membership.
 3. **CloudFront SaaS Manager** per-tenant invalidation — if
    `CreateInvalidationForDistributionTenant` exists, the 60-second TTL compromise in §1 can be
    replaced with precise invalidation. Only relevant once custom domains land.
