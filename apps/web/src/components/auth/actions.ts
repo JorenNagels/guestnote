@@ -1,8 +1,8 @@
 'use server'
 
 import type { AuthFailure } from '@guestnote/core/auth'
-import { requestEmailCode, verifyEmailCode } from '@guestnote/core/auth'
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
+import { getAuth } from '../../lib/auth.ts'
 import { isLocale, LOCALE_COOKIE, type Locale } from '../../lib/locales.ts'
 
 /**
@@ -39,7 +39,7 @@ export async function requestCode(email: string): Promise<StepResult> {
   const address = email.trim()
   if (!LOOKS_LIKE_EMAIL.test(address)) return { ok: false, failure: 'unavailable' }
 
-  const result = await requestEmailCode({ email: address })
+  const result = await getAuth().requestEmailCode({ email: address })
   // Note what is NOT returned: anything that differs between a known and an unknown
   // address. The seam guarantees that shape; this keeps the guarantee by passing it
   // through rather than enriching it.
@@ -47,15 +47,16 @@ export async function requestCode(email: string): Promise<StepResult> {
 }
 
 export async function submitCode(email: string, code: string): Promise<StepResult> {
-  const result = await verifyEmailCode({ email: email.trim(), code })
+  // The session cookie is set on THIS action's response, by the `nextCookies()` plugin
+  // in packages/core/src/auth/better-auth.ts. Without that plugin the sign-in succeeds
+  // and the browser is handed nothing -- which looks exactly like the flow working and
+  // the session evaporating on the next navigation.
+  const result = await getAuth().verifyEmailCode({
+    email: email.trim(),
+    code,
+    headers: await headers(),
+  })
   if (result.ok) {
-    // W3: this is where the session cookie is set -- `__Host-` prefixed, Secure,
-    // HttpOnly, and SameSite=Lax rather than Strict. Lax is load-bearing and worth the
-    // comment: a sign-in continued from a link in a webmail tab is a cross-site
-    // navigation, and Strict drops the cookie on exactly that path.
-    //
-    // Until then there is no session. The surface renders its arrival state, and the
-    // shell it hands off to is still the M3 placeholder.
     return { ok: true }
   }
   return result.attemptsLeft === undefined

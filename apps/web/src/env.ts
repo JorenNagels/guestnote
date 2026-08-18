@@ -56,6 +56,20 @@ const schema = z.object({
    * message naming the pooled host.
    */
   DATABASE_URL: z.string().optional(),
+
+  /**
+   * Signs sessions and one-time codes.
+   *
+   * Optional here and validated lazily in `lib/auth.ts`, for the same reason
+   * DATABASE_URL is: `next build` evaluates route modules while collecting page data, so
+   * a required value would make a secret a *build-time* dependency and break CI, container
+   * builds and M1a's CDK bundling -- none of which should need credentials to compile
+   * TypeScript.
+   *
+   * In development `lib/auth.ts` substitutes a fixed local value so a fresh clone runs
+   * with no setup. It refuses to do that anywhere else.
+   */
+  BETTER_AUTH_SECRET: z.string().optional(),
 })
 
 const parsed = schema.safeParse(process.env)
@@ -75,4 +89,5 @@ export const env = {
   rootDomain: parsed.data.GUESTNOTE_ROOT_DOMAIN,
   appSubdomain: parsed.data.GUESTNOTE_APP_SUBDOMAIN,
   databaseUrl: parsed.data.DATABASE_URL ?? '',
+  betterAuthSecret: parsed.data.BETTER_AUTH_SECRET ?? '',
 } as const

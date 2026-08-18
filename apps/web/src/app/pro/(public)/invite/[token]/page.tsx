@@ -1,8 +1,8 @@
-import { passkeysAvailable, resolveInvitation } from '@guestnote/core/auth'
 import { getLocale } from 'next-intl/server'
 import { AuthFlow } from '@/components/auth/auth-flow.tsx'
 import { fill, getAuthCopy } from '@/components/auth/copy.ts'
 import { getStageContent } from '@/components/auth/stage-content.ts'
+import { getAuth } from '../../../../../lib/auth.ts'
 import { isLocale, LOCALES } from '../../../../../lib/locales.ts'
 import { app } from '../../../../../lib/routes.ts'
 
@@ -26,13 +26,16 @@ import { app } from '../../../../../lib/routes.ts'
  */
 export default async function InvitePage({ params }: { params: Promise<{ token: string }> }) {
   const [{ token }, copy, locale] = await Promise.all([params, getAuthCopy(), getLocale()])
-  const [invitation, stage] = await Promise.all([resolveInvitation(token), getStageContent(copy)])
+  const [invitation, stage] = await Promise.all([
+    getAuth().resolveInvitation(token),
+    getStageContent(copy),
+  ])
 
   const shared = {
     copy,
     locale: isLocale(locale) ? locale : LOCALES[0],
     locales: LOCALES,
-    passkeysEnabled: passkeysAvailable(),
+    passkeysEnabled: getAuth().passkeysAvailable(),
     continueHref: app.home(),
     stage,
   } as const

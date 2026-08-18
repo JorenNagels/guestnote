@@ -1,8 +1,8 @@
-import { passkeysAvailable } from '@guestnote/core/auth'
 import { getLocale } from 'next-intl/server'
 import { AuthFlow } from '@/components/auth/auth-flow.tsx'
 import { getAuthCopy } from '@/components/auth/copy.ts'
 import { getStageContent } from '@/components/auth/stage-content.ts'
+import { getAuth } from '../../../../lib/auth.ts'
 import { isLocale, LOCALES } from '../../../../lib/locales.ts'
 import { app } from '../../../../lib/routes.ts'
 
@@ -35,7 +35,7 @@ export default async function LoginPage({
       copy={copy}
       locale={isLocale(locale) ? locale : LOCALES[0]}
       locales={LOCALES}
-      passkeysEnabled={passkeysAvailable()}
+      passkeysEnabled={getAuth().passkeysAvailable()}
       continueHref={app.home()}
       stage={stage}
       {...(reason === 'session-expired' ? { notice: copy.errors.sessionExpired } : {})}

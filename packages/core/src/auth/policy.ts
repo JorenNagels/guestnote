@@ -54,6 +54,22 @@ export const AUTH_POLICY = {
    */
   maxRequestsPerEmailPerHour: 5,
   maxRequestsPerIpPerHour: 20,
+
+  /**
+   * How long a session lasts, and how often using it pushes that out.
+   *
+   * 30 days rolling. The brief argued for long-and-rolling from the day-of case -- a
+   * planner in a venue car park should almost never be asked to authenticate again -- and
+   * that argument survives passkeys, which make re-authentication cheap on an enrolled
+   * device but do nothing for the one that is not enrolled yet.
+   *
+   * Still open, like everything else here. The number that would change it is a real
+   * answer about shared laptops in a studio.
+   */
+  sessionTtlSeconds: 60 * 60 * 24 * 30,
+
+  /** Refresh the 30 days at most once a day, so an active session never expires under someone. */
+  sessionRefreshSeconds: 60 * 60 * 24,
 } as const
 
 /**
