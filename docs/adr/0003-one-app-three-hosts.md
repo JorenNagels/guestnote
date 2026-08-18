@@ -40,7 +40,9 @@ Two costs, accepted:
   not a route in the file tree. The substitute is `src/lib/routes.ts` — href builders, one
   place to grep, no compiler help.
 - **`/api/*` must skip the dashboard rewrite**, or Better Auth's handler becomes
-  `/pro/api/auth/[...all]` and every magic link 404s at M3.
+  `/pro/api/auth/[...all]` and every sign-in request 404s at M3. (Written when the credential
+  was a magic link; it is now a passkey with an email code beneath it, and the rewrite trap is
+  identical either way.)
 
 The host label (`app`) and the internal prefix (`/pro`) are independent, so renaming the
 host is a config edit rather than a directory move. `pro.` stays as a permanent redirect,

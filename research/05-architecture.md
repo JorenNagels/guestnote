@@ -55,7 +55,7 @@ that survives that.
 | Database | **Neon Postgres** (on AWS eu-central-1) |
 | Query layer | **Drizzle ORM** + `drizzle-kit` migrations |
 | Isolation | Tenant-scoped repository layer **+ Postgres RLS** as the backstop |
-| Auth | **Better Auth** self-hosted — Organization + magic-link plugins. Guests never get accounts |
+| Auth | **Better Auth** self-hosted — `passkey` + `emailOTP` plugins, no magic link and no password (superseded 2026-08-18; see `07-auth-and-tenancy.md`). Organization plugin NOT used. Guests never get accounts |
 | Email | **SES** + `react-email` templates. Friendly-From white-labelling in v1 |
 | Payments | **Mollie** (Bancontact/iDEAL economics decide it) |
 | Jobs | EventBridge Scheduler one-shots → SQS → Lambda |
@@ -675,7 +675,7 @@ dev plus a `workflow_dispatch` push to the shared `dev` deployment. **Rollback i
 | **M1a** | **Deployable skeleton** — Next 16 + OpenNext + CDK behind CloudFront, one alias `pro.guestnote.be`, `private, no-store`, `/api/health` doing a real `withTenant` round-trip, `proxy.ts` with all four host branches (wildcard and custom → 404). Prove: `x-forwarded-host` arrives intact · a `__Host-` session cookie survives CloudFront → Function URL · `/pro/*` is never cached · rollback by `git revert` works | 1 | Hard timebox. Fallback written into `infra/README.md` |
 | **M1b** | **Per-tenant ISR** — two hardcoded tenants render differently · ISR caches per host · `revalidateTag` busts one and not the other · `x-forwarded-host` in the CloudFront cache key policy | 1–1.5 | **Moved to immediately before M4/P4.** Gate becomes "build no *guest-site* features until this is green" |
 | **M2** | Neon + Drizzle schema + RLS + `withTenant` + F6 isolation suite + migrations in CI. **Seed a synthetic two-org / three-wedding fixture**, not the two `se-parti-rsvp` weddings — those seed nothing useful for a planner app, and the fixture is what the isolation suite needs anyway | 1–2 | **← the gate. `npm run test:db` exits 0** |
-| **M3** | Better Auth for **authentication only** (`users`/`sessions`/`accounts`/`verifications` + magic link) behind `packages/core/auth`; `organizations`, `org_members` and the merged `invitations` are hand-rolled in Drizzle. `pro.guestnote.be` login → org switcher → wedding list. See `07-auth-and-tenancy.md` §1 for why the scope narrowed | 1–2 | |
+| **M3** | Better Auth for **authentication only** (`users`/`sessions`/`accounts`/`verifications`, `passkey` + `emailOTP`) behind `packages/core/auth`; `organizations`, `org_members` and the merged `invitations` are hand-rolled in Drizzle. `pro.guestnote.be` login → org switcher → wedding list. See `07-auth-and-tenancy.md` §1 for why the scope narrowed | 1–2 | |
 | **M4** | Guest site rendered from the database. One template from `site_blocks`, theme from `weddings.theme` (port `contrast.ts`), NL/EN via `next-intl`, publish → `revalidateTag` | 2 | **Config stops being code** |
 | **M5** | RSVP: invitation tokens, guest cookie, per-event, dynamic questions, confirmation email | 2 | Revenue-critical path |
 | **M6** | Planner dashboard: guest table, CSV import/export, households, invite sending, counts per event | 2–3 | **The B2B product** |

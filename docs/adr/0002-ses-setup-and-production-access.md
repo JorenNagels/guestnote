@@ -41,7 +41,7 @@ calculus:
    has to be appealed — strictly worse than asking later with a working system to describe.
 
 **And it blocks nothing.** Sandbox permits 200/day at 1/sec to *verified* identities, which
-is ample for building magic-link sign-in in W3. The plan already had dev magic links going
+is ample for building sign-in email in W3. The plan already had dev sign-in mail going
 to the console anyway.
 
 Ask once the W3 sign-in path actually sends and `email_log` + the bounce pipeline exist —
@@ -50,7 +50,8 @@ realistically alongside M10, or sooner if a validation call turns into a pilot.
 ## The request, drafted
 
 Declared type: **`TRANSACTIONAL`**. Everything is triggered by a relationship the recipient
-is already in — magic-link sign-in, "a task was assigned to you", an RSVP confirmation,
+is already in — sign-in codes (magic link when this was written; see
+`07-auth-and-tenancy.md`'s 2026-08-18 credential note), "a task was assigned to you", an RSVP confirmation,
 "what is due on your own wedding". No promotional content, no acquired lists.
 
 ```bash

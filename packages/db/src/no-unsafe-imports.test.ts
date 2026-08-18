@@ -49,10 +49,27 @@ describe('@guestnote/db/unsafe stays contained', () => {
    */
   const ALLOWED = [/^packages\/db\//]
 
+  /**
+   * Matches an IMPORT, not a mention.
+   *
+   * It used to be a bare name search, which meant any file that documented the ban --
+   * naming the escape hatch in order to say "do not use this" -- was reported as an
+   * offender. Two did, the moment `apps/web` became tracked and `git grep` could see it,
+   * and both were comments. A guard that fires on prose is a guard that gets weakened.
+   *
+   * `from '...'` and `import('...')` are the only ways in, since the package has no
+   * side-effect-only use.
+   */
+  //
+  // `git grep -E` is POSIX ERE, where `\s` is NOT a valid escape -- an early version of
+  // this pattern used it and matched nothing at all, which the probe below caught.
+  // `[[:space:]]` is the portable spelling.
+  const IMPORTS_UNSAFE =
+    "(from|import\\()[[:space:]]*'@guestnote/db/unsafe'" +
+    '|\\{[^}]*unsafeDbForMigrationsAndAdminOnly[^}]*\\}[[:space:]]*from'
+
   it('is imported only from packages/db', () => {
-    const offenders = gitGrep('@guestnote/db/unsafe|unsafeDbForMigrationsAndAdminOnly').filter(
-      (f) => !ALLOWED.some((re) => re.test(f)),
-    )
+    const offenders = gitGrep(IMPORTS_UNSAFE).filter((f) => !ALLOWED.some((re) => re.test(f)))
     expect(
       offenders,
       'These files import the unscoped database handle. Use withTenant() instead, or ' +
@@ -91,6 +108,9 @@ describe('the ban is actually detectable', () => {
    * searching for a string that definitely exists.
    */
   it('git grep finds a string that is known to be present', () => {
+    // Deliberately the bare name, not IMPORTS_UNSAFE: this asserts the mechanism works
+    // at all -- cwd, glob, exit-code handling -- and must not depend on the narrower
+    // pattern the ban uses, or a broken ban would take its own canary down with it.
     const hits = gitGrep('unsafeDbForMigrationsAndAdminOnly')
     expect(
       hits.length,

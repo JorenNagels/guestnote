@@ -33,8 +33,28 @@ set -a; . ./.env.local; set +a
 REQUIRE_NEON_TIER=1 npm run test:db
 ```
 
-**Result, 2026-08-17: 94 passed** against `-pooler` on PostgreSQL **18.4**. This settles
+**Result, 2026-08-19: 99 passed** against `-pooler` on PostgreSQL **18.4** (94 on
+2026-08-17, before Better Auth's four tables joined the coverage check). This settles
 `research/05-architecture.md` §11.2 — see `docs/adr/0001-rls-through-neon-pooler.md`.
+
+## Applying a migration
+
+**Use the loop above, not `npm run db:migrate`.**
+
+`drizzle-kit migrate` keeps its own journal in a `drizzle.__drizzle_migrations` table, and
+this database has never had one: every migration so far was applied by running the `.sql`
+files directly, which is what the loop does. So `drizzle-kit migrate` starts from zero,
+tries to replay `0000`, hits `relation "users" already exists`, and fails — with the error
+hidden behind its spinner, which is how it looks like a hang rather than a conflict.
+
+`drizzle-kit generate` is still the right way to *write* a migration; only `migrate` is the
+wrong way to apply one here. Migration `0003` was applied against Neon as `neondb_owner`,
+statement by statement inside a single transaction, so a failure rolls the whole file back
+rather than leaving a half-applied schema — which is the one thing the `ON_ERROR_STOP=1`
+loop above does not give you.
+
+Baselining the journal so `drizzle-kit migrate` works is a reasonable thing to do later.
+It is not free: the hashes have to match the files exactly or the next run reports drift.
 
 Note the version skew: the local container is `postgres:17-alpine`, Neon is on 18.4. Both
 tiers pass, so nothing depends on the difference today, but the container should move to 18

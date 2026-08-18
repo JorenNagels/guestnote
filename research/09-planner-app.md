@@ -219,9 +219,12 @@ and it is acceptable only because PH4 is committed rather than hypothetical.
 
 ## Open
 
-- **Does the couple get a password, or a magic link every time?** Better Auth supports both.
+- **Does the couple get a password, or an email code every time?** Better Auth supports both.
   Magic link is lighter for someone who logs in six times a year; a password suits someone
-  checking tasks weekly. Leaning magic link, undecided
+  checking tasks weekly. **Still open**, but the planner side settled on 2026-08-18 as passkey
+  primary with a six-digit email code beneath it and no password at all, so the cheap answer is
+  the same surface scoped down. Magic link is off the table for both — see
+  `07-auth-and-tenancy.md`'s credential note
 - **Do vendors get accounts at all, or a signed link like guests?** A signed link is far less
   work and vendors are even more occasional than couples. If so, `vendor` may not need to be a
   `wedding_members` role at all — it could reuse the household-token pattern

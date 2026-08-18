@@ -49,9 +49,20 @@ export const USER_SCOPED_TABLES = ['org_members', 'wedding_members'] as const
  * be a couple on one wedding and staff at a planner. Reachability is decided by the
  * two user-scoped tables above.
  *
- * W3 adds Better Auth's `sessions`, `accounts` and `verifications` here.
+ * Better Auth's four tables joined them 2026-08-18. None carries RLS, for the reason
+ * 0001_rls.sql gives for `users`: every one of them is read BEFORE a principal exists
+ * -- a session by token, a verification by identifier, a passkey by credential id -- so
+ * there is no `app.user_id` to scope by at the moment of sign-in, and a policy would
+ * break authentication outright. The mitigation is structural: nothing outside
+ * `packages/core/auth` touches them.
  */
-export const UNSCOPED_TABLES = ['users'] as const
+export const UNSCOPED_TABLES = [
+  'users',
+  'sessions',
+  'accounts',
+  'verifications',
+  'passkeys',
+] as const
 
 /**
  * Tables whose policy additionally tests `app.wedding_role`, because they hold rows

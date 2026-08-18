@@ -9,7 +9,8 @@ remembers that `se-parti-rsvp` already uses Clerk.
 
 > ⚠️ **Scope narrowed 2026-08-17: Better Auth for authentication only.**
 >
-> It owns `users`, `sessions`, `accounts`, `verifications` and magic link. **`organizations`,
+> It owns `users`, `sessions`, `accounts`, `verifications` and the credential plugins
+> (magic link as first written; `passkey` + `emailOTP` since 2026-08-18 -- see the next note). **`organizations`,
 > `org_members` and the merged `invitations` table (§4b) are hand-rolled in Drizzle** — the
 > Organization plugin is not used.
 >
@@ -34,6 +35,31 @@ remembers that `se-parti-rsvp` already uses Clerk.
 >
 > Cost: the org switcher and the invite/accept endpoints are hand-written. Roughly a day, and
 > `08-design-system.md` already settled the components.
+
+> ⚠️ **Credential changed 2026-08-18: passkey primary, six-digit email code beneath it.
+> There is no magic link anywhere, and never a password.**
+>
+> Every "magic link" below is superseded. The decision that *Better Auth self-hosted* wins is
+> untouched — all four reasons in §1 are properties of self-hosting, not of a link — and so is
+> everything in §2–§4. Only the credential changed. Plugins are `passkey` + `emailOTP`, not
+> `magicLink`.
+>
+> Three findings drove it, with sources in
+> `.impeccable/surfaces/src-app-pro-public-login.md` Appendix A:
+>
+> 1. **Mail scanners spend the token.** Defender Safe Links, Proofpoint and Mimecast fetch
+>    every URL before delivery, so a single-use link is frequently dead on arrival. This is
+>    why Slack uses a code. Belgian venues run Microsoft 365; this is not hypothetical.
+> 2. **Better Auth's link does not fail loudly.** Unlike Auth0/NextAuth, its token carries the
+>    auth, so opening it in a mail client's in-app browser signs you in *there* and leaves the
+>    tab that asked waiting forever.
+> 3. **A code is cheaper on the phone, not dearer.** iOS 17+ autofills it from Mail above the
+>    keyboard; the link path requires leaving the browser.
+>
+> **`rpID` is `app.guestnote.be`, never `guestnote.be`.** A passkey scoped to a registrable
+> suffix is usable by every subdomain beneath it, and PH4 serves per-tenant sites on
+> `<slug>.guestnote.be`. `rp.id` is hashed into the authenticator at creation and can never be
+> edited. This is the one thing on the surface that cannot be retrofitted.
 
 ---
 
@@ -266,7 +292,7 @@ You invite an **email**, not a user — at invite time the account doesn't exist
 
 ```
 invite → INSERT invitations(...)
-accept → user signs in via magic link → userId now exists
+accept → user signs in (passkey, or the six-digit code) → userId now exists
        → INSERT wedding_members(wedding_id, user_id, role)
        → UPDATE invitations SET accepted_at = now()
 ```
@@ -284,9 +310,11 @@ rule is the whole design.
   > **Do this with a fake session** — a bare `userId` string. "From the verified session" in §4a
   > reads as though these tests wait for M3; they must not. The highest-value test in the repo does
   > not get gated on the dependency with the most unknowns. M3 swaps in a real session later.
-- **M3** — Better Auth for authentication only (see the scope note at the top), the hand-rolled
-  `organizations` / `org_members` / merged `invitations` tables, and both accept flows. Build
-  `packages/core/auth` first; nothing else imports Better Auth directly, enforced by a test rather
-  than only by a lint rule.
+- **M3** — Better Auth for authentication only (see the scope notes at the top), with the
+  `passkey` and `emailOTP` plugins, the hand-rolled `organizations` / `org_members` / merged
+  `invitations` tables, and both accept flows. `packages/core/auth` is built and is the seam;
+  `better-auth` is restricted to `packages/core/src/auth/better-auth.ts` by `biome.json`, and
+  that file is what M3 adds. The sign-in and invitation surfaces already exist against the seam
+  and run on an in-memory provider, so M3 is a provider swap plus the shell it hands off to.
 - **M9** — feature gating reads `organizations.plan`, which is why the wedding belongs to the
   *planner's* org and not the couple's.

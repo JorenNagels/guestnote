@@ -135,7 +135,9 @@ native mobile app.
 
 - Belgium-only vs Benelux at launch.
 - Legal entity vs side project under an existing structure.
-- Whether the couple gets a password or a magic link every time (leaning magic link).
+- Whether the couple gets an email code every time or something longer-lived. The planner
+  side settled 2026-08-18: passkey primary, six-digit email code beneath it, no password and
+  no magic link. The couple's answer is expected to follow, but is not decided.
 - Whether vendors get accounts at all, or a signed link like guests.
 - How many professional wedding planners actually exist in Flanders — the single number
   that decides whether planner-seat or per-wedding pricing is right.
