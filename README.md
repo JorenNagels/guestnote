@@ -12,6 +12,24 @@ died. Chosen because it is conflict-clean, trivially easy in both Dutch and Engl
 **event-neutral**, so it survives the expansion into venues and non-wedding events that
 the strategy predicts.
 
+## Local setup
+
+```bash
+direnv allow          # Node 24 from .nvmrc, plus AWS_PROFILE=guestnote
+npm install
+npm run dev           # app.localhost:3000, localhost:3000/nl, <slug>.localhost:3000
+```
+
+Node **24** is required, not preferred: `tsconfig.base.json` relies on native type
+stripping for the explicit `.ts` import extensions. `.envrc` selects it through direnv so a
+fresh shell, an agent shell or a `direnv exec` one-liner all get it without `nvm use`, and
+`.npmrc` sets `engine-strict=true` so being on the wrong one is an error rather than a
+warning that npm carries on past.
+
+Both files explain themselves; the second exists because a warning once meant an
+`npm install` wrote a dependency into `package.json`, skipped installing it, and reported
+"up to date".
+
 ## Domains to register
 
 | Domain | Status (2026-08-10) | Priority |
