@@ -1,0 +1,268 @@
+/**
+ * The sign-in surface: a calm form on the left, and on the right a stage that descends.
+ *
+ * ## The idea, and where it now lives
+ *
+ * guestnote.be is `public, s-maxage=60, stale-while-revalidate=86400`.
+ * app.guestnote.be is `private, no-store`. proxy.ts asserts that boundary and the person
+ * crossing it cannot see it. The stage makes it visible: its sky steps one stop deeper at
+ * each rung completed, so signing in reads as descending out of the public web.
+ *
+ * It moved here from the page ground for two reasons, both found by looking at it:
+ *
+ * 1. **A whole viewport of flat neutral reads as unfinished, not as calm.** On a 1280px
+ *    desktop the form occupied 26% of the width and nothing else was doing anything.
+ * 2. **The descent was invisible until you moved.** Depth you can only perceive by
+ *    remembering the previous screen is not depth. Against a form that stays lit and
+ *    constant, the stage darkening beside it is legible at a glance.
+ *
+ * A third reason showed up in the contrast run: with the form on a descending ground,
+ * error text failed at the deepest stop (danger-300 on neutral-800 = 4.07:1, needs 4.5).
+ * The form no longer moves, so it uses the semantic tokens that design-system/tokens.css
+ * has already verified, and the stage carries no body text at all.
+ *
+ * ## What is on the stage, and what may never be
+ *
+ * The chips are the real RSVP status tokens -- the six triples verified at 5.83-6.15:1
+ * light and 6.92-7.09:1 dark. The card is the T-minus mechanic that every due date in the
+ * product hangs off, and Els & Jan is one of the two real weddings PRODUCT.md names as
+ * usable.
+ *
+ * What must never appear here: a screenshot or mock of the planner dashboard, any metric,
+ * any customer or partner logo. PRODUCT.md is explicit that none of those exist yet, and a
+ * login page is the classic place they get invented.
+ */
+
+/* ---------- the two-column shell ---------------------------------------- */
+
+.signin {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: 100dvh;
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/* The stage appears only where there is room for it to be worth looking at. Below this
+   the form is the whole screen, which is the right answer on the day-of phone anyway. */
+@media (min-width: 1024px) {
+  .signin {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+
+/* ---------- the stage ---------------------------------------------------- */
+
+.stage {
+  position: relative;
+  display: none;
+  overflow: hidden;
+  border-radius: calc(var(--radius) * 2.5);
+  /* Inset rather than full-bleed: the panel reads as an object on the page, and the
+     rounded corner has somewhere to be. */
+  margin: 0.75rem 0.75rem 0.75rem 0;
+  isolation: isolate;
+}
+
+@media (min-width: 1024px) {
+  .stage {
+    display: block;
+  }
+}
+
+/**
+ * The sky. Three stops, deepening.
+ *
+ * Both hues are the brand's own -- teal 188.1deg and gold 84.9deg -- drawn from the ramps
+ * in design-system/tokens.css rather than from `--logo-teal` and `--logo-gold`, which that
+ * file marks THE MARK ONLY. They sit at OKLCH L=0.80 with 1.10:1 between them, so a
+ * gradient built from the logo pair would be a flat smear.
+ */
+.stage {
+  --sky-base: var(--teal-300);
+  --sky-warm: var(--gold-300);
+  --sky-cool: var(--teal-600);
+  --sky-deep: var(--teal-700);
+}
+
+.stage[data-rung="1"] {
+  --sky-base: var(--teal-700);
+  --sky-warm: var(--gold-600);
+  --sky-cool: var(--teal-900);
+  --sky-deep: var(--teal-950);
+}
+
+.stage[data-rung="2"] {
+  --sky-base: var(--teal-950);
+  --sky-warm: var(--gold-800);
+  --sky-cool: var(--teal-900);
+  --sky-deep: #000000;
+}
+
+.stage-sky {
+  position: absolute;
+  inset: 0;
+  background-color: var(--sky-base);
+  /* Layered top-down: the warm mass sits high, the cool one low, and a deep pool anchors
+     the bottom corner so the panel has a floor rather than fading out evenly. Percentages
+     rather than pixels so the composition survives every panel width it is shown at. */
+  background-image:
+    radial-gradient(72% 58% at 14% 8%, var(--sky-warm) 0%, transparent 62%),
+    radial-gradient(58% 44% at 74% 4%, var(--sky-warm) 0%, transparent 58%),
+    radial-gradient(86% 70% at 92% 88%, var(--sky-deep) 0%, transparent 66%),
+    radial-gradient(90% 78% at 30% 96%, var(--sky-cool) 0%, transparent 70%);
+  /* The one transition on this surface, matched to DESCENT_MS in auth-flow.tsx. */
+  transition:
+    background-color 380ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    background-image 380ms cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+/**
+ * A faint measure over the sky.
+ *
+ * The dashboard is a dense table product and this is the one screen with no table on it,
+ * so the grid is the quietest possible nod to what is behind the door. It is decorative
+ * and carries no contrast obligation -- WCAG 1.4.11 covers component boundaries, not
+ * texture, which is the same reasoning that lets `--border` sit at 1.28:1 in light mode.
+ */
+.stage-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / 0.22) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.22) 1px, transparent 1px);
+  background-size: 52px 52px;
+  mask-image: radial-gradient(80% 70% at 50% 42%, #000 20%, transparent 100%);
+}
+
+/* ---------- what floats on it -------------------------------------------- */
+
+.stage-atoms {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.atom {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+  /* Depth comes from a real shadow rather than opacity: a faded chip reads as disabled,
+     and these are meant to read as near. */
+  box-shadow:
+    0 1px 2px rgb(24 23 21 / 0.08),
+    0 8px 24px -6px rgb(24 23 21 / 0.28);
+  animation: drift calc(var(--dur, 9s)) ease-in-out calc(var(--delay, 0s)) infinite alternate;
+  will-change: transform;
+}
+
+.atom-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 999px;
+}
+
+/* Dot AND label on the decorative chips too. Not for WCAG -- these are decorative -- but
+   because a status chip that means something only in colour is the habit this product
+   cannot afford to build anywhere, including in its own brand imagery. */
+@keyframes drift {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(var(--dx, 0), var(--dy, -14px), 0);
+  }
+}
+
+/**
+ * The lit thing at the centre.
+ *
+ * A wedding date and the T-minus derived from it, because that is the mechanic every due
+ * date in the product hangs off -- "6 months before" resolves against this, which is what
+ * lets one checklist template apply to any wedding.
+ *
+ * Deliberately NOT a dashboard mock. It is a single true object.
+ */
+.stage-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(20rem, 78%);
+  transform: translate(-50%, -50%);
+  padding: 1.25rem 1.375rem;
+  border-radius: calc(var(--radius) * 1.75);
+  background-color: var(--card);
+  color: var(--card-foreground);
+  box-shadow:
+    0 2px 4px rgb(24 23 21 / 0.06),
+    0 24px 56px -16px rgb(24 23 21 / 0.42);
+}
+
+.stage-card-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+.stage-card-title {
+  margin-top: 0.35rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.stage-card-date {
+  margin-top: 0.15rem;
+  font-size: 0.875rem;
+  color: var(--muted-foreground);
+}
+
+/* The countdown reads as a measurement, so it is set as one. `tabular-nums` is the same
+   call design-system/tokens.css makes for every headcount and money column. */
+.stage-card-tminus {
+  margin-top: 0.9rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.stage-card-tminus b {
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.stage-card-tminus span {
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
+}
+
+/**
+ * Motion is an enhancement here and nothing depends on it: the sky's depth is a static
+ * difference between rungs, so an honoured preference loses the drift and keeps the idea.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .atom {
+    animation: none;
+  }
+
+  .stage-sky {
+    transition: none;
+  }
+}

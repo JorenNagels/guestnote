@@ -1,0 +1,87 @@
+{
+  "marketing": {
+    "tagline": "Sites de mariage avec RSVP et gestion des invités, pour wedding planners et lieux de réception.",
+    "placeholder": "Cette page est un espace réservé. Le vrai site vitrine reste pour l'instant la page d'attente.",
+    "language": "Langue",
+    "login": "Se connecter"
+  },
+  "app": {
+    "placeholder": "Espace réservé du tableau de bord.",
+    "servedOn": "Servi sur l'hôte app, réécrit en interne vers /pro, avec private, no-store."
+  },
+  "auth": {
+    "language": "Langue",
+    "steps": {
+      "public": "Public",
+      "verifying": "Vérification",
+      "private": "Privé"
+    },
+    "signIn": {
+      "title": "Connectez-vous",
+      "help": "Nous vous enverrons un code à six chiffres. Il n’y a pas de mot de passe.",
+      "emailLabel": "Adresse e-mail",
+      "emailPlaceholder": "vous@studiowit.be",
+      "continue": "Continuer",
+      "passkey": "Utiliser votre passkey"
+    },
+    "verify": {
+      "title": "Saisissez votre code",
+      "sentTo": "Nous avons envoyé un code à {email}.",
+      "codeLabel": "Code à six chiffres",
+      "submit": "Se connecter",
+      "otherAddress": "Autre adresse",
+      "resend": "Envoyer un nouveau code",
+      "resendIn": "Envoyer un nouveau code ({seconds})"
+    },
+    "arrive": {
+      "title": "Vous êtes connecté",
+      "body": "Nous vous emmenons à vos mariages.",
+      "continue": "Continuer"
+    },
+    "invite": {
+      "title": "Créez votre compte",
+      "staff": "{inviter} vous invite à rejoindre {org}, en tant que {role}.",
+      "locked": "Cette invitation est liée à cette adresse.",
+      "roleAdmin": "administrateur",
+      "roleMember": "membre de l’équipe"
+    },
+    "enroll": {
+      "title": "Vous connecter plus vite sur cet appareil ?",
+      "body": "Avec une passkey, vous vous connectez avec votre visage ou votre empreinte. Plus besoin d’e-mail.",
+      "confirm": "Créer une passkey",
+      "dismiss": "Pas maintenant"
+    },
+    "busy": {
+      "sending": "Envoi…",
+      "checking": "Vérification…"
+    },
+    "errors": {
+      "emailFormat": "Cette adresse e-mail ne semble pas valide.",
+      "codeWrong": "Ce code est incorrect. Il vous reste {attempts} tentatives.",
+      "codeWrongOne": "Ce code est incorrect. Il vous reste une tentative.",
+      "codeSpent": "Ce code ne fonctionne plus. Demandez-en un nouveau.",
+      "codeExpired": "Ce code a expiré. Demandez-en un nouveau.",
+      "rateLimited": "Trop de tentatives. Réessayez plus tard.",
+      "deliveryFailed": "Cette adresse n’accepte pas les e-mails. Essayez-en une autre.",
+      "unavailable": "La connexion ne fonctionne pas pour le moment. Réessayez sous peu.",
+      "offline": "Pas de connexion. Votre code est conservé.",
+      "sessionExpired": "Votre session a expiré. Reconnectez-vous.",
+      "passkeyGone": "Cette passkey ne fonctionne plus pour ce compte. Continuez avec un code.",
+      "inviteExpired": "Cette invitation a expiré. Demandez-en une nouvelle à {inviter}.",
+      "inviteAccepted": "Cette invitation a déjà été utilisée. Connectez-vous simplement.",
+      "inviteCouple": "L’espace des mariés n’est pas encore ouvert. Votre invitation reste valable.",
+      "inviteUnknown": "Ce lien ne fonctionne pas. Demandez-en un nouveau à la personne qui vous a invité."
+    },
+    "noAccount": "Pas encore de compte ? Guestnote fonctionne sur invitation.",
+    "stage": {
+      "label": "Mariage à venir",
+      "couple": "Els & Jan",
+      "unit": "jours avant le jour J",
+      "attending": "Présent",
+      "awaiting": "Sans réponse",
+      "plusone": "+1 sans nom",
+      "declined": "Décliné",
+      "partial": "Partiel"
+    }
+  }
+}

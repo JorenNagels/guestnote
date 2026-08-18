@@ -1,0 +1,30 @@
+{
+  "name": "@guestnote/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typegen": "next typegen",
+    "typecheck": "next typegen && tsc --noEmit"
+  },
+  "dependencies": {
+    "@guestnote/core": "*",
+    "@guestnote/db": "*",
+    "@guestnote/ui": "*",
+    "next": "16.3.1",
+    "next-intl": "^4.13.7",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "server-only": "0.0.1",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.3",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "tailwindcss": "4.3.3"
+  }
+}

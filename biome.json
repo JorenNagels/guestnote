@@ -8,10 +8,11 @@
       "!**/.next",
       "!**/cdk.out",
       "!**/migrations/meta",
+      "!**/next-env.d.ts",
       "!coming-soon",
       "!waitlist",
       "!design-system",
-      "!*.svg"
+      "!**/*.svg"
     ]
   },
   "formatter": {
@@ -22,6 +23,11 @@
   },
   "linter": {
     "enabled": true,
+    "domains": {
+      "react": "recommended",
+      "next": "recommended",
+      "test": "recommended"
+    },
     "rules": {
       "preset": "recommended",
       "style": {
@@ -52,6 +58,9 @@
       "semicolons": "asNeeded",
       "trailingCommas": "all"
     }
+  },
+  "css": {
+    "parser": { "tailwindDirectives": true }
   },
   "overrides": [
     {

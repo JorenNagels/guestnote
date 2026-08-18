@@ -1,0 +1,87 @@
+{
+  "marketing": {
+    "tagline": "Trouwwebsites met RSVP en gastenbeheer, voor weddingplanners en locaties.",
+    "placeholder": "Deze pagina is een placeholder. De echte marketingsite staat voorlopig nog op de holding page.",
+    "language": "Taal",
+    "login": "Inloggen"
+  },
+  "app": {
+    "placeholder": "Dashboard-placeholder.",
+    "servedOn": "Geserveerd op de app-host, intern herschreven naar /pro, met private, no-store."
+  },
+  "auth": {
+    "language": "Taal",
+    "steps": {
+      "public": "Publiek",
+      "verifying": "Verifiëren",
+      "private": "Privé"
+    },
+    "signIn": {
+      "title": "Meld je aan",
+      "help": "We sturen je een code van zes cijfers. Er is geen wachtwoord.",
+      "emailLabel": "E-mailadres",
+      "emailPlaceholder": "jij@studiowit.be",
+      "continue": "Doorgaan",
+      "passkey": "Gebruik je passkey"
+    },
+    "verify": {
+      "title": "Voer je code in",
+      "sentTo": "We hebben een code gestuurd naar {email}.",
+      "codeLabel": "Code van zes cijfers",
+      "submit": "Aanmelden",
+      "otherAddress": "Ander adres",
+      "resend": "Nieuwe code sturen",
+      "resendIn": "Nieuwe code sturen ({seconds})"
+    },
+    "arrive": {
+      "title": "Je bent aangemeld",
+      "body": "We brengen je naar je weddings.",
+      "continue": "Verder"
+    },
+    "invite": {
+      "title": "Maak je account",
+      "staff": "{inviter} nodigt je uit bij {org}, als {role}.",
+      "locked": "Deze uitnodiging staat op dit adres.",
+      "roleAdmin": "beheerder",
+      "roleMember": "teamlid"
+    },
+    "enroll": {
+      "title": "Sneller aanmelden op dit toestel?",
+      "body": "Met een passkey meld je je aan met je gezicht of vingerafdruk. Geen e-mail meer nodig.",
+      "confirm": "Passkey aanmaken",
+      "dismiss": "Niet nu"
+    },
+    "busy": {
+      "sending": "Versturen…",
+      "checking": "Controleren…"
+    },
+    "errors": {
+      "emailFormat": "Dit lijkt geen geldig e-mailadres.",
+      "codeWrong": "Die code klopt niet. Nog {attempts} pogingen.",
+      "codeWrongOne": "Die code klopt niet. Nog één poging.",
+      "codeSpent": "Deze code werkt niet meer. Vraag een nieuwe aan.",
+      "codeExpired": "Deze code is verlopen. Vraag een nieuwe aan.",
+      "rateLimited": "Te veel pogingen. Probeer het later opnieuw.",
+      "deliveryFailed": "Dat adres accepteert geen e-mail. Probeer een ander adres.",
+      "unavailable": "Aanmelden lukt nu niet. Probeer het zo opnieuw.",
+      "offline": "Geen verbinding. Je code blijft staan.",
+      "sessionExpired": "Je sessie is verlopen. Meld je opnieuw aan.",
+      "passkeyGone": "Deze passkey werkt niet meer voor dit account. Ga verder met een code.",
+      "inviteExpired": "Deze uitnodiging is verlopen. Vraag {inviter} om een nieuwe.",
+      "inviteAccepted": "Deze uitnodiging is al gebruikt. Meld je gewoon aan.",
+      "inviteCouple": "Het portaal voor bruidsparen is nog niet open. Je uitnodiging blijft geldig.",
+      "inviteUnknown": "Deze link werkt niet. Vraag degene die je uitnodigde om een nieuwe."
+    },
+    "noAccount": "Nog geen account? Guestnote werkt op uitnodiging.",
+    "stage": {
+      "label": "Aankomende bruiloft",
+      "couple": "Els & Jan",
+      "unit": "dagen tot de dag",
+      "attending": "Aanwezig",
+      "awaiting": "Nog geen antwoord",
+      "plusone": "+1 naamloos",
+      "declined": "Afgemeld",
+      "partial": "Gedeeltelijk"
+    }
+  }
+}

@@ -3,6 +3,39 @@
 Decided 2026-08-11. Companion to `04-speclist.md` (what to build) and `06-hosting-costs.md`
 (what it costs). This is *how*.
 
+> ## ⚠️ Corrected by implementation, 2026-08-17
+>
+> `apps/web` now exists, and building it disproved four things below. Full detail and the
+> measurements in **`docs/adr/0003-one-app-three-hosts.md`**; where that ADR disagrees with
+> this document, the ADR wins.
+>
+> 1. **The dashboard host is `app.guestnote.be`**, not `pro.`, with `pro.` kept as a 308.
+>    §0, §1, §3 and §9's M1a all still say `pro.`. The internal route prefix is still
+>    `/pro`, and it is deliberately independent of the host label.
+> 2. **`app/_sites/[tenant]/` cannot work** (§0, §1.3, §8). A `_`-prefixed folder is a
+>    *private folder* in the App Router and is opted out of routing along with all its
+>    subfolders, so the rewrite target would not exist. It is `app/sites/[tenant]/`, with a
+>    proxy guard 404ing inbound `/sites/*` — without it, `guestnote.be/sites/<slug>` serves
+>    a tenant's site on the apex.
+> 3. **§1's per-surface cache headers cannot come from a path-based `headers()` rule.**
+>    Config `headers` run *before* proxy, so they see the pre-rewrite path. They are set in
+>    `proxy.ts` instead. Related: Next's default for an SSG page is `s-maxage=31536000`, so
+>    §1's "revalidated on deploy" has to be written explicitly as
+>    `public, s-maxage=60, stale-while-revalidate=86400`.
+> 4. **§9's M1a "`/api/health` doing a real `withTenant` round-trip"** would require a
+>    fixture `orgId` in a public endpoint. Implemented as `withUser(db, NIL_UUID, …)`
+>    asserting the connected role cannot bypass RLS — strictly more, and fixture-free. It
+>    caught a real misconfiguration on its first run.
+>
+> Also settled: **§11.1's premise is untested but the repo-wide one under it holds** —
+> Turbopack consumes `packages/*` as raw TypeScript source, in dev and in build, so no build
+> step is needed. And **`cacheComponents` stays off until M1b**, because nothing in PH0–PH3
+> is cached and turning it on now would spend the hosting reversibility §9 banks on.
+>
+> Still open, and blocking PH4: **there is no `Principal` for an anonymous guest-site
+> render** — `assertScoped` requires a `userId`, but §1 has the guest site rendering in a
+> `use cache` scope with no user. See ADR 0003 §9.
+
 Constraints this design is optimising for: **one developer, ~8–10 h/week, alongside a
 full-time job and a July 2027 wedding.** Every choice below trades cleverness for the thing
 that survives that.

@@ -1,13 +1,24 @@
 /* ============================================================================
-   Guestnote design tokens -- pro.guestnote.be (planner platform)
+   Guestnote design tokens -- app.guestnote.be (planner platform)
    Generated. Every pair below is contrast-verified; the chart palette is
    validated for colour-vision deficiency. See research/08-design-system.md.
 
    Scope: the planner dashboard only. Tenant wedding-site theming is parked --
    design-system/theme-contract.ts stays valid for when F4/V7 come round.
+
+   This file is a LAYER, not a Tailwind entry point. The consuming app owns the
+   `@import "tailwindcss"` and the `@source` set, because `@source` paths resolve
+   relative to the stylesheet that declares them -- so putting the entry here
+   would couple a shared design artefact to one app's directory layout, and break
+   the moment a second surface needs it. Entry: apps/web/src/app/globals.css.
    ============================================================================ */
 
-@import "tailwindcss";
+/* Tailwind v4's `dark:` variant defaults to `prefers-color-scheme`, but this file
+   expresses dark mode as a `.dark` CLASS (see section 2b below). Without this line
+   every `dark:` utility -- including everything the shadcn CLI generates -- keys off
+   the OS setting while the token values key off the class. The two then disagree the
+   moment a user toggles the theme, silently, with no error. */
+@custom-variant dark (&:is(.dark *));
 
 /* ---------- 1. primitives -- never referenced in a component --------------- */
 :root {

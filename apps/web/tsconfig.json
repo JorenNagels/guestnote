@@ -1,0 +1,55 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // The base config is written for libraries type-checked by `tsc`. Only the five
+    // things below genuinely conflict with also being an app compiled by Turbopack,
+    // and none of them require weakening the base.
+
+    // Turbopack does the real JSX transform; `preserve` tells tsc to type-check JSX
+    // and leave it alone.
+    "jsx": "preserve",
+
+    // TS 6 defaults `types` to [] and the base narrows it to ["node"]. Under
+    // `jsx: preserve` the JSX namespace resolves as `React.JSX`, which needs
+    // @types/react's `export as namespace React` registered. Do NOT rely on
+    // next-env.d.ts pulling it in transitively -- that chain is not guaranteed.
+    "types": ["node", "react", "react-dom"],
+
+    // A deliberate exception to tsconfig.base.json's "No `baseUrl` and no `paths`".
+    // The shadcn CLI emits `import { cn } from "@/lib/utils"` and offers no relative
+    // mode, so this alias is unavoidable. `paths` without `baseUrl` is legal and
+    // resolves relative to this file's directory, so TS 6 removing baseUrl as a
+    // resolution root does not bite. Next reads it from here automatically.
+    //
+    // NOTE: Vitest does NOT read tsconfig paths. Keep src/lib/** and src/env.ts on
+    // relative `.ts` imports (packages/db's house style) so their tests stay simple;
+    // `@/` is for component imports, which are not unit-tested.
+    "paths": { "@/*": ["./src/*"] },
+
+    // tsconfig.base.json sets `lib: ["ES2025"]` because it is written for packages that
+    // run in Node and must not be able to reference `document` by accident. This app has
+    // Client Components, so it genuinely needs the DOM -- and this is the fifth and last
+    // deliberate divergence from the base, not a loosening of it: the packages keep the
+    // narrow lib, and only the surface that ships to a browser gets browser globals.
+    "lib": ["ES2025", "DOM", "DOM.Iterable"],
+
+    // Editor plugin: route segment config validation, 'use client' correctness.
+    "plugins": [{ "name": "next" }],
+
+    "allowJs": true
+  },
+
+  // .next/types/**/*.ts holds the route-aware globals (PageProps, LayoutProps) that
+  // `next typegen` writes. That is why `typecheck` runs typegen first.
+  //
+  // TRAP: do NOT add ".next" to `exclude`. `exclude` filters `include`, so excluding
+  // .next silently drops the line below and takes the route globals with it.
+  "include": [
+    "next-env.d.ts",
+    "next.config.ts",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
+}

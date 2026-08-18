@@ -4,15 +4,17 @@
   "type": "module",
   "workspaces": [
     "apps/*",
-    "packages/*",
-    "infra"
+    "packages/*"
   ],
   "engines": {
     "node": ">=24 <25"
   },
   "scripts": {
+    "dev": "npm run dev -w @guestnote/web",
+    "build": "npm run build -w @guestnote/web",
+    "start": "npm run start -w @guestnote/web",
     "check": "npm run typecheck && npm run lint && npm run test",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p packages/db",
+    "typecheck": "tsc --noEmit && npm run typecheck --workspaces --if-present",
     "lint": "biome check .",
     "format": "biome check --write .",
     "test": "vitest run --project unit --passWithNoTests",

@@ -1,0 +1,37 @@
+/**
+ * The Tailwind entry point for apps/web.
+ *
+ * `source(none)` disables automatic source detection, and the three `@source` lines
+ * then declare exactly what to scan. That is not belt-and-braces: Tailwind's automatic
+ * base is the **current working directory**, which differs between `npm run dev` at the
+ * repo root, `npm run dev -w @guestnote/web`, and CI. Declaring the paths explicitly
+ * makes the generated CSS independent of how the command was invoked -- otherwise
+ * utilities silently go missing depending on where you stood when you ran it.
+ *
+ * `@source` paths resolve relative to THIS file, which is why the entry has to live in
+ * the app rather than in design-system/.
+ */
+@import "tailwindcss" source(none);
+
+/**
+ * The contrast-verified token layer. Primitives, semantics, the `@theme` mapping and
+ * the base layer all live there, and it stays in design-system/ next to its visual
+ * reference (tokens-reference.html) so the two cannot drift apart.
+ *
+ * Both `@import`s come before every other at-rule because CSS requires it -- `@source`
+ * below is position-independent global config, so there is no reason to interleave them.
+ */
+@import "../../../../design-system/tokens.css";
+
+@source "./**/*.{ts,tsx}";
+@source "../components/**/*.{ts,tsx}";
+@source "../lib/**/*.{ts,tsx}";
+
+/**
+ * The shared component package. Without this line every utility that exists only inside
+ * packages/ui is absent from the generated CSS, and those components render unstyled --
+ * silently, because a missing class is not an error anywhere in the toolchain.
+ *
+ * Relative to THIS file, like every other `@source`.
+ */
+@source "../../../../packages/ui/src/**/*.tsx";

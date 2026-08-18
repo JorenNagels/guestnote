@@ -24,7 +24,13 @@ the strategy predicts.
 | `guestnote.com` | **taken** (squatter) | buy from squatter later if revenue justifies (€1–15k) |
 
 Client sites live at `<couple>.guestnote.be`; the planner dashboard at
-`pro.guestnote.be`.
+**`app.guestnote.be`**, with `pro.guestnote.be` kept as a permanent redirect to it.
+
+> **Changed 2026-08-17: `pro.` → `app.`** The couple portal (`09-planner-app.md` P7) and
+> later vendors log into the *same* host as planners, and a couple is not a "pro" — plus a
+> price tier may yet be called Pro. `pro.` redirects rather than dying, so old links and the
+> documents that still name it keep working. The host label is one env var, and the app's
+> internal route prefix is independent of it. See `docs/adr/0003-one-app-three-hosts.md`.
 
 **Still to do before spending money:** EUIPO/TMView search on **class 42** (software) and
 **class 41** (event services); check `@guestnote` on Instagram and LinkedIn.
@@ -64,9 +70,17 @@ Client sites live at `<couple>.guestnote.be`; the planner dashboard at
 
 Scoped to the **planner platform**. Tenant wedding-site theming is parked.
 
-- `design-system/tokens.css` — generated: 7 ramps (neutral has 12 steps), semantic layer
-  for light and dark, six RSVP status triples, 5-slot chart palette, density modes.
-  Every pair contrast-verified; the chart palette passes protan/deutan/tritan checks.
+- `design-system/tokens.css` — 7 ramps (neutral has 12 steps), semantic layer for light and
+  dark, six RSVP status triples, 5-slot chart palette, density modes. Every pair
+  contrast-verified; the chart palette passes protan/deutan/tritan checks.
+  **It is a layer, not a Tailwind entry point** — `apps/web/src/app/globals.css` owns the
+  `@import "tailwindcss"` and the `@source` set, because `@source` resolves relative to the
+  stylesheet that declares it. Two fixes landed 2026-08-17: the `@import "tailwindcss"` line
+  moved into the app, and `@custom-variant dark (&:is(.dark *))` was added — without it every
+  `dark:` utility keyed off `prefers-color-scheme` while the tokens keyed off the `.dark`
+  class, silently. See `docs/adr/0003-one-app-three-hosts.md` §4.
+  *Labelled "Generated" but no generator exists in the repo; treat it as hand-maintained
+  until one is committed.*
 - `design-system/tokens-reference.html` — the visual reference. Doubles as the colour
   brief for the V7 template designer.
 - `design-system/theme-contract.ts` — **parked, still correct.** Per-wedding theme type,
@@ -74,8 +88,17 @@ Scoped to the **planner platform**. Tenant wedding-site theming is parked.
 
 ## Shipped
 
+- `packages/db/` — **the gate.** PH0 schema, RLS forced on all 9 tables, `withTenant`,
+  ~110 assertions including against the real Neon pooled endpoint. `npm run test:db`.
+- `packages/core/` — host resolution and `RESERVED_SUBDOMAINS`, import-free so `proxy.ts`
+  can use it without pulling in the database layer. Gains the Better Auth seam at M3.
+- `apps/web/` — the one Next.js 16 app. Marketing on the apex, the dashboard on
+  `app.guestnote.be`, guest sites on `<slug>.guestnote.be`, all four host branches real and
+  tested. NL/EN/FR. Runs locally; **not deployed** — M1a's OpenNext + CDK is still deferred.
+  See `apps/web/README.md` and `docs/adr/0003-one-app-three-hosts.md`.
 - `coming-soon/` — the holding page for `guestnote.be`. One self-contained `index.html`,
-  NL/EN, no external requests. Deploy notes in `coming-soon/README.md`.
+  NL/EN, no external requests. Deploy notes in `coming-soon/README.md`. Still the live apex;
+  the app's marketing surface is a placeholder until there is real copy.
 - `waitlist/` — email capture behind it: Lambda Function URL → DynamoDB, SNS email on
   planner/venue leads. Entirely inside AWS perpetual free tiers; costs verified, not
   assumed. `waitlist/README.md`.
@@ -139,7 +162,13 @@ the permanent free tiers (CloudFront 1 TB, Lambda 1M requests) absorb it comfort
 - [ ] Legal entity vs side project under existing structure (founder name belongs here —
       e.g. "Nagels BV" — not on the customer-facing brand)
 - [ ] Designer budget for 5–6 templates — **€2,000–5,000, and the highest-ROI euro available**
-- [ ] Is French a launch requirement or a Wallonia-expansion feature? (Changes T2 materially)
+- [x] ~~Is French a launch requirement or a Wallonia-expansion feature?~~ → **launch
+      requirement, decided 2026-08-17.** The interface ships NL + EN + FR from day one via
+      `next-intl`; all three catalogues exist in `apps/web/messages/`. `04-speclist.md`'s
+      **V3** already called per-guest NL/FR/EN "the best local moat available" — Weddamo
+      charges €139 for a *second* language — so it becomes a property of the platform rather
+      than a feature to sell later. Note this is the **interface**; per-*guest* language on
+      wedding sites and emails is still V3/PH4 work.
 
 ## The schema lives in code
 

@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guestnote — sign-in flow, "The descent"</title>
+
+<!--
+  Design prototype for the surface brief at
+  .impeccable/surfaces/src-app-pro-public-login.md
+
+  This file is NOT app code and nothing here ships. It exists so the descent can be
+  judged with eyes before apps/web gains a single line, and so the copy can be read in
+  all three languages at the width it will actually occupy.
+
+  It imports the real design-system/tokens.css, so every colour on this page is the
+  shipping token and not an approximation. Tailwind's `@theme inline` and `@layer base`
+  blocks in that file are inert in a plain browser, so the type scale and font stack are
+  restated below with the SAME values -- if tokens.css changes those, change them here.
+-->
+
+<link rel="stylesheet" href="./tokens.css">
+<style>
+  /* ---- restated from tokens.css @theme (inert outside Tailwind) ---------- */
+  :root {
+    --font-sans: "Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --text-xs: .75rem; --text-sm: .875rem; --text-base: 1rem;
+    --text-lg: 1.125rem; --text-xl: 1.25rem; --text-2xl: 1.5rem; --text-3xl: 1.875rem;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: var(--font-sans);
+    background: var(--background); color: var(--foreground);
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible { outline: var(--ring-width) solid var(--ring); outline-offset: var(--ring-offset); }
+
+  /* ======================================================================
+     THE DESCENT — the only thing on this page that is the design itself.
+     One custom property per rung. Everything inside .flow reads from it.
+     ====================================================================== */
+  .flow {
+    --gd: var(--neutral-50);   /* ground        */
+    --gf: var(--neutral-950);  /* body          */
+    --gm: var(--neutral-800);  /* muted         */
+    --gi: var(--neutral-700);  /* input border  */
+    --ga: var(--teal-800);     /* action        */
+    --gal: #FFFFFF;            /* action label  */
+    --ge: var(--danger-900);   /* error         */
+    background: var(--gd); color: var(--gf);
+    transition: background-color .38s cubic-bezier(.22,.61,.36,1),
+                       color .38s cubic-bezier(.22,.61,.36,1);
+  }
+  .flow[data-rung="1"] { --gd: var(--neutral-200); --gf: var(--neutral-950); --gm: var(--neutral-800); --gi: var(--neutral-700); --ga: var(--teal-800); --gal: #FFFFFF; --ge: var(--danger-900); }
+  .flow[data-rung="2"] { --gd: var(--neutral-900); --gf: var(--neutral-100); --gm: var(--neutral-200); --gi: var(--neutral-500); --ga: var(--teal-300); --gal: var(--neutral-950); --ge: var(--danger-300); }
+
+  /* Dark descends the dark end of the same ramp rather than inverting.
+     Note light rung 2 and dark rung 0 are the same surface -- the ramps converge,
+     which is why this is one component and not two. */
+  .dark .flow,
+  .dark .flow[data-rung="0"] { --gd: var(--neutral-900);  --gf: var(--neutral-100); --gm: var(--neutral-200); --gi: var(--neutral-500); --ga: var(--teal-300); --gal: var(--neutral-950); --ge: var(--danger-300); }
+  .dark .flow[data-rung="1"] { --gd: var(--neutral-950);  --gf: var(--neutral-100); --gm: var(--neutral-200); --gi: var(--neutral-500); --ga: var(--teal-300); --gal: var(--neutral-950); --ge: var(--danger-300); }
+  .dark .flow[data-rung="2"] { --gd: var(--neutral-1000); --gf: var(--neutral-100); --gm: var(--neutral-200); --gi: var(--neutral-500); --ga: var(--teal-300); --gal: var(--neutral-950); --ge: var(--danger-300); }
+
+  html[data-motion="reduce"] .flow,
+  html[data-motion="reduce"] .rung { transition: none !important; animation: none !important; }
+  @media (prefers-reduced-motion: reduce) {
+    .flow, .rung { transition: none !important; animation: none !important; }
+  }
+
+  /* ---- the column ------------------------------------------------------- */
+  .flow { display: flex; flex-direction: column; min-height: 100%; }
+  .flow-top {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 1rem 1.25rem; gap: 1rem;
+  }
+  .mark { display: flex; align-items: center; gap: .5rem; font-weight: 600; font-size: var(--text-sm); letter-spacing: -0.01em; }
+  .mark img { height: 20px; width: auto; display: block; }
+
+  /* Language: plain links, because the choice is a navigation and there is
+     nothing to hydrate. Current locale is not a link. */
+  .lang { display: flex; gap: .125rem; font-size: var(--text-xs); }
+  .lang button {
+    font: inherit; background: none; border: 0; cursor: pointer;
+    padding: .3rem .45rem; border-radius: calc(var(--radius) - 2px);
+    color: var(--gm); letter-spacing: .04em;
+  }
+  .lang button[aria-current="true"] { color: var(--gf); font-weight: 600; }
+  .lang button:hover:not([aria-current="true"]) { color: var(--gf); }
+
+  .flow-body { flex: 1; display: flex; align-items: center; justify-content: center; padding: 1rem 1.25rem 3rem; }
+  /* The column never changes width or horizontal position between rungs.
+     Only the ground moves and the contents swap. */
+  .col { width: 100%; max-width: 21rem; }
+
+  /* ---- the rung label: depth is never the only signal -------------------- */
+  .steps { display: flex; align-items: center; gap: .5rem; margin-bottom: 1.5rem; font-size: var(--text-xs); color: var(--gm); }
+  .steps b { font-weight: 600; color: var(--gf); }
+  .pips { display: flex; gap: .25rem; }
+  .pip { width: 1.25rem; height: 2px; background: currentColor; opacity: .28; border-radius: 1px; transition: opacity .38s; }
+  .pip.on { opacity: 1; }
+
+  h1.q { font-size: var(--text-2xl); line-height: 1.2; letter-spacing: -0.02em; font-weight: 600; margin: 0 0 .4rem; }
+  p.sub { margin: 0 0 1.5rem; font-size: var(--text-sm); line-height: 1.5; color: var(--gm); }
+  p.sub .addr { color: var(--gf); font-weight: 500; overflow-wrap: anywhere; }
+
+  label.lb { display: block; font-size: var(--text-sm); font-weight: 500; margin-bottom: .375rem; }
+
+  /* --input holds 3:1 at every stop: the field's edge is what tells you the
+     control is there, and on this screen the field IS the interface. */
+  .field {
+    width: 100%; height: 44px; padding: 0 .75rem;
+    font: inherit; font-size: var(--text-base); color: var(--gf);
+    background: transparent;
+    border: 1px solid var(--gi); border-radius: var(--radius);
+    transition: border-color .15s, background-color .38s, color .38s;
+  }
+  .field::placeholder { color: var(--gm); opacity: .7; }
+  .field:hover { border-color: var(--gf); }
+  .field[aria-invalid="true"] { border-color: var(--ge); }
+  .field.code {
+    font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+    letter-spacing: .3em; font-size: var(--text-lg); text-align: center;
+  }
+
+  .btn {
+    width: 100%; height: 44px; margin-top: .875rem;
+    font: inherit; font-size: var(--text-sm); font-weight: 600;
+    background: var(--ga); color: var(--gal);
+    border: 1px solid transparent; border-radius: var(--radius); cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+    transition: background-color .38s, color .38s, filter .15s;
+  }
+  .btn:hover { filter: brightness(1.08); }
+  .btn[disabled] { opacity: .55; cursor: not-allowed; filter: none; }
+
+  /* The passkey control is SECONDARY weight on purpose. A primary-weight
+     "sign in with a passkey" button beside an email field is the method menu
+     the brief refuses; the real passkey affordance is the field itself. */
+  .btn-2 {
+    width: 100%; height: 40px; margin-top: .5rem;
+    font: inherit; font-size: var(--text-sm); font-weight: 500;
+    background: transparent; color: var(--gf);
+    border: 1px solid var(--gi); border-radius: var(--radius); cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+  }
+  .btn-2:hover { border-color: var(--gf); }
+  .btn-2 svg { width: 15px; height: 15px; }
+
+  .helper { margin: .875rem 0 0; font-size: var(--text-xs); line-height: 1.5; color: var(--gm); }
+  .row { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; margin-top: .875rem; }
+  .link {
+    font: inherit; font-size: var(--text-xs); background: none; border: 0; padding: 0;
+    color: var(--gm); text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
+  }
+  .link:hover { color: var(--gf); }
+  .link[disabled] { text-decoration: none; cursor: default; opacity: .8; }
+
+  /* Errors name what happened, then what to do. Never colour alone: the icon
+     and the text both carry it, because this gets read in bad light. */
+  .err { display: flex; gap: .45rem; margin-top: .625rem; font-size: var(--text-xs); line-height: 1.5; color: var(--ge); }
+  .err svg { flex: none; width: 14px; height: 14px; margin-top: .12rem; }
+
+  .rung { animation: fade .3s ease-out; }
+  @keyframes fade { from { opacity: 0 } to { opacity: 1 } }
+
+  /* ---- arrival ---------------------------------------------------------- */
+  .arrive { text-align: left; }
+  .tick {
+    width: 34px; height: 34px; border-radius: 999px; margin-bottom: 1rem;
+    background: var(--ga); color: var(--gal);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .tick svg { width: 17px; height: 17px; }
+
+  /* ---- the enrollment modal: post-login moment, hosted by the shell ------ */
+  .sheet {
+    margin-top: 1.75rem; padding: 1rem;
+    border: 1px solid var(--gi); border-radius: var(--radius);
+    background: color-mix(in srgb, var(--gf) 6%, transparent);
+  }
+  .sheet h2 { font-size: var(--text-sm); font-weight: 600; margin: 0 0 .3rem; }
+  .sheet p { font-size: var(--text-xs); line-height: 1.55; color: var(--gm); margin: 0 0 .875rem; }
+  .sheet .btn { margin-top: 0; height: 38px; }
+  .sheet .btn-2 { height: 34px; }
+
+  /* ======================================================================
+     Everything below is REVIEW CHROME. It is not part of the design.
+     ====================================================================== */
+  .page { max-width: 1180px; margin: 0 auto; padding: 2.5rem 1.5rem 5rem; }
+  header.pg { border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 2rem; }
+  header.pg h1 { font-size: var(--text-2xl); letter-spacing: -0.02em; margin: 0 0 .35rem; font-weight: 600; }
+  header.pg p { margin: 0; color: var(--muted-foreground); font-size: var(--text-sm); max-width: 62ch; line-height: 1.6; }
+
+  .controls { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: 1.25rem; }
+  .ctl { display: inline-flex; align-items: center; gap: .3rem; padding: .3rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--card); }
+  .ctl > span { font-size: var(--text-xs); color: var(--muted-foreground); padding: 0 .35rem 0 .5rem; }
+  .ctl button {
+    font: inherit; font-size: var(--text-xs); font-weight: 500; cursor: pointer;
+    padding: .3rem .6rem; border-radius: calc(var(--radius) - 3px);
+    border: 1px solid transparent; background: transparent; color: var(--foreground);
+  }
+  .ctl button[aria-pressed="true"] { background: var(--primary); color: var(--primary-foreground); }
+
+  h2.sec { font-size: var(--text-xs); text-transform: uppercase; letter-spacing: .1em; color: var(--muted-foreground);
+           font-weight: 600; margin: 3.5rem 0 .5rem; padding-bottom: .5rem; border-bottom: 1px solid var(--border); }
+  h2.sec:first-of-type { margin-top: 2rem; }
+  p.note { font-size: var(--text-sm); color: var(--muted-foreground); line-height: 1.6; max-width: 68ch; margin: .75rem 0 1.5rem; }
+  p.note code, .mono { font-family: var(--font-mono); font-size: .92em; }
+
+  /* device frames */
+  .stage { display: flex; gap: 1.75rem; align-items: flex-start; flex-wrap: wrap; }
+  .device { border: 1px solid var(--border); border-radius: calc(var(--radius) + 6px); overflow: hidden; background: var(--card); }
+  .device .cap { font-size: var(--text-xs); color: var(--muted-foreground); padding: .5rem .75rem; border-bottom: 1px solid var(--border);
+                 display: flex; justify-content: space-between; gap: 1rem; }
+  .phone { width: 320px; } .phone .screen { height: 620px; }
+  .desk  { flex: 1; min-width: 420px; } .desk .screen { height: 620px; }
+  .screen { overflow: hidden; }
+  .screen > .flow { height: 100%; }
+
+  /* gallery */
+  .gal { display: grid; grid-template-columns: repeat(auto-fill, minmax(268px, 1fr)); gap: 1.25rem; }
+  .cell { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--card); }
+  .cell .cap { font-size: var(--text-xs); padding: .5rem .7rem; border-bottom: 1px solid var(--border); display: flex; gap: .5rem; align-items: baseline;
+               min-height: 3.6rem; }
+  .cell .cap b { font-weight: 600; }
+  .cell .cap span { color: var(--muted-foreground); }
+  .cell .screen { height: 412px; }
+  .cell .flow-top { padding: .7rem .9rem; }
+  .cell .flow-body { padding: .25rem .9rem 1rem; align-items: flex-start; }
+  .cell .col { max-width: none; }
+  .cell h1.q { font-size: var(--text-lg); }
+  .cell .steps { margin-bottom: 1rem; }
+
+  /* ramp table */
+  table.t { width: 100%; border-collapse: collapse; font-size: var(--text-sm); background: var(--card); }
+  table.t th, table.t td { text-align: left; padding: .55rem .7rem; border-bottom: 1px solid var(--border); }
+  table.t th { font-weight: 500; color: var(--muted-foreground); font-size: var(--text-xs); text-transform: uppercase; letter-spacing: .06em; }
+  table.t td.num { text-align: right; font-variant-numeric: tabular-nums; font-family: var(--font-mono); font-size: var(--text-xs); }
+  .sw { display: inline-block; width: 1.4rem; height: 1.4rem; border-radius: 4px; border: 1px solid var(--border); vertical-align: -.35rem; margin-right: .5rem; }
+  .pass { color: var(--st-attending-fg); background: var(--st-attending-bg); border-radius: 4px; padding: .1rem .35rem; font-size: var(--text-xs); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header class="pg">
+  <h1>Sign-in and invitation acceptance — “The descent”</h1>
+  <p>
+    Prototype for <span class="mono">.impeccable/surfaces/src-app-pro-public-login.md</span>.
+    Nothing here ships. Every colour is read from the real
+    <span class="mono">design-system/tokens.css</span>, so what you see is the shipping
+    token, not an approximation. The ground steps one stop deeper down the neutral ramp at
+    each rung completed — <strong>the passkey path skips the middle rung entirely</strong>,
+    which is what “primary” should feel like: visibly shorter, not merely faster.
+  </p>
+  <div class="controls">
+    <div class="ctl"><span>Theme</span>
+      <button data-theme="light" aria-pressed="true">Light</button>
+      <button data-theme="dark" aria-pressed="false">Dark</button>
+    </div>
+    <div class="ctl"><span>Taal</span>
+      <button data-loc="nl" aria-pressed="true">NL</button>
+      <button data-loc="en" aria-pressed="false">EN</button>
+      <button data-loc="fr" aria-pressed="false">FR</button>
+    </div>
+    <div class="ctl"><span>Motion</span>
+      <button data-motion="full" aria-pressed="true">Full</button>
+      <button data-motion="reduce" aria-pressed="false">Reduced</button>
+    </div>
+    <div class="ctl"><span>Scenario</span>
+      <button data-scn="code" aria-pressed="true">First sign-in (code)</button>
+      <button data-scn="passkey" aria-pressed="false">Returning (passkey)</button>
+      <button data-scn="invite" aria-pressed="false">Staff invitation</button>
+    </div>
+  </div>
+</header>
+
+<h2 class="sec">The live flow</h2>
+<p class="note">
+  Click through it. <strong>Returning (passkey)</strong> goes rung&nbsp;0&nbsp;→&nbsp;2 with no
+  email sent — the OS sheet is simulated as a one-second pause, because in the real thing our
+  UI draws nothing at all during it. <strong>First sign-in</strong> goes 0&nbsp;→&nbsp;1&nbsp;→&nbsp;2.
+  Any six digits are accepted; type <span class="mono">000000</span> to see the wrong-code state.
+</p>
+<div class="stage">
+  <div class="device phone">
+    <div class="cap"><span>Phone — the day-of scene</span><span class="mono">375×</span></div>
+    <div class="screen"><div class="flow" data-flow="phone" data-rung="0"></div></div>
+  </div>
+  <div class="device desk">
+    <div class="cap"><span>Desktop — the desk scene</span><span class="mono">≥1024</span></div>
+    <div class="screen"><div class="flow" data-flow="desk" data-rung="0"></div></div>
+  </div>
+</div>
+
+<h2 class="sec">The descent, verified</h2>
+<p class="note">
+  26 pairs, 0 failures. The first ramp proposed for this brief
+  (<span class="mono">neutral-50 → neutral-200 → neutral-800</span>) produced four failures and
+  was discarded rather than shipped. Note that <strong>light rung 2 and dark rung 0 are the same
+  surface</strong> — the two ramps converge, which is why this is one component and not two.
+</p>
+<table class="t" id="ramp"></table>
+
+<h2 class="sec">Every state</h2>
+<p class="note">
+  The states from §5 of the brief, at the rung each one occurs on, in the selected language and
+  theme. Two are worth looking at hardest: <strong>passkey cancelled</strong> is not an error and
+  must show no red and no message, and <strong>counter regression</strong> must fall back silently
+  without ever explaining why on screen.
+</p>
+<div class="gal" id="gal"></div>
+
+</div>
+
+<script>
+/* ===========================================================================
+   Copy. NL is authored first, not translated last — French runs longest and
+   is what the column width has to survive.
+   =========================================================================== */
+const T = {
+  nl: {
+    steps: ['Publiek','Verifiëren','Privé'],
+    q0: 'Meld je aan', q0invite: 'Maak je account',
+    lb0: 'E-mailadres', ph0: 'jij@studiowit.be',
+    cta0: 'Doorgaan', pk: 'Gebruik je passkey',
+    help0: 'We sturen je een code van zes cijfers. Er is geen wachtwoord.',
+    q1: 'Voer je code in',
+    sub1: 'We hebben een code gestuurd naar ', other: 'Ander adres',
+    lb1: 'Code van zes cijfers', cta1: 'Aanmelden',
+    resend: 'Nieuwe code sturen', resendIn: n => `Nieuwe code sturen (${n})`,
+    back: 'Terug',
+    q2: 'Je bent aangemeld', sub2: 'Studio Wit — we brengen je naar je weddings.',
+    inviteLine: 'Ilse Verhoeven nodigt je uit bij Studio Wit, als beheerder.',
+    locked: 'Deze uitnodiging staat op dit adres.',
+    enrollT: 'Sneller aanmelden op dit toestel?',
+    enrollP: 'Met een passkey meld je je aan met je gezicht of vingerafdruk. Geen e-mail meer nodig.',
+    enrollY: 'Passkey aanmaken', enrollN: 'Niet nu',
+    e: {
+      format: 'Dit lijkt geen geldig e-mailadres.',
+      wrong: n => `Die code klopt niet. Nog ${n} pogingen.`,
+      expired: 'Deze code is verlopen. Vraag een nieuwe aan.',
+      spent: 'Deze code werkt niet meer. Vraag een nieuwe aan.',
+      rate: 'Te veel pogingen. Probeer het over 14 minuten opnieuw.',
+      offline: 'Geen verbinding. Je code blijft staan.',
+      session: 'Je sessie is verlopen. Meld je opnieuw aan.',
+      pkGone: 'Deze passkey werkt niet meer voor dit account. Ga verder met een code.',
+      bounced: 'Dat adres accepteert geen e-mail.',
+      inviteOld: 'Deze uitnodiging is verlopen. Vraag Ilse Verhoeven om een nieuwe.',
+      inviteMine: 'Deze uitnodiging is voor een ander adres dan waarmee je bent aangemeld.',
+      couple: 'Het portaal voor bruidsparen is nog niet open. Je uitnodiging blijft geldig.',
+      token: 'Deze link werkt niet. Vraag degene die je uitnodigde om een nieuwe.',
+    },
+  },
+  en: {
+    steps: ['Public','Verifying','Private'],
+    q0: 'Sign in', q0invite: 'Create your account',
+    lb0: 'Email address', ph0: 'you@studiowit.be',
+    cta0: 'Continue', pk: 'Use your passkey',
+    help0: 'We’ll send you a six-digit code. There is no password.',
+    q1: 'Enter your code',
+    sub1: 'We sent a code to ', other: 'Different address',
+    lb1: 'Six-digit code', cta1: 'Sign in',
+    resend: 'Send a new code', resendIn: n => `Send a new code (${n})`,
+    back: 'Back',
+    q2: 'You’re signed in', sub2: 'Studio Wit — taking you to your weddings.',
+    inviteLine: 'Ilse Verhoeven is inviting you to Studio Wit, as an admin.',
+    locked: 'This invitation is tied to this address.',
+    enrollT: 'Sign in faster on this device?',
+    enrollP: 'With a passkey you sign in with your face or fingerprint. No more email.',
+    enrollY: 'Create a passkey', enrollN: 'Not now',
+    e: {
+      format: 'That doesn’t look like a valid email address.',
+      wrong: n => `That code isn’t right. ${n} attempts left.`,
+      expired: 'This code has expired. Ask for a new one.',
+      spent: 'This code no longer works. Ask for a new one.',
+      rate: 'Too many attempts. Try again in 14 minutes.',
+      offline: 'No connection. Your code is still here.',
+      session: 'Your session expired. Sign in again.',
+      pkGone: 'This passkey no longer works for this account. Continue with a code.',
+      bounced: 'That address doesn’t accept mail.',
+      inviteOld: 'This invitation has expired. Ask Ilse Verhoeven for a new one.',
+      inviteMine: 'This invitation is for a different address than the one you’re signed in with.',
+      couple: 'The couple portal isn’t open yet. Your invitation stays valid.',
+      token: 'This link doesn’t work. Ask whoever invited you for a new one.',
+    },
+  },
+  fr: {
+    steps: ['Public','Vérification','Privé'],
+    q0: 'Connectez-vous', q0invite: 'Créez votre compte',
+    lb0: 'Adresse e-mail', ph0: 'vous@studiowit.be',
+    cta0: 'Continuer', pk: 'Utiliser votre passkey',
+    help0: 'Nous vous enverrons un code à six chiffres. Il n’y a pas de mot de passe.',
+    q1: 'Saisissez votre code',
+    sub1: 'Nous avons envoyé un code à ', other: 'Autre adresse',
+    lb1: 'Code à six chiffres', cta1: 'Se connecter',
+    resend: 'Envoyer un nouveau code', resendIn: n => `Envoyer un nouveau code (${n})`,
+    back: 'Retour',
+    q2: 'Vous êtes connecté', sub2: 'Studio Wit — nous vous emmenons à vos mariages.',
+    inviteLine: 'Ilse Verhoeven vous invite à rejoindre Studio Wit, en tant qu’administrateur.',
+    locked: 'Cette invitation est liée à cette adresse.',
+    enrollT: 'Vous connecter plus vite sur cet appareil ?',
+    enrollP: 'Avec une passkey, vous vous connectez avec votre visage ou votre empreinte. Plus besoin d’e-mail.',
+    enrollY: 'Créer une passkey', enrollN: 'Pas maintenant',
+    e: {
+      format: 'Cette adresse e-mail ne semble pas valide.',
+      wrong: n => `Ce code est incorrect. Il vous reste ${n} tentatives.`,
+      expired: 'Ce code a expiré. Demandez-en un nouveau.',
+      spent: 'Ce code ne fonctionne plus. Demandez-en un nouveau.',
+      rate: 'Trop de tentatives. Réessayez dans 14 minutes.',
+      offline: 'Pas de connexion. Votre code est conservé.',
+      session: 'Votre session a expiré. Reconnectez-vous.',
+      pkGone: 'Cette passkey ne fonctionne plus pour ce compte. Continuez avec un code.',
+      bounced: 'Cette adresse n’accepte pas les e-mails.',
+      inviteOld: 'Cette invitation a expiré. Demandez-en une nouvelle à Ilse Verhoeven.',
+      inviteMine: 'Cette invitation concerne une autre adresse que celle avec laquelle vous êtes connecté.',
+      couple: 'L’espace des mariés n’est pas encore ouvert. Votre invitation reste valable.',
+      token: 'Ce lien ne fonctionne pas. Demandez-en un nouveau à la personne qui vous a invité.',
+    },
+  },
+}
+
+const ICON = {
+  alert: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="8" cy="8" r="6.25"/><path d="M8 5v3.5M8 10.9v.1" stroke-linecap="round"/></svg>',
+  tick:  '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3.5 8.5l3 3 6-6.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  key:   '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="2.5" y="6.5" width="11" height="7.5" rx="1.6"/><path d="M5.2 6.5V4.4a2.8 2.8 0 015.6 0v2.1"/></svg>',
+}
+
+const state = { theme: 'light', loc: 'nl', motion: 'full', scn: 'code' }
+const live  = { rung: 0, email: '', err: null, enrolled: false, busy: false, resend: 0 }
+
+/* --------------------------------------------------------------------------
+   One renderer. Every screen on this page — the live flow and all 20 gallery
+   cells — is this function with different arguments, which is the point: the
+   brief says one component, one state list.
+   -------------------------------------------------------------------------- */
+function render(o) {
+  const t = T[state.loc]
+  const rung = o.rung ?? 0
+  const email = o.email ?? 'ilse@studiowit.be'
+  const invite = o.invite || state.scn === 'invite' && !o.gallery
+
+  const stepLabel = `<div class="steps">
+      <div class="pips">${[0,1,2].map(i=>`<span class="pip ${i<=rung?'on':''}"></span>`).join('')}</div>
+      <span><b>${t.steps[rung]}</b></span>
+    </div>`
+
+  const top = `<div class="flow-top">
+      <div class="mark"><img src="../guestnote-logo.svg" alt=""><span>Guestnote</span></div>
+      <nav class="lang" aria-label="Taal">
+        ${['nl','en','fr'].map(l=>`<button data-loc="${l}" aria-current="${l===state.loc}">${l.toUpperCase()}</button>`).join('')}
+      </nav>
+    </div>`
+
+  const errBlock = (msg) => msg ? `<p class="err">${ICON.alert}<span>${msg}</span></p>` : ''
+
+  let inner = ''
+  if (rung === 0) {
+    inner = `
+      ${stepLabel}
+      <h1 class="q">${invite ? t.q0invite : t.q0}</h1>
+      <p class="sub">${invite ? t.inviteLine : t.help0}</p>
+      <label class="lb" for="em-${o.id}">${t.lb0}</label>
+      <!-- autocomplete="username webauthn" (webauthn LAST) is the passkey
+           affordance: conditional UI offers the credential from the field. -->
+      <input class="field" id="em-${o.id}" type="email" inputmode="email"
+             autocomplete="username webauthn" placeholder="${t.ph0}"
+             value="${invite ? 'tom@studiowit.be' : (o.value ?? '')}"
+             ${invite ? 'readonly' : ''} ${o.err ? 'aria-invalid="true"' : ''}>
+      ${errBlock(o.err)}
+      ${invite ? `<p class="helper">${t.locked}</p>` : ''}
+      <button class="btn" data-act="submit0">${o.busy ? '…' : t.cta0}</button>
+      ${o.showPk ? `<button class="btn-2" data-act="pk">${ICON.key}${t.pk}</button>` : ''}
+    `
+  } else if (rung === 1) {
+    inner = `
+      ${stepLabel}
+      <h1 class="q">${t.q1}</h1>
+      <p class="sub">${t.sub1}<span class="addr">${email}</span>. </p>
+      <label class="lb" for="cd-${o.id}">${t.lb1}</label>
+      <!-- one input, not six boxes: it must survive a pasted "194 720" and it
+           is autocomplete="one-time-code" that puts the code above the iOS keyboard. -->
+      <input class="field code" id="cd-${o.id}" type="text" inputmode="numeric"
+             autocomplete="one-time-code" maxlength="7" placeholder="······"
+             value="${o.value ?? ''}" ${o.err ? 'aria-invalid="true"' : ''}>
+      ${errBlock(o.err)}
+      <button class="btn" data-act="submit1" ${o.busy?'disabled':''}>${o.busy ? '…' : t.cta1}</button>
+      <div class="row">
+        <button class="link" data-act="back">${t.other}</button>
+        <button class="link" data-act="resend" ${o.resend ? 'disabled' : ''}>${o.resend ? t.resendIn(o.resend) : t.resend}</button>
+      </div>
+    `
+  } else {
+    inner = `
+      ${stepLabel}
+      <div class="arrive">
+        <div class="tick">${ICON.tick}</div>
+        <h1 class="q">${t.q2}</h1>
+        <p class="sub">${t.sub2}</p>
+      </div>
+      ${o.enroll === false ? '' : `
+      <!-- Post-login success moment, not mid-flow: triggered prompts here carry
+           the enrollment. The shell hosts this; the brief owns its copy. -->
+      <div class="sheet">
+        <h2>${t.enrollT}</h2>
+        <p>${t.enrollP}</p>
+        <button class="btn" data-act="enroll">${ICON.key}${t.enrollY}</button>
+        <button class="btn-2" data-act="skip">${t.enrollN}</button>
+      </div>`}
+    `
+  }
+
+  return `${top}<div class="flow-body"><div class="col">${inner}</div></div>`
+}
+
+/* ---- the live flow -------------------------------------------------------- */
+function paintLive() {
+  document.querySelectorAll('[data-flow]').forEach(el => {
+    el.dataset.rung = live.rung
+    el.innerHTML = render({
+      id: el.dataset.flow, rung: live.rung, email: live.email || 'ilse@studiowit.be',
+      err: live.err, value: live.rung === 0 ? live.email : '',
+      busy: live.busy, resend: live.resend, enroll: !live.enrolled,
+      showPk: state.scn === 'passkey',
+    })
+  })
+}
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return
+
+  if (b.dataset.theme) { state.theme = b.dataset.theme; apply(); return }
+  if (b.dataset.motion) { state.motion = b.dataset.motion; apply(); return }
+  if (b.dataset.scn)   { state.scn = b.dataset.scn; live.rung = 0; live.err = null; live.email = ''; live.enrolled = false; apply(); return }
+  if (b.dataset.loc)   { state.loc = b.dataset.loc; apply(); return }
+
+  const flow = b.closest('[data-flow]'); if (!flow) return
+  const act = b.dataset.act
+  const t = T[state.loc]
+
+  if (act === 'submit0') {
+    const v = flow.querySelector('.field').value.trim()
+    if (state.scn !== 'invite' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) { live.err = t.e.format; paintLive(); return }
+    live.email = state.scn === 'invite' ? 'tom@studiowit.be' : v
+    live.err = null
+    if (state.scn === 'passkey') { goPasskey(); return }
+    live.rung = 1; startResend(); paintLive()
+  }
+  if (act === 'pk') { live.err = null; goPasskey(); return }
+  if (act === 'submit1') {
+    const v = flow.querySelector('.field').value.replace(/\s/g,'')
+    if (v === '000000') { live.err = t.e.wrong(2); paintLive(); return }
+    if (v.length < 6) { live.err = t.e.wrong(2); paintLive(); return }
+    live.err = null; live.rung = 2; paintLive()
+  }
+  if (act === 'back')   { live.rung = 0; live.err = null; paintLive() }
+  if (act === 'resend') { startResend(); paintLive() }
+  if (act === 'enroll' || act === 'skip') { live.enrolled = true; paintLive() }
+})
+
+/* The OS sheet is not ours to draw. One second of nothing, then rung 2 —
+   which is exactly what the real thing looks like from our side. */
+function goPasskey() {
+  live.busy = true; paintLive()
+  setTimeout(() => { live.busy = false; live.rung = 2; live.err = null; paintLive() },
+             state.motion === 'reduce' ? 0 : 900)
+}
+let resendTimer
+function startResend() {
+  clearInterval(resendTimer); live.resend = 30
+  resendTimer = setInterval(() => { live.resend--; if (live.resend <= 0) clearInterval(resendTimer); paintLive() }, 1000)
+}
+
+/* ---- the verified ramp table --------------------------------------------- */
+const RAMP = [
+  ['Light','0 · identify','--neutral-50','#F7F6F5','--neutral-950','12.66','--neutral-700','4.63','--teal-800','6.79'],
+  ['Light','1 · verify',  '--neutral-200','#DEDBD7','--neutral-950','10.37','--neutral-700','3.66','--teal-800','6.79'],
+  ['Light','2 · arrive',  '--neutral-900','#474441','--neutral-100','8.21','--neutral-500','3.35','--teal-300','8.94'],
+  ['Dark','0 · identify', '--neutral-900','#474441','--neutral-100','8.21','--neutral-500','3.61','--teal-300','8.94'],
+  ['Dark','1 · verify',   '--neutral-950','#2C2A27','--neutral-100','12.14','--neutral-500','5.34','--teal-300','8.94'],
+  ['Dark','2 · arrive',   '--neutral-1000','#181715','--neutral-100','15.20','--neutral-500','6.68','--teal-300','8.94'],
+]
+document.getElementById('ramp').innerHTML =
+  `<thead><tr><th>Theme</th><th>Rung</th><th>Ground</th><th>Body text</th><th class="num">ratio</th>
+   <th>Input border</th><th class="num">ratio</th><th>Action</th><th class="num">label</th><th></th></tr></thead><tbody>` +
+  RAMP.map(r => `<tr>
+    <td>${r[0]}</td><td>${r[1]}</td>
+    <td><span class="sw" style="background:${r[3]}"></span><span class="mono">${r[2]}</span></td>
+    <td class="mono">${r[4]}</td><td class="num">${r[5]}:1</td>
+    <td class="mono">${r[6]}</td><td class="num">${r[7]}:1</td>
+    <td class="mono">${r[8]}</td><td class="num">${r[9]}:1</td>
+    <td><span class="pass">PASS</span></td></tr>`).join('') + '</tbody>'
+
+/* ---- the state gallery ---------------------------------------------------- */
+const CASES = [
+  ['1',  'Passkey offered',        'Conditional UI. The OS owns the sheet; we draw nothing extra.', {rung:0}],
+  ['2',  'Cancelled / unsupported / counter regression', 'All three render EXACTLY this. No red, no message, no explanation.', {rung:0}],
+  ['2b', 'Explicit control',       'Only when conditional UI is unavailable. Secondary weight, never primary.', {rung:0, showPk:true}],
+  ['5',  'Unknown credential',     'Says it plainly, offers the code in the same breath.', {rung:0, errKey:'pkGone'}],
+  ['9',  'Invalid format',         'On blur, never on keystroke.',                       {rung:0, errKey:'format', value:'ilse@studiowit'}],
+  ['10', 'Code sent',              'Identical whether the account exists or not.',       {rung:1}],
+  ['11', 'Wrong code',             'Attempts remaining, as a number.',                   {rung:1, errKey:'wrong', value:'481 302'}],
+  ['12', 'Attempts exhausted',     'The code is dead. Say so.',                          {rung:1, errKey:'spent'}],
+  ['13', 'Expired',                '“Expired”, never “invalid”.',                        {rung:1, errKey:'expired'}],
+  ['14', 'Rate limited',           'When they may retry, as a duration.',                {rung:0, errKey:'rate'}],
+  ['15', 'Session expired',        'Destination preserved behind it.',                   {rung:0, errKey:'session'}],
+  ['16', 'Offline',                'Typed input is never lost.',                         {rung:1, errKey:'offline', value:'481 302'}],
+  ['17', 'Bounced',                'The address did not accept mail.',                   {rung:0, errKey:'bounced'}],
+  ['18', 'Staff invitation',       'Inviter, org and role in one sentence. Email locked.', {rung:0, invite:true}],
+  ['20', 'Invitation expired',     'Names who to ask.',                                  {rung:0, invite:true, errKey:'inviteOld'}],
+  ['22', 'Wrong account',          'States both addresses; offers sign out.',            {rung:0, invite:true, errKey:'inviteMine'}],
+  ['23', 'Wedding-shaped invite',  'An honest “not yet”, never a 404.',                  {rung:0, invite:true, errKey:'couple'}],
+  ['24', 'Unknown token',          'One generic message for three different causes.',    {rung:0, invite:true, errKey:'token'}],
+  ['25', 'Enrollment offered',     'Post-login moment, with a real “not now”.',          {rung:2}],
+  ['26', 'Declined / no prompt',   'Arrival with nothing asked of you.',                 {rung:2, enroll:false}],
+  ['19', 'Longest line (FR)',      'The column must not move. Switch to FR to test.',    {rung:0, invite:true}],
+]
+function paintGallery() {
+  const t = T[state.loc]
+  document.getElementById('gal').innerHTML = CASES.map(([n,title,why,o],i) => {
+    const err = o.errKey ? (typeof t.e[o.errKey] === 'function' ? t.e[o.errKey](2) : t.e[o.errKey]) : null
+    return `<div class="cell">
+      <div class="cap"><b>${n}</b><span>${title} — ${why}</span></div>
+      <div class="screen"><div class="flow" data-rung="${o.rung}">${
+        render({...o, id:'g'+i, err, gallery:true, enroll:o.enroll, resend: o.rung===1?24:0})
+      }</div></div>
+    </div>`
+  }).join('')
+}
+
+/* #dark,fr,reduce,passkey,rung1 -- so any cell of this matrix is a link. */
+function fromHash() {
+  const h = decodeURIComponent(location.hash.replace(/^#/,'')).split(/[,\s]+/).filter(Boolean)
+  for (const k of h) {
+    if (k === 'dark' || k === 'light') state.theme = k
+    else if (['nl','en','fr'].includes(k)) state.loc = k
+    else if (k === 'reduce' || k === 'full') state.motion = k
+    else if (['code','passkey','invite'].includes(k)) state.scn = k
+    else if (/^rung[0-2]$/.test(k)) live.rung = +k.slice(4)
+  }
+}
+window.addEventListener('hashchange', () => { fromHash(); apply() })
+
+function apply() {
+  document.documentElement.classList.toggle('dark', state.theme === 'dark')
+  document.documentElement.dataset.motion = state.motion
+  document.documentElement.lang = state.loc
+  document.querySelectorAll('.ctl button').forEach(b => {
+    const k = b.dataset.theme ? 'theme' : b.dataset.loc ? 'loc' : b.dataset.motion ? 'motion' : 'scn'
+    const v = b.dataset.theme || b.dataset.loc || b.dataset.motion || b.dataset.scn
+    b.setAttribute('aria-pressed', String(state[k] === v))
+  })
+  paintLive(); paintGallery()
+}
+fromHash()
+apply()
+</script>
+</body>
+</html>

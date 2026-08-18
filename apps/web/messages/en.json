@@ -1,0 +1,87 @@
+{
+  "marketing": {
+    "tagline": "Wedding websites with RSVP and guest management, for planners and venues.",
+    "placeholder": "This page is a placeholder. The real marketing site is still the holding page for now.",
+    "language": "Language",
+    "login": "Log in"
+  },
+  "app": {
+    "placeholder": "Dashboard placeholder.",
+    "servedOn": "Served on the app host, internally rewritten to /pro, with private, no-store."
+  },
+  "auth": {
+    "language": "Language",
+    "steps": {
+      "public": "Public",
+      "verifying": "Verifying",
+      "private": "Private"
+    },
+    "signIn": {
+      "title": "Sign in",
+      "help": "We’ll send you a six-digit code. There is no password.",
+      "emailLabel": "Email address",
+      "emailPlaceholder": "you@studiowit.be",
+      "continue": "Continue",
+      "passkey": "Use your passkey"
+    },
+    "verify": {
+      "title": "Enter your code",
+      "sentTo": "We sent a code to {email}.",
+      "codeLabel": "Six-digit code",
+      "submit": "Sign in",
+      "otherAddress": "Different address",
+      "resend": "Send a new code",
+      "resendIn": "Send a new code ({seconds})"
+    },
+    "arrive": {
+      "title": "You’re signed in",
+      "body": "Taking you to your weddings.",
+      "continue": "Continue"
+    },
+    "invite": {
+      "title": "Create your account",
+      "staff": "{inviter} is inviting you to {org}, as {role}.",
+      "locked": "This invitation is tied to this address.",
+      "roleAdmin": "an admin",
+      "roleMember": "a team member"
+    },
+    "enroll": {
+      "title": "Sign in faster on this device?",
+      "body": "With a passkey you sign in with your face or fingerprint. No more email.",
+      "confirm": "Create a passkey",
+      "dismiss": "Not now"
+    },
+    "busy": {
+      "sending": "Sending…",
+      "checking": "Checking…"
+    },
+    "errors": {
+      "emailFormat": "That doesn’t look like a valid email address.",
+      "codeWrong": "That code isn’t right. {attempts} attempts left.",
+      "codeWrongOne": "That code isn’t right. One attempt left.",
+      "codeSpent": "This code no longer works. Ask for a new one.",
+      "codeExpired": "This code has expired. Ask for a new one.",
+      "rateLimited": "Too many attempts. Try again later.",
+      "deliveryFailed": "That address doesn’t accept mail. Try another one.",
+      "unavailable": "Signing in isn’t working right now. Try again shortly.",
+      "offline": "No connection. Your code is still here.",
+      "sessionExpired": "Your session expired. Sign in again.",
+      "passkeyGone": "This passkey no longer works for this account. Continue with a code.",
+      "inviteExpired": "This invitation has expired. Ask {inviter} for a new one.",
+      "inviteAccepted": "This invitation has already been used. Just sign in.",
+      "inviteCouple": "The couple portal isn’t open yet. Your invitation stays valid.",
+      "inviteUnknown": "This link doesn’t work. Ask whoever invited you for a new one."
+    },
+    "noAccount": "No account yet? Guestnote is invite-only.",
+    "stage": {
+      "label": "Upcoming wedding",
+      "couple": "Els & Jan",
+      "unit": "days to go",
+      "attending": "Attending",
+      "awaiting": "No reply yet",
+      "plusone": "+1 unnamed",
+      "declined": "Declined",
+      "partial": "Partial"
+    }
+  }
+}
