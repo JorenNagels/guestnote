@@ -57,6 +57,22 @@ const CONFIGURATION_SET = 'guestnote-default'
 const CONSOLE_OUTPUT_DIR = join(process.cwd(), '.mail')
 
 /**
+ * What the console transport prints under the file path, and the answer to "why did no email
+ * arrive". It lives here because it names an environment variable, and `packages/email` reads
+ * none -- see `ConsoleTransportConfig.hint`.
+ *
+ * The sandbox clause is the part worth carrying: flipping the transport is necessary but not
+ * sufficient. Production access is still deliberately deferred (ADR 0002), so SES accepts a
+ * destination only if it is a verified identity or under the verified domain, and anything
+ * else comes back `MessageRejected` -- which `packages/email/src/ses.ts` maps to `rejected`
+ * and the sign-in surface shows as "we could not deliver". Without this clause the obvious
+ * next move after reading the hint is to set `ses` and be confused a second time.
+ */
+const CONSOLE_HINT =
+  'set GUESTNOTE_MAIL_TRANSPORT=ses in .env.local (SES is still in sandbox: the ' +
+  'recipient must be a verified identity or under guestnote.be, 200/day, 1/sec)'
+
+/**
  * Typed by the NL catalogue rather than `unknown`.
  *
  * `createTranslator` derives its valid key paths from the shape of `messages`, so widening this
@@ -115,7 +131,7 @@ function transportFor(): MailTransport {
           'the deploy that set it. See apps/web/src/lib/mailer.ts.',
       )
     }
-    return createConsoleTransport({ outputDir: CONSOLE_OUTPUT_DIR })
+    return createConsoleTransport({ outputDir: CONSOLE_OUTPUT_DIR, hint: CONSOLE_HINT })
   }
 
   return createSesTransport({
