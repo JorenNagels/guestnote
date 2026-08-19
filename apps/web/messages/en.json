@@ -3,7 +3,8 @@
     "tagline": "Wedding websites with RSVP and guest management, for planners and venues.",
     "placeholder": "This page is a placeholder. The real marketing site is still the holding page for now.",
     "language": "Language",
-    "login": "Log in"
+    "login": "Log in",
+    "dashboard": "Dashboard"
   },
   "app": {
     "placeholder": "Dashboard placeholder.",

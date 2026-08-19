@@ -3,7 +3,8 @@
     "tagline": "Sites de mariage avec RSVP et gestion des invités, pour wedding planners et lieux de réception.",
     "placeholder": "Cette page est un espace réservé. Le vrai site vitrine reste pour l'instant la page d'attente.",
     "language": "Langue",
-    "login": "Se connecter"
+    "login": "Se connecter",
+    "dashboard": "Tableau de bord"
   },
   "app": {
     "placeholder": "Espace réservé du tableau de bord.",

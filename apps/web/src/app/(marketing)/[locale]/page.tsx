@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { getTranslations, setRequestLocale } from 'next-intl/server'
-import { appLoginUrl } from '../../../lib/app-url.ts'
+import { AppEntryLink } from '../../../components/marketing/app-entry-link.tsx'
+import { appHomeUrl, appLoginUrl, sessionHintUrl } from '../../../lib/app-url.ts'
 import { isLocale, LOCALES } from '../../../lib/locales.ts'
 import { marketing } from '../../../lib/routes.ts'
 
@@ -44,19 +45,26 @@ export default async function MarketingHome({ params }: { params: Promise<{ loca
           {/*
             A plain anchor, and NOT next/link, because this crosses hosts: `guestnote.be`
             to `app.guestnote.be`. next/link would try to client-navigate within this app's
-            router, and the login route does not exist on the apex.
+            router, and neither the login route nor the dashboard exists on the apex.
 
             It navigates rather than opening an overlay, which is what every product with a
             separate app subdomain does -- and here it is also the only thing that can
             work. The session cookie is `__Host-` prefixed, so it can only be minted on the
             host that will read it. See lib/app-url.ts.
+
+            Which of the two labels it shows is decided in the browser, because this page is
+            prerendered behind a SHARED CloudFront cache and the apex cannot read a
+            `__Host-` cookie anyway. Both URLs are computed here, on the server, so the
+            client component never builds a cross-host URL of its own.
           */}
-          <a
-            href={appLoginUrl()}
+          <AppEntryLink
+            hintUrl={sessionHintUrl()}
+            loginHref={appLoginUrl()}
+            loginLabel={t('login')}
+            dashboardHref={appHomeUrl()}
+            dashboardLabel={t('dashboard')}
             className="border-input hover:border-foreground inline-flex h-9 items-center rounded-[var(--radius)] border px-3.5 text-sm font-medium"
-          >
-            {t('login')}
-          </a>
+          />
         </div>
       </header>
 

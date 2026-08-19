@@ -24,8 +24,7 @@ import { app } from './routes.ts'
  * origin*, so `__Host-` cookies work over plain http there and dev matches production;
  * every other host gets `https` with no way to opt out.
  */
-function origin(): string {
-  const host = `${env.appSubdomain}.${env.rootDomain}`
+function originFor(host: string): string {
   const isLocal = env.rootDomain === 'localhost' || env.rootDomain.endsWith('.localhost')
   // The dev server's port is not in the environment, and marketing is prerendered at
   // build time, so it cannot be read from a request either. 3000 is `next dev`'s default
@@ -33,7 +32,50 @@ function origin(): string {
   return isLocal ? `http://${host}:3000` : `https://${host}`
 }
 
+function appOrigin(): string {
+  return originFor(`${env.appSubdomain}.${env.rootDomain}`)
+}
+
+/**
+ * `https://guestnote.be` -- the apex, as an origin string.
+ *
+ * Exists for exactly one consumer: the `Access-Control-Allow-Origin` header on
+ * `app/api/session-hint/route.ts`. That header has to name a single origin *exactly* --
+ * `*` is illegal alongside credentialed requests, and a prefix match would let
+ * `guestnote.be.evil.com` read the answer. Derived from the same two env values every
+ * other host string comes from, so there is one answer to "what is the apex" rather than
+ * a literal in a header that nobody thinks to update.
+ */
+export function apexOrigin(): string {
+  return originFor(env.rootDomain)
+}
+
 /** `https://app.guestnote.be/login` -- where a planner signs in, from anywhere. */
 export function appLoginUrl(): string {
-  return `${origin()}${app.login()}`
+  return `${appOrigin()}${app.login()}`
+}
+
+/**
+ * `https://app.guestnote.be/` -- the dashboard, for a link that starts on the apex.
+ *
+ * Points at the dashboard ROOT rather than `/weddings`, so the app host stays the only
+ * thing that decides where a signed-in planner lands. `app/pro/(app)/page.tsx` redirects
+ * to the wedding list today and to the cross-wedding "due this week" screen when P16
+ * lands; a link built here would have to be found and changed on that day.
+ */
+export function appHomeUrl(): string {
+  return `${appOrigin()}${app.home()}`
+}
+
+/**
+ * `https://app.guestnote.be/api/session-hint` -- what the apex asks, since it cannot know.
+ *
+ * The session cookie is `__Host-` prefixed and therefore pinned to the app host, so the
+ * apex has no way to read it; and marketing is prerendered behind a *shared* CloudFront
+ * cache, so it could not vary on it even if it could read it -- the first signed-in
+ * planner's HTML would be served to every prospect for the next 60 seconds. The question
+ * has to be asked from the browser, at runtime, of the one host that knows.
+ */
+export function sessionHintUrl(): string {
+  return `${appOrigin()}/api/session-hint`
 }

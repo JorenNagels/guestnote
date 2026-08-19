@@ -3,7 +3,8 @@
     "tagline": "Trouwwebsites met RSVP en gastenbeheer, voor weddingplanners en locaties.",
     "placeholder": "Deze pagina is een placeholder. De echte marketingsite staat voorlopig nog op de holding page.",
     "language": "Taal",
-    "login": "Inloggen"
+    "login": "Inloggen",
+    "dashboard": "Dashboard"
   },
   "app": {
     "placeholder": "Dashboard-placeholder.",
