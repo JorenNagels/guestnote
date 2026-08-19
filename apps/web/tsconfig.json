@@ -13,7 +13,7 @@
     // `jsx: preserve` the JSX namespace resolves as `React.JSX`, which needs
     // @types/react's `export as namespace React` registered. Do NOT rely on
     // next-env.d.ts pulling it in transitively -- that chain is not guaranteed.
-    "types": ["node", "react", "react-dom"],
+    "types": ["node", "react", "react-dom", "@testing-library/jest-dom/vitest"],
 
     // A deliberate exception to tsconfig.base.json's "No `baseUrl` and no `paths`".
     // The shadcn CLI emits `import { cn } from "@/lib/utils"` and offers no relative

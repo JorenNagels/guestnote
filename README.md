@@ -30,6 +30,66 @@ Both files explain themselves; the second exists because a warning once meant an
 `npm install` wrote a dependency into `package.json`, skipped installing it, and reported
 "up to date".
 
+## Tests
+
+Vitest, in three projects. The split is by what a test *needs*, so nothing can land in the
+wrong one by accident — `vitest.config.ts` argues each one at length.
+
+```bash
+npm run check          # typecheck + lint + unit + component. The gate.
+npm test               # unit + component, ~1s, nothing external
+npm run test:watch     # the same two, in watch mode
+npm run test:component # jsdom only
+npm run test:db        # requires DATABASE_URL on a Neon branch; runs serially
+```
+
+| Project | Selected by | Environment | Needs |
+| --- | --- | --- | --- |
+| `unit` | `src/**/*.test.ts` | node | nothing |
+| `component` | `src/**/*.test.tsx` | jsdom | nothing |
+| `db` | `packages/db/test/**` | node | `DATABASE_URL`, and a serial run |
+
+`unit` and `component` are told apart by **file extension**, not by a directory or an
+exclude list: a test that renders a component has to be `.tsx` to hold the JSX, so needing
+a DOM and needing the extension arrive together.
+
+There is no Jest and no `@vitejs/plugin-react`. Jest would be a second runner over one
+repo; the React plugin exists for Fast Refresh, which a test run does not have, and brings
+Babel with it. Two lines in `vitest.config.ts` replace it — and note that the JSX override
+is keyed `oxc`, not `esbuild`, because Vitest 4 builds on Vite 8. `esbuild` still
+typechecks as a config key there and is silently ignored.
+
+The sign-in flow is the most covered surface in the repo, because it is currently the only
+one built. Roughly 190 assertions across six files: the pure helpers (`fill`, `splitAround`,
+`secondsRemaining`, the rolling specimen date), the three Server Functions with the auth
+seam mocked, the passkey capability checks — tested **twice**, once per environment, since
+the `typeof window === 'undefined'` branch is unreachable in jsdom and the browser matrix is
+unreachable in node — and `auth-flow.tsx` itself, all three rungs, rendered against the real
+`Field`, `Button` and `LiveRegion` rather than mocked ones.
+
+**Assertions are checked by mutation, not by going green.** Every guard in `proxy.ts` was
+deleted in turn to confirm its test fails; two assertions that passed against a broken
+proxy were rewritten, and the cases that *cannot* be isolated are named as such in comments
+where they sit. A test nobody has seen fail is a test nobody has tested. The same sweep ran
+over `auth-flow.tsx`: 9 of 10 mutations caught.
+
+Two deliberately-defensive branches are documented as unreachable rather than papered over:
+the marketing `/api/` guard in `proxy.ts` (subsumed by the unknown-locale guard three lines
+later) and `boundEmail ?? email` in `auth-flow.tsx` (the state is already seeded from
+`boundEmail`, and the field is `readOnly`). Both are correct code; neither is observable
+from outside, and the tests say so.
+
+One Vitest-specific trap is worth knowing before writing another timer test: Testing
+Library auto-advances fake timers inside `waitFor` only when it detects **Jest's**, via a
+`jest` global Vitest does not define. Under `vi.useFakeTimers()` every `findBy*`/`waitFor`
+therefore polls a clock nothing advances and hangs until the test times out. The resend
+countdown test uses `fireEvent` + `act` for that reason, and narrows `toFake` so React's
+scheduler keeps its own microtask queue.
+
+There is no browser E2E yet. It is the obvious next layer — Playwright is the only thing
+that can drive a real `Host` header end to end, or a WebAuthn virtual authenticator for the
+passkey flow — and it is deliberately not here yet.
+
 ## Domains to register
 
 | Domain | Status (2026-08-10) | Priority |
@@ -113,7 +173,7 @@ Scoped to the **planner platform**. Tenant wedding-site theming is parked.
   every other module goes through; `better-auth.ts` behind it is M3's remaining work.
 - `apps/web/` — the one Next.js 16 app. Marketing on the apex, the dashboard on
   `app.guestnote.be`, guest sites on `<slug>.guestnote.be`, all four host branches real and
-  tested. NL/EN/FR. Runs locally; **not deployed** — M1a's OpenNext + CDK is still deferred.
+  tested — `src/proxy.test.ts` covers every branch, header and cache rule, mutation-checked. NL/EN/FR. Runs locally; **not deployed** — M1a's OpenNext + CDK is still deferred.
   See `apps/web/README.md` and `docs/adr/0003-one-app-three-hosts.md`.
 - `coming-soon/` — the holding page for `guestnote.be`. One self-contained `index.html`,
   NL/EN, no external requests. Deploy notes in `coming-soon/README.md`. Still the live apex;

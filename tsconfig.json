@@ -1,7 +1,19 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "types": ["node"]
+    // The shared test harness in `test/` renders React into jsdom, so this is the third
+    // and last place that needs browser globals -- alongside apps/web and packages/ui, and
+    // for the same stated reason: only what touches a DOM gets DOM types.
+    "lib": ["ES2025", "DOM", "DOM.Iterable"],
+
+    // `@testing-library/jest-dom/vitest` is a types entry rather than only a runtime
+    // import: importing it in test/setup-dom.ts registers the matchers with Vitest at run
+    // time, but tsc only learns about `toBeDisabled` and friends from a file it actually
+    // includes. Naming it here is what makes the augmentation visible everywhere.
+    "types": ["node", "react", "@testing-library/jest-dom/vitest"]
   },
-  "include": ["vitest.config.ts"]
+  // Without `test/**`, the setup file and the server-only stub are typechecked by nothing
+  // at all -- they are loaded by Vitest, which does not typecheck, and are outside every
+  // workspace tsconfig.
+  "include": ["vitest.config.ts", "test/**/*.ts"]
 }

@@ -1,0 +1,637 @@
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { COPY, STAGE } from './auth-flow.fixture.ts'
+
+/**
+ * The sign-in flow: three rungs, one component, one state machine.
+ *
+ * ## What is mocked
+ *
+ * Only the two seams that leave the browser: `./actions.ts` (Server Functions, which are
+ * POST requests here) and `./passkey.ts` (browser capability, tested directly in its own
+ * two files). Everything else renders for real -- `Field`, `Button`, `InlineError`,
+ * `LiveRegion`, `LocaleSwitcher`, `Stage`. That is the point: the assertions below are
+ * about what a planner on a phone actually gets, and a mocked `Field` would let
+ * `autocomplete="one-time-code"` disappear without a single test noticing.
+ */
+const requestCode = vi.fn()
+const submitCode = vi.fn()
+const setLocale = vi.fn()
+const conditionalMediationAvailable = vi.fn()
+const platformAuthenticatorAvailable = vi.fn()
+
+vi.mock('./actions.ts', () => ({
+  requestCode: (...args: unknown[]) => requestCode(...args),
+  submitCode: (...args: unknown[]) => submitCode(...args),
+  setLocale: (...args: unknown[]) => setLocale(...args),
+}))
+
+vi.mock('./passkey.ts', () => ({
+  conditionalMediationAvailable: () => conditionalMediationAvailable(),
+  platformAuthenticatorAvailable: () => platformAuthenticatorAvailable(),
+}))
+
+const { AuthFlow } = await import('./auth-flow.tsx')
+
+/** Matches DESCENT_MS in auth-flow.tsx, which matches the ground transition in descent.css. */
+const DESCENT_MS = 380
+
+const assign = vi.fn()
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  requestCode.mockResolvedValue({ ok: true })
+  submitCode.mockResolvedValue({ ok: true })
+  // Passkeys off unless a test turns them on: the capability effect otherwise races with
+  // every unrelated assertion.
+  conditionalMediationAvailable.mockResolvedValue(false)
+  platformAuthenticatorAvailable.mockResolvedValue(false)
+
+  // jsdom's `location.assign` is a no-op that logs "Not implemented"; `vi.spyOn` on it
+  // records nothing (measured). Replacing the whole object is what makes rung 2 observable.
+  Object.defineProperty(window, 'location', {
+    value: { ...window.location, assign, href: 'http://app.localhost:3000/' },
+    writable: true,
+    configurable: true,
+  })
+})
+
+afterEach(() => {
+  vi.useRealTimers()
+})
+
+type Overrides = Partial<Parameters<typeof AuthFlow>[0]>
+
+function renderFlow(overrides: Overrides = {}) {
+  const user = userEvent.setup()
+  const result = render(
+    <AuthFlow
+      copy={COPY}
+      locale="nl"
+      locales={['nl', 'en', 'fr']}
+      passkeysEnabled={false}
+      continueHref="/weddings"
+      stage={STAGE}
+      {...overrides}
+    />,
+  )
+  return { user, ...result }
+}
+
+const emailField = () => screen.getByLabelText('LABEL-EMAIL')
+const codeField = () => screen.getByLabelText('LABEL-CODE')
+const liveRegion = () => document.querySelector('[aria-live="polite"]')
+
+/**
+ * Advances the faked clock one second per step, flushing React between each.
+ *
+ * A single large jump is not equivalent: the resend countdown re-arms itself from an
+ * effect, so only the timeout already on the queue would fire and the chain would stop
+ * after one tick.
+ */
+async function tick(seconds: number): Promise<void> {
+  for (let i = 0; i < seconds; i++) {
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_000)
+    })
+  }
+}
+
+/** Drives rung 0 to rung 1 with a valid address. */
+async function reachVerifyRung(
+  user: ReturnType<typeof userEvent.setup>,
+  email = 'ilse@studiowit.be',
+) {
+  await user.type(emailField(), email)
+  await user.click(screen.getByRole('button', { name: 'ACTION-CONTINUE' }))
+  await screen.findByText('TITLE-VERIFY')
+}
+
+describe('rung 0 — identify', () => {
+  it('lands on the sign-in screen', () => {
+    renderFlow()
+    expect(screen.getByRole('heading', { name: 'TITLE-SIGNIN' })).toBeInTheDocument()
+    expect(screen.getByText('HELP-SIGNIN')).toBeInTheDocument()
+  })
+
+  it('names the rung in words, not only in depth', () => {
+    // "Depth is never the only signal" -- the one screen in the product with no status chip
+    // still has to say where you are.
+    renderFlow()
+    expect(screen.getByText('STEP-PUBLIC')).toBeInTheDocument()
+  })
+
+  it('offers the address field as the whole affordance', () => {
+    renderFlow()
+    const field = emailField()
+    expect(field).toHaveAttribute('type', 'email')
+    expect(field).toHaveAttribute('inputmode', 'email')
+    expect(field).toHaveAttribute('placeholder', 'PLACEHOLDER-EMAIL')
+  })
+
+  it('puts `webauthn` LAST in autocomplete, per spec', () => {
+    // This attribute IS the passkey affordance: conditional mediation offers the credential
+    // inside the browser's own autofill sheet, attached to this field. The order is
+    // specified, and a browser that does not see `webauthn` last may ignore it entirely.
+    renderFlow()
+    expect(emailField()).toHaveAttribute('autocomplete', 'username webauthn')
+  })
+
+  it('answers the question an empty login page always raises', () => {
+    renderFlow()
+    expect(screen.getByText('NO-ACCOUNT')).toBeInTheDocument()
+  })
+
+  it('draws no passkey button and no method menu', () => {
+    renderFlow()
+    expect(screen.queryByRole('button', { name: 'ACTION-PASSKEY' })).not.toBeInTheDocument()
+  })
+
+  it('has the live region in the DOM from first paint, empty', () => {
+    // A live region inserted at the same moment as its message is frequently never
+    // announced. Its presence before there is anything to say is the entire contract.
+    renderFlow()
+    expect(liveRegion()).toBeInTheDocument()
+    expect(liveRegion()).toHaveTextContent('')
+  })
+
+  it('shows the language switcher, because it is the one claim provable before login', () => {
+    renderFlow()
+    const nav = screen.getByRole('navigation', { name: 'Taal' })
+    expect(within(nav).getByText('NL')).toHaveAttribute('aria-current', 'true')
+    expect(within(nav).getByRole('button', { name: 'EN' })).toBeInTheDocument()
+    expect(within(nav).getByRole('button', { name: 'FR' })).toBeInTheDocument()
+  })
+
+  it('does not make the current language a control that does nothing', () => {
+    renderFlow()
+    const nav = screen.getByRole('navigation', { name: 'Taal' })
+    expect(within(nav).queryByRole('button', { name: 'NL' })).not.toBeInTheDocument()
+  })
+
+  it('writes a language choice through the action', async () => {
+    const { user } = renderFlow()
+    await user.click(screen.getByRole('button', { name: 'FR' }))
+    await waitFor(() => expect(setLocale).toHaveBeenCalledWith('fr'))
+  })
+})
+
+describe('address validation, before anything is sent', () => {
+  it.each([
+    ['no at sign', 'ilse.studiowit.be'],
+    ['nothing after the at', 'ilse@'],
+    ['a space', 'a b@c.be'],
+  ])('refuses %s without calling the server', async (_name, address) => {
+    const { user } = renderFlow()
+    await user.type(emailField(), address)
+    await user.click(screen.getByRole('button', { name: 'ACTION-CONTINUE' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('ERR-EMAIL-FORMAT')
+    expect(requestCode).not.toHaveBeenCalled()
+  })
+
+  it('stays on rung 0 when the address is refused', async () => {
+    const { user } = renderFlow()
+    await user.type(emailField(), 'nope')
+    await user.click(screen.getByRole('button', { name: 'ACTION-CONTINUE' }))
+    await screen.findByRole('alert')
+    expect(screen.getByRole('heading', { name: 'TITLE-SIGNIN' })).toBeInTheDocument()
+  })
+
+  it('wires the error to the field for a screen reader, not just visually', async () => {
+    const { user } = renderFlow()
+    await user.type(emailField(), 'nope')
+    await user.click(screen.getByRole('button', { name: 'ACTION-CONTINUE' }))
+    await screen.findByRole('alert')
+    expect(emailField()).toHaveAttribute('aria-invalid', 'true')
+    expect(emailField()).toHaveAttribute('aria-describedby', 'auth-email-error')
+    expect(document.getElementById('auth-email-error')).toHaveTextContent('ERR-EMAIL-FORMAT')
+  })
+
+  it('keeps what was typed, so nothing has to be retyped', async () => {
+    const { user } = renderFlow()
+    await user.type(emailField(), 'nope')
+    await user.click(screen.getByRole('button', { name: 'ACTION-CONTINUE' }))
+    await screen.findByRole('alert')
+    expect(emailField()).toHaveValue('nope')
+  })
+
+  it('sends a valid address, trimmed', async () => {
+    const { user } = renderFlow()
+    await user.type(emailField(), '  ilse@studiowit.be  ')
+    await user.click(screen.getByRole('button', { name: 'ACTION-CONTINUE' }))
+    await waitFor(() => expect(requestCode).toHaveBeenCalledWith('ilse@studiowit.be'))
+  })
+
+  it('submits on Enter, without reaching for the button', async () => {
+    const { user } = renderFlow()
+    await user.type(emailField(), 'ilse@studiowit.be{Enter}')
+    await waitFor(() => expect(requestCode).toHaveBeenCalledWith('ilse@studiowit.be'))
+  })
+})
+
+describe('rung 0 → 1', () => {
+  it('moves to the verify rung on success', async () => {
+    const { user } = renderFlow()
+    await reachVerifyRung(user)
+    expect(screen.getByText('STEP-VERIFYING')).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'TITLE-SIGNIN' })).not.toBeInTheDocument()
+  })
+
+  it('announces the send politely, with the address in it', async () => {
+    const { user } = renderFlow()
+    await reachVerifyRung(user)
+    await waitFor(() =>
+      expect(liveRegion()).toHaveTextContent('SENT-BEFORE ilse@studiowit.be SENT-AFTER'),
+    )
+  })
+
+  it('shows the address back, so a wrong one is visible before the code arrives', async () => {
+    const { user } = renderFlow()
+    await reachVerifyRung(user)
+    expect(screen.getByText('ilse@studiowit.be')).toBeInTheDocument()
+  })
+
+  it('gives the code field the attribute that lifts it from Mail on iOS', async () => {
+    // `one-time-code` is what puts the code above the keyboard. Load-bearing, not decoration.
+    const { user } = renderFlow()
+    await reachVerifyRung(user)
+    expect(codeField()).toHaveAttribute('autocomplete', 'one-time-code')
+    expect(codeField()).toHaveAttribute('inputmode', 'numeric')
+  })
+
+  it('allows one more character than the code length, so an extra digit is visible', async () => {
+    const { user } = renderFlow()
+    await reachVerifyRung(user)
+    expect(codeField()).toHaveAttribute('maxlength', '7')
+  })
+
+  it('is one field and never six boxes', async () => {
+    const { user } = renderFlow()
+    await reachVerifyRung(user)
+    expect(screen.getAllByRole('textbox')).toHaveLength(1)
+  })
+})
+
+describe('when the send fails', () => {
+  it.each([
+    ['rate_limited', 'ERR-RATE-LIMITED'],
+    ['delivery_failed', 'ERR-DELIVERY-FAILED'],
+    ['unavailable', 'ERR-UNAVAILABLE'],
+  ])('renders %s as its own message', async (failure, message) => {
+    requestCode.mockResolvedValue({ ok: false, failure })
+    const { user } = renderFlow()
+    await user.type(emailField(), 'ilse@studiowit.be')
+    await user.click(screen.getByRole('button', { name: 'ACTION-CONTINUE' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(message)
+    expect(screen.getByRole('heading', { name: 'TITLE-SIGNIN' })).toBeInTheDocument()
+  })
+
+  it('blames the connection, not the address, when the request throws', async () => {
+    // The venue-wifi case. Nothing typed is lost and the rung has not moved.
+    requestCode.mockRejectedValue(new Error('network'))
+    const { user } = renderFlow()
+    await user.type(emailField(), 'ilse@studiowit.be')
+    await user.click(screen.getByRole('button', { name: 'ACTION-CONTINUE' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('ERR-OFFLINE')
+    expect(emailField()).toHaveValue('ilse@studiowit.be')
+  })
+})
+
+describe('rung 1 — verify', () => {
+  it('submits the typed code against the remembered address', async () => {
+    const { user } = renderFlow()
+    await reachVerifyRung(user)
+    await user.type(codeField(), '194720')
+    await user.click(screen.getByRole('button', { name: 'ACTION-SUBMIT' }))
+    await waitFor(() => expect(submitCode).toHaveBeenCalledWith('ilse@studiowit.be', '194720'))
+  })
+
+  it('submits on Enter', async () => {
+    const { user } = renderFlow()
+    await reachVerifyRung(user)
+    await user.type(codeField(), '194720{Enter}')
+    await waitFor(() => expect(submitCode).toHaveBeenCalled())
+  })
+
+  it('uses the plural message when more than one attempt remains', async () => {
+    submitCode.mockResolvedValue({ ok: false, failure: 'code_wrong', attemptsLeft: 2 })
+    const { user } = renderFlow()
+    await reachVerifyRung(user)
+    await user.type(codeField(), '000000')
+    await user.click(screen.getByRole('button', { name: 'ACTION-SUBMIT' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('ERR-CODE-WRONG 2')
+  })
+
+  it('switches to the singular message on the last attempt', async () => {
+    // The one plural in the whole flow, and a separate key rather than an ICU rule.
+    submitCode.mockResolvedValue({ ok: false, failure: 'code_wrong', attemptsLeft: 1 })
+    const { user } = renderFlow()
+    await reachVerifyRung(user)
+    await user.type(codeField(), '000000')
+    await user.click(screen.getByRole('button', { name: 'ACTION-SUBMIT' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('ERR-CODE-WRONG-ONE')
+  })
+
+  it.each([
+    ['code_spent', 'ERR-CODE-SPENT'],
+    ['code_expired', 'ERR-CODE-EXPIRED'],
+  ])('tells %s apart from a wrong code', async (failure, message) => {
+    // "expired", never "invalid" -- the two need different copy because the recovery differs.
+    submitCode.mockResolvedValue({ ok: false, failure })
+    const { user } = renderFlow()
+    await reachVerifyRung(user)
+    await user.type(codeField(), '194720')
+    await user.click(screen.getByRole('button', { name: 'ACTION-SUBMIT' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent(message)
+  })
+
+  it('falls back to the generic message for an unrecognised failure', async () => {
+    submitCode.mockResolvedValue({ ok: false, failure: 'something_new' })
+    const { user } = renderFlow()
+    await reachVerifyRung(user)
+    await user.type(codeField(), '194720')
+    await user.click(screen.getByRole('button', { name: 'ACTION-SUBMIT' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('ERR-UNAVAILABLE')
+  })
+
+  it('says offline when verification throws', async () => {
+    submitCode.mockRejectedValue(new Error('network'))
+    const { user } = renderFlow()
+    await reachVerifyRung(user)
+    await user.type(codeField(), '194720')
+    await user.click(screen.getByRole('button', { name: 'ACTION-SUBMIT' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('ERR-OFFLINE')
+  })
+
+  it('wires the code error to the code field', async () => {
+    submitCode.mockResolvedValue({ ok: false, failure: 'code_expired' })
+    const { user } = renderFlow()
+    await reachVerifyRung(user)
+    await user.type(codeField(), '194720')
+    await user.click(screen.getByRole('button', { name: 'ACTION-SUBMIT' }))
+    await screen.findByRole('alert')
+    expect(codeField()).toHaveAttribute('aria-describedby', 'auth-code-error')
+  })
+
+  it('goes back to the address without costing a page, clearing the error', async () => {
+    // "Wrong address" is the most common recovery on this screen.
+    submitCode.mockResolvedValue({ ok: false, failure: 'code_expired' })
+    const { user } = renderFlow()
+    await reachVerifyRung(user)
+    await user.type(codeField(), '194720')
+    await user.click(screen.getByRole('button', { name: 'ACTION-SUBMIT' }))
+    await screen.findByRole('alert')
+
+    await user.click(screen.getByRole('button', { name: 'ACTION-OTHER-ADDRESS' }))
+    expect(screen.getByRole('heading', { name: 'TITLE-SIGNIN' })).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('keeps the address when going back, so it can be corrected rather than retyped', async () => {
+    const { user } = renderFlow()
+    await reachVerifyRung(user)
+    await user.click(screen.getByRole('button', { name: 'ACTION-OTHER-ADDRESS' }))
+    expect(emailField()).toHaveValue('ilse@studiowit.be')
+  })
+})
+
+describe('the resend cooldown', () => {
+  it('starts disabled, showing what it is waiting for', async () => {
+    const { user } = renderFlow()
+    await reachVerifyRung(user)
+    const resend = screen.getByRole('button', { name: /RESEND-IN/ })
+    expect(resend).toBeDisabled()
+    expect(resend).toHaveTextContent('RESEND-IN 30')
+  })
+
+  it('counts down and becomes pressable, never a silently ignored tap', async () => {
+    // ## Why this test uses fireEvent and act, and no waitFor
+    //
+    // Testing Library auto-advances fake timers inside `waitFor` ONLY when it detects
+    // Jest's -- `jestFakeTimersAreEnabled()` guards on a `jest` global that Vitest does not
+    // define. So under `vi.useFakeTimers()` every `findBy*`/`waitFor` polls on a clock
+    // nothing advances and blocks until the test times out. Measured, at 5s, twice.
+    //
+    // The way through is to do no async polling while the clock is faked: `fireEvent` is
+    // synchronous, and `act(async …)` flushes the transition's microtasks. `toFake` is
+    // narrowed for the same reason as the delay test above -- faking queueMicrotask and
+    // MessageChannel stalls React's scheduler.
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    renderFlow()
+
+    fireEvent.change(emailField(), { target: { value: 'ilse@studiowit.be' } })
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'ACTION-CONTINUE' }))
+    })
+    expect(screen.getByText('TITLE-VERIFY')).toBeInTheDocument()
+
+    // Disabled with a visible countdown, never a silently ignored tap.
+    expect(screen.getByRole('button', { name: /RESEND-IN/ })).toBeDisabled()
+
+    // One tick, to prove it is counting rather than merely sitting there.
+    await tick(1)
+    expect(screen.getByRole('button', { name: /RESEND-IN/ })).toHaveTextContent('RESEND-IN 29')
+
+    // One second at a time. The countdown is a CHAIN of timeouts -- each tick's effect
+    // schedules the next -- so a single 29s jump fires only the timers already on the queue
+    // and leaves the rest unscheduled. Ticking gives React's passive effects a chance to
+    // register the next one, which is what the component actually does in a browser.
+    await tick(29)
+
+    const resend = screen.getByRole('button', { name: 'ACTION-RESEND' })
+    expect(resend).toBeEnabled()
+
+    await act(async () => {
+      fireEvent.click(resend)
+    })
+    expect(requestCode).toHaveBeenCalledTimes(2)
+    expect(requestCode).toHaveBeenLastCalledWith('ilse@studiowit.be')
+  })
+
+  it('stops counting once it reaches zero, rather than going negative', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
+    renderFlow()
+    fireEvent.change(emailField(), { target: { value: 'ilse@studiowit.be' } })
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'ACTION-CONTINUE' }))
+    })
+    await tick(45)
+    expect(screen.getByRole('button', { name: 'ACTION-RESEND' })).toBeEnabled()
+    expect(screen.queryByText(/RESEND-IN -/)).not.toBeInTheDocument()
+  })
+})
+
+describe('rung 2 — arrive', () => {
+  it('lands on the arrival rung and announces it', async () => {
+    const { user } = renderFlow()
+    await reachVerifyRung(user)
+    await user.type(codeField(), '194720')
+    await user.click(screen.getByRole('button', { name: 'ACTION-SUBMIT' }))
+
+    expect(await screen.findByRole('heading', { name: 'TITLE-ARRIVE' })).toBeInTheDocument()
+    expect(screen.getByText('STEP-PRIVATE')).toBeInTheDocument()
+    await waitFor(() => expect(liveRegion()).toHaveTextContent('TITLE-ARRIVE'))
+  })
+
+  it('does not linger: it navigates once the descent resolves', async () => {
+    // Rung 2 is a transition, not a destination. Signing in ends in the dashboard, not on a
+    // screen congratulating you for signing in.
+    //
+    // Real timers: DESCENT_MS is 380ms, which is cheaper to wait out than a fake clock is
+    // to install correctly around React's scheduler. The assertion that it has NOT yet
+    // navigated at the moment rung 2 paints is what makes this a test of the delay rather
+    // than only of the destination.
+    const { user } = renderFlow()
+    await reachVerifyRung(user)
+    await user.type(codeField(), '194720')
+    await user.click(screen.getByRole('button', { name: 'ACTION-SUBMIT' }))
+    await screen.findByRole('heading', { name: 'TITLE-ARRIVE' })
+
+    expect(assign).not.toHaveBeenCalled()
+    await waitFor(() => expect(assign).toHaveBeenCalledWith('/weddings'), {
+      timeout: DESCENT_MS * 4,
+    })
+  })
+
+  it('keeps a button as the fallback, so a blocked navigation is not a dead end', async () => {
+    const { user } = renderFlow()
+    await reachVerifyRung(user)
+    await user.type(codeField(), '194720')
+    await user.click(screen.getByRole('button', { name: 'ACTION-SUBMIT' }))
+    await screen.findByRole('heading', { name: 'TITLE-ARRIVE' })
+
+    assign.mockClear()
+    await user.click(screen.getByRole('button', { name: 'ACTION-ARRIVE-CONTINUE' }))
+    expect(assign).toHaveBeenCalledWith('/weddings')
+  })
+
+  it('offers passkey enrollment only when the deployment can verify one', async () => {
+    const { user } = renderFlow({ passkeysEnabled: true })
+    await reachVerifyRung(user)
+    await user.type(codeField(), '194720')
+    await user.click(screen.getByRole('button', { name: 'ACTION-SUBMIT' }))
+    await screen.findByRole('heading', { name: 'TITLE-ARRIVE' })
+    expect(screen.getByText('TITLE-ENROLL')).toBeInTheDocument()
+  })
+
+  it('offers no enrollment when passkeys are off', async () => {
+    const { user } = renderFlow({ passkeysEnabled: false })
+    await reachVerifyRung(user)
+    await user.type(codeField(), '194720')
+    await user.click(screen.getByRole('button', { name: 'ACTION-SUBMIT' }))
+    await screen.findByRole('heading', { name: 'TITLE-ARRIVE' })
+    expect(screen.queryByText('TITLE-ENROLL')).not.toBeInTheDocument()
+  })
+})
+
+describe('the passkey control', () => {
+  it('is absent when the browser can offer the credential from the field', async () => {
+    // The field with `autocomplete="username webauthn"` IS the affordance. Our UI adds
+    // nothing, which is the refusal of the method menu.
+    conditionalMediationAvailable.mockResolvedValue(true)
+    platformAuthenticatorAvailable.mockResolvedValue(true)
+    renderFlow({ passkeysEnabled: true })
+    await waitFor(() => expect(conditionalMediationAvailable).toHaveBeenCalled())
+    expect(screen.queryByRole('button', { name: 'ACTION-PASSKEY' })).not.toBeInTheDocument()
+  })
+
+  it('appears only for a platform authenticator with no conditional mediation', async () => {
+    conditionalMediationAvailable.mockResolvedValue(false)
+    platformAuthenticatorAvailable.mockResolvedValue(true)
+    renderFlow({ passkeysEnabled: true })
+    expect(await screen.findByRole('button', { name: 'ACTION-PASSKEY' })).toBeInTheDocument()
+  })
+
+  it('is absent when the device has no authenticator at all', async () => {
+    conditionalMediationAvailable.mockResolvedValue(false)
+    platformAuthenticatorAvailable.mockResolvedValue(false)
+    renderFlow({ passkeysEnabled: true })
+    await waitFor(() => expect(platformAuthenticatorAvailable).toHaveBeenCalled())
+    expect(screen.queryByRole('button', { name: 'ACTION-PASSKEY' })).not.toBeInTheDocument()
+  })
+
+  it('never asks the browser when the deployment cannot verify a passkey', async () => {
+    // Either reason is enough to fall to the email path, and asking anyway is how you end
+    // up offering a credential the server cannot check.
+    renderFlow({ passkeysEnabled: false })
+    await Promise.resolve()
+    expect(conditionalMediationAvailable).not.toHaveBeenCalled()
+    expect(platformAuthenticatorAvailable).not.toHaveBeenCalled()
+  })
+
+  it('is secondary weight when it does appear, never primary', async () => {
+    conditionalMediationAvailable.mockResolvedValue(false)
+    platformAuthenticatorAvailable.mockResolvedValue(true)
+    renderFlow({ passkeysEnabled: true })
+    const passkey = await screen.findByRole('button', { name: 'ACTION-PASSKEY' })
+    const primary = screen.getByRole('button', { name: 'ACTION-CONTINUE' })
+    expect(passkey.className).toContain('bg-transparent')
+    expect(primary.className).not.toContain('bg-transparent')
+  })
+})
+
+describe('arriving from an invitation', () => {
+  const bound = { boundEmail: 'tom@studiowit.be', lead: 'LEAD-INVITE' }
+
+  it('greets an invitation rather than a sign-in', () => {
+    renderFlow(bound)
+    expect(screen.getByRole('heading', { name: 'TITLE-INVITE' })).toBeInTheDocument()
+    expect(screen.getByText('LEAD-INVITE')).toBeInTheDocument()
+  })
+
+  it('binds the address: pre-filled and not editable', () => {
+    renderFlow(bound)
+    expect(emailField()).toHaveValue('tom@studiowit.be')
+    expect(emailField()).toHaveAttribute('readonly')
+    expect(screen.getByText('NOTE-LOCKED')).toBeInTheDocument()
+  })
+
+  it('sends to the bound address even though the field was never typed in', async () => {
+    // Note what this does NOT prove. `onIdentify` reads `(boundEmail ?? email)`, but `email`
+    // state is already seeded from `boundEmail` at mount and the field is `readOnly`, so no
+    // interaction can make the two disagree -- mutation confirms that dropping the
+    // `boundEmail ??` half leaves this green. The expression is belt-and-braces against a
+    // future edit that makes the field editable, and only a test that could set state
+    // directly would isolate it. Pinning the OUTCOME is still worth it: the invitation must
+    // send to the invited address and to nothing else.
+    const { user } = renderFlow(bound)
+    await user.click(screen.getByRole('button', { name: 'ACTION-CONTINUE' }))
+    await waitFor(() => expect(requestCode).toHaveBeenCalledWith('tom@studiowit.be'))
+  })
+
+  it('shows a blocking message instead of the form when the invitation is unusable', () => {
+    renderFlow({ blocked: 'ERR-INVITE-EXPIRED Ilse' })
+    expect(screen.getByRole('alert')).toHaveTextContent('ERR-INVITE-EXPIRED Ilse')
+    expect(screen.queryByLabelText('LABEL-EMAIL')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'ACTION-CONTINUE' })).not.toBeInTheDocument()
+  })
+
+  it('still shows the language switcher on a blocked invitation', () => {
+    // The one thing that stays useful when nothing else on the screen is.
+    renderFlow({ blocked: 'ERR-INVITE-ACCEPTED' })
+    expect(screen.getByRole('navigation', { name: 'Taal' })).toBeInTheDocument()
+  })
+
+  it('renders a notice above a usable form, without blocking it', () => {
+    // A session that expired mid-work arrives with one.
+    renderFlow({ notice: 'ERR-SESSION-EXPIRED' })
+    expect(screen.getByText('ERR-SESSION-EXPIRED')).toBeInTheDocument()
+    expect(emailField()).toBeInTheDocument()
+  })
+})
+
+describe('the panel beside the form', () => {
+  it('descends with the rung', async () => {
+    const { user, container } = renderFlow()
+    expect(container.querySelector('aside')).toHaveAttribute('data-rung', '0')
+    await reachVerifyRung(user)
+    expect(container.querySelector('aside')).toHaveAttribute('data-rung', '1')
+  })
+
+  it('stays hidden from assistive technology throughout', async () => {
+    const { user, container } = renderFlow()
+    await reachVerifyRung(user)
+    expect(container.querySelector('aside')).toHaveAttribute('aria-hidden', 'true')
+  })
+})

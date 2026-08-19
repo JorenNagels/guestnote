@@ -2,7 +2,17 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "jsx": "preserve",
-    "types": ["node", "react"]
+
+    // tsconfig.base.json keeps `lib` at ES2025 so packages that run in Node "must not be
+    // able to reference `document` by accident". apps/web already carves out the same
+    // exception, on the principle that only the surface shipping to a browser gets browser
+    // globals -- and this package is components, which is exactly that surface. Component
+    // tests query real elements (`element.className`, `HTMLInputElement`), which is what
+    // made the omission visible.
+    "lib": ["ES2025", "DOM", "DOM.Iterable"],
+
+    // See tsconfig.json at the root for why the matchers are a `types` entry.
+    "types": ["node", "react", "@testing-library/jest-dom/vitest"]
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"]
 }
