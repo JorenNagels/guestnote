@@ -44,6 +44,20 @@ export default defineConfig({
       // See test/stubs/server-only.ts for why this is an alias and not a resolve
       // condition. Without it, `apps/web/src/proxy.ts` cannot be imported by a test.
       'server-only': fileURLToPath(new URL('./test/stubs/server-only.ts', import.meta.url)),
+
+      // Mirrors `paths: { "@/*": ["./src/*"] }` in apps/web/tsconfig.json, because Vitest
+      // reads tsconfig `paths` for TYPES and not for resolution.
+      //
+      // That gap used to be a rule: apps/web/tsconfig.json said to keep lib imports
+      // relative because "`@/` is for component imports, which are not unit-tested". It was
+      // a true description of the situation and a bad reason for it -- a route segment that
+      // imports a component through the alias was untestable, so the redirect guard on the
+      // sign-in page had nowhere to be asserted. Six lines here is a much better trade than
+      // a rule that says a whole layer cannot be tested.
+      //
+      // Repo-wide rather than scoped to the `component` project: no package uses `@/`, so
+      // there is nothing for it to shadow, and one alias cannot disagree with itself.
+      '@': fileURLToPath(new URL('./apps/web/src', import.meta.url)),
     },
   },
 

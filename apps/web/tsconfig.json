@@ -21,9 +21,10 @@
     // resolves relative to this file's directory, so TS 6 removing baseUrl as a
     // resolution root does not bite. Next reads it from here automatically.
     //
-    // NOTE: Vitest does NOT read tsconfig paths. Keep src/lib/** and src/env.ts on
-    // relative `.ts` imports (packages/db's house style) so their tests stay simple;
-    // `@/` is for component imports, which are not unit-tested.
+    // NOTE: Vitest does NOT read tsconfig paths for RESOLUTION, so `vitest.config.ts`
+    // mirrors this alias by hand. Keep src/lib/** and src/env.ts on relative `.ts`
+    // imports anyway (packages/db's house style) -- that is now a preference rather than
+    // a constraint, and `@/` importers are testable as of 2026-08-19.
     "paths": { "@/*": ["./src/*"] },
 
     // tsconfig.base.json sets `lib: ["ES2025"]` because it is written for packages that
