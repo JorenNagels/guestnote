@@ -17,7 +17,7 @@ the strategy predicts.
 ```bash
 direnv allow          # Node 24 from .nvmrc, plus AWS_PROFILE=guestnote
 npm install
-npm run dev           # app.localhost:3000, localhost:3000/nl, <slug>.localhost:3000
+npm run dev           # app.guestnote.localhost:3000, guestnote.localhost:3000/nl, <slug>.guestnote.localhost:3000
 ```
 
 Node **24** is required, not preferred: `tsconfig.base.json` relies on native type

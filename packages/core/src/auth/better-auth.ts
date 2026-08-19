@@ -108,9 +108,16 @@ export function createBetterAuthProvider(config: AuthConfig) {
       /**
        * Required by the prefix above, and safe locally: `localhost` and every
        * `*.localhost` subdomain are *potentially trustworthy origins*, so a browser
-       * accepts Secure cookies from them over plain http. `apps/web/src/env.ts` chose
-       * `app.localhost` for development on exactly this basis, so dev and production
-       * cookie handling stay identical instead of diverging behind a NODE_ENV branch.
+       * accepts Secure cookies from them over plain http. `apps/web/src/env.ts` chose a
+       * `.localhost` root domain for development on exactly this basis, so dev and
+       * production cookie handling stay identical instead of diverging behind a NODE_ENV
+       * branch.
+       *
+       * That sentence used to name `app.localhost` specifically and claimed the two
+       * environments were identical outright. Only the Secure half was ever true -- plain
+       * `localhost` is its own public suffix, so `localhost` and `app.localhost` are
+       * cross-site and a `SameSite=Lax` cookie will not travel between them. `env.ts`
+       * carries the measurement and the fix (a `guestnote.localhost` root domain, 2026-08-19).
        */
       useSecureCookies: false,
 

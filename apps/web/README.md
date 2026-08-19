@@ -19,20 +19,29 @@ rule. If `/api/health` reports `DATABASE_URL is not set`, the symlink is missing
 
 ## The hosts
 
-`*.localhost` is the default and needs no DNS or `/etc/hosts`: Chrome, Edge and Firefox
-resolve any `*.localhost` to loopback (RFC 6761). It also wins on a second count —
-`localhost` and `*.localhost` are *potentially trustworthy origins*, so `Secure` and
-therefore `__Host-` prefixed cookies work over plain http, which keeps dev and production
-cookie handling identical once Better Auth lands at M3.
+`guestnote.localhost` is the default and needs no DNS or `/etc/hosts`: Chrome, Edge and
+Firefox resolve any `*.localhost` to loopback (RFC 6761). It also wins on a second count —
+every `*.localhost` name is a *potentially trustworthy origin*, so `Secure` and therefore
+`__Host-` prefixed cookies work over plain http.
+
+**Why the `guestnote.` label, since 2026-08-19.** This used to be plain `localhost`, on the
+grounds that it kept "dev and production cookie handling identical". Only half of that was
+ever true. The `Secure` half holds. Same-site does not: SameSite is computed on the
+*registrable domain*, `localhost` is its own public suffix, so `localhost` and `app.localhost`
+are **cross-site** to a browser and a `SameSite=Lax` cookie will not travel between them —
+while `guestnote.be` and `app.guestnote.be` share `guestnote.be` and it does. With the extra
+label both local hosts share `guestnote.localhost`, and dev matches production on both counts.
+That is what makes the apex's signed-in probe (`app/api/session-hint/route.ts`) testable
+locally at all. `src/env.ts` carries the measurement.
 
 | URL | Surface |
 |---|---|
-| `http://localhost:3000/` | apex → 308 → `/nl` |
-| `http://localhost:3000/{nl,en,fr}` | marketing |
-| `http://app.localhost:3000/` | the dashboard |
-| `http://pro.localhost:3000/…` | 308 → `app.localhost:3000` |
-| `http://els-en-jan.localhost:3000/` | guest site — 404 until PH4 |
-| `http://app.localhost:3000/api/health` | RLS armed? |
+| `http://guestnote.localhost:3000/` | apex → 308 → `/nl` |
+| `http://guestnote.localhost:3000/{nl,en,fr}` | marketing |
+| `http://app.guestnote.localhost:3000/` | the dashboard |
+| `http://pro.guestnote.localhost:3000/…` | 308 → `app.guestnote.localhost:3000` |
+| `http://els-en-jan.guestnote.localhost:3000/` | guest site — 404 until PH4 |
+| `http://app.guestnote.localhost:3000/api/health` | RLS armed? |
 
 **Safari on macOS does not resolve `*.localhost`.** When Safari or iOS testing matters, add
 fixed names to `/etc/hosts` under `guestnote.test` (RFC 6761-reserved, can never resolve
@@ -45,13 +54,24 @@ PH4 needs arbitrary tenant labels, which means dnsmasq (`address=/guestnote.test
 or a wildcard-DNS service. Because the root domain is one env var and `resolveHost` is a pure
 function, that is a one-line change with no code path behind it.
 
-### Known wart: `www.localhost:3000` loops
+### Former wart: `www` no longer loops locally
 
-Only locally, and only for `www`. Next collapses a proxy `Location` header to a relative
-path when it matches the origin Next assumes for itself, which is the bound address rather
-than the `Host` header — so `www.localhost:3000` → `localhost:3000` becomes `Location: /`
-and loops. It does not happen in production; see ADR 0003 §8 for the measurement. Test that
-branch with `GUESTNOTE_ROOT_DOMAIN=guestnote.be` and an `x-forwarded-host` header instead.
+**Fixed as a side effect of the root-domain change above, measured 2026-08-19.** Next collapses
+a proxy `Location` header to a relative path when it matches the origin Next assumes for itself
+— the bound address, not the `Host` header. Under a plain `localhost` root domain the `www`
+redirect targeted `localhost:3000`, which *is* that origin, so it became `Location: /` and
+looped forever.
+
+`guestnote.localhost:3000` is not the bound origin, so the collapse cannot trigger:
+
+```bash
+curl -sI -H 'Host: www.guestnote.localhost:3000' http://127.0.0.1:3000/
+# location: http://guestnote.localhost:3000/   — absolute, and it resolves in 2 hops to /nl
+```
+
+The underlying Next behaviour is unchanged and still worth knowing about; ADR 0003 §8 has the
+original measurement. **Do not "fix" anything by reaching for `nextUrl`** — behind CloudFront
+`nextUrl.host` is the *origin's* hostname, so cloning it would leak the Function URL.
 
 ## Verifying a change
 
@@ -65,18 +85,18 @@ The host matrix, against `npm run start` rather than `npm run dev` — **dev ove
 `Cache-Control`, so cache assertions are only meaningful in production mode:**
 
 ```bash
-curl -sI http://localhost:3000/                    # 308 -> /nl
-curl -sI http://localhost:3000/nl                  # 200, public, s-maxage=60, swr=86400
-curl -sI http://localhost:3000/xx                  # 404 — [locale] is a catch-all; proxy guards it
-curl -sI http://app.localhost:3000/                # 200, private, no-store
-curl -sI http://pro.localhost:3000/weddings        # 308 -> http://app.localhost:3000/weddings
-curl -sI http://localhost:3000/pro                 # 404 — rewrite target unreachable from outside
-curl -sI http://localhost:3000/sites/els-en-jan    # 404 — the guard that matters most
-curl -sI http://els-en-jan.localhost:3000/         # 404 from the sites stub, NOT the marketing page
-curl -sI http://admin.localhost:3000/              # 404 — reserved subdomain
-curl -sI -H 'x-forwarded-host: app.localhost' http://localhost:3000/   # 200 — the CloudFront path
-curl -s   http://app.localhost:3000/api/health     # ok: true, app_user, bypassRls false
-curl -sI  http://localhost:3000/api/health         # 404 — no public API
+curl -sI http://guestnote.localhost:3000/                    # 308 -> /nl
+curl -sI http://guestnote.localhost:3000/nl                  # 200, public, s-maxage=60, swr=86400
+curl -sI http://guestnote.localhost:3000/xx                  # 404 — [locale] is a catch-all; proxy guards it
+curl -sI http://app.guestnote.localhost:3000/                # 200, private, no-store
+curl -sI http://pro.guestnote.localhost:3000/weddings        # 308 -> http://app.guestnote.localhost:3000/weddings
+curl -sI http://guestnote.localhost:3000/pro                 # 404 — rewrite target unreachable from outside
+curl -sI http://guestnote.localhost:3000/sites/els-en-jan    # 404 — the guard that matters most
+curl -sI http://els-en-jan.guestnote.localhost:3000/         # 404 from the sites stub, NOT the marketing page
+curl -sI http://admin.guestnote.localhost:3000/              # 404 — reserved subdomain
+curl -sI -H 'x-forwarded-host: app.guestnote.localhost' http://guestnote.localhost:3000/   # 200 — the CloudFront path
+curl -s   http://app.guestnote.localhost:3000/api/health     # ok: true, app_user, bypassRls false
+curl -sI  http://guestnote.localhost:3000/api/health         # 404 — no public API
 ```
 
 Production hostnames can be exercised locally, which is how the `www` branch and the
@@ -84,7 +104,7 @@ absolute-`Location` behaviour were verified:
 
 ```bash
 GUESTNOTE_ROOT_DOMAIN=guestnote.be npm run start -w @guestnote/web
-curl -sI -H 'x-forwarded-host: www.guestnote.be' -H 'x-forwarded-proto: https' http://localhost:3000/
+curl -sI -H 'x-forwarded-host: www.guestnote.be' -H 'x-forwarded-proto: https' http://guestnote.localhost:3000/
 # location: https://guestnote.be/
 ```
 
@@ -97,7 +117,7 @@ workspace packages and the Neon driver actually made it into what ships:
 npm run build -w @guestnote/web
 cp -r apps/web/.next/static apps/web/.next/standalone/apps/web/.next/
 (set -a; . ./.env.local; set +a; cd apps/web/.next/standalone/apps/web && node server.js)
-curl -s http://app.localhost:3000/api/health
+curl -s http://app.guestnote.localhost:3000/api/health
 ```
 
 Note the output lands at `.next/standalone/apps/web/server.js`, not

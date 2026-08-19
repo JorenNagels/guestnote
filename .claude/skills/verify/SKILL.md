@@ -108,7 +108,7 @@ actually made it into what ships. Worth running before any deploy work.
 npm run build -w @guestnote/web
 cp -r apps/web/.next/static apps/web/.next/standalone/apps/web/.next/
 (set -a; . ./.env.local; set +a; cd apps/web/.next/standalone/apps/web && node server.js)
-curl -s http://app.localhost:3000/api/health
+curl -s http://app.guestnote.localhost:3000/api/health
 ```
 
 Note the output is at `.next/standalone/apps/web/server.js`, not `.next/standalone/server.js`,
@@ -137,33 +137,32 @@ npm run build -w @guestnote/web && npm run start -w @guestnote/web
 ```
 
 ```bash
-curl -sI http://localhost:3000/                    # 308 -> /nl
-curl -sI http://localhost:3000/nl                  # 200, public, s-maxage=60, swr=86400
-curl -sI http://localhost:3000/xx                  # 404 -- [locale] is a catch-all
-curl -sI http://app.localhost:3000/                # 200, private, no-store
-curl -sI http://pro.localhost:3000/weddings        # 308 -> http://app.localhost:3000/weddings
-curl -sI http://localhost:3000/pro                 # 404 -- rewrite target unreachable
-curl -sI http://localhost:3000/sites/els-en-jan    # 404 -- the guard that matters most
-curl -sI http://els-en-jan.localhost:3000/         # 404 from the sites stub, NOT marketing
-curl -sI http://admin.localhost:3000/              # 404 -- reserved subdomain
-curl -sI -H 'x-forwarded-host: app.localhost' http://localhost:3000/   # 200 -- the CloudFront path
-curl -s   http://app.localhost:3000/api/health     # ok: true, app_user, bypassRls false
-curl -sI  http://localhost:3000/api/health         # 404 -- no public API
+curl -sI http://guestnote.localhost:3000/                    # 308 -> /nl
+curl -sI http://guestnote.localhost:3000/nl                  # 200, public, s-maxage=60, swr=86400
+curl -sI http://guestnote.localhost:3000/xx                  # 404 -- [locale] is a catch-all
+curl -sI http://app.guestnote.localhost:3000/                # 200, private, no-store
+curl -sI http://pro.guestnote.localhost:3000/weddings        # 308 -> http://app.guestnote.localhost:3000/weddings
+curl -sI http://guestnote.localhost:3000/pro                 # 404 -- rewrite target unreachable
+curl -sI http://guestnote.localhost:3000/sites/els-en-jan    # 404 -- the guard that matters most
+curl -sI http://els-en-jan.guestnote.localhost:3000/         # 404 from the sites stub, NOT marketing
+curl -sI http://admin.guestnote.localhost:3000/              # 404 -- reserved subdomain
+curl -sI -H 'x-forwarded-host: app.guestnote.localhost' http://guestnote.localhost:3000/   # 200 -- the CloudFront path
+curl -s   http://app.guestnote.localhost:3000/api/health     # ok: true, app_user, bypassRls false
+curl -sI  http://guestnote.localhost:3000/api/health         # 404 -- no public API
 ```
 
-Two known warts, both expected:
+One known wart, and one that used to be here:
 
-- **`www.localhost:3000` loops.** Local only. Next collapses a proxy `Location` to a relative
-  path when it matches its own bound origin. Test that branch against a production hostname
-  instead:
-  ```bash
-  GUESTNOTE_ROOT_DOMAIN=guestnote.be npm run start -w @guestnote/web
-  curl -sI -H 'x-forwarded-host: www.guestnote.be' -H 'x-forwarded-proto: https' http://localhost:3000/
-  # expect: location: https://guestnote.be/
-  ```
 - **Safari does not resolve `*.localhost`.** Chrome, Edge and Firefox do (RFC 6761). Use the
   `guestnote.test` `/etc/hosts` route from `apps/web/README.md` only when Safari matters, and
   note that `__Host-` cookies break there.
+- **`www` no longer loops locally** (was a wart until 2026-08-19). The root domain gained a
+  `guestnote.` label, so the redirect target is no longer Next's own bound origin and the
+  `Location` collapse cannot trigger. Expect a clean absolute redirect:
+  ```bash
+  curl -sI -H 'Host: www.guestnote.localhost:3000' http://127.0.0.1:3000/
+  # expect: location: http://guestnote.localhost:3000/
+  ```
 
 Kill the server when you are done; do not leave it running in the background.
 

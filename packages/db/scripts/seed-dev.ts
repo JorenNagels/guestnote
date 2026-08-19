@@ -139,7 +139,7 @@ async function main(): Promise<void> {
         `    user      ${email}  (owner)\n` +
         `    org       ${ORG.name}\n` +
         `    wedding   ${WEDDING.coupleDisplayName}, ${WEDDING.weddingDate}\n\n` +
-        `  Sign in at http://app.localhost:3000/login as ${email}.\n`,
+        `  Sign in at http://app.guestnote.localhost:3000/login as ${email}.\n`,
     )
   } finally {
     await pool.end()

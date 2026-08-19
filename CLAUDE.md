@@ -41,7 +41,7 @@ npm run check          # typecheck + lint + unit + component. The gate.
 npm test               # unit + component, ~4s, nothing external
 npm run test:db        # two tiers. Tier 1 needs no env (defaults to localhost:55433);
                        # tier 2 needs the Neon env. See packages/db/README.md
-npm run dev            # localhost:3000/nl, app.localhost:3000, <slug>.localhost:3000
+npm run dev            # guestnote.localhost:3000/nl, app.guestnote.localhost:3000, <slug>.guestnote.localhost:3000
 npm run build -w @guestnote/web
 npm run format         # biome check --write
 ```

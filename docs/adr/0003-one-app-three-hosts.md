@@ -153,6 +153,14 @@ live and a clean checkout has none.
 
 ## 8. One local-development wart, bounded
 
+> **Correction, 2026-08-19.** This wart is gone, and not because the Next behaviour changed.
+> The local root domain became `guestnote.localhost` (for an unrelated same-site cookie
+> reason — see `apps/web/src/env.ts`), and the redirect target is therefore no longer the
+> origin Next binds to, so the collapse below cannot trigger. Measured: `Host:
+> www.guestnote.localhost:3000` emits `location: http://guestnote.localhost:3000/`, absolute,
+> resolving in two hops to `/nl`. The mechanism described below is still real and still worth
+> knowing; only the local symptom is fixed. Hostnames in this section are the pre-change ones.
+
 `www.localhost:3000` → `localhost:3000` **loops**. Next normalises a proxy response's
 `Location` to a relative path when it equals the origin Next assumes for itself, and that
 origin comes from the address the server is bound to rather than from the `Host` header. So

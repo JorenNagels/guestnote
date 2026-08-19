@@ -189,21 +189,28 @@ function isInternalPrefix(pathname: string): boolean {
  * `NextResponse.redirect`), but building the URL from the resolver rather than from
  * `nextUrl` is still what makes the production behaviour correct.
  *
- * ## The one local-only wart, measured rather than assumed
+ * ## The collapse, and why it no longer bites locally
  *
- * `www.localhost:3000` -> `localhost:3000` is the single case where our target equals
- * Next's own origin, so Next collapses it to `Location: /`, the browser resolves that
- * against `www.localhost:3000`, and it loops. `curl -L` sits at 308 until it gives up.
+ * Next collapses this `Location` to a relative path when the target equals the origin Next
+ * assumes for itself -- the address the server is bound to, NOT the Host header. Under the
+ * old `localhost` root domain, `www.localhost:3000` -> `localhost:3000` hit exactly that
+ * case: it became `Location: /`, the browser resolved it against `www.localhost:3000`, and
+ * it looped until `curl -L` gave up.
  *
- * It does NOT happen in production, and that is verified, not hoped: with
+ * The root domain became `guestnote.localhost` on 2026-08-19 (see env.ts for the real
+ * reason, which was same-site cookies), and `guestnote.localhost:3000` is not the bound
+ * origin -- so the collapse cannot trigger. Measured the same day: `Host:
+ * www.guestnote.localhost:3000` now emits `location: http://guestnote.localhost:3000/`,
+ * absolute, resolving in two hops.
+ *
+ * It never happened in production either, and that was verified rather than hoped: with
  * GUESTNOTE_ROOT_DOMAIN=guestnote.be and `x-forwarded-host: www.guestnote.be`, this
- * emits `location: https://guestnote.be/` -- absolute, protocol from
- * `x-forwarded-proto`. `guestnote.be` can never equal the origin of a Lambda Function
- * URL, so the collapse cannot trigger there.
+ * emits `location: https://guestnote.be/`. `guestnote.be` can never equal the origin of a
+ * Lambda Function URL.
  *
- * Do not "fix" it by reaching for `nextUrl`. Behind CloudFront, `nextUrl.host` is the
- * ORIGIN's hostname, so cloning it would redirect visitors to the Function URL and leak
- * it. See apps/web/README.md for the local workaround.
+ * The Next behaviour itself is unchanged, so this stays written down. Do not "fix"
+ * anything by reaching for `nextUrl`: behind CloudFront, `nextUrl.host` is the ORIGIN's
+ * hostname, so cloning it would redirect visitors to the Function URL and leak it.
  */
 function permanentRedirect(url: URL): Response {
   return new Response(null, {

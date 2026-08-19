@@ -22,19 +22,36 @@ const schema = z.object({
   /**
    * The domain host resolution is performed against, port stripped.
    *
-   * Defaults to `localhost` so a fresh clone runs `npm run dev` with no configuration:
-   * `app.localhost:3000` and `els-en-jan.localhost:3000` then take exactly the branches
-   * the deployed app takes. Chrome, Edge and Firefox resolve any `*.localhost` to
-   * loopback with no DNS entry (RFC 6761), and -- the reason it beats a `.test` domain
-   * -- `localhost` is a *potentially trustworthy origin*, so `__Host-` prefixed cookies
-   * work over plain http. That keeps dev and production cookie handling identical,
-   * which matters once Better Auth lands.
+   * Defaults to `guestnote.localhost` so a fresh clone runs `npm run dev` with no
+   * configuration: `app.guestnote.localhost:3000` and
+   * `els-en-jan.guestnote.localhost:3000` then take exactly the branches the deployed app
+   * takes. Chrome, Edge and Firefox resolve any `*.localhost` to loopback with no DNS entry
+   * (RFC 6761), and -- the reason it beats a `.test` domain -- every `*.localhost` name is a
+   * *potentially trustworthy origin*, so `__Host-` prefixed cookies work over plain http.
+   *
+   * ## Why the extra label, added 2026-08-19
+   *
+   * **This said plain `localhost` until 2026-08-19, on the stated grounds that it "keeps dev
+   * and production cookie handling identical". That claim was half true, and the wrong
+   * half cost real time.** The `Secure` / `__Host-` part of it holds. Same-site does not:
+   * SameSite is computed on the registrable domain, `localhost` is its own public suffix, so
+   * `localhost` and `app.localhost` are **cross-site** to a browser. A `SameSite=Lax` cookie
+   * therefore does not travel between them -- while in production `guestnote.be` and
+   * `app.guestnote.be` share the registrable domain `guestnote.be` and it does.
+   *
+   * With the extra label, `guestnote.localhost` and `app.guestnote.localhost` share the
+   * registrable domain `guestnote.localhost`, and dev finally matches production on both
+   * counts rather than one. That is what makes the apex's signed-in probe testable locally
+   * at all -- see `app/api/session-hint/route.ts`.
+   *
+   * The cost is longer URLs to type, and that any passkey or session created against
+   * `app.localhost` stops resolving. Both are development-only and both are worth it.
    *
    * If a deployed environment forgets to set this, every host fails to match and the
    * app 404s everything. That is the intended failure: a visible outage, not the
    * marketing site quietly served under a customer's name.
    */
-  GUESTNOTE_ROOT_DOMAIN: z.string().min(1).default('localhost'),
+  GUESTNOTE_ROOT_DOMAIN: z.string().min(1).default('guestnote.localhost'),
 
   /**
    * The single label the dashboard and couple portal answer on. `pro` permanently
