@@ -24,6 +24,7 @@ warning once let `npm install` write a dependency into `package.json` without in
 | `apps/web/src/proxy.ts` | The only file that reads the request's hostname. (`lib/app-url.ts` composes the app origin for cross-host links.) |
 | `apps/web/src/env.ts` | The only file that reads `process.env`. |
 | `docs/adr/` | Decisions that were **measured**. Supersede `research/` where they overlap. |
+| `docs/specs/` | What a feature must do, settled by interrogation **before** it is built. Written by `/feature`. |
 | `research/` | The reasoning: market, architecture, auth/tenancy, planner spec. |
 | `design-system/` | Tokens for the planner platform. Tenant theming is parked. |
 | `.impeccable/surfaces/` | Per-surface design briefs. The login brief is the live one. |
@@ -178,6 +179,8 @@ rather than a personal preference. Reach for them instead of re-deriving the pro
 
 | Use | For |
 |---|---|
+| `/feature` | **A feature has been chosen and is about to be built.** Questions first, then a spec, then plan mode. |
+| `spec-scout` | What a proposed feature already has decided for it, and what is genuinely open. `/feature` runs it. |
 | `guestnote-explorer` | Before changing an unfamiliar area: where it lives, why, and what the comments say not to do. |
 | `tenancy-auditor` | Anything touching `packages/db`, the seams, `proxy.ts`, `env.ts` or a Server Function. |
 | `mutation-tester` | Proving new assertions fail when the code breaks. **Needs a clean tree.** |
@@ -189,6 +192,14 @@ rather than a personal preference. Reach for them instead of re-deriving the pro
 | `/db-migration` | Writing and applying a migration without hitting the silent traps. |
 | `/adr` | Recording a decision that was measured. |
 | `/commit` | The review panel, then a commit in house style. |
+
+**No feature gets planned before it gets specified.** When a feature has been agreed and the
+next move is to build it, run `/feature` — a full pass of questions, a spec in `docs/specs/`,
+and only then plan mode. Not for a bug, a one-line fix, or a refactor with no user-visible
+change; and not when told to skip it, which is a fine thing to be told. The reason it is a
+rule rather than a preference: every other document here exists to stop a decision being
+undone silently, and a feature built from inferred requirements is a dozen decisions made
+silently, discovered only once it is built.
 
 ## Code style
 
@@ -212,6 +223,11 @@ Biome, 100 columns, single quotes, no semicolons, trailing commas. `npm run form
 - **The schema in `packages/db/src/schema/*.ts` is authoritative.** Where `research/`
   disagrees with it, the schema wins and the doc gets a correction note rather than a
   silent edit.
+- `docs/specs/` records what a feature must do, decided by asking **before** it is built.
+  Numbered sequentially, written by `/feature`. A spec is forward-looking where an ADR is
+  backward-looking: the spec says what was decided, the ADR says what was measured. When a
+  build diverges from its spec, the spec is amended — one describing a product that does not
+  exist is worse than none.
 - `docs/adr/` records decisions that were measured against something running. New ADRs are
   numbered sequentially, open with `**Date:** … · **Status:** …`, and say plainly where an
   earlier document turned out to be wrong. The `adr` skill has the template.

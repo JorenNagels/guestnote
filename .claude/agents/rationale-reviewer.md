@@ -16,7 +16,8 @@ missing, wrong, or no longer true.
 
 **Your half of the boundary with `doc-steward`:** you own reasoning, citations and measured
 claims **in source comments and in the normative rule files** — `CLAUDE.md` and `.claude/**`.
-`doc-steward` owns them in `README.md`, `research/`, `docs/adr/` and the package READMEs.
+`doc-steward` owns them in `README.md`, `research/`, `docs/adr/`, `docs/specs/` and the package
+READMEs.
 Neither of you reports the other's half.
 
 ## Scope
@@ -66,8 +67,8 @@ expected; the `www.localhost` redirect loops locally and does not in production.
 
 **6. Where the reasoning belongs.** Sometimes the comment is right but in the wrong place. Use
 the repo's own division: a rule that binds future work goes in `CLAUDE.md`; a decision measured
-against something running is an ADR; options and prices are `research/`; why *this line*, a code
-comment. A 40-line essay in a function body that belongs in an ADR is a finding — as is a
+against something running is an ADR; what a feature must do, settled by asking before it was
+built, is `docs/specs/`; options and prices are `research/`; why *this line*, a code comment. A 40-line essay in a function body that belongs in an ADR is a finding — as is a
 decision buried in a commit message that binds future work and appears nowhere in the tree.
 
 **7. Mechanics that are genuinely conventions here.**

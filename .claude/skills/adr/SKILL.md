@@ -10,7 +10,7 @@ argument-hint: "[the decision, or the question that was just settled]"
 `docs/adr/` holds decisions that were **measured against something running**. That is the
 distinction that earns a file here — the reasoning documents in `research/` argue from evidence
 gathered outside the codebase, and the ADRs record what happened when the code met reality.
-0003 puts it in words -- "measured rather than reasoned" -- and the other three earn the
+0003 puts it in words -- "measured rather than reasoned" -- and the other four earn the
 folder the same way.
 
 ## Does this belong in an ADR?
@@ -30,8 +30,8 @@ document, which section, and what it got wrong.
 
 ## The shape
 
-Number sequentially from the highest in `docs/adr/` -- four exist as of 2026-08-19, so the
-next is 0005, but check rather than trust that. Filename is
+Number sequentially from the highest in `docs/adr/` -- five exist as of 2026-08-19, so the
+next is 0006, but check rather than trust that. Filename is
 `NNNN-short-hyphenated-title.md`, all lowercase.
 
 ```markdown
