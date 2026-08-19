@@ -109,7 +109,8 @@ describe('the SES transport builds the right SendEmail call', () => {
 
   /**
    * Two absences, both deliberate, both easy to "helpfully" add later:
-   *   - Reply-To would bounce, because ADR 0002 put no MX on the apex.
+   *   - Reply-To is absent by choice, not because it would bounce: the apex has had MX since
+   *     2026-08-19 (ADR 0005). An auth mail should not offer an unwatched reply channel.
    *   - List management would add an unsubscribe link to a sign-in code.
    */
   it('sets no Reply-To and no list management', async () => {

@@ -40,13 +40,17 @@ let cached: ReturnType<typeof createMailer> | undefined
  * Deliberately NOT an environment variable. It is identical in every environment, every extra
  * env key is one more thing to forget in SSM, and getting it wrong is not a config error but a
  * deliverability one: ADR 0002 configured a custom MAIL FROM of `mail.guestnote.be` so that SPF
- * *and* DKIM align on the domain, which is what a DMARC policy will eventually need. Sending as
- * any other domain would keep delivering while silently losing that alignment.
+ * *and* DKIM align on the domain. Since 2026-08-19 that is load-bearing rather than groundwork
+ * -- `_dmarc.guestnote.be` is published at `p=none; aspf=r` (ADR 0005), so sending as any other
+ * domain fails DMARC now, invisibly while the policy is `none` and fatally once it is not.
  *
- * `noreply@` with no Reply-To is `research/05-architecture.md` section 6's v1, and it is the
- * honest option rather than the lazy one: ADR 0002 added records only under `_domainkey.` and
- * `mail.`, so the apex has no MX and a reply would bounce at the replier's own server. A
- * localpart that says replies go nowhere beats one that quietly swallows them.
+ * The `noreply@` localpart is `research/05-architecture.md` section 6's v1. The absent Reply-To
+ * is NOT -- section 6's v1 pairs that localpart *with* a Reply-To to the planner, and will again
+ * when white-label lands. Auth mail is the deliberate exception. It was once justified by the
+ * apex carrying no MX at all; since 2026-08-19 it carries three pointed at Zoho and
+ * `info@guestnote.be` receives. The exception survives that on its own terms: a sign-in code is
+ * a machine message, and a localpart that says replies go nowhere beats one that quietly
+ * swallows them into a mailbox read once a day.
  */
 const FROM = '"Guestnote" <noreply@guestnote.be>'
 

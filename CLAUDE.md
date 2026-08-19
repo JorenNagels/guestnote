@@ -131,6 +131,16 @@ stop and ask. The rest are held by convention alone, which is why they are writt
     mechanism**: it is in neither `biome.json` nor `no-unsafe-imports.test.ts`, which is
     exactly why it is here. `packages/email/README.md` and ADR 0004 have the numbers.
 
+12. **Every write to the apex `TXT` record set must carry all three of its values.** Route 53
+    replaces a record set on write, so an `UPSERT` naming only the record you want silently
+    deletes the others. `guestnote.be` `TXT` holds `google-site-verification=…`,
+    `zoho-verification=…` and `v=spf1 include:zohomail.eu ~all` as of 2026-08-19; dropping
+    either verification string un-verifies a domain in a console nobody is watching, and
+    dropping the SPF breaks Zoho's outbound alignment. **This one has no mechanism** — read the
+    set with `route53 list-resource-record-sets` before writing it. Same silent-failure shape as
+    10, different service. `docs/adr/0005-the-apex-receives-mail.md` has the zone id and the
+    batch that got it right.
+
 ## Testing
 
 Three Vitest projects, and **the file extension is the selector** — a test cannot land in

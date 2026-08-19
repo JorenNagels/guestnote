@@ -100,7 +100,7 @@ against the daily limit.
 |---|---|
 | `theme.test.ts` | parses `design-system/tokens.css`, resolves each `var()` chain, and fails when a literal hex drifts |
 | `render.test.ts` | the code appears in both parts, **no `href` anywhere**, doctype, MSO block, preheader out of the plaintext |
-| `ses.test.ts` | the `SendEmailCommand` input, `Charset: 'UTF-8'` on all three parts, no Reply-To, and every error mapping |
+| `ses.test.ts` | the `SendEmailCommand` input, `Charset: 'UTF-8'` on all three parts, no Reply-To (deliberate, and no longer for the reason first given — `docs/adr/0005-the-apex-receives-mail.md`), and every error mapping |
 | `index.test.ts` | what the transport is handed, what is recorded, and that a throwing recorder still returns the send result |
 
 Mutation-checked, per the root README's standard: the drift test was confirmed to fail on a

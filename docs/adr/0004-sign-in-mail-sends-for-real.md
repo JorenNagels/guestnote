@@ -191,9 +191,12 @@ saves.
   address *"isn't placed on the Amazon SES suppression list"*. Checked before sending, because on
   a domain with no sending history one counted bounce is a 100% bounce rate.
 
-  **The subscription is `PendingConfirmation` until the link in AWS's email is clicked** — the
-  same trap ADR 0002 recorded for the verified sending identity, which sat unconfirmed for two
-  days.
+  ~~**The subscription is `PendingConfirmation` until the link in AWS's email is clicked**~~ —
+  **confirmed 2026-08-19.** `sns list-subscriptions` returns a real ARN for both
+  `guestnote-mail-events` and `guestnote-waitlist`, so bounce and complaint notifications are
+  being delivered. Both still point at a personal Gmail address rather than
+  `info@guestnote.be`, which exists as of the same day — see
+  `0005-the-apex-receives-mail.md`.
 - **`advanced.ipAddress.trustedProxies` is unset.** The limiter keys on client IP, and the
   documented behaviour with that option unset is to trust *"only single-value IP headers"*.
   Behind CloudFront `x-forwarded-for` is a chain, so until M1a configures it every request will

@@ -96,9 +96,11 @@ export function createSesTransport(config: SesTransportConfig): MailTransport {
         FromEmailAddress: config.from,
         Destination: { ToAddresses: [message.to] },
         ConfigurationSetName: config.configurationSet,
-        // NOT set: ReplyToAddresses. The apex carries no MX record (ADR 0002 added records
-        // only under `_domainkey.` and `mail.`), so a Reply-To would bounce at the replier's
-        // server and we would never learn they tried. `noreply@` at least tells the truth.
+        // NOT set: ReplyToAddresses. The apex has carried MX since 2026-08-19 (ADR 0005), so a
+        // reply would now land in `info@guestnote.be` rather than bounce -- the original reason
+        // for this absence is gone, the absence is not. A sign-in code is a machine message, and
+        // an auth mail advertising a reply channel nobody watches in real time is worse than one
+        // that says plainly it is unattended.
         //
         // NOT set: ListManagementOptions. That adds an unsubscribe link and a contact list,
         // which is right for the weekly digest and wrong for a sign-in code -- this is

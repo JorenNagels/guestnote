@@ -26,7 +26,9 @@ treated as ±10%.
 **Server-side rendering does not cost you the free ride.**
 
 At 100 live weddings you'd pay AWS roughly **€6–8/month**, almost all of it SES email, while
-billing €5,000–10,000/month. The free tiers that make the current setup free are the
+billing €5,000–10,000/month. *(**Correction 2026-08-19:** ~**€9–11**. "Almost all of it SES"
+ is exactly why — this account is on the Essentials plan at $0.16/1,000, not $0.10. See §2.)*
+The free tiers that make the current setup free are the
 **permanent** ones — CloudFront's 1 TB, Lambda's 1M requests, DynamoDB's 25 GB — not the
 12-month ones, which lapsed on account `438465163166` years ago.
 
@@ -80,6 +82,19 @@ Assumptions: 100 live weddings, ~200 guests each, ~300k page views/month, ~60k e
 | **Sentry** | free tier | | €0 |
 | | | **Total** | **~€6** |
 
+> ⚠️ **Correction 2026-08-19: the SES row is wrong, and so is the total.** AWS introduced SES
+> pricing plans on 2026-07-21. Accounts with no metered SES activity since 2025-06-01 are
+> enrolled on **Essentials at $0.16/1,000**, not the $0.10 à-la-carte rate above — this identity
+> first sent on 2026-08-17, after the cutover, so it was enrolled rather than grandfathered.
+> `aws sesv2 get-account` returns `"PricingAttributes": {"CurrentPlan": "ESSENTIALS"}`.
+> At 60k/month that is **$9.60, not $6.00** — about **€8.80** at the ~0.917 this table already
+> uses to render $6.00 as €5.50 — so the total becomes **~€9.35**, not ~€6. There is no
+> monthly fee, so the difference is per-email only and is cents at today's volume.
+> `docs/adr/0005-the-apex-receives-mail.md` records the escape hatch: an account *defaulted* into
+> Essentials may cancel to à-la-carte with immediate effect once. The row is left as written
+> rather than edited, per this file's own §7 — *"re-run the Pricing API queries before quoting
+> any of this externally"*.
+
 ---
 
 ## 3. Today vs Guestnote
@@ -88,8 +103,13 @@ Assumptions: 100 live weddings, ~200 guests each, ~300k page views/month, ~60k e
 |---|---|---|
 | Idle / 0 tenants | ~€0.50 | **~€0.50** |
 | 10 weddings | ~€0.50 | **~€1** |
-| 100 weddings | *architecturally impossible* | **~€6–8** |
-| 500 weddings | — | ~€30 (mostly SES) |
+| 100 weddings | *architecturally impossible* | **~€6–8** → **~€9–11** ⚠️ |
+| 500 weddings | — | ~€30 → **~€45** ⚠️ (mostly SES) |
+
+> ⚠️ **Corrected 2026-08-19.** Both rows were computed at $0.10/1,000. On the Essentials plan
+> this account is enrolled on, 60k/month is $9.60 rather than $6.00 and 300k/month is $48.00
+> rather than $30.00. The originals are left visible because the *shape* of the curve — flat
+> until email dominates — is the point of the table and is unchanged. See §2.
 
 The current setup isn't cheap because it's static — it's cheap because the traffic is tiny.
 That property survives the move to SSR intact. What does *not* survive is the current

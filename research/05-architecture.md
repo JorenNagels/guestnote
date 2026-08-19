@@ -513,6 +513,10 @@ bounded one-weekend job.
 > no guest, so it writes to an unscoped `mail_deliveries` instead, with `email_log` still P4.
 
 SES at 60k emails/month costs ~$6; Resend is roughly 4× that and gates EU residency behind Pro.
+> **Correction 2026-08-19.** `~$6` assumed $0.10/1,000. This account is on the **Essentials**
+> pricing plan at $0.16/1,000, so 60k/month is **$9.60**. The comparison against Resend survives
+> — it was ~4× at $6 and is ~2.5× at $9.60 — but the absolute number is wrong. See
+> `research/06-hosting-costs.md` §2 and `docs/adr/0005-the-apex-receives-mail.md`.
 But use **`react-email`** regardless — typed React templates, local preview via `email dev`,
 version-controlled beside the app, i18n through the same `next-intl` catalogues — rendered to
 HTML and handed to SES v2 `SendEmail`.

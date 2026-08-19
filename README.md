@@ -182,6 +182,11 @@ Scoped to the **planner platform**. Tenant wedding-site theming is parked.
   storage because each request past the limit is now a real email. A `console` transport writes
   rendered mail to `apps/web/.mail/` so a fresh clone needs no AWS credentials.
   `packages/email/README.md` and `docs/adr/0004-sign-in-mail-sends-for-real.md`.
+- **The domain receives mail too, since 2026-08-19.** `joren@` and `info@guestnote.be` on Zoho's
+  free tier in the EU data centre, so the apex now carries `MX` and SPF beside the CloudFront
+  aliases. DMARC is published at `p=none` with aggregate reports going to Postmark's free digest.
+  Sending is unchanged — SES still sends as `noreply@` over `mail.guestnote.be`, and `Reply-To`
+  is still deliberately unset. `docs/adr/0005-the-apex-receives-mail.md`.
 - `infra/` — the repo's first infrastructure as code: one CloudFormation template publishing SES
   bounce and complaint events to SNS. Deliberately not CDK yet; `research/05-architecture.md` §8's
   `FoundationStack` owns that at M1a.
@@ -240,7 +245,9 @@ Full reasoning in `research/05-architecture.md`; costs in `research/06-hosting-c
 | Custom domains | Deferred to v2. Subdomains only at launch; schema reserved |
 | Email / payments | SES + react-email · Mollie (Bancontact €0.39 vs Stripe €2.34) |
 
-**Running cost: ~€0.50/mo idle, ~€6–8/mo at 100 weddings.** SSR does not end the free ride —
+**Running cost: ~€0.50/mo idle, ~€6–8/mo at 100 weddings.** *(**Correction 2026-08-19:**
+~€9–11/mo at 100 weddings. SES moved to the Essentials pricing plan at $0.16/1,000 — see
+`research/06-hosting-costs.md` §2 and `docs/adr/0005-the-apex-receives-mail.md`.)* SSR does not end the free ride —
 the permanent free tiers (CloudFront 1 TB, Lambda 1M requests) absorb it comfortably.
 
 ## Decisions still open
