@@ -4,8 +4,8 @@
 toggle in their console.
 
 Records three things that happened after `0004` landed, and repairs every statement they made
-false — four in `0002`, one in `0004`, one in each research document, one in `README.md`, and
-three source comments. `0002` said *"Nothing touches the apex"* and *"DMARC is not set up,
+false — five in `0002`, one in `0004`, one in each research document, one in `README.md`, one in
+`packages/email/README.md`, and three source comments. `0002` said *"Nothing touches the apex"* and *"DMARC is not set up,
 deliberately"*; both were true when written and neither is true now. `research/06-hosting-costs.md`
 §2 prices SES at a rate this account is not on.
 
@@ -89,8 +89,8 @@ Two parameters matter more than the policy, and a third is inert:
 
 ## Where `research/` and `0002` were wrong
 
-**`research/06-hosting-costs.md` §2 and `research/05-architecture.md` §6 both price SES at
-`$0.10 per 1,000`.** This account is not on that rate. Measured 2026-08-19:
+**`research/06-hosting-costs.md` §2 prices SES at `$0.10 per 1,000`, and `research/05-architecture.md`
+§6's "~$6 at 60k" assumes the same rate without writing it down.** This account is not on it. Measured 2026-08-19:
 
 ```
 $ aws sesv2 get-account --region eu-central-1

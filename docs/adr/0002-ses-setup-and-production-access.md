@@ -27,7 +27,7 @@ Region `eu-central-1`. All of it free, and none of it capable of being rejected.
 | Event destination on it | **deployed 2026-08-19** — `BOUNCE`, `COMPLAINT`, `DELIVERY_DELAY` to `arn:aws:sns:eu-central-1:929219061071:guestnote-mail-events`. `infra/mail-events.yaml`, the repo's first IaC. Proven publishing, and the email subscription is **confirmed** — a real ARN rather than `PendingConfirmation`, checked 2026-08-19 (ADR 0005). It notifies a personal Gmail address, not `info@guestnote.be` |
 | Account-level suppression | **on by default** (accounts after 2019-11-25), both bounces and complaints. Not something we configured; worth knowing it is already there |
 | Account | **still in sandbox**: 200/day, 1/sec |
-| Verified recipient `njoren@gmail.com` | **verified** — confirmed 2026-08-19 against the live account (`SendingEnabled: true`); this row said "awaiting the click" until then. **Now redundant** (ADR 0005): the verified *domain* already makes any `@guestnote.be` address a legal sandbox destination, and those addresses receive mail as of 2026-08-19 |
+| Verified recipient `njoren@gmail.com` | **verified** — confirmed 2026-08-19 against the live account (`SendingEnabled: true`); this row said "awaiting the click" until then. **Largely redundant since 2026-08-17**, when the domain identity verified: a verified *domain* already makes any `@guestnote.be` address a legal sandbox destination, and as of 2026-08-19 those addresses receive (ADR 0005). It is not fully redundant while anything still sends to a Gmail address -- which both SNS topics do |
 
 **Custom MAIL FROM is the reason to bother.** Without it, SPF authenticates
 `amazonses.com` rather than `guestnote.be`, so SPF cannot align for DMARC. With it, both

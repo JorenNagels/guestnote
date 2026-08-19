@@ -48,6 +48,13 @@ SES needs a verified identity — a verified domain or mailbox. That is exactly 
 wanted to defer. SNS email subscriptions verify by you clicking a link in your own inbox,
 so no `guestnote.be` mailbox is required and nothing is charged.
 
+> **Correction 2026-08-19.** That reason has expired. The domain identity has been verified
+> since 2026-08-17 (`docs/adr/0002`), and `info@guestnote.be` receives as of 2026-08-19
+> (`docs/adr/0005`) — so a mailbox now exists and the deferred cost was paid elsewhere. SNS
+> stays because it is free and needs no code, not because the identity is missing. The
+> subscription itself is confirmed; `docs/adr/0005` records that `guestnote-waitlist` returns a
+> real ARN, still pointed at a personal Gmail rather than the `info@` that now exists.
+
 Trade-off: SNS emails come from `no-reply@sns.amazonaws.com` and look like infrastructure.
 That is fine for notifying *yourself*. It is not fine for emailing guests, which is why
 `05-architecture.md` still has SES for the real product.
