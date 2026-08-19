@@ -20,22 +20,50 @@ const submitCode = vi.fn()
 const setLocale = vi.fn()
 const conditionalMediationAvailable = vi.fn()
 const platformAuthenticatorAvailable = vi.fn()
+const createPasskey = vi.fn()
+const beginPasskeyEnrollment = vi.fn()
+const finishPasskeyEnrollment = vi.fn()
 
 vi.mock('./actions.ts', () => ({
   requestCode: (...args: unknown[]) => requestCode(...args),
   submitCode: (...args: unknown[]) => submitCode(...args),
   setLocale: (...args: unknown[]) => setLocale(...args),
+  beginPasskeyEnrollment: (...args: unknown[]) => beginPasskeyEnrollment(...args),
+  finishPasskeyEnrollment: (...args: unknown[]) => finishPasskeyEnrollment(...args),
 }))
 
 vi.mock('./passkey.ts', () => ({
   conditionalMediationAvailable: () => conditionalMediationAvailable(),
   platformAuthenticatorAvailable: () => platformAuthenticatorAvailable(),
+  createPasskey: (...args: unknown[]) => createPasskey(...args),
 }))
 
 const { AuthFlow } = await import('./auth-flow.tsx')
 
 /** Matches DESCENT_MS in auth-flow.tsx, which matches the ground transition in descent.css. */
 const DESCENT_MS = 380
+
+/**
+ * Just enough of the two WebAuthn shapes to be passed around.
+ *
+ * Deliberately not realistic: `passkey.ts` owns encoding and decoding and is tested on its
+ * own, and every assertion in this file is about which hop ran and what the screen did
+ * next. A real attestation here would only make a failure harder to read.
+ */
+const CREATION_OPTIONS = {
+  challenge: 'Y2hhbGxlbmdl',
+  rp: { id: 'app.localhost', name: 'Guestnote' },
+  user: { id: 'dXNlcg', name: 'ilse@studiowit.be', displayName: 'Ilse' },
+  pubKeyCredParams: [{ type: 'public-key' as const, alg: -7 }],
+}
+
+const REGISTRATION = {
+  id: 'credential-id',
+  rawId: 'Y3JlZGVudGlhbC1pZA',
+  type: 'public-key' as const,
+  clientExtensionResults: {},
+  response: { clientDataJSON: 'e30', attestationObject: 'o2M', transports: ['internal'] },
+}
 
 const assign = vi.fn()
 
@@ -47,6 +75,11 @@ beforeEach(() => {
   // every unrelated assertion.
   conditionalMediationAvailable.mockResolvedValue(false)
   platformAuthenticatorAvailable.mockResolvedValue(false)
+  // The happy enrollment path by default, so a test that wants a failure states which of
+  // the three hops fails rather than which two succeed.
+  beginPasskeyEnrollment.mockResolvedValue({ ok: true, options: CREATION_OPTIONS })
+  createPasskey.mockResolvedValue(REGISTRATION)
+  finishPasskeyEnrollment.mockResolvedValue({ ok: true })
 
   // jsdom's `location.assign` is a no-op that logs "Not implemented"; `vi.spyOn` on it
   // records nothing (measured). Replacing the whole object is what makes rung 2 observable.
@@ -506,13 +539,14 @@ describe('rung 2 — arrive', () => {
     expect(assign).toHaveBeenCalledWith('/weddings')
   })
 
-  it('offers passkey enrollment only when the deployment can verify one', async () => {
+  it('offers passkey enrollment when the deployment and the device can both do it', async () => {
+    platformAuthenticatorAvailable.mockResolvedValue(true)
     const { user } = renderFlow({ passkeysEnabled: true })
     await reachVerifyRung(user)
     await user.type(codeField(), '194720')
     await user.click(screen.getByRole('button', { name: 'ACTION-SUBMIT' }))
     await screen.findByRole('heading', { name: 'TITLE-ARRIVE' })
-    expect(screen.getByText('TITLE-ENROLL')).toBeInTheDocument()
+    expect(await screen.findByText('TITLE-ENROLL')).toBeInTheDocument()
   })
 
   it('offers no enrollment when passkeys are off', async () => {
@@ -522,6 +556,161 @@ describe('rung 2 — arrive', () => {
     await user.click(screen.getByRole('button', { name: 'ACTION-SUBMIT' }))
     await screen.findByRole('heading', { name: 'TITLE-ARRIVE' })
     expect(screen.queryByText('TITLE-ENROLL')).not.toBeInTheDocument()
+  })
+
+  it('offers no enrollment when the device has no authenticator to keep one in', async () => {
+    // The bug this pins: the offer used to be gated on `passkeysEnabled` alone, so a desktop
+    // with no Touch ID was told it could sign in with a fingerprint. The deployment being
+    // able to VERIFY a passkey says nothing about this device being able to MAKE one.
+    platformAuthenticatorAvailable.mockResolvedValue(false)
+    const { user } = renderFlow({ passkeysEnabled: true })
+    await reachVerifyRung(user)
+    await user.type(codeField(), '194720')
+    await user.click(screen.getByRole('button', { name: 'ACTION-SUBMIT' }))
+    await screen.findByRole('heading', { name: 'TITLE-ARRIVE' })
+    await waitFor(() => expect(platformAuthenticatorAvailable).toHaveBeenCalled())
+    expect(screen.queryByText('TITLE-ENROLL')).not.toBeInTheDocument()
+  })
+})
+
+describe('passkey enrollment on rung 2', () => {
+  /**
+   * The bug: rung 2 rendered an enrollment offer and then navigated away 380ms later, so
+   * the offer flashed past unreadably and its two buttons had no handlers to reach anyway.
+   *
+   * Every test here turns the platform authenticator on, because that is now half the gate.
+   * `enrollmentOffered()` waits for the capability effect rather than asserting immediately:
+   * the answer arrives from a promise, so the card cannot be in the first paint of rung 2.
+   */
+  beforeEach(() => {
+    platformAuthenticatorAvailable.mockResolvedValue(true)
+  })
+
+  async function reachOffer(user: ReturnType<typeof userEvent.setup>) {
+    await reachVerifyRung(user)
+    await user.type(codeField(), '194720')
+    await user.click(screen.getByRole('button', { name: 'ACTION-SUBMIT' }))
+    await screen.findByRole('heading', { name: 'TITLE-ARRIVE' })
+    await screen.findByText('TITLE-ENROLL')
+  }
+
+  const enrollButton = () => screen.getByRole('button', { name: 'ACTION-ENROLL-CONFIRM' })
+  const dismissButton = () => screen.getByRole('button', { name: 'ACTION-ENROLL-DISMISS' })
+
+  it('holds the redirect open while the offer is standing', async () => {
+    // The whole point. DESCENT_MS * 4 is the same budget the auto-redirect test allows
+    // itself, so this fails if the timeout is merely slow rather than genuinely withheld.
+    const { user } = renderFlow({ passkeysEnabled: true })
+    await reachOffer(user)
+
+    await new Promise((resolve) => setTimeout(resolve, DESCENT_MS * 4))
+    expect(assign).not.toHaveBeenCalled()
+    expect(screen.getByText('TITLE-ENROLL')).toBeInTheDocument()
+  })
+
+  it('leaves for the dashboard when the offer is declined', async () => {
+    const { user } = renderFlow({ passkeysEnabled: true })
+    await reachOffer(user)
+
+    await user.click(dismissButton())
+    await waitFor(() => expect(assign).toHaveBeenCalledWith('/weddings'), {
+      timeout: DESCENT_MS * 4,
+    })
+    // And it stops offering, rather than sitting there during the navigation.
+    expect(screen.queryByText('TITLE-ENROLL')).not.toBeInTheDocument()
+    expect(createPasskey).not.toHaveBeenCalled()
+  })
+
+  it('runs all three hops in order and then leaves', async () => {
+    const { user } = renderFlow({ passkeysEnabled: true })
+    await reachOffer(user)
+
+    await user.click(enrollButton())
+    await waitFor(() => expect(finishPasskeyEnrollment).toHaveBeenCalledWith(REGISTRATION))
+    // The challenge has to reach the ceremony unchanged: the server bound it to a cookie,
+    // so a re-derived or defaulted options object would fail verification.
+    expect(createPasskey).toHaveBeenCalledWith(CREATION_OPTIONS)
+    await waitFor(() => expect(assign).toHaveBeenCalledWith('/weddings'), {
+      timeout: DESCENT_MS * 4,
+    })
+  })
+
+  it('shows the busy label while the OS sheet is open, without collapsing the button', async () => {
+    // A ceremony can sit on a face or a fingerprint for half a minute. `button.tsx` argues
+    // that a control which vanishes mid-request reads as the tap having failed.
+    let release: (value: unknown) => void = () => {}
+    createPasskey.mockReturnValue(
+      new Promise((resolve) => {
+        release = resolve
+      }),
+    )
+    const { user } = renderFlow({ passkeysEnabled: true })
+    await reachOffer(user)
+
+    await user.click(enrollButton())
+    expect(await screen.findByRole('button', { name: 'BUSY-ENROLLING' })).toBeInTheDocument()
+    expect(dismissButton()).toBeDisabled()
+
+    await act(async () => {
+      release(REGISTRATION)
+    })
+    await waitFor(() => expect(finishPasskeyEnrollment).toHaveBeenCalled())
+  })
+
+  it('returns to the offer when the visitor dismisses the OS sheet, saying nothing', async () => {
+    // `SilentPasskeyOutcome`: a dismissed sheet is routine and deliberate, and must never be
+    // dressed as an error. Retryable, because the visitor may have fat-fingered it.
+    createPasskey.mockResolvedValue('cancelled')
+    const { user } = renderFlow({ passkeysEnabled: true })
+    await reachOffer(user)
+
+    await user.click(enrollButton())
+    await waitFor(() => expect(enrollButton()).toBeEnabled())
+    expect(screen.getByText('TITLE-ENROLL')).toBeInTheDocument()
+    expect(finishPasskeyEnrollment).not.toHaveBeenCalled()
+    // Still held: a cancel is not a decision to leave.
+    expect(assign).not.toHaveBeenCalled()
+  })
+
+  it('leaves anyway when the server cannot issue a challenge, rather than dead-ending', async () => {
+    // The other half of the silence rule. There is nothing to retry -- pressing the button
+    // again hits the same refusal -- and they are already signed in, so the dashboard is
+    // where they belong.
+    beginPasskeyEnrollment.mockResolvedValue({ ok: false })
+    const { user } = renderFlow({ passkeysEnabled: true })
+    await reachOffer(user)
+
+    await user.click(enrollButton())
+    await waitFor(() => expect(assign).toHaveBeenCalledWith('/weddings'), {
+      timeout: DESCENT_MS * 4,
+    })
+    expect(createPasskey).not.toHaveBeenCalled()
+  })
+
+  it('leaves anyway when verification is refused, and never says why', async () => {
+    // A refusal can mean a counter regression, i.e. a possibly cloned authenticator.
+    // passkey.ts: saying so on screen "tells the wrong person something useful".
+    finishPasskeyEnrollment.mockResolvedValue({ ok: false })
+    const { user } = renderFlow({ passkeysEnabled: true })
+    await reachOffer(user)
+
+    await user.click(enrollButton())
+    await waitFor(() => expect(assign).toHaveBeenCalledWith('/weddings'), {
+      timeout: DESCENT_MS * 4,
+    })
+    expect(screen.queryByText('ERR-PASSKEY-GONE')).not.toBeInTheDocument()
+    expect(screen.queryByText('ERR-UNAVAILABLE')).not.toBeInTheDocument()
+  })
+
+  it('survives a thrown Server Function -- the venue-wifi case -- without hanging', async () => {
+    beginPasskeyEnrollment.mockRejectedValue(new Error('offline'))
+    const { user } = renderFlow({ passkeysEnabled: true })
+    await reachOffer(user)
+
+    await user.click(enrollButton())
+    await waitFor(() => expect(assign).toHaveBeenCalledWith('/weddings'), {
+      timeout: DESCENT_MS * 4,
+    })
   })
 })
 

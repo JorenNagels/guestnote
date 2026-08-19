@@ -46,7 +46,7 @@ export const COPY: AuthCopy = {
     confirm: 'ACTION-ENROLL-CONFIRM',
     dismiss: 'ACTION-ENROLL-DISMISS',
   },
-  busy: { sending: 'BUSY-SENDING', checking: 'BUSY-CHECKING' },
+  busy: { sending: 'BUSY-SENDING', checking: 'BUSY-CHECKING', enrolling: 'BUSY-ENROLLING' },
   noAccount: 'NO-ACCOUNT',
   stage: {
     label: 'STAGE-LABEL',

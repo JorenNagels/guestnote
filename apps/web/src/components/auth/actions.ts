@@ -1,18 +1,24 @@
 'use server'
 
-import type { AuthFailure } from '@guestnote/core/auth'
+import type { AuthFailure, PasskeyCreationOptions, PasskeyRegistration } from '@guestnote/core/auth'
 import { cookies, headers } from 'next/headers'
 import { getAuth } from '../../lib/auth.ts'
 import { isLocale, LOCALE_COOKIE, type Locale } from '../../lib/locales.ts'
 
 /**
- * The three Server Functions the sign-in surface calls.
+ * The Server Functions the sign-in surface calls.
  *
  * proxy.ts is explicit that it does NOT do authorization, and quotes Next's own warning
  * that "Server Functions are POST requests to the route that uses them, so a matcher
- * change can silently remove proxy coverage". These are unauthenticated by nature -- they
- * are how you become authenticated -- so what matters here instead is that every guard
- * they DO need lives inside them: input shape, and rate limiting behind the seam.
+ * change can silently remove proxy coverage". The first three are unauthenticated by
+ * nature -- they are how you become authenticated -- so what matters there instead is that
+ * every guard they DO need lives inside them: input shape, and rate limiting behind the
+ * seam.
+ *
+ * **The two passkey functions are the exception, and they are not unauthenticated.** Both
+ * sit behind a session check inside the seam, and a fresh one at that. They are still here
+ * rather than under `(app)/` because enrollment is offered on rung 2 of this surface, in
+ * the seconds after a code was verified, which is where research/07 says it converts.
  */
 
 /**
@@ -81,4 +87,46 @@ export async function setLocale(locale: Locale): Promise<void> {
     httpOnly: false,
     maxAge: 60 * 60 * 24 * 365,
   })
+}
+
+/**
+ * Enrollment, step one: ask for a challenge.
+ *
+ * ## Why the failure carries no reason
+ *
+ * Everything else on this surface hands `AuthFailure` up so the client can pick a sentence.
+ * Not here: `SilentPasskeyOutcome` in `passkey.ts` is emphatic that every passkey failure
+ * renders identically, as nothing -- one of them means a possible cloned authenticator, and
+ * naming it on screen tells the wrong person something useful. So the reason is dropped at
+ * the seam rather than carried to a client that must never render it. Making it
+ * unrepresentable beats remembering not to show it.
+ *
+ * The `Set-Cookie` this call produces is load-bearing -- it carries the challenge that
+ * `finishPasskeyEnrollment` verifies against. `nextCookies()` is what turns it into a real
+ * cookie on a Server Function's response; see the seam's own note on that.
+ */
+export async function beginPasskeyEnrollment(): Promise<
+  { ok: true; options: PasskeyCreationOptions } | { ok: false }
+> {
+  const result = await getAuth().createPasskeyChallenge({ headers: await headers() })
+  return result.ok ? { ok: true, options: result.value } : { ok: false }
+}
+
+/**
+ * Enrollment, step two: hand the attestation back for verification.
+ *
+ * `registration` arrives from the browser and is therefore attacker-controlled in full.
+ * That is safe here and only here: the seam checks the attestation against a challenge the
+ * server itself put in a signed cookie, checks the origin and the RP ID, and refuses if the
+ * challenge's user is not the session's. There is no argument on this function through which
+ * a caller could attach a credential to another account -- which is why it takes no user id.
+ */
+export async function finishPasskeyEnrollment(
+  registration: PasskeyRegistration,
+): Promise<{ ok: boolean }> {
+  const result = await getAuth().verifyPasskeyRegistration({
+    registration,
+    headers: await headers(),
+  })
+  return { ok: result.ok }
 }

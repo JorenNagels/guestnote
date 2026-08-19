@@ -4,7 +4,15 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { nextCookies } from 'better-auth/next-js'
 import { emailOTP } from 'better-auth/plugins/email-otp'
 import { AUTH_POLICY } from './policy.ts'
-import type { AuthFailure, AuthResult, CodeRequested, Session, Verified } from './types.ts'
+import type {
+  AuthFailure,
+  AuthResult,
+  CodeRequested,
+  PasskeyCreationOptions,
+  PasskeyRegistration,
+  Session,
+  Verified,
+} from './types.ts'
 
 /**
  * **The only file in this repository allowed to import Better Auth.**
@@ -260,6 +268,80 @@ export function createBetterAuthProvider(config: AuthConfig) {
         // reads from the session. It stays null until the shell resolves it from the URL
         // joined against the membership tables.
         lastOrgId: null,
+      }
+    },
+
+    /**
+     * Step one of enrollment: the challenge, for `navigator.credentials.create()`.
+     *
+     * ## It needs a *fresh* session, not merely a session
+     *
+     * The plugin puts `freshSessionMiddleware` on this endpoint, which refuses a session
+     * older than `session.freshAge` -- one day, unset here so the library default stands.
+     * That is exactly right for the only caller today, rung 2 of sign-in, which runs
+     * seconds after a code was verified. It is also the thing to remember when account
+     * settings grows an "add a passkey" button: **that** call site needs a
+     * re-authentication step in front of it, not a wider middleware here.
+     *
+     * ## `platform`, not left unset
+     *
+     * The offer is only ever shown when `platformAuthenticatorAvailable()` said yes, and
+     * the copy promises a face or a fingerprint on *this* device. Leaving the attachment
+     * unset makes the OS sheet also offer a security key and a phone-by-QR flow, which is
+     * a different promise than the one on screen. Everything else -- `residentKey:
+     * preferred`, `userVerification: preferred`, `attestation: none` -- is the plugin's
+     * default and deliberately left alone.
+     *
+     * ## The challenge travels in a cookie
+     *
+     * The plugin does not return the challenge for the caller to hold; it stores a signed
+     * cookie and a `verifications` row, and `verifyPasskeyRegistration` reads both back.
+     * So this call's `Set-Cookie` has to reach the browser, which from a Server Function
+     * is `nextCookies()`'s job -- and its `after` hook matches every endpoint rather than
+     * only the sign-in ones (read off the installed integration, 2026-08-19). Without that
+     * plugin enrollment would fail at the second step with "challenge not found", which
+     * looks like a browser problem and is not.
+     */
+    async createPasskeyChallenge(input: {
+      headers: Headers
+    }): Promise<AuthResult<PasskeyCreationOptions>> {
+      try {
+        const options = await auth.api.generatePasskeyRegistrationOptions({
+          query: { authenticatorAttachment: 'platform' },
+          headers: input.headers,
+        })
+        return { ok: true, value: options }
+      } catch (error) {
+        return { ok: false, failure: classify(error) }
+      }
+    },
+
+    /**
+     * Step two: hand the attestation back and let the library check it.
+     *
+     * `registration` is attacker-controlled in full and that is fine, because none of it
+     * is trusted. The plugin verifies the attestation against the challenge from the
+     * signed cookie, checks the origin against `origin` in the plugin config, checks the
+     * RP ID hash against `rpID`, and refuses outright if the challenge's stored user id is
+     * not the session's. There is no parameter here through which a caller could bind the
+     * credential to somebody else's account -- which is why this takes no user id.
+     *
+     * `createSession` is left unset. The visitor already has the session this endpoint
+     * demanded to run at all; minting a second one would silently rotate the cookie in the
+     * middle of a redirect.
+     */
+    async verifyPasskeyRegistration(input: {
+      registration: PasskeyRegistration
+      headers: Headers
+    }): Promise<AuthResult<null>> {
+      try {
+        await auth.api.verifyPasskeyRegistration({
+          body: { response: input.registration },
+          headers: input.headers,
+        })
+        return { ok: true, value: null }
+      } catch (error) {
+        return { ok: false, failure: classify(error) }
       }
     },
 

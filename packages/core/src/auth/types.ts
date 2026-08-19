@@ -1,11 +1,24 @@
 /**
  * The shapes the sign-in surface is allowed to know about.
  *
- * Deliberately narrow. Nothing here mentions a session cookie, a verification row, a
- * WebAuthn challenge or a provider name, because the whole point of the seam
+ * Deliberately narrow. Nothing here mentions a session cookie, a verification row or a
+ * provider name, because the whole point of the seam
  * (research/07-auth-and-tenancy.md section 1, "The seam stays regardless") is that
  * swapping Better Auth for something else stays a bounded job. If a provider concept
  * leaks into this file, that promise is already broken.
+ *
+ * ## The WebAuthn exception, 2026-08-19
+ *
+ * This file used to promise it named no "WebAuthn challenge" either, and
+ * `PasskeyCreationOptions` below breaks the letter of that while keeping the point. A
+ * challenge is not a provider concept: the shape is the W3C
+ * `PublicKeyCredentialCreationOptionsJSON`, defined by the browser, and any replacement
+ * for Better Auth would have to produce the same bytes under the same field names.
+ *
+ * The alternative was keeping it out of here by having the app POST `/passkey/*` itself.
+ * That is the worse leak of the two: a Better Auth *route path* in app code is the thing
+ * a provider swap would actually have to hunt down, and it would also put an unverified
+ * attestation on a path the seam never sees.
  */
 
 /** Why a step failed, in terms the interface can actually render. */
@@ -105,4 +118,61 @@ export type Session = {
   /** Where rung 2 lands them. Decided 2026-08-18: the last-used org, with the shell's
    *  switcher owning everything after that. */
   readonly lastOrgId: string | null
+}
+
+/**
+ * WebAuthn credential-creation options, as `navigator.credentials.create()` wants them
+ * once the base64url fields are decoded back into buffers.
+ *
+ * The W3C JSON form: JSON has no ArrayBuffer, so `challenge`, `user.id` and each
+ * `excludeCredentials[].id` arrive as base64url strings. Decoding them is the browser
+ * half's job -- `apps/web/src/components/auth/passkey.ts`.
+ *
+ * Written out structurally rather than re-exported from `@simplewebauthn/types`, because a
+ * re-export is exactly the provider type this seam exists to stop. The cost is real and
+ * worth naming: a field the spec adds later is absent from this type until someone adds
+ * it. That is why the browser half spreads the whole object through and only *replaces*
+ * the three fields named here -- an unmodelled string field still reaches the browser.
+ */
+export type PasskeyCreationOptions = {
+  readonly challenge: string
+  readonly rp: { readonly id?: string; readonly name: string }
+  readonly user: { readonly id: string; readonly name: string; readonly displayName: string }
+  readonly pubKeyCredParams: readonly { readonly type: 'public-key'; readonly alg: number }[]
+  readonly timeout?: number
+  readonly excludeCredentials?: readonly {
+    readonly id: string
+    readonly type?: 'public-key'
+    readonly transports?: readonly string[]
+  }[]
+  readonly authenticatorSelection?: {
+    readonly authenticatorAttachment?: 'platform' | 'cross-platform'
+    readonly residentKey?: 'discouraged' | 'preferred' | 'required'
+    readonly requireResidentKey?: boolean
+    readonly userVerification?: 'discouraged' | 'preferred' | 'required'
+  }
+  readonly attestation?: 'none' | 'indirect' | 'direct' | 'enterprise'
+}
+
+/**
+ * What the authenticator handed back, base64url again, on its way to be verified.
+ *
+ * Attacker-controlled in full. It is safe to accept only because nothing here is trusted:
+ * the attestation is checked against a challenge the server put in a signed cookie, and
+ * the credential is bound to the session's own user id. `verifyPasskeyRegistration` on the
+ * seam is where both of those happen, which is why this type carries no user id of its own
+ * -- there is no field here for a caller to get wrong.
+ */
+export type PasskeyRegistration = {
+  readonly id: string
+  readonly rawId: string
+  readonly type: 'public-key'
+  readonly authenticatorAttachment?: string
+  readonly clientExtensionResults: Record<string, unknown>
+  readonly response: {
+    readonly clientDataJSON: string
+    readonly attestationObject: string
+    /** `usb`, `internal`, `hybrid`. Stored so a later assertion can hint the right sheet. */
+    readonly transports?: readonly string[]
+  }
 }

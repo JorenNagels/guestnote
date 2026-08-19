@@ -54,7 +54,7 @@ export type AuthCopy = Readonly<{
     roleMember: string
   }>
   enroll: Readonly<{ title: string; body: string; confirm: string; dismiss: string }>
-  busy: Readonly<{ sending: string; checking: string }>
+  busy: Readonly<{ sending: string; checking: string; enrolling: string }>
   /** The one line that answers the question an empty login page always raises. */
   noAccount: string
   stage: Readonly<{
@@ -155,7 +155,11 @@ export async function getAuthCopy(): Promise<AuthCopy> {
       confirm: t('enroll.confirm'),
       dismiss: t('enroll.dismiss'),
     },
-    busy: { sending: t('busy.sending'), checking: t('busy.checking') },
+    busy: {
+      sending: t('busy.sending'),
+      checking: t('busy.checking'),
+      enrolling: t('busy.enrolling'),
+    },
     noAccount: t('noAccount'),
     stage: {
       label: t('stage.label'),

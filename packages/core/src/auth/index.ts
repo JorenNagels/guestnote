@@ -8,6 +8,8 @@ export type {
   AuthResult,
   CodeRequested,
   Invitation,
+  PasskeyCreationOptions,
+  PasskeyRegistration,
   Principal,
   Session,
   Verified,

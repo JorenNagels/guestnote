@@ -9,9 +9,19 @@ import { LocaleSwitcher } from '@guestnote/ui/locale-switcher'
 import { useEffect, useRef, useState, useTransition } from 'react'
 import type { Locale } from '../../lib/locales.ts'
 import { Wordmark } from '../brand/wordmark.tsx'
-import { requestCode, setLocale, submitCode } from './actions.ts'
+import {
+  beginPasskeyEnrollment,
+  finishPasskeyEnrollment,
+  requestCode,
+  setLocale,
+  submitCode,
+} from './actions.ts'
 import { type AuthCopy, fill, splitAround } from './copy.ts'
-import { conditionalMediationAvailable, platformAuthenticatorAvailable } from './passkey.ts'
+import {
+  conditionalMediationAvailable,
+  createPasskey,
+  platformAuthenticatorAvailable,
+} from './passkey.ts'
 import { Stage, type StageContent } from './stage.tsx'
 
 type Props = {
@@ -36,6 +46,22 @@ type Props = {
 
 /** 0 identify, 1 verify, 2 arrive. Monotonic; the passkey path skips 1 entirely. */
 type Rung = 0 | 1 | 2
+
+/**
+ * Rung 2's own small machine, and **the thing that holds the redirect open.**
+ *
+ * Before this existed, rung 2 rendered an enrollment offer and then navigated away 380ms
+ * later, so the offer was on screen for about a fifth of a second: unreadable, and its two
+ * buttons had no handlers to reach anyway. `settled` is the only state that lets the
+ * redirect fire, and both buttons reach it -- which is what makes the offer a real fork in
+ * the flow rather than a decoration the descent runs over.
+ *
+ * `offered` is also where a *browser* failure returns to, so a visitor who dismisses the OS
+ * sheet by accident can press the button again. A *server* failure goes to `settled`
+ * instead: there is nothing to retry, and holding someone on a screen whose only action
+ * cannot work is the dead end the fallback button below exists to prevent.
+ */
+type Enrollment = 'offered' | 'working' | 'settled'
 
 /** Matches the ground transition in descent.css. Changing one means changing both. */
 const DESCENT_MS = 380
@@ -85,7 +111,14 @@ export function AuthFlow({
   const [error, setError] = useState<string | null>(null)
   const [announcement, setAnnouncement] = useState('')
   const [resendIn, setResendIn] = useState(0)
-  const [showPasskeyControl, setShowPasskeyControl] = useState(false)
+  // Kept as two separate answers rather than one derived boolean, because the interface asks
+  // two different questions of them: `platform && !conditional` decides whether rung 0 draws
+  // a passkey control, and `platform` alone decides whether rung 2 may offer enrollment. The
+  // single boolean this replaced conflated the two, and rung 2 offered a passkey to devices
+  // with no authenticator to store one in.
+  const [conditionalAvailable, setConditionalAvailable] = useState(false)
+  const [platformAvailable, setPlatformAvailable] = useState(false)
+  const [enrollment, setEnrollment] = useState<Enrollment>('offered')
   const [pending, startTransition] = useTransition()
 
   const emailRef = useRef<HTMLInputElement>(null)
@@ -110,7 +143,9 @@ export function AuthFlow({
         conditionalMediationAvailable(),
         platformAuthenticatorAvailable(),
       ])
-      if (!cancelled) setShowPasskeyControl(platform && !conditional)
+      if (cancelled) return
+      setConditionalAvailable(conditional)
+      setPlatformAvailable(platform)
     })()
     return () => {
       cancelled = true
@@ -204,20 +239,81 @@ export function AuthFlow({
       setError(null)
       setRung(2)
       setAnnouncement(copy.arrive.title)
-
-      // Signing in ends in the dashboard, not on a screen that congratulates you for
-      // signing in. Rung 2 is a transition, not a destination -- long enough for the
-      // ground to finish its last step so the descent resolves rather than being cut off,
-      // and no longer.
-      //
-      // The button below stays as the fallback: if this navigation is blocked or slow,
-      // a dead end is worse than a redundant control.
-      window.setTimeout(
-        () => window.location.assign(continueHref),
-        prefersReducedMotion() ? 0 : DESCENT_MS,
-      )
     })
   }
+
+  /**
+   * Run the enrollment ceremony. Three hops, two of them across the network.
+   *
+   * Not wrapped in `startTransition`, unlike every other action on this surface, and
+   * deliberately: the middle hop is an OS sheet waiting for a face or a finger, which can
+   * sit there for half a minute. `enrollment` is the busy signal instead, so a React
+   * transition is not held open for the length of a human decision.
+   *
+   * Every failure is silent -- no message, no red -- per `SilentPasskeyOutcome`. What
+   * differs is only where it lands: back on the offer when the browser or the visitor said
+   * no, and straight to `settled` when the server did, because that one has nothing to
+   * retry.
+   */
+  async function onEnroll() {
+    setEnrollment('working')
+
+    const challenge = await beginPasskeyEnrollment().catch(() => ({ ok: false }) as const)
+    if (!challenge.ok) {
+      setEnrollment('settled')
+      return
+    }
+
+    const created = await createPasskey(challenge.options)
+    // A `SilentPasskeyOutcome` is a string; an attestation is an object. Narrowing on the
+    // shape rather than a flag keeps the "all three outcomes are one outcome" promise in
+    // passkey.ts from needing a second representation here.
+    if (typeof created === 'string') {
+      setEnrollment('offered')
+      return
+    }
+
+    // Settled either way, and that is not a shrug. A verification failure means the server
+    // rejected an attestation it had itself challenged -- a counter regression, a bad origin,
+    // a cloned authenticator. None of those get better by pressing the button again, and
+    // `SilentPasskeyOutcome` forbids saying which one it was, so the only honest move left is
+    // to let them into the dashboard they are already signed in to.
+    await finishPasskeyEnrollment(created).catch(() => ({ ok: false }))
+    setEnrollment('settled')
+  }
+
+  /**
+   * Whether rung 0 draws an explicit passkey control, and whether rung 2 may offer to
+   * create one. Two questions, one shared capability answer -- see the state above.
+   */
+  const showPasskeyControl = passkeysEnabled && platformAvailable && !conditionalAvailable
+  const canEnroll = passkeysEnabled && platformAvailable
+
+  /**
+   * Rung 2 leaves on its own -- **unless there is an enrollment offer standing on it.**
+   *
+   * Signing in ends in the dashboard, not on a screen that congratulates you for signing
+   * in. Rung 2 is a transition, not a destination -- long enough for the ground to finish
+   * its last step so the descent resolves rather than being cut off, and no longer.
+   *
+   * An effect rather than a `setTimeout` inside `onVerify`, which is where this used to
+   * live, because the decision depends on `platformAvailable` and that answer can arrive
+   * after the code was submitted. Reading it once at submit time meant a slow capability
+   * check silently skipped the offer; here a late answer re-runs the effect and the cleanup
+   * cancels the redirect that was already in flight.
+   *
+   * The button below stays as the fallback either way: if this navigation is blocked or
+   * slow, a dead end is worse than a redundant control.
+   */
+  useEffect(() => {
+    if (rung !== 2) return
+    if (canEnroll && enrollment !== 'settled') return
+    const id = window.setTimeout(
+      () => window.location.assign(continueHref),
+      prefersReducedMotion() ? 0 : DESCENT_MS,
+    )
+    return () => window.clearTimeout(id)
+  }, [rung, canEnroll, enrollment, continueHref])
 
   const stepLabel =
     rung === 0 ? copy.steps.public : rung === 1 ? copy.steps.verifying : copy.steps.private
@@ -396,19 +492,41 @@ export function AuthFlow({
 
                 {/* The enrollment prompt belongs to the post-login success moment, which is
                   the shell's, not this surface's -- prompting mid-sign-in converts worse.
-                  It is rendered here only while there is no shell to host it, and it is
-                  gated on the same flag as everything else passkey-shaped, so it cannot
-                  offer a credential the deployment could not verify. M3 moves it. */}
-                {passkeysEnabled && (
+                  It is rendered here only while there is no shell to host it. M3 moves it.
+
+                  Gated on `canEnroll` and not on `passkeysEnabled` alone, which is what it
+                  used to be: the deployment being able to verify a passkey says nothing
+                  about this device having an authenticator to keep one in, and offering
+                  "use your face or fingerprint" to a desktop with neither is an offer that
+                  can only fail. `platformAuthenticatorAvailable()` is the other half.
+
+                  It disappears once `settled`, so the moment either button resolves the
+                  screen is the plain arrive screen again for the instant before it leaves. */}
+                {canEnroll && enrollment !== 'settled' && (
                   <div className="mt-7 rounded-[var(--radius)] border-input border p-4">
                     <h2 className="mb-1 text-sm font-semibold">{copy.enroll.title}</h2>
                     <p className="mb-3.5 text-xs leading-relaxed text-muted-foreground">
                       {copy.enroll.body}
                     </p>
-                    <Button className="h-9" icon={<KeyIcon />}>
+                    <Button
+                      className="h-9"
+                      icon={<KeyIcon />}
+                      busy={enrollment === 'working'}
+                      busyLabel={copy.busy.enrolling}
+                      onClick={() => void onEnroll()}
+                    >
                       {copy.enroll.confirm}
                     </Button>
-                    <Button variant="secondary" className="mt-2 h-8">
+                    {/* Disabled rather than hidden while the ceremony runs. The OS sheet is
+                      modal over the page anyway, and a control that vanishes mid-request
+                      reads as the tap having failed -- the same argument button.tsx makes
+                      for never collapsing a busy button. */}
+                    <Button
+                      variant="secondary"
+                      className="mt-2 h-8"
+                      disabled={enrollment === 'working'}
+                      onClick={() => setEnrollment('settled')}
+                    >
                       {copy.enroll.dismiss}
                     </Button>
                   </div>
