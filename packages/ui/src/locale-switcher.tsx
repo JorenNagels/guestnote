@@ -76,7 +76,7 @@ export function LocaleSwitcher<L extends string>({
             type="button"
             disabled={disabled}
             onClick={() => onSelect?.(locale)}
-            className={cx(base, inactive, 'disabled:opacity-60')}
+            className={cx(base, inactive, 'enabled:cursor-pointer disabled:opacity-60')}
           >
             {text}
           </button>

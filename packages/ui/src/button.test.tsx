@@ -11,6 +11,15 @@ import { Button, LinkButton } from './button.tsx'
  * wanted. What is worth pinning is the small set of promises the component makes to the
  * rest of the app: that busy blocks a second submit, that the accessible name survives the
  * busy swap, and that `type` stays "button" so a form is never submitted by accident.
+ *
+ * ## One class does get asserted, and the exception is argued
+ *
+ * `cursor-pointer`, below. It is not a visual tweak: it is the only thing telling a pointer
+ * user that the primary action is pressable, and it is held by a utility class *because*
+ * Tailwind v4 removed the `button { cursor: pointer }` that used to make it free. That is a
+ * regression which already happened once, silently, on a framework upgrade -- and no
+ * behavioural assertion anywhere can see it. A test that can only be broken by deleting the
+ * class is exactly right for that shape of defect.
  */
 describe('Button', () => {
   it('defaults to type="button" so it cannot submit a form by accident', () => {
@@ -105,5 +114,39 @@ describe('LinkButton', () => {
     render(<LinkButton onClick={onClick}>Send a new code</LinkButton>)
     await userEvent.click(screen.getByRole('button'))
     expect(onClick).toHaveBeenCalledOnce()
+  })
+})
+
+describe('the pointer affordance', () => {
+  // See the note at the top of this file for why these two assert a class at all.
+  it('shows a pointer cursor, which Tailwind v4 no longer gives a button for free', () => {
+    render(<Button>Send</Button>)
+    expect(screen.getByRole('button', { name: 'Send' }).className).toContain(
+      'enabled:cursor-pointer',
+    )
+  })
+
+  it('keeps the pointer scoped to enabled, so a busy button still reads as barred', () => {
+    render(<Button busy>Send</Button>)
+    const button = screen.getByRole('button')
+    // Both classes present, mutually exclusive by selector rather than by source order.
+    expect(button.className).toContain('enabled:cursor-pointer')
+    expect(button.className).toContain('disabled:cursor-not-allowed')
+  })
+
+  it('gives LinkButton the same affordance', () => {
+    render(<LinkButton>Resend</LinkButton>)
+    expect(screen.getByRole('button', { name: 'Resend' }).className).toContain(
+      'enabled:cursor-pointer',
+    )
+  })
+
+  it('leaves a disabled LinkButton a default cursor, not a barred one', () => {
+    // The resend countdown is this state's main user, and it becomes available on its own.
+    // A barred cursor would promise "never".
+    render(<LinkButton disabled>Resend in 30</LinkButton>)
+    const button = screen.getByRole('button')
+    expect(button.className).toContain('disabled:cursor-default')
+    expect(button.className).not.toContain('disabled:cursor-not-allowed')
   })
 })

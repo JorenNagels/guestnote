@@ -23,6 +23,18 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
  * Height is 44px flat. `data-density` deliberately does not reach it: density is a
  * dashboard preference for reading three hundred rows, and every surface this button
  * appears on before then is one where the target size matters more than the row count.
+ *
+ * ## `enabled:cursor-pointer` is not decoration
+ *
+ * Tailwind v4's preflight dropped the `cursor: pointer` it used to put on `button` --
+ * measured on 4.3.3, 2026-08-19: the file mentions `cursor` exactly once, about Safari's
+ * number spinners. So every button in this app rendered with an arrow and read as text
+ * rather than as something to press, which is a real defect on a surface whose primary
+ * action is a button.
+ *
+ * `enabled:` and not bare `cursor-pointer`, so it can never race the
+ * `disabled:cursor-not-allowed` below on source order -- the two are then mutually
+ * exclusive by selector rather than by whichever Tailwind happens to emit last.
  */
 export function Button({
   variant = 'primary',
@@ -43,7 +55,7 @@ export function Button({
       className={cx(
         'inline-flex h-11 w-full items-center justify-center gap-2 rounded-[var(--radius)]',
         'text-sm font-semibold transition-[background-color,color,filter] duration-300',
-        'disabled:cursor-not-allowed disabled:opacity-55',
+        'enabled:cursor-pointer disabled:cursor-not-allowed disabled:opacity-55',
         variant === 'primary'
           ? 'border border-transparent bg-[var(--gn-action,var(--primary))] text-[color:var(--gn-action-fg,var(--primary-foreground))] enabled:hover:brightness-110'
           : 'border border-[var(--gn-input,var(--input))] bg-transparent font-medium text-[color:var(--gn-fg,var(--foreground))] enabled:hover:border-[var(--gn-fg,var(--foreground))]',
@@ -83,7 +95,10 @@ export function LinkButton({
       {...rest}
       className={cx(
         'text-xs text-[color:var(--gn-muted,var(--muted-foreground))] underline underline-offset-[3px]',
-        'transition-colors enabled:hover:text-[color:var(--gn-fg,var(--foreground))]',
+        'transition-colors enabled:cursor-pointer enabled:hover:text-[color:var(--gn-fg,var(--foreground))]',
+        // `cursor-default` while disabled, not `not-allowed`: the resend countdown is the
+        // main user of that state and it is going to become available on its own. A barred
+        // cursor would say "never", which is the wrong promise for a timer.
         'disabled:cursor-default disabled:no-underline disabled:opacity-80',
         className,
       )}

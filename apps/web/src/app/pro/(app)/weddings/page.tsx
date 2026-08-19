@@ -172,7 +172,7 @@ function Shell({
           <form action={signOut}>
             <button
               type="submit"
-              className="border-input hover:border-foreground focus-visible:outline-ring inline-flex h-9 shrink-0 items-center rounded-[var(--radius)] border px-3.5 text-sm font-medium focus-visible:outline-2"
+              className="border-input hover:border-foreground focus-visible:outline-ring inline-flex h-9 shrink-0 cursor-pointer items-center rounded-[var(--radius)] border px-3.5 text-sm font-medium focus-visible:outline-2"
             >
               {signOutLabel}
             </button>
