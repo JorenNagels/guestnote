@@ -1,0 +1,20 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // `preserve`, matching packages/ui and apps/web. Nothing compiles this package:
+    // Turbopack transforms it for the app (via `transpilePackages`), and vitest.config.ts
+    // overrides the setting through its `oxc.jsx` block. A package that transformed its
+    // own JSX would be the only one here that did.
+    "jsx": "preserve",
+
+    // DOM, reluctantly, and NOT because anything here touches a document -- an email is
+    // rendered to a string on a server. `@types/react`'s JSX.IntrinsicElements types
+    // reference DOM interfaces (`HTMLTableElement`, `CSSProperties`), so a `<table>` in a
+    // template does not typecheck without them. The guard that matters is elsewhere:
+    // src/console.ts is the only file with side effects, and it refuses to run outside
+    // development.
+    "lib": ["ES2025", "DOM"],
+    "types": ["node", "react"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
+}

@@ -1,0 +1,123 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: >-
+  Guestnote mail events. Publishes SES bounce, complaint and delivery-delay events for the
+  guestnote-default configuration set to an SNS topic, and subscribes one human to it.
+
+# Why this is CloudFormation and not CDK
+# --------------------------------------
+# CLAUDE.md prefers infrastructure as code, and this is it -- CloudFormation is what CDK
+# synthesises to. What it avoids is `cdk bootstrap` (a CDKToolkit stack, a staging bucket and
+# an ECR repository) plus a ~40 MB aws-cdk-lib dependency, for four resources, while
+# pre-empting the FoundationStack / AppStack split that research/05-architecture.md section 8
+# reserves for M1a along with its dev-and-prod story. That design owns SES configuration sets.
+# This template is absorbed into it or replaced by it when it lands.
+#
+# What this template deliberately does NOT own
+# --------------------------------------------
+# The domain identity, Easy DKIM, the custom MAIL FROM and the `guestnote-default`
+# configuration set itself. All four were created by hand and are recorded only in
+# docs/adr/0002-ses-setup-and-production-access.md.
+#
+# `ConfigurationSetName` below is a plain string, so the event destination attaches to the
+# existing set by name without CloudFormation trying to create or adopt it. Bringing the rest
+# under IaC means `cdk import` / `aws cloudformation create-change-set --import-existing-
+# resources`, which is a deliberate exercise and not a side effect of wiring up bounce
+# notifications. Until then the ADR is the source of truth for those four.
+
+Parameters:
+  NotifyEmail:
+    Type: String
+    Description: >-
+      Where bounce and complaint notifications go. AWS sends a confirmation link that MUST be
+      clicked before anything is delivered -- the same trap ADR 0002 records for the verified
+      sending identity.
+    AllowedPattern: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+    ConstraintDescription: must be an email address
+
+  ConfigurationSetName:
+    Type: String
+    Default: guestnote-default
+    Description: >-
+      The existing SES configuration set to publish events for. Created by hand per ADR 0002;
+      this template references it by name and does not manage it.
+
+Resources:
+  # Standard, never FIFO. SES does not support FIFO topics as an event destination, and the
+  # failure mode is a stack that creates cleanly and then never publishes anything.
+  MailEventsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: guestnote-mail-events
+      DisplayName: Guestnote mail
+
+  # Without this, SES cannot publish and the event destination fails to create. The two
+  # conditions are what stop any other account's SES from using this topic as a drop box:
+  # SourceArn pins it to one configuration set in one account, SourceAccount to the account.
+  MailEventsTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics:
+        - !Ref MailEventsTopic
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowSesToPublishMailEvents
+            Effect: Allow
+            Principal:
+              Service: ses.amazonaws.com
+            Action: sns:Publish
+            Resource: !Ref MailEventsTopic
+            Condition:
+              StringEquals:
+                AWS:SourceAccount: !Ref AWS::AccountId
+                AWS:SourceArn: !Sub "arn:${AWS::Partition}:ses:${AWS::Region}:${AWS::AccountId}:configuration-set/${ConfigurationSetName}"
+
+  MailEventsSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref MailEventsTopic
+      Protocol: email
+      Endpoint: !Ref NotifyEmail
+
+  # Three event types, and the omissions are the point.
+  #
+  #   BOUNCE          hard bounces, plus soft bounces SES gave up retrying.
+  #   COMPLAINT       delivered, then marked as spam. The one that damages reputation most.
+  #   DELIVERY_DELAY  a transient failure. Worth seeing on a sign-in code, which is useless
+  #                   by the time a delayed message arrives.
+  #
+  # NOT SEND or DELIVERY: on an email subscription those would mean one notification per
+  # sign-in, which trains the recipient to filter the topic and takes the other three with it.
+  #
+  # This is also the only place a SUPPRESSED send becomes visible. AWS documents SEND as
+  # succeeding even for an address on the account suppression list -- "SES will still count it
+  # as a send, but delivery is suppressed" -- so from inside the application that mail looks
+  # delivered. Nothing else reports it.
+  MailEventDestination:
+    Type: AWS::SES::ConfigurationSetEventDestination
+    DependsOn: MailEventsTopicPolicy
+    Properties:
+      ConfigurationSetName: !Ref ConfigurationSetName
+      EventDestination:
+        Name: guestnote-mail-events
+        Enabled: true
+        MatchingEventTypes:
+          - BOUNCE
+          - COMPLAINT
+          - DELIVERY_DELAY
+        SnsDestination:
+          # `TopicARN`, with ARN capitalised. It is spelled that way in this resource and
+          # `TopicArn` in AWS::SNS::Subscription above; both appear in this file, and getting
+          # them the wrong way round is a create failure rather than a warning.
+          TopicARN: !Ref MailEventsTopic
+
+Outputs:
+  TopicArn:
+    Description: >-
+      The topic bounce and complaint events land on. The SQS + Lambda consumer that writes
+      mail_deliveries.bounced_at subscribes here when it is built; until then the only
+      subscriber is a person.
+    Value: !Ref MailEventsTopic
+    Export:
+      Name: guestnote-mail-events-topic-arn

@@ -70,6 +70,34 @@ const schema = z.object({
    * with no setup. It refuses to do that anywhere else.
    */
   BETTER_AUTH_SECRET: z.string().optional(),
+
+  /**
+   * Which mail transport to build: `ses` sends, `console` renders to disk and prints.
+   *
+   * **Optional, and resolved in `lib/mailer.ts` rather than defaulted here**, because the
+   * default is not a constant -- it is `console` in development and `ses` everywhere else,
+   * exactly like `secretFor()`'s `DEV_SECRET`. A `.default('console')` on this line would be
+   * the dangerous version: a deployed environment that forgot to set the variable would fall
+   * back to writing sign-in codes into CloudWatch and never sending them, which looks like
+   * working software right up until a customer cannot sign in.
+   *
+   * So the safe value is the one you get by omission, and `console` has to be asked for.
+   */
+  GUESTNOTE_MAIL_TRANSPORT: z.enum(['ses', 'console']).optional(),
+
+  /**
+   * The region SES, the identity and the configuration set all live in.
+   *
+   * Defaulted rather than required because the Lambda runtime injects `AWS_REGION` on every
+   * invocation and `.envrc` exports it locally, so in practice this is never unset -- but a
+   * wrong region fails in a confusing way (an unverified-identity error against an account
+   * that has verified the identity, in another region), which is worth naming here.
+   *
+   * `eu-central-1` is not incidental. ADR 0002 verified `guestnote.be` there, Neon is in
+   * `aws-eu-central-1`, and the EU-residency argument in research/07 section 1 for
+   * self-hosting auth is only true while nothing leaves.
+   */
+  AWS_REGION: z.string().min(1).default('eu-central-1'),
 })
 
 const parsed = schema.safeParse(process.env)
@@ -90,4 +118,9 @@ export const env = {
   appSubdomain: parsed.data.GUESTNOTE_APP_SUBDOMAIN,
   databaseUrl: parsed.data.DATABASE_URL ?? '',
   betterAuthSecret: parsed.data.BETTER_AUTH_SECRET ?? '',
+  // Left as `undefined` rather than coerced to '': `lib/mailer.ts` distinguishes "not set,
+  // so decide from NODE_ENV" from "set to something", and an empty string would collapse
+  // that distinction into the branch with the worse failure mode.
+  mailTransport: parsed.data.GUESTNOTE_MAIL_TRANSPORT,
+  awsRegion: parsed.data.AWS_REGION,
 } as const

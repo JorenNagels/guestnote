@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 /**
- * The two import bans, enforced as tests rather than only as lint rules.
+ * The three import bans, enforced as tests rather than only as lint rules.
  *
  * Both exist in biome.json as well. The duplication is deliberate:
  *
@@ -96,6 +96,49 @@ describe('better-auth stays behind the packages/core/auth seam', () => {
       offenders,
       'These files import better-auth directly. Go through getSession() / ' +
         'requireOrgMember() / requireWeddingAccess() in packages/core/auth instead:\n  ' +
+        offenders.join('\n  '),
+    ).toEqual([])
+  })
+})
+
+describe('the AWS SES SDK stays behind the packages/email seam', () => {
+  /**
+   * Two reasons this one is worth a test and not only a lint rule, and the second is the
+   * unusual one:
+   *
+   *   1. The seam argument, same as better-auth above. research/05-architecture.md section 6
+   *      chose SES on price and EU residency, and swapping should be one new file in
+   *      packages/email rather than a search across the codebase.
+   *   2. **Bundle size.** `@aws-sdk/client-sesv2` is ~1.9 MB unpacked, and apps/web builds with
+   *      `output: 'standalone'` plus `outputFileTracingRoot`, which traces FILES rather than
+   *      tree-shaken imports. A single stray `import { SESv2Client } from ...` in a Client
+   *      Component or a shared util drags the whole SDK into the Lambda bundle, and nothing
+   *      about that failure is visible until a deploy.
+   *
+   * `ses.test.ts` is the second allowed path: `classify()` maps the SDK's own exception classes
+   * with `instanceof`, which cannot be tested without constructing them, and a test file cannot
+   * reach a production bundle.
+   */
+  const ALLOWED = [/^packages\/email\/src\/ses\.ts$/, /^packages\/email\/src\/ses\.test\.ts$/]
+
+  /**
+   * The parentheses are load-bearing, and the reason is the lesson this file already records
+   * above: "a guard that fires on prose is a guard that gets weakened."
+   *
+   * Written as the bare literal, this pattern matched THIS FILE -- the pattern string is itself
+   * the text it searches for, so the ban reported itself as an offender on the first run. The
+   * group makes the file's own copy read `from '(@aws-...` while a real import still reads
+   * `from '@aws-...`, so the search no longer finds its own definition. The better-auth ban
+   * above has the same shape for the same reason.
+   */
+  const IMPORTS_SES = "from '(@aws-sdk/client-sesv2)'"
+
+  it('is imported only by packages/email/src/ses.ts and its test', () => {
+    const offenders = gitGrep(IMPORTS_SES).filter((f) => !ALLOWED.some((re) => re.test(f)))
+    expect(
+      offenders,
+      'These files import the SES SDK directly. Go through createMailer() / ' +
+        'createSesTransport() in @guestnote/email instead:\n  ' +
         offenders.join('\n  '),
     ).toEqual([])
   })

@@ -24,6 +24,14 @@ import { DEFAULT_LOCALE, isLocale, LOCALE_COOKIE, type Locale } from '../lib/loc
  * render react-email templates through the same NL/EN/FR catalogues. Migrating now would
  * mean maintaining two locale-resolution paths instead of one. Revisit when root-params
  * covers Route Handlers.
+ *
+ * **2026-08-19: that case is no longer hypothetical.** `lib/mailer.ts` renders the sign-in code
+ * email from these same catalogues, and it does NOT go through this file -- it builds its own
+ * translator with next-intl's `createTranslator`, because the locale it needs is the
+ * *recipient's* rather than the request's, and because it runs from a Server Function and a
+ * Route Handler. So there are two readers of `messages/*.json` and one of them is deliberately
+ * request-independent. `i18n/messages.test.ts` is what keeps the three catalogues in step across
+ * both.
  */
 export default getRequestConfig(async ({ requestLocale }) => {
   const segment = await requestLocale

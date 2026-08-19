@@ -83,5 +83,16 @@
       "declined": "Declined",
       "partial": "Partial"
     }
+  },
+  "email": {
+    "signInCode": {
+      "subject": "{code} is your Guestnote sign-in code",
+      "preheader": "Your code is valid for {minutes, plural, one {# minute} other {# minutes}}.",
+      "heading": "Your sign-in code",
+      "intro": "Enter this code to sign in to Guestnote.",
+      "expiry": "The code expires in {minutes, plural, one {# minute} other {# minutes}}.",
+      "ignore": "Didn't request this? You can safely ignore this email.",
+      "footer": "Guestnote · automated message. Replies to this address are not delivered."
+    }
   }
 }

@@ -1,8 +1,11 @@
 import 'server-only'
 import { createAuth } from '@guestnote/core/auth'
 import { newId, schema } from '@guestnote/db'
+import { cookies } from 'next/headers'
 import { env } from '../env.ts'
 import { getDb } from './db.ts'
+import { DEFAULT_LOCALE, LOCALE_COOKIE } from './locales.ts'
+import { sendSignInCode } from './mailer.ts'
 
 /**
  * The app's single auth instance.
@@ -72,12 +75,55 @@ export function getAuth() {
     newId,
 
     /**
-     * SES is not wired yet, deliberately -- the mail pipeline is its own piece of work.
-     * Until it is, the code goes to the server console, which is the only channel that
-     * exists. Loud on purpose: a code you cannot find is a dead end.
+     * The code, by email, through `packages/email`.
+     *
+     * ## Awaited, against the plugin's own advice
+     *
+     * `better-auth`'s `emailOTP` types say "it is recommended to not await the email sending to
+     * avoid timing attacks" and to use `waitUntil` on serverless. Both are wrong here, and
+     * deliberately so:
+     *
+     *   - The attack that guards against is user enumeration. `disableSignUp: false` means a
+     *     code is sent whether or not the address has an account, so there is no branch for the
+     *     latency to reveal.
+     *   - `lib/db.ts` states the opposite rule for this runtime: "no timers, nothing that
+     *     assumes the process keeps running after the response." Next 16's `after()` needs the
+     *     adapter to supply `waitUntil`, and OpenNext is deferred to M1a.
+     *
+     * And awaiting buys something real: a throw here surfaces through `classify()` in
+     * packages/core as `AuthFailure: 'unavailable'`, so a visitor is told the request failed
+     * instead of being sent to a screen that asks for a code no inbox will ever receive.
+     *
+     * ## Where the locale comes from
+     *
+     * `cookies()`, read at call time rather than threaded through the seam.
+     *
+     * The alternative was widening `AuthConfig.sendCode` to carry a locale and passing it down
+     * through `requestEmailCode`. That turned out to be the more invasive of the two for no
+     * benefit: this function is only ever invoked by Better Auth inside the request that asked
+     * for a code -- a Server Function, or the `/api/auth/[...all]` handler -- so it is already
+     * in the async context `cookies()` resolves against, and `packages/core/auth`'s types stay
+     * exactly as they were. `next/headers` also belongs here rather than in a package.
+     *
+     * The `catch` is not defensive padding: `next build` imports route modules while collecting
+     * page data, where there is no request and `cookies()` throws. Dutch is the right answer in
+     * that case for the same reason it is `DEFAULT_LOCALE` -- lib/locales.ts refuses to guess a
+     * language from a request, and this is the case with no request at all to guess from.
      */
-    async sendCode({ email, code, type }) {
-      console.info(`\n  [guestnote] ${type} code for ${email}: ${code}\n`)
+    async sendCode({ email, code }) {
+      let locale: string = DEFAULT_LOCALE
+      try {
+        locale = (await cookies()).get(LOCALE_COOKIE)?.value ?? DEFAULT_LOCALE
+      } catch {
+        // No request context. Keep the default rather than fail the send.
+      }
+
+      const result = await sendSignInCode({ to: email, code, locale })
+      if (!result.ok) {
+        // Thrown, not swallowed: `classify()` turns this into a failure the sign-in surface can
+        // render. `mail_deliveries` already has the row with the reason by the time we get here.
+        throw new Error(`could not send the sign-in code: ${result.failure} -- ${result.detail}`)
+      }
     },
   })
   return cached

@@ -22,6 +22,23 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: new URL('../..', import.meta.url).pathname,
 
   /**
+   * Keep the development mail transport's output out of the deployed artefact.
+   *
+   * **Found by running rung 4 of the verify skill, not reasoned about.** `apps/web/.mail/` holds
+   * the rendered sign-in emails `lib/mailer.ts` writes in development -- which means it holds
+   * live six-digit codes -- and the first standalone build after that landed copied the whole
+   * directory into `.next/standalone/apps/web/.mail/`. Gitignoring it is not enough: file tracing
+   * does not read .gitignore, so the credentials would have travelled in the deploy bundle.
+   *
+   * Keys are route globs, values are globs resolved from THIS directory (not the monorepo root,
+   * despite `outputFileTracingRoot` below). `**\/*` rather than `/*` because picomatch's `/*`
+   * matches a single segment and the auth handler lives at `/api/auth/[...all]`.
+   */
+  outputFileTracingExcludes: {
+    '**/*': ['./.mail/**/*'],
+  },
+
+  /**
    * OFF, deliberately. The dashboard is served from app.guestnote.be and rewritten by
    * proxy.ts to /pro/*, so its public paths (`/weddings`) are not routes in the file
    * tree and typed routes would reject every <Link> in the app. Writing the internal
@@ -38,7 +55,7 @@ const nextConfig: NextConfig = {
    * declaring them keeps `next build --webpack` -- the documented escape hatch --
    * working identically, and documents the intent.
    */
-  transpilePackages: ['@guestnote/core', '@guestnote/db', '@guestnote/ui'],
+  transpilePackages: ['@guestnote/core', '@guestnote/db', '@guestnote/email', '@guestnote/ui'],
 
   /**
    * research/05-architecture.md section 6 is explicit: do NOT use next/image plus the

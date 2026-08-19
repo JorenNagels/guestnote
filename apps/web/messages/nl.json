@@ -83,5 +83,16 @@
       "declined": "Afgemeld",
       "partial": "Gedeeltelijk"
     }
+  },
+  "email": {
+    "signInCode": {
+      "subject": "{code} is je Guestnote-aanmeldcode",
+      "preheader": "Je code is {minutes, plural, one {# minuut} other {# minuten}} geldig.",
+      "heading": "Je aanmeldcode",
+      "intro": "Voer deze code in om je aan te melden bij Guestnote.",
+      "expiry": "De code verloopt over {minutes, plural, one {# minuut} other {# minuten}}.",
+      "ignore": "Heb je dit niet aangevraagd? Dan kun je deze e-mail negeren.",
+      "footer": "Guestnote · automatisch bericht. Antwoorden op dit adres komen niet aan."
+    }
   }
 }
