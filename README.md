@@ -166,8 +166,9 @@ Scoped to the **planner platform**. Tenant wedding-site theming is parked.
 
 ## Shipped
 
-- `packages/db/` — **the gate.** PH0 schema, RLS forced on all 9 tables, `withTenant`,
-  ~110 assertions including against the real Neon pooled endpoint. `npm run test:db`.
+- `packages/db/` — **the gate.** PH0 schema, RLS forced on all 9 tenant tables, `withTenant`,
+  **101 assertions** on both tiers including against the real Neon pooled endpoint.
+  `npm run test:db`.
 - `packages/core/` — host resolution and `RESERVED_SUBDOMAINS`, import-free so `proxy.ts`
   can use it without pulling in the database layer. Also holds `packages/core/auth`, the seam
   every other module goes through; `better-auth.ts` behind it is M3's remaining work.
@@ -175,6 +176,15 @@ Scoped to the **planner platform**. Tenant wedding-site theming is parked.
   `app.guestnote.be`, guest sites on `<slug>.guestnote.be`, all four host branches real and
   tested — `src/proxy.test.ts` covers every branch, header and cache rule, mutation-checked. NL/EN/FR. Runs locally; **not deployed** — M1a's OpenNext + CDK is still deferred.
   See `apps/web/README.md` and `docs/adr/0003-one-app-three-hosts.md`.
+- `packages/email/` — **sign-in mail actually sends.** react-email's renderer (not its deprecated
+  component library — see the ADR) into SES v2, NL/EN/FR from the same `next-intl` catalogues,
+  every attempt logged to `mail_deliveries`, and Better Auth's rate limiter moved off in-memory
+  storage because each request past the limit is now a real email. A `console` transport writes
+  rendered mail to `apps/web/.mail/` so a fresh clone needs no AWS credentials.
+  `packages/email/README.md` and `docs/adr/0004-sign-in-mail-sends-for-real.md`.
+- `infra/` — the repo's first infrastructure as code: one CloudFormation template publishing SES
+  bounce and complaint events to SNS. Deliberately not CDK yet; `research/05-architecture.md` §8's
+  `FoundationStack` owns that at M1a.
 - `coming-soon/` — the holding page for `guestnote.be`. One self-contained `index.html`,
   NL/EN, no external requests. Deploy notes in `coming-soon/README.md`. Still the live apex;
   the app's marketing surface is a placeholder until there is real copy.

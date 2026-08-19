@@ -33,9 +33,15 @@ set -a; . ./.env.local; set +a
 REQUIRE_NEON_TIER=1 npm run test:db
 ```
 
-**Result, 2026-08-19: 99 passed** against `-pooler` on PostgreSQL **18.4** (94 on
-2026-08-17, before Better Auth's four tables joined the coverage check). This settles
+**Result, 2026-08-19: 101 passed** against `-pooler` on PostgreSQL **18.4**, and 101 on the
+local container (99 earlier the same day, before `mail_deliveries` and `rate_limits` joined
+the coverage check; 94 on 2026-08-17, before Better Auth's four tables did). This settles
 `research/05-architecture.md` §11.2 — see `docs/adr/0001-rls-through-neon-pooler.md`.
+
+`0004_wakeful_sunspot.sql` added the two mail tables. Both are `UNSCOPED_TABLES` and carry no
+RLS, on the same grounds as the auth tables: a sign-in code is requested by someone who is by
+definition not signed in, so there is no `app.user_id` to scope by. `0002_grants.sql`'s
+`alter default privileges` covered them with no extra grant work — verified, not assumed.
 
 ## Applying a migration
 

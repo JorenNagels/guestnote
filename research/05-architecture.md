@@ -499,6 +499,19 @@ bounded one-weekend job.
 
 ### Email — SES with react-email
 
+> ⚠️ **Corrected 2026-08-19 — the renderer, not the components.** `docs/adr/0004-sign-in-mail-sends-for-real.md`.
+>
+> "Use react-email" survives; *how* to get it does not. `@react-email/components` is deprecated,
+> and its replacement -- importing components from the unified `react-email` package -- has no
+> subpath exports and pulls `prismjs`, `marked`, `tailwindcss` and `esbuild` from its single
+> entry, measured at ~80 MB per serverless function. What is built uses
+> `@react-email/render@2.1.0` with hand-written JSX, and keeps the `react-email` CLI as a
+> devDependency for `email dev`. The i18n claim below is exactly right and is what shipped.
+>
+> Two more corrections in that ADR: the bounce pipeline is wired only as far as SNS (no consumer
+> writes to the database yet), and `email_log` did **not** arrive -- auth mail has no wedding and
+> no guest, so it writes to an unscoped `mail_deliveries` instead, with `email_log` still P4.
+
 SES at 60k emails/month costs ~$6; Resend is roughly 4× that and gates EU residency behind Pro.
 But use **`react-email`** regardless — typed React templates, local preview via `email dev`,
 version-controlled beside the app, i18n through the same `next-intl` catalogues — rendered to

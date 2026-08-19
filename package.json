@@ -11,6 +11,7 @@
   },
   "scripts": {
     "dev": "npm run dev -w @guestnote/web",
+    "email:dev": "npm run email:dev -w @guestnote/email",
     "build": "npm run build -w @guestnote/web",
     "start": "npm run start -w @guestnote/web",
     "check": "npm run typecheck && npm run lint && npm run test",

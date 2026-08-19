@@ -144,11 +144,48 @@ export function createBetterAuthProvider(config: AuthConfig) {
       updateAge: AUTH_POLICY.sessionRefreshSeconds,
     },
 
+    /**
+     * Both halves of this are corrections to a default, not decoration.
+     *
+     * The installed `@better-auth/core` documents them: *"By default, rate limiting is only
+     * enabled on production"*, and `storage` defaults to `"memory"`. So before this block there
+     * was **no limiter at all outside production**, and inside it one limiter per Lambda
+     * container -- which counts a handful of requests before a cold start forgets them.
+     *
+     * That was survivable while `sendCode` was a `console.info`. It is not now: each request
+     * past the limit is a real email, against a sandbox ceiling of 200 a day and 1 a second, and
+     * a loop pointed at the sign-in form would burn the quota for every other user and put the
+     * domain's sending reputation at risk. `enabled: true` also means the limiter is exercised
+     * in development, so its behaviour is something a developer sees rather than discovers.
+     *
+     * `storage: 'database'` needs the `rate_limits` table -- `packages/db/src/schema/mail.ts`,
+     * whose export is named `rateLimits` because `usePlural` above resolves the model that way.
+     *
+     * Not set here, and flagged for M1a: `advanced.ipAddress.trustedProxies`. The limiter keys
+     * on client IP, and the documented behaviour with that option unset is to trust "only
+     * single-value IP headers". Behind CloudFront `x-forwarded-for` is a chain, so until it is
+     * configured every request will key to the same value and this table becomes decorative.
+     */
+    rateLimit: { enabled: true, storage: 'database' },
+
     plugins: [
       emailOTP({
         otpLength: AUTH_POLICY.codeLength,
         expiresIn: AUTH_POLICY.codeTtlSeconds,
         allowedAttempts: AUTH_POLICY.maxCodeAttempts,
+        /**
+         * Hashed, not the plugin's `"plain"` default.
+         *
+         * `verifications.value` is where the live code sits (see schema/auth.ts). Storing it
+         * readable was defensible while the code only ever reached a developer's terminal; it
+         * is not now that it is a credential in transit to a real inbox, because anything that
+         * can read one row of that table gets a five-minute window into any account.
+         *
+         * Safe to change: the plugin's own types document that `resendStrategy` "falls back to
+         * `rotate` when OTP is hashed", and `rotate` is already the default -- so "send me a new
+         * code" keeps working and simply issues a new one rather than resending the old.
+         */
+        storeOTP: 'hashed',
         // First verification creates the account. That IS the registration flow for this
         // product -- there is no self-serve signup, and a planner's staff arrive by
         // invitation, so the only accounts that can exist are ones someone asked for.

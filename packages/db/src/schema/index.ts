@@ -1,5 +1,6 @@
 export * from './audit.ts'
 export * from './auth.ts'
+export * from './mail.ts'
 export * from './orgs.ts'
 export * from './tasks.ts'
 export * from './weddings.ts'
@@ -55,6 +56,12 @@ export const USER_SCOPED_TABLES = ['org_members', 'wedding_members'] as const
  * there is no `app.user_id` to scope by at the moment of sign-in, and a policy would
  * break authentication outright. The mitigation is structural: nothing outside
  * `packages/core/auth` touches them.
+ *
+ * `mail_deliveries` and `rate_limits` joined them 2026-08-19 with the mail pipeline, on
+ * exactly the same grounds: a sign-in code is requested by someone who is by definition not
+ * signed in, so both rows are written before there is a principal to scope them to. Their
+ * mitigation is structural too -- `apps/web/src/lib/mailer.ts` is the only writer of the
+ * first and Better Auth's limiter is the only writer of the second. See schema/mail.ts.
  */
 export const UNSCOPED_TABLES = [
   'users',
@@ -62,6 +69,8 @@ export const UNSCOPED_TABLES = [
   'accounts',
   'verifications',
   'passkeys',
+  'mail_deliveries',
+  'rate_limits',
 ] as const
 
 /**

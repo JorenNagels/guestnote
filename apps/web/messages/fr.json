@@ -96,5 +96,16 @@
       "declined": "Décliné",
       "partial": "Partiel"
     }
+  },
+  "email": {
+    "signInCode": {
+      "subject": "{code} est votre code de connexion Guestnote",
+      "preheader": "Votre code est valable {minutes, plural, one {# minute} other {# minutes}}.",
+      "heading": "Votre code de connexion",
+      "intro": "Saisissez ce code pour vous connecter à Guestnote.",
+      "expiry": "Le code expire dans {minutes, plural, one {# minute} other {# minutes}}.",
+      "ignore": "Vous n'avez pas demandé ce code ? Vous pouvez ignorer cet e-mail.",
+      "footer": "Guestnote · message automatique. Les réponses envoyées à cette adresse ne sont pas reçues."
+    }
   }
 }

@@ -39,15 +39,27 @@ coverage/
 .env.*
 !.env.example
 
-# Claude Code per-user state. Two deliberate exceptions:
+# Claude Code per-user state. Three deliberate exceptions:
 #   .claude/settings.json  — pins AWS_PROFILE=guestnote. The `default` profile on
 #     this machine is the employer's shared production account, so this file is a
 #     guardrail, not a preference. It belongs in the repo.
 #   .claude/skills/        — project-level skills, shared.
+#   .claude/agents/        — project-level subagents, shared for the same reason. They
+#     encode this repo's invariants (tenancy, the auth seam, the mutation discipline),
+#     so they are documentation that happens to be executable, not a personal setting.
+# Still excluded: settings.local.json (per-machine hook wiring, with absolute paths in it)
+# and worktrees/, which is a second checkout of this repo.
 .claude/*
 !.claude/settings.json
 !.claude/skills
 !.claude/skills/**
+!.claude/agents
+!.claude/agents/**
+
+# Rendered email from the development mail transport (apps/web/src/lib/mailer.ts).
+# Contains live sign-in codes, so it must never be committed. The transport refuses to
+# run outside development, which is the other half of keeping that true.
+apps/web/.mail/
 
 # Generated share image for the holding page; deploy.sh re-renders it from og.html.
 coming-soon/og.png
