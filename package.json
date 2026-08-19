@@ -24,6 +24,7 @@
     "db:generate": "npm run generate -w @guestnote/db",
     "db:migrate": "npm run migrate -w @guestnote/db",
     "db:seed": "npm run seed -w @guestnote/db --",
+    "db:reset": "npm run reset -w @guestnote/db --",
     "db:check": "npm run check -w @guestnote/db"
   },
   "devDependencies": {
