@@ -7,7 +7,20 @@
   },
   "app": {
     "placeholder": "Dashboard placeholder.",
-    "servedOn": "Served on the app host, internally rewritten to /pro, with private, no-store."
+    "servedOn": "Served on the app host, internally rewritten to /pro, with private, no-store.",
+    "signOut": "Sign out",
+    "weddings": {
+      "title": "Weddings",
+      "dateUnknown": "No date set yet",
+      "empty": "No weddings yet. The first one you create shows up here.",
+      "noOrg": "You are signed in, but you do not belong to an organisation yet.",
+      "noOrgHint": "An invitation from a planner or a venue is what grants access. If you expected to see something here, ask whoever invited you.",
+      "status": {
+        "draft": "Draft",
+        "live": "Live",
+        "archived": "Archived"
+      }
+    }
   },
   "auth": {
     "language": "Language",

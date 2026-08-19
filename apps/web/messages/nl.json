@@ -7,7 +7,20 @@
   },
   "app": {
     "placeholder": "Dashboard-placeholder.",
-    "servedOn": "Geserveerd op de app-host, intern herschreven naar /pro, met private, no-store."
+    "servedOn": "Geserveerd op de app-host, intern herschreven naar /pro, met private, no-store.",
+    "signOut": "Afmelden",
+    "weddings": {
+      "title": "Bruiloften",
+      "dateUnknown": "Datum nog niet vastgelegd",
+      "empty": "Nog geen bruiloften. Zodra er een is aangemaakt, staat ze hier.",
+      "noOrg": "Je bent aangemeld, maar hoort nog bij geen enkele organisatie.",
+      "noOrgHint": "Een uitnodiging van een planner of locatie geeft je toegang. Klopt dit niet? Neem contact op met wie je heeft uitgenodigd.",
+      "status": {
+        "draft": "Concept",
+        "live": "Live",
+        "archived": "Gearchiveerd"
+      }
+    }
   },
   "auth": {
     "language": "Taal",

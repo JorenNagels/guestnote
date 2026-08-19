@@ -11,6 +11,7 @@
 export type { Db, DbPoolOptions } from './client.ts'
 export { createDb, createPool } from './client.ts'
 export { newId } from './id.ts'
+export * from './repos/index.ts'
 export * as schema from './schema/index.ts'
 export {
   assertScoped,

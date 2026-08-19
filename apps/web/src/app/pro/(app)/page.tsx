@@ -1,64 +1,23 @@
-import { headers } from 'next/headers'
-import { getAuth } from '../../../lib/auth.ts'
-import { signOut } from './actions.ts'
+import { redirect } from 'next/navigation'
+import { app } from '../../../lib/routes.ts'
 
 /**
- * **Temporary.** Proof that the session is real, and nothing more.
+ * The dashboard root, which is a redirect and not a screen.
  *
- * M3's actual finish line is "login -> org switcher -> wedding list"; this is the
- * scaffolding that proves the first arrow works before the other two exist. Everything on
- * screen comes from `getSession()`, so if it renders, the cookie was set, signed, sent
- * back, verified, and resolved to a row in `users`.
+ * It replaces the temporary page that rendered `getSession()` output to prove the
+ * session was real. That proof has a better home now: the wedding list cannot render at
+ * all without a session, a `users` row, an `org_members` row and a `withTenant`
+ * round-trip, so if it shows a wedding, every link in that chain held.
  *
- * Replaced by the real shell. Nothing here is designed and none of it should survive.
+ * `/weddings` is the landing surface rather than a dashboard of its own because
+ * `09-planner-app.md` P16 -- "due this week, across every wedding" -- is the screen that
+ * eventually belongs at `/`, and it does not exist yet. Pointing `/` at a real list is
+ * more honest than an empty shell that has to be dismantled later.
+ *
+ * The target is the path the BROWSER shows. `proxy.ts` rewrites `app.guestnote.be/weddings`
+ * to `/pro/weddings`; redirecting to the internal path would put `/pro` in the URL bar,
+ * which `lib/routes.ts` exists to prevent.
  */
-export default async function DashboardPage() {
-  const session = await getAuth().getSession(await headers())
-  if (!session) return null
-
-  const rows: Array<[string, string]> = [
-    ['email', session.email],
-    ['name', session.name ?? '— (not captured yet)'],
-    ['user id', session.userId],
-    ['org', session.lastOrgId ?? '— (org resolution is not built)'],
-  ]
-
-  return (
-    <main className="bg-background text-foreground min-h-dvh p-8">
-      <div className="mx-auto max-w-2xl">
-        <p className="text-muted-foreground text-xs font-semibold tracking-[0.09em] uppercase">
-          Signed in
-        </p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">Guestnote</h1>
-        <p className="text-muted-foreground mt-2 max-w-prose text-sm leading-relaxed">
-          Temporary page. It exists to prove the session is real — every value below came back from{' '}
-          <code className="font-mono text-xs">getSession()</code>, which means the cookie was
-          signed, returned, verified and resolved to a row in{' '}
-          <code className="font-mono text-xs">users</code>.
-        </p>
-
-        <table className="bg-card mt-6 w-full border-collapse overflow-hidden rounded-md border text-sm">
-          <tbody>
-            {rows.map(([label, value]) => (
-              <tr key={label} className="border-b last:border-b-0">
-                <th className="text-muted-foreground w-40 px-3 py-2 text-left font-medium">
-                  {label}
-                </th>
-                <td className="px-3 py-2 font-mono text-xs break-all">{value}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <form action={signOut} className="mt-6">
-          <button
-            type="submit"
-            className="border-input hover:border-foreground inline-flex h-9 items-center rounded-[var(--radius)] border px-3.5 text-sm font-medium"
-          >
-            Afmelden
-          </button>
-        </form>
-      </div>
-    </main>
-  )
+export default async function DashboardIndex() {
+  redirect(app.weddings())
 }

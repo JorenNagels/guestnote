@@ -7,7 +7,20 @@
   },
   "app": {
     "placeholder": "Espace réservé du tableau de bord.",
-    "servedOn": "Servi sur l'hôte app, réécrit en interne vers /pro, avec private, no-store."
+    "servedOn": "Servi sur l'hôte app, réécrit en interne vers /pro, avec private, no-store.",
+    "signOut": "Se déconnecter",
+    "weddings": {
+      "title": "Mariages",
+      "dateUnknown": "Date pas encore fixée",
+      "empty": "Aucun mariage pour l'instant. Le premier que vous créez apparaîtra ici.",
+      "noOrg": "Vous êtes connecté, mais vous n'appartenez encore à aucune organisation.",
+      "noOrgHint": "C'est une invitation d'un wedding planner ou d'un lieu de réception qui donne accès. Si vous vous attendiez à voir quelque chose ici, contactez la personne qui vous a invité.",
+      "status": {
+        "draft": "Brouillon",
+        "live": "En ligne",
+        "archived": "Archivé"
+      }
+    }
   },
   "auth": {
     "language": "Langue",
