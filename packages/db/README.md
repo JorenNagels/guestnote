@@ -100,6 +100,30 @@ so they stop diverging.
 Neon host. Without it the pooler tests still run, but against a plain pool — which is a
 weaker claim, and `pooling.test.ts` prints which tier it ran.
 
+### ⚠️ The dev app and the test suite share one database
+
+`APP_DATABASE_URL`, `TEST_DATABASE_URL` and `SEED_DATABASE_URL` in `.env.local` all point at
+the same Neon project and the same `neondb`. So **`npm run test:db` truncates the data
+`npm run dev` is serving** — `reseed()` opens with `truncate ... cascade` over eleven tables,
+by design, because the fixture has to be ground truth.
+
+Noticed 2026-08-21 while running the dev server to look at the dashboard: the three
+organisations in it were `Studio A`, `Studio B` and `Atelier Zero`, which are
+`test/harness.ts`'s fixtures and not anything a human created.
+
+Left alone on purpose for now. Nothing is deployed, and the fixtures are currently the only
+data there is to lose, so the cost is a lost demo rather than lost work. The two ways out,
+when it starts to matter: point `TEST_DATABASE_URL` and `SEED_DATABASE_URL` at a throwaway
+Neon branch — they are instant and cheap, and it keeps the pooler in the test path, which is
+the whole reason tier 2 exists — or point `APP_DATABASE_URL` at the local container, which
+costs the dev app its pooler coverage and puts it on PG 17 against Neon's 18.4.
+
+The rejected third option is worth naming so it is not re-proposed: making `reseed()`
+narrower, so it deletes only its own fixture rows. That would leave the suite passing against
+a database with unknown extra rows in it, and several assertions here are exact counts —
+`org A and org B see disjoint, non-empty wedding sets` is `toBe(2)` and `toBe(1)`. A fixture
+that is not the whole contents of the database is not ground truth.
+
 ### Two roles, and why the seed one is privileged
 
 `TEST_DATABASE_URL` is `app_user`. `SEED_DATABASE_URL` is the project owner on Neon, or a
