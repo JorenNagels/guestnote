@@ -191,6 +191,13 @@ export async function getWedding(
  * licence to read the org's NAME, and not its billing.
  *
  * `null` means the user has no org-wide standing here, or the org is soft-deleted.
+ *
+ * `rows[0]` is safe because the `eq` below makes this at most one row -- but note WHICH
+ * mechanism keeps that true. Mutating it to `rows.at(-1)` changes nothing today, measured
+ * 2026-08-21; before 0005's guard existed it would have changed which organisation the
+ * dashboard named. The single-row property comes from the policy guard first and the `eq`
+ * second, not from the primary key alone, because the OR of two permissive policies can
+ * admit rows this query never mentions.
  */
 export async function getOrg(db: Db, m: Memberships, orgId: string): Promise<OrgSummary | null> {
   const principal = principalForOrg(m, orgId)

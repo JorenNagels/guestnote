@@ -227,6 +227,27 @@ describe('getOrg', () => {
   })
 })
 
+/**
+ * Verified by mutation, not assumed -- measured 2026-08-21 on the local container.
+ *
+ * The masking here runs BOTH ways, and the docstring on `listOrgsForUser` states only one
+ * direction. It says no assertion in this file can prove the POLICY, because the join
+ * answers correctly when the policy is broken. The converse also holds: nothing anywhere
+ * can prove the JOIN, because the policy answers correctly when the join is broken.
+ * `innerJoin` -> `leftJoin`, dropping the join's `user_id` predicate, and deleting the
+ * join outright each left all 142 db assertions green. Under `withUser`,
+ * `org_read_for_members` has already narrowed `organizations` to the user's own orgs and
+ * `own_memberships` has already narrowed `org_members` to `app.user_id`, so all three
+ * return the identical set.
+ *
+ * Defence in depth where each half completely masks the other. That is a legitimate
+ * design and not a coverage gap -- but it means the join is intent and never boundary,
+ * which is what the docstring claims and is now measured rather than argued.
+ *
+ * What these cases DO discriminate: the select list (adding `plan` fails two of them, and
+ * that mutation typechecks, so it is plausible code) and the ordering (asc -> desc on name
+ * fails one). Those two are the real assertions in this block.
+ */
 describe('listOrgsForUser', () => {
   /**
    * The assertion migration 0005 exists for -- but say which direction of mutation it
