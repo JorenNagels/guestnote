@@ -164,10 +164,18 @@ describe('RLS is enabled AND forced', () => {
     const offenders: string[] = []
     for (const table of rlsTables) {
       const rows = await catalog(
-        `select policyname, with_check from pg_policies where tablename = $1`,
+        `select policyname, cmd, with_check from pg_policies where tablename = $1`,
         [table],
       )
       for (const r of rows) {
+        // A FOR SELECT policy has no WITH CHECK to inspect -- Postgres reports null,
+        // because the clause is not merely absent, it is not applicable. Reading that
+        // null as an unscoped write would be backwards: a read-only policy grants no
+        // write at all. The assertion above ('policies apply to writes too') is what
+        // guarantees every cmd = 'ALL' policy HAS a WITH CHECK, so nothing escapes by
+        // being skipped here -- a policy that can write is still checked below.
+        if (r.cmd === 'SELECT') continue
+
         const text = String(r.with_check ?? '')
         if (!text.includes(expectedKey(table))) {
           offenders.push(`${table}.${String(r.policyname)} -> WITH CHECK (${text || 'null'})`)
@@ -182,6 +190,54 @@ describe('RLS is enabled AND forced', () => {
     ).toEqual([])
   })
 
+  /**
+   * Policies whose USING scopes by `app.user_id` on a table that is otherwise org-scoped.
+   *
+   * Named individually and not derived from anything, which is the entire point: adding a
+   * policy to `organizations` that scopes by neither key still fails this test. A looser
+   * rule -- "accept either GUC on organizations" -- would have let a regression on
+   * `tenant_isolation` through silently, which is the assertion this suite exists to keep.
+   *
+   * `organizations.org_read_for_members`: migration 0005. `organizations` is read under
+   * `withUser`, before any tenant is known, so the dashboard's sidebar can name the
+   * organisation for an org `member` -- who has no org-wide principal at all and for whom
+   * `getOrg` therefore returns null. FOR SELECT only, so writes are still governed by
+   * `tenant_isolation` and still checked above.
+   */
+  const USER_SCOPED_POLICY_EXCEPTIONS = new Set(['organizations.org_read_for_members'])
+
+  /**
+   * Why the list is here and not in `src/schema/index.ts`, where the buckets live: this is
+   * not a classification. `organizations` stays `SELF_SCOPED` and its tenant key has not
+   * changed; this is a named exemption from ONE assertion, so it belongs beside the
+   * assertion it exempts. The cost is that the tenancy facts now live in two files -- the
+   * alternative, a sixth exported bucket, would dress a test-local carve-out up as a
+   * property of the schema.
+   *
+   * And note the limit of what the exemption check below can do: it requires the string
+   * `app.user_id` to appear, which is a substring and not a scope. `using
+   * (current_setting('app.user_id') is not null)` -- "any signed-in user reads every
+   * organisation" -- satisfies it. That mutation IS caught, but by `isolation.test.ts`
+   * sections 7 and 8 rather than here, verified 2026-08-20. Same shape as `with check
+   * (true)` satisfying "a WITH CHECK exists", which is why the assertion above this one
+   * exists at all.
+   */
+  it('every named policy exception still matches a real policy', async () => {
+    // An exception matching nothing is a standing pre-authorisation: whoever later creates
+    // a policy under that name inherits the exemption without review. So the set has to be
+    // exactly consumed, not merely consulted.
+    const live: string[] = []
+    for (const table of rlsTables) {
+      const rows = await catalog(`select policyname from pg_policies where tablename = $1`, [table])
+      for (const r of rows) live.push(`${table}.${String(r.policyname)}`)
+    }
+    const stale = [...USER_SCOPED_POLICY_EXCEPTIONS].filter((name) => !live.includes(name))
+    expect(
+      stale,
+      'these exceptions name no existing policy, so they pre-authorise a future one',
+    ).toEqual([])
+  })
+
   it('the USING predicate references the tenant key too', async () => {
     const expectedKey = (t: string) =>
       (USER_SCOPED_TABLES as readonly string[]).includes(t) ? 'app.user_id' : 'app.org_id'
@@ -192,9 +248,21 @@ describe('RLS is enabled AND forced', () => {
         table,
       ])
       for (const r of rows) {
+        const name = `${table}.${String(r.policyname)}`
         const text = String(r.qual ?? '')
+
+        // An exception still has to scope by SOMETHING -- it is excused from naming this
+        // table's tenant key, not from being scoped. Dropping the predicate entirely
+        // fails here.
+        if (USER_SCOPED_POLICY_EXCEPTIONS.has(name)) {
+          if (!text.includes('app.user_id')) {
+            offenders.push(`${name} is an exception but scopes by neither key -> USING (${text})`)
+          }
+          continue
+        }
+
         if (!text.includes(expectedKey(table))) {
-          offenders.push(`${table}.${String(r.policyname)} -> USING (${text || 'null'})`)
+          offenders.push(`${name} -> USING (${text || 'null'})`)
         }
       }
     }

@@ -54,9 +54,13 @@ export const organizations = pgTable(
  * of that planner's weddings. One URL guess from another couple's guest list.
  *
  * One of exactly two tables that does NOT carry `wedding_id`, and one of exactly two
- * whose policy runs on `app.user_id` rather than the tenant keys -- because it is
- * read *before* the tenant is known, in order to determine it. See the comment in
+ * scoped ONLY by `app.user_id` rather than the tenant keys -- because it is read
+ * *before* the tenant is known, in order to determine it. See the comment in
  * migrations/0001_rls.sql; this is correct, not an oversight.
+ *
+ * "Only two" is about the whole policy set, not the axis: since migration 0005
+ * `organizations` also has a policy reading `app.user_id`, a second one beside its
+ * `tenant_isolation`, so a member can read their org's name before a tenant is known.
  */
 export const orgMembers = pgTable(
   'org_members',

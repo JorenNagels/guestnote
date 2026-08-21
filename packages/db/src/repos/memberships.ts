@@ -1,14 +1,17 @@
-import { eq } from 'drizzle-orm'
+import { and, asc, eq, isNull } from 'drizzle-orm'
 import type { Db } from '../client.ts'
-import { orgMembers } from '../schema/orgs.ts'
+import { organizations, orgMembers } from '../schema/orgs.ts'
 import { weddingMembers } from '../schema/weddings.ts'
 import { type Principal, withUser } from '../tenant.ts'
 
 /**
  * The query that runs BEFORE the tenant is known, in order to determine it.
  *
- * `org_members` and `wedding_members` are the only two tables whose policy runs on
- * `app.user_id` rather than on the tenant keys, and this module is the reason they do.
+ * `org_members` and `wedding_members` are the only two tables scoped ONLY by
+ * `app.user_id` rather than by the tenant keys, and this module is the reason they are.
+ * Since migration 0005 a third table carries a policy on that axis -- `organizations`,
+ * which keeps `tenant_isolation` as its primary policy and gains a second, SELECT-only
+ * one so that `listOrgsForUser` below can name an org before a tenant is known.
  * Everything else in the application reaches the database through `withTenant`, which
  * cannot be called until a `Principal` exists -- and a `Principal` cannot be built
  * without knowing which organisation and which wedding the user actually belongs to.
@@ -52,6 +55,19 @@ export type Memberships = {
 }
 
 /**
+ * An organisation, named. Deliberately three columns and not the row.
+ *
+ * Lives here rather than in ./weddings.ts, where it used to, because `listOrgsForUser`
+ * below is now its primary producer and weddings.ts already imports from this module --
+ * the other direction would be a cycle.
+ */
+export type OrgSummary = {
+  readonly id: string
+  readonly name: string
+  readonly slug: string
+}
+
+/**
  * Every membership one user holds, in one transaction.
  *
  * The two selects are issued SEQUENTIALLY, not through `Promise.all`. They share a
@@ -83,6 +99,56 @@ export async function resolveMemberships(db: Db, userId: string): Promise<Member
       weddings: weddings as WeddingMembership[],
     }
   })
+}
+
+/**
+ * Every organisation the user belongs to, named, in one transaction.
+ *
+ * This is what the dashboard's sidebar head and its org switcher read, and it exists
+ * because nothing else could answer the question for a `member`. `principalForOrg`
+ * returns `null` for one on purpose, so `getOrg` cannot name their organisation; and
+ * `resolveMemberships` returns ids and roles only. Migration 0005 added the policy that
+ * makes this readable under `withUser` -- `org_read_for_members` -- and its header is
+ * where the reasoning and the rejected alternatives live.
+ *
+ * ## Three columns, not the row
+ *
+ * `organizations` also carries `plan`, `subscription_status` and `mollie_customer_id`,
+ * and 0005's policy admits the whole row to any member of the org. The select list below
+ * is therefore the boundary, not the grant: a member reads the name and never the
+ * billing. Widening it is not a refactor -- it is a policy decision being taken in the
+ * wrong file. Anything that genuinely needs billing goes through `getOrg`, where
+ * `principalForOrg` has already refused a member.
+ *
+ * ## The join, and what it costs the tests
+ *
+ * Without it this would be `select ... from organizations` with the policy as the only
+ * filter -- correct, but it reads as though it selects every organisation in the database.
+ * So the join is here for the same reason `resolveMemberships` keeps its redundant `where`.
+ *
+ * The price is worth stating: it means **no assertion in `repos.test.ts` can prove the
+ * policy**, because this join returns the right answer even when the policy is wrong.
+ * Measured 2026-08-20 -- breaking 0005's predicate left every case in that file green,
+ * and the leak was caught only by `isolation.test.ts` §7, which queries `organizations`
+ * with app.user_id set by hand and no join at all. Read the two together; the ones here
+ * are repository assertions.
+ *
+ * Ordered by name so the switcher is alphabetical, then by id so it is stable when two
+ * organisations share one. Soft-deleted orgs are filtered here, not in the policy --
+ * soft delete is not a tenancy concern, the same split every other repo function makes.
+ */
+export async function listOrgsForUser(db: Db, userId: string): Promise<OrgSummary[]> {
+  return withUser(db, userId, async (tx) =>
+    tx
+      .select({ id: organizations.id, name: organizations.name, slug: organizations.slug })
+      .from(organizations)
+      .innerJoin(
+        orgMembers,
+        and(eq(orgMembers.orgId, organizations.id), eq(orgMembers.userId, userId)),
+      )
+      .where(isNull(organizations.deletedAt))
+      .orderBy(asc(organizations.name), asc(organizations.id)),
+  )
 }
 
 /**
@@ -148,10 +214,22 @@ export function principalForWedding(
 /**
  * Owner before admin before member, then by org id.
  *
- * `org_members` has no "last used" column and does not need one yet. Ordering by role
- * and then by id at least makes the choice STABLE across requests, rather than
- * depending on whatever order Postgres felt like returning. A real most-recently-used
- * needs a column plus a write on every switch, and that arrives with the switcher.
+ * `org_members` has no "last used" column. Ordering by role and then by id at least
+ * makes the choice STABLE across requests, rather than depending on whatever order
+ * Postgres felt like returning.
+ *
+ * **2026-08-20: the column is deferred again, and this time with a decision behind it.**
+ * This comment used to say a real most-recently-used "arrives with the switcher". The
+ * switcher is now specified -- docs/specs/0001-moving-around-the-dashboard.md -- and it
+ * does NOT bring the column: it will remember its choice in a validated `gn_org` cookie,
+ * because a column costs a migration plus a write on every switch, landing on a table
+ * whose policy runs on app.user_id rather than a tenant key. The cookie will not follow a
+ * planner to a second device; the spec argues that cost.
+ *
+ * Written in the future tense on purpose. The cookie is not in the tree yet -- it lands
+ * with the shell, and `apps/web/src/lib/principal.ts` still derives the org from this
+ * function alone. A comment that describes the next commit as though it were this one is
+ * how a reader ends up looking for a validation step that does not exist.
  */
 const LANDING_RANK: Record<OrgMembership['role'], number> = { owner: 0, admin: 1, member: 2 }
 

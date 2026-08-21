@@ -1,6 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { getOrg, listWeddings, type Memberships, resolveMemberships } from '../src/repos/index.ts'
-import { asNobody, asPrincipal, connect, F, type Harness, reseed } from './harness.ts'
+import {
+  getOrg,
+  getWedding,
+  listOrgsForUser,
+  listWeddings,
+  type Memberships,
+  resolveMemberships,
+} from '../src/repos/index.ts'
+import { asPrincipal, connect, F, type Harness, reseed, seedExec } from './harness.ts'
 
 /**
  * The repository layer against a real Postgres, with the real policies.
@@ -24,35 +31,25 @@ import { asNobody, asPrincipal, connect, F, type Harness, reseed } from './harne
 let h: Harness
 
 /**
- * A staff MEMBER assigned to one wedding. The shared fixture has owners and a couple but
- * no member, and the member is the one principal whose reads cost one transaction per
- * wedding -- `assignedStaff` must pin `app.wedding_id`, and a pinned GUC returns exactly
- * the row it names.
+ * `F.memberA` -- a staff member of org A assigned to wedding A1.
  *
- * Note how these rows are written: through `app_user` with only `app.user_id` set, which
- * is all the `own_memberships` policies' `with check (user_id = app.user_id)` requires.
- * No privileged role and no `unsafeDbForMigrationsAndAdminOnly` -- so this fixture also
- * demonstrates that adding yourself to an org is expressible inside the policies.
+ * This was a LOCAL fixture until 2026-08-20, inserted here after `reseed()` through
+ * `app_user` with only `app.user_id` set, which demonstrated that adding yourself to an
+ * org is expressible inside the policies. It moved to `harness.ts` for two reasons worth
+ * recording, because the demonstration was genuinely worth something and was given up:
+ *
+ *   * `isolation.test.ts` needs to read `organizations` as an actual `member`, and a
+ *     fixture private to this file left that policy asserted only through an owner.
+ *   * A local INSERT after `reseed()` throws inside `beforeAll` the moment it collides
+ *     with anything `reseed()` starts writing -- and vitest reports a throwing
+ *     `beforeAll` as the whole file SKIPPED, which is the "47 passed / 48 skipped and
+ *     zero failures" failure mode `harness.ts` documents at length.
  */
-const MEMBER = 'eeeeeeee-0000-0000-0000-0000000000e1'
+const MEMBER = F.memberA
 
 beforeAll(async () => {
   h = connect()
   await reseed()
-
-  await asNobody(h, `insert into users (id, email) values ($1, 'member@a.test')`, [MEMBER])
-  await asPrincipal(
-    h,
-    { userId: MEMBER },
-    `insert into org_members (org_id, user_id, role) values ($1, $2, 'member')`,
-    [F.orgA, MEMBER],
-  )
-  await asPrincipal(
-    h,
-    { userId: MEMBER },
-    `insert into wedding_members (wedding_id, user_id, role) values ($1, $2, 'editor')`,
-    [F.weddingA1, MEMBER],
-  )
 })
 
 afterAll(async () => {
@@ -144,8 +141,9 @@ describe('listWeddings', () => {
    *
    * Be precise about what this proves, though. Three things independently keep A Two out
    * of this list -- the loop over `m.weddings`, the `eq(weddings.id, ...)` clause, and
-   * the pinned `app.wedding_id` -- and removing the middle one was tried: all 14
-   * assertions here still passed. So this is an assertion about the REPOSITORY, not about
+   * the pinned `app.wedding_id` -- and removing the middle one was tried: every assertion
+   * in this file still passed, measured when there were 14 of them and this file has
+   * since grown. So this is an assertion about the REPOSITORY, not about
    * the policy. That the pin is what saves you when the application is wrong is
    * isolation.test.ts's `coupleA1Unpinned` case, which sets the GUCs by hand precisely
    * because no correct caller can produce that shape.
@@ -190,5 +188,207 @@ describe('getOrg', () => {
   it('returns null for an org the user is not staff at', async () => {
     const m = await resolveMemberships(h.db, F.staffA)
     expect(await getOrg(h.db, m, F.orgB)).toBeNull()
+  })
+
+  /**
+   * The gap `listOrgsForUser` exists to fill, asserted here so the two functions are read
+   * together. A member is genuinely staff at Studio A, and this still returns null --
+   * `principalForOrg` admits owner and admin only, because a member's access is "assigned
+   * weddings only" and there is no legitimate principal scoping them to a whole org.
+   *
+   * That is correct for anything that reads the org's BILLING. It was wrong as the only
+   * answer, because the dashboard's sidebar needs the org's NAME for this exact person.
+   */
+  it('returns null for an org member, who has no org-wide standing', async () => {
+    const m = await resolveMemberships(h.db, MEMBER)
+    expect(await getOrg(h.db, m, F.orgA)).toBeNull()
+  })
+
+  /**
+   * The regression this function actually had, on 2026-08-20, for the length of one
+   * review: migration 0005 added a second permissive policy to `organizations`, Postgres
+   * ORed it with `tenant_isolation`, and `getOrg` -- which had no `id` predicate, because
+   * the GUC had always been the filter -- started returning a row per organisation the
+   * user belonged to. `rows[0]` was then whichever came back first, which for this user
+   * is the WRONG org: `landingOrgId` ranks owner above admin, so the dashboard asks for
+   * org C while org A is the older heap row.
+   *
+   * Fixed twice over: the guard in 0005 stops the policy applying inside a tenant
+   * transaction at all, and the `eq` here is belt-and-braces on top. This asserts the
+   * outcome rather than either mechanism, so it holds if one of them is later removed.
+   */
+  it('reads the org it was ASKED for, for a user who is staff at two', async () => {
+    const m = await resolveMemberships(h.db, F.staffDual)
+    expect(await getOrg(h.db, m, F.orgC)).toEqual({
+      id: F.orgC,
+      name: 'Atelier Zero',
+      slug: 'org-c',
+    })
+  })
+})
+
+describe('listOrgsForUser', () => {
+  /**
+   * The assertion migration 0005 exists for -- but say which direction of mutation it
+   * kills, because the two are not symmetric. NARROW the policy (or delete it) and this
+   * goes red. WIDEN it and this stays green, because the inner join in `listOrgsForUser`
+   * re-filters the rows the policy let through. That asymmetry is the whole reason
+   * `isolation.test.ts` sections 7 and 8 exist; measured 2026-08-20.
+   *
+   * `toEqual` on the whole object, not a field: this is the assertion that refuses a
+   * widened select list, and so it is what holds "a member reads the name and never the
+   * billing" up. Add `plan` to the projection and it goes red.
+   */
+  it('names the organisation for a member, who getOrg cannot answer for', async () => {
+    expect(await listOrgsForUser(h.db, MEMBER)).toEqual([
+      { id: F.orgA, name: 'Studio A', slug: 'org-a' },
+    ])
+  })
+
+  /**
+   * A user in TWO orgs gets both, ordered by name.
+   *
+   * This is the switcher's entire reason for existing and, until 2026-08-20, nothing
+   * asserted it -- every other case here returns a single-element array, so `.orderBy()`
+   * could be deleted wholesale and stay green.
+   *
+   * The fixture has to disagree with itself for this to mean anything: `Atelier Zero`
+   * (org-c) sorts FIRST by name but LAST by id and is inserted LAST, so `['org-c','org-a']`
+   * is reachable only by really ordering on name. With just Studio A and Studio B, name
+   * order, id order and heap order coincide and the assertion would be theatre.
+   */
+  it('gives a user in two orgs both of them, in name order', async () => {
+    const rows = await listOrgsForUser(h.db, F.staffDual)
+    expect(rows.map((r) => r.slug)).toEqual(['org-c', 'org-a'])
+  })
+
+  /**
+   * Replaces a `.not.toContain('org-b')` that could not fail: it passed on `[]` just as
+   * happily as on the right answer, and the inner join excludes org-b before the policy
+   * is even consulted. An exact `toEqual` proves the rows exist AND that the wrong one is
+   * absent, which is the repo's own rule about isolation assertions that never assert
+   * presence.
+   */
+  it('names no organisation the member does not belong to', async () => {
+    const rows = await listOrgsForUser(h.db, MEMBER)
+    expect(rows.map((r) => r.slug)).toEqual(['org-a'])
+  })
+
+  it('works for an owner too, so head and switcher need only one query', async () => {
+    expect(await listOrgsForUser(h.db, F.staffA)).toEqual([
+      { id: F.orgA, name: 'Studio A', slug: 'org-a' },
+    ])
+  })
+
+  /**
+   * The soft-delete filter, which lives in the repository and deliberately not in the
+   * policy -- soft delete is not a tenancy concern. Nothing covered it until 2026-08-20;
+   * `reseed()` never writes a `deleted_at`, so the clause could be deleted silently.
+   *
+   * Written through the SEED pool because `app_user` cannot soft-delete an organisation:
+   * 0005 is FOR SELECT and `tenant_isolation` needs `app.org_id`, which is the property
+   * asserted in isolation.test.ts. `reseed()` at the end puts the row back.
+   */
+  it('omits a soft-deleted organisation', async () => {
+    await seedExec(`update organizations set deleted_at = now() where id = $1`, [F.orgC])
+    try {
+      expect((await listOrgsForUser(h.db, F.staffDual)).map((r) => r.slug)).toEqual(['org-a'])
+    } finally {
+      await reseed()
+    }
+  })
+
+  /**
+   * A couple holds a `wedding_members` row and no `org_members` row, which is the whole
+   * design. So they get nothing here -- the policy keys on `org_members` alone, and a
+   * wedding assignment is deliberately not a licence to name the planning agency.
+   */
+  it('returns nothing for a couple, who has no org_members row', async () => {
+    expect(await listOrgsForUser(h.db, F.coupleA1)).toEqual([])
+  })
+
+  it('returns nothing for a user with no memberships at all', async () => {
+    expect(await listOrgsForUser(h.db, '00000000-0000-0000-0000-000000000000')).toEqual([])
+  })
+})
+
+describe('getWedding', () => {
+  /**
+   * The owner path, and the reason this function is not `listWeddings().find()`. An owner
+   * reads one wedding through their ORG-WIDE principal with an `eq` in the query, because
+   * `principalForWedding` returns null for them on purpose -- `assertScoped` refuses an
+   * `orgStaff` principal carrying a weddingId. Route the owner through the per-wedding
+   * path and this test 404s the person who owns the business.
+   */
+  it('resolves a wedding for an owner, via the org-wide principal', async () => {
+    const m = await resolveMemberships(h.db, F.staffA)
+    const w = await getWedding(h.db, m, F.orgA, F.weddingA1)
+    expect(w?.coupleDisplayName).toBe('A One')
+  })
+
+  it('resolves the other wedding in the org for an owner too', async () => {
+    const m = await resolveMemberships(h.db, F.staffA)
+    expect((await getWedding(h.db, m, F.orgA, F.weddingA2))?.coupleDisplayName).toBe('A Two')
+  })
+
+  /** The member path: `assignedStaff`, which pins `app.wedding_id`. */
+  it('resolves an assigned wedding for a member', async () => {
+    const m = await resolveMemberships(h.db, MEMBER)
+    expect((await getWedding(h.db, m, F.orgA, F.weddingA1))?.coupleDisplayName).toBe('A One')
+  })
+
+  /**
+   * Same org, same `app.org_id`, different wedding -- the cross-WEDDING case a
+   * single-wedding fixture cannot detect. `null` here becomes a 404 and not a 403: section
+   * 3's table ends "neither -> 404 (not 403 -- don't confirm the wedding exists)".
+   */
+  it('returns null for a wedding in their org that the member is not assigned to', async () => {
+    const m = await resolveMemberships(h.db, MEMBER)
+    expect(await getWedding(h.db, m, F.orgA, F.weddingA2)).toBeNull()
+  })
+
+  /**
+   * The cross-ORG case, refused before any SQL runs -- `principalForOrg` finds no
+   * membership for org B. A repository assertion, not a policy one, and it is already
+   * covered offline in `src/repos/memberships.test.ts`.
+   */
+  it('returns null for a wedding in another org', async () => {
+    const m = await resolveMemberships(h.db, F.staffA)
+    expect(await getWedding(h.db, m, F.orgB, F.weddingB1)).toBeNull()
+  })
+
+  /**
+   * The URL-tampering shape, and the ONLY `getWedding` case where RLS rather than the
+   * repository is what refuses: the planner's own org, someone else's wedding id. A
+   * principal is built (they really are owner of org A), the query really runs, and
+   * `weddings.tenant_isolation`'s `org_id = app.org_id` is the only thing between the
+   * caller and B One. Weaken that clause and this is the assertion that goes red --
+   * nothing else in this file would notice.
+   */
+  it('returns null for a foreign wedding id inside the caller own org', async () => {
+    const m = await resolveMemberships(h.db, F.staffA)
+    expect(await getWedding(h.db, m, F.orgA, F.weddingB1)).toBeNull()
+  })
+
+  /** The soft-delete filter, uncovered until 2026-08-20. Seed pool writes, reseed restores. */
+  it('returns null for a soft-deleted wedding', async () => {
+    await seedExec(`update weddings set deleted_at = now() where id = $1`, [F.weddingA2])
+    try {
+      const m = await resolveMemberships(h.db, F.staffA)
+      expect(await getWedding(h.db, m, F.orgA, F.weddingA2)).toBeNull()
+    } finally {
+      await reseed()
+    }
+  })
+
+  it('returns null for a wedding that does not exist, indistinguishably', async () => {
+    const m = await resolveMemberships(h.db, F.staffA)
+    expect(await getWedding(h.db, m, F.orgA, '00000000-0000-0000-0000-000000000000')).toBeNull()
+  })
+
+  it('gives a couple their own wedding and not the other one', async () => {
+    const m = await resolveMemberships(h.db, F.coupleA1)
+    expect((await getWedding(h.db, m, F.orgA, F.weddingA1))?.coupleDisplayName).toBe('A One')
+    expect(await getWedding(h.db, m, F.orgA, F.weddingA2)).toBeNull()
   })
 })

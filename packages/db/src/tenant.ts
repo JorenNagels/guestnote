@@ -82,8 +82,10 @@ export async function withTenant<T>(
 }
 
 /**
- * Reads scoped to one user rather than one tenant, for the `own_memberships`
- * policies on `org_members` and `wedding_members`.
+ * Reads scoped to one user rather than one tenant, for the `own_memberships` policies on
+ * `org_members` and `wedding_members` -- and, since migration 0005, for
+ * `organizations`' SELECT-only `org_read_for_members`, which is what lets a member's
+ * organisation be NAMED before a tenant is known.
  *
  * This is the query that runs *before* the tenant is known, in order to determine
  * it. It deliberately does not reach for `unsafeDbForMigrationsAndAdminOnly` --
@@ -98,7 +100,14 @@ export async function withUser<T>(
   if (!userId) throw new TenantScopeError('withUser: userId is required')
   return db.transaction(async (tx) => {
     await tx.execute(sql`select set_config('app.user_id', ${userId}, true)`)
-    // Deliberately no tenant GUCs: this call must not be able to read tenant data.
+    // Deliberately no tenant GUCs: app.org_id unset makes every tenant_isolation
+    // predicate yield NULL, so the tenant tables return nothing here.
+    //
+    // ONE exception since migration 0005, and it is deliberate: `organizations` carries a
+    // second, SELECT-only policy admitting a row to a user who holds an org_members row
+    // for it, so `listOrgsForUser` can name an organisation before a tenant is known. It
+    // is the only tenant table readable in this shape. Do not read this comment as
+    // "nothing tenant-scoped is reachable" when adding a query here.
     await tx.execute(sql`select set_config('app.org_id', '', true)`)
     await tx.execute(sql`select set_config('app.wedding_id', '', true)`)
     await tx.execute(sql`select set_config('app.wedding_role', '', true)`)

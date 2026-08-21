@@ -167,11 +167,13 @@ Scoped to the **planner platform**. Tenant wedding-site theming is parked.
 ## Shipped
 
 - `packages/db/` — **the gate.** PH0 schema, RLS forced on all 9 tenant tables, `withTenant`,
-  **101 assertions** on both tiers including against the real Neon pooled endpoint.
+  **142 assertions** on both tiers including against the real Neon pooled endpoint.
   `npm run test:db`.
 - `packages/core/` — host resolution and `RESERVED_SUBDOMAINS`, import-free so `proxy.ts`
   can use it without pulling in the database layer. Also holds `packages/core/auth`, the seam
-  every other module goes through; `better-auth.ts` behind it is M3's remaining work.
+  every other module goes through. `better-auth.ts` behind it is done and sign-in mail sends;
+  M3's remaining work is the authenticated shell, specified in
+  `docs/specs/0001-moving-around-the-dashboard.md`.
 - `apps/web/` — the one Next.js 16 app. Marketing on the apex, the dashboard on
   `app.guestnote.be`, guest sites on `<slug>.guestnote.be`, all four host branches real and
   tested — `src/proxy.test.ts` covers every branch, header and cache rule, mutation-checked. NL/EN/FR. Runs locally; **not deployed** — M1a's OpenNext + CDK is still deferred.

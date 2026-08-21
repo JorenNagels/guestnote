@@ -76,6 +76,33 @@ Explicitly rejected and not to be re-proposed: Neon's own RLS feature (`pg_sessi
 the `authenticated` role). It couples RLS to a JWT-issuing IdP, and Better Auth sessions
 are opaque DB-backed cookies. There is nothing for it to read.
 
+## Addendum, 2026-08-20 — two permissive policies compose the same way through the pooler
+
+This ADR settled "a transaction-local GUC does not survive `COMMIT` on a recycled pooled
+connection", for a schema in which every table had exactly one policy. Migration
+`0005_org_read_for_members` broke that assumption: `organizations` now carries two, and
+PostgreSQL ORs permissive policies together.
+
+Measured the same day, both tiers, **142 assertions passing on each** — `-pooler` on
+PostgreSQL 18.4 and the local `postgres:17-alpine` container. The OR composes identically
+through the transaction-mode pooler; nothing about policy composition is pooler-sensitive,
+and no finding here needs revising.
+
+What the same change did surface is a hazard that has nothing to do with Neon and everything
+to do with the OR itself. `withTenant` sets `app.user_id` as well as `app.org_id`, so a
+policy keyed on the user axis is live inside *every* transaction, not only `withUser`'s. The
+effective read predicate on `organizations` silently became `id = app.org_id OR you are a
+member of it`, and the one pre-existing `withTenant` read of that table carried no `id`
+predicate of its own — it had never needed one. A user who is staff at two organisations
+then got both rows back from a transaction pinned to one. Caught in review before it was
+committed; the fix is a guard in the policy so it cannot apply where `app.org_id` is set,
+which makes the shape unrepresentable rather than requiring every future query to remember
+a redundant clause.
+
+Recorded here rather than only in the migration because this is the document someone opens
+when they want to know how RLS behaves in this project, and "adding a second policy to a
+table changes what the first one filters" is the kind of thing worth finding at that moment.
+
 ## Loose ends
 
 - **Verified on 18.4, developed against 17.11.** The local tier runs `postgres:17-alpine`;

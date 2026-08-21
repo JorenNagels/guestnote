@@ -33,15 +33,45 @@ set -a; . ./.env.local; set +a
 REQUIRE_NEON_TIER=1 npm run test:db
 ```
 
-**Result, 2026-08-19: 101 passed** against `-pooler` on PostgreSQL **18.4**, and 101 on the
-local container (99 earlier the same day, before `mail_deliveries` and `rate_limits` joined
-the coverage check; 94 on 2026-08-17, before Better Auth's four tables did). This settles
-`research/05-architecture.md` §11.2 — see `docs/adr/0001-rls-through-neon-pooler.md`.
+**Result, 2026-08-20: 142 passed** against `-pooler` on PostgreSQL **18.4**, and 142 on the
+local container — both with `0005_org_read_for_members` applied, which made `organizations`
+the first table here to carry two policies. That the OR of two permissive policies composes
+the same way through the transaction-mode pooler as it does on the container is now measured
+rather than assumed, and it is not a rhetorical question: the composition is exactly what
+went wrong on the way to this number (see below).
+
+Earlier runs, all real but none of them the run immediately before this one: 101 on both
+tiers on 2026-08-19, 99 earlier that day before `mail_deliveries` and `rate_limits` joined
+the coverage check, 94 on 2026-08-17 before Better Auth's four tables did. The suite grew to
+115 between the 101 and this change without the figure here being updated, which is the
+ordinary way a count in a README rots — it is only ever touched when someone runs the suite
+*and* remembers. This settles `research/05-architecture.md` §11.2 — see
+`docs/adr/0001-rls-through-neon-pooler.md`.
 
 `0004_wakeful_sunspot.sql` added the two mail tables. Both are `UNSCOPED_TABLES` and carry no
 RLS, on the same grounds as the auth tables: a sign-in code is requested by someone who is by
 definition not signed in, so there is no `app.user_id` to scope by. `0002_grants.sql`'s
 `alter default privileges` covered them with no extra grant work — verified, not assumed.
+
+`0005_org_read_for_members.sql` (hand-written, like `0001` and `0002`) adds a **second
+policy** to `organizations` — the first table here to carry two — so a `member`, who has no
+org-wide principal at all, can read the name of the organisation they work for. `FOR SELECT`
+only, and **guarded to apply only where `app.org_id` is unset.**
+
+That guard is the whole safety argument and it is there because the version without it was
+wrong. `withTenant` sets `app.user_id` as well as `app.org_id`, so a policy on the user axis
+is live in *every* transaction; Postgres ORs permissive policies; and `getOrg` had no `id`
+predicate of its own because `tenant_isolation` had always been the filter. The effective
+predicate quietly became `id = app.org_id OR you are a member of it`, and a user who is staff
+at two organisations got both rows back from a transaction pinned to one — with `rows[0]`
+being the wrong one. Measured 2026-08-20; caught in review, before it was committed.
+
+Three things about it were measured rather than assumed, and all three are in the migration's
+header: which half of the `EXISTS` is load-bearing (the `org_id` correlation, not the
+`user_id` comparison, which is redundant with `org_members`' own policy), why no assertion in
+`repos.test.ts` can prove the policy at all (`listOrgsForUser` joins `org_members`, so it
+returns the right answer even when the policy is wrong), and the guard above.
+`isolation.test.ts` §7 holds the policy up and §8 holds the guard up.
 
 ## Applying a migration
 
@@ -130,7 +160,7 @@ a pooled connection and one request's tenant leaks into the next.
 
 | GUC | Meaning |
 |---|---|
-| `app.user_id` | The authenticated user. Scopes `org_members` / `wedding_members`. |
+| `app.user_id` | The authenticated user. Scopes `org_members` / `wedding_members`, and `SELECT` on `organizations` via 0005's `org_read_for_members`. |
 | `app.org_id` | The tenant. **Data scoping, never a permission.** |
 | `app.wedding_id` | **Mandatory** for any principal with no `org_members` row. |
 | `app.wedding_role` | Decides `visibility = 'internal'` rows. |
@@ -184,6 +214,11 @@ migrations/
 `UNSCOPED_TABLES`. `test/schema-coverage.test.ts` fails CI if a table is unclassified,
 missing a tenant key, missing `FORCE ROW LEVEL SECURITY`, or missing a policy — so
 extending the suite is mechanical rather than something to remember.
+
+A policy may be excused from naming its tenant key only by being listed in that file's
+`USER_SCOPED_POLICY_EXCEPTIONS`, which is a one-line diff a reviewer sees. There is exactly
+one entry. A second assertion fails if an exception names no live policy, because an
+exception matching nothing pre-authorises whatever is later created under that name.
 
 ## Things learned by breaking it on purpose
 

@@ -186,12 +186,42 @@ export function migrationFilesOnDisk(): string[] {
 export const F = {
   orgA: 'aaaaaaaa-0000-0000-0000-00000000000a',
   orgB: 'bbbbbbbb-0000-0000-0000-00000000000b',
+  /**
+   * Third org, and its values disagree with each other ON PURPOSE. `Atelier Zero` sorts
+   * FIRST by name, LAST by id, and is inserted LAST -- so an assertion on
+   * `listOrgsForUser`'s order can only pass if the `order by name` is really there.
+   * With only Studio A and Studio B, name order, id order and heap order all coincide
+   * and any ordering assertion is vacuous.
+   */
+  orgC: 'ffffffff-0000-0000-0000-00000000000f',
   weddingA1: 'a1111111-0000-0000-0000-0000000000a1',
   weddingA2: 'a2222222-0000-0000-0000-0000000000a2',
   weddingB1: 'b1111111-0000-0000-0000-0000000000b1',
   coupleA1: 'cccccccc-0000-0000-0000-0000000000c1',
   staffA: 'dddddddd-0000-0000-0000-0000000000d1',
   staffB: 'dddddddd-0000-0000-0000-0000000000d2',
+  /**
+   * A staff MEMBER of org A, assigned to wedding A1 only. Lived in `repos.test.ts` as a
+   * local fixture until 2026-08-20 and moved here for two reasons: `isolation.test.ts`
+   * needs to exercise `organizations`' member-read policy as an actual member rather than
+   * as an owner, and a local fixture inserted after `reseed()` silently reports the whole
+   * FILE as skipped if its INSERT ever collides with a row `reseed()` starts writing.
+   *
+   * The one principal whose reads cost a transaction per wedding -- `assignedStaff` pins
+   * `app.wedding_id`, and a pinned GUC returns exactly the row it names.
+   */
+  memberA: 'eeeeeeee-0000-0000-0000-0000000000e1',
+  /**
+   * Staff at TWO organisations: `admin` of org A, `owner` of org C.
+   *
+   * This shape did not exist in the fixture until 2026-08-20, and its absence hid a real
+   * cross-tenant bug for the length of one review: migration 0005's policy keys on
+   * `org_members`, so a user with exactly one membership can never demonstrate what the
+   * OR of two permissive policies does. `landingOrgId` ranks owner above admin, so this
+   * user lands in org C while org A is the older row -- which is what made `getOrg`'s
+   * missing `id` predicate return the WRONG organisation rather than merely an extra one.
+   */
+  staffDual: 'dddddddd-0000-0000-0000-0000000000d3',
   taskA1Shared: '11111111-0000-0000-0000-000000000001',
   taskA1Internal: '11111111-0000-0000-0000-000000000002',
   taskA2Shared: '22222222-0000-0000-0000-000000000001',
@@ -203,6 +233,15 @@ export const AS = {
   /** Org A owner, no wedding pin: sees every wedding in org A. */
   staffA: { userId: F.staffA, orgId: F.orgA, weddingRole: 'owner' } as Gucs,
   staffB: { userId: F.staffB, orgId: F.orgB, weddingRole: 'owner' } as Gucs,
+  /**
+   * The dual-membership user, in the shape `withTenant` builds for org C -- which is
+   * where `landingOrgId` sends them, owner outranking admin.
+   *
+   * The point of this bundle is that `app.user_id` is set, exactly as `withTenant` sets
+   * it. That is what makes a user-axis policy on `organizations` live inside a tenant
+   * transaction, and it is the combination no assertion covered before 2026-08-20.
+   */
+  staffDualOnC: { userId: F.staffDual, orgId: F.orgC, weddingRole: 'owner' } as Gucs,
   /** Org A owner, pinned to wedding A1. */
   staffAOnA1: {
     userId: F.staffA,
@@ -284,6 +323,29 @@ async function assertSeedRoleUsable(): Promise<void> {
   }
 }
 
+/**
+ * One statement through the SEED role, for setting up a state `app_user` cannot reach.
+ *
+ * Soft delete is the case that needed it: `update organizations set deleted_at = now()`
+ * is a write, and every write to a tenant table is refused unless the GUCs say otherwise
+ * -- which is the property `isolation.test.ts` asserts and must keep asserting. So a test
+ * that wants a soft-deleted row has to write it from outside the mechanism under test,
+ * exactly as `reseed()` does and for the same reason: the fixture has to be ground truth,
+ * independent of what it is being used to check.
+ *
+ * Always pair it with `reseed()` in a `finally`. This writes real rows to the shared
+ * fixture, and the `db` project runs serially precisely because that state is shared.
+ */
+export async function seedExec(sqlText: string, values: unknown[] = []): Promise<void> {
+  await assertSeedRoleUsable()
+  const pool = new NodePool({ connectionString: SEED_URL, max: 1 })
+  try {
+    await pool.query(sqlText, values)
+  } finally {
+    await pool.end()
+  }
+}
+
 export async function reseed(): Promise<void> {
   await assertSeedRoleUsable()
   const pool = new NodePool({ connectionString: SEED_URL, max: 1 })
@@ -292,13 +354,17 @@ export async function reseed(): Promise<void> {
       task_comments, tasks, audit_log, invitations, wedding_domains,
       wedding_members, org_members, weddings, organizations, users cascade`)
     await pool.query(
-      `insert into users (id, email) values ($1,'couple@a1.test'), ($2,'staff@a.test'), ($3,'staff@b.test')`,
-      [F.coupleA1, F.staffA, F.staffB],
+      `insert into users (id, email) values
+         ($1,'couple@a1.test'), ($2,'staff@a.test'), ($3,'staff@b.test'),
+         ($4,'member@a.test'), ($5,'dual@a.test')`,
+      [F.coupleA1, F.staffA, F.staffB, F.memberA, F.staffDual],
     )
+    // org-c is inserted LAST and its name sorts FIRST -- see the note on F.orgC.
     await pool.query(
       `insert into organizations (id, slug, name, type) values
-         ($1,'org-a','Studio A','planner'), ($2,'org-b','Studio B','planner')`,
-      [F.orgA, F.orgB],
+         ($1,'org-a','Studio A','planner'), ($2,'org-b','Studio B','planner'),
+         ($3,'org-c','Atelier Zero','planner')`,
+      [F.orgA, F.orgB, F.orgC],
     )
     await pool.query(
       `insert into weddings (id, org_id, slug, couple_display_name, wedding_date) values
@@ -308,12 +374,16 @@ export async function reseed(): Promise<void> {
       [F.weddingA1, F.weddingA2, F.weddingB1, F.orgA, F.orgB],
     )
     await pool.query(
-      `insert into wedding_members (wedding_id, user_id, role) values ($1,$2,'couple')`,
-      [F.weddingA1, F.coupleA1],
+      `insert into wedding_members (wedding_id, user_id, role) values
+         ($1,$2,'couple'), ($1,$3,'editor')`,
+      [F.weddingA1, F.coupleA1, F.memberA],
     )
     await pool.query(
-      `insert into org_members (org_id, user_id, role) values ($1,$2,'owner'), ($3,$4,'owner')`,
-      [F.orgA, F.staffA, F.orgB, F.staffB],
+      `insert into org_members (org_id, user_id, role) values
+         ($1,$2,'owner'), ($3,$4,'owner'),
+         ($1,$5,'member'),
+         ($1,$6,'admin'), ($7,$6,'owner')`,
+      [F.orgA, F.staffA, F.orgB, F.staffB, F.memberA, F.staffDual, F.orgC],
     )
     await pool.query(
       `insert into tasks (id, org_id, wedding_id, title, visibility) values

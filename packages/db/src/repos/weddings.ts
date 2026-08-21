@@ -3,7 +3,12 @@ import type { Db } from '../client.ts'
 import { organizations } from '../schema/orgs.ts'
 import { weddings } from '../schema/weddings.ts'
 import { withTenant } from '../tenant.ts'
-import { type Memberships, principalForOrg, principalForWedding } from './memberships.ts'
+import {
+  type Memberships,
+  type OrgSummary,
+  principalForOrg,
+  principalForWedding,
+} from './memberships.ts'
 
 /**
  * The wedding list, which is the first read in this application to go through
@@ -23,12 +28,6 @@ export type WeddingSummary = {
   readonly coupleDisplayName: string
   /** `date`, not `timestamptz`. Drizzle hands it back as `YYYY-MM-DD` or null. */
   readonly weddingDate: string | null
-}
-
-export type OrgSummary = {
-  readonly id: string
-  readonly name: string
-  readonly slug: string
 }
 
 const SUMMARY = {
@@ -92,7 +91,8 @@ export async function listWeddings(
     // page starves every other request on a warm Lambda container.
     //
     // The `eq(weddings.id, ...)` below is REDUNDANT, and that was measured rather than
-    // assumed: deleting it leaves all 14 assertions in test/repos.test.ts passing,
+    // assumed: deleting it left every assertion in test/repos.test.ts passing -- measured
+    // when that file held 14 of them, and re-checked on 2026-08-20 when it held 32 --
     // because `app.wedding_id` is pinned and the policy already admits exactly one row.
     // It stays as the braces to RLS's belt -- the same argument `assertScoped` makes for
     // itself -- but a reader should know which of the two is actually load-bearing here,
@@ -113,13 +113,82 @@ export async function listWeddings(
 }
 
 /**
- * The organisation itself, for the shell's header.
+ * One named wedding, or `null`.
  *
- * `organizations` is readable only where `app.org_id` equals the row's own id, so this
- * cannot be folded into `resolveMemberships` -- that runs under `withUser`, where
- * `app.org_id` is the empty string and every organisation row is filtered out. Two
- * transactions is the honest cost of the policy, and the policy is right: a membership
- * row is not a licence to read the org's billing status.
+ * ## Why this is not `listWeddings().find()`
+ *
+ * Two paths, and which one a role takes is forced by the `Principal` union rather than
+ * chosen for speed:
+ *
+ *   owner / admin  -> the ORG-WIDE principal, with `eq(weddings.id, ...)` in the query.
+ *                     `principalForWedding` returns `null` for them deliberately --
+ *                     `assertScoped` refuses an `orgStaff` principal carrying a
+ *                     weddingId, because it would silently narrow an owner to one
+ *                     wedding. Routing an owner through the per-wedding path would 404
+ *                     the person who owns the business, which is the failure mode
+ *                     `memberships.ts` warns reads as "the dashboard is mysteriously
+ *                     empty".
+ *   member         -> `assignedStaff`, which pins `app.wedding_id`.
+ *   couple/editor  -> `weddingMember`, same pin.
+ *
+ * The `??` is a UNION of two functions with disjoint non-null domains, not a precedence
+ * rule -- `principalForOrg` admits owner and admin only, and `principalForWedding`
+ * returns null for exactly those two. Swapping the operands changes nothing, measured
+ * 2026-08-20 by doing it: the whole db suite stayed green. Worth knowing before someone
+ * reorders them expecting a behaviour change, or "fixes" the order to look safer.
+ *
+ * The `eq(weddings.id, ...)` is load-bearing on the org-wide path and redundant on the
+ * pinned ones, where the policy already admits exactly one row. It stays for the reason
+ * `listWeddings` gives for its own: the policy is the boundary and the clause is the
+ * intent. Deleting it fails two of the assertions below, both on the org-wide path.
+ *
+ * ## `null` is a 404, never a 403
+ *
+ * For a member asking about a wedding they are not assigned to, and for staff asking
+ * about another org's wedding, this returns the same `null` as for a wedding that does
+ * not exist. That is not laziness: section 3's permission table ends "neither -> 404
+ * (not 403 -- don't confirm the wedding exists)", and distinguishing the two in the
+ * return type would put the leak back one layer up.
+ */
+export async function getWedding(
+  db: Db,
+  m: Memberships,
+  orgId: string,
+  weddingId: string,
+): Promise<WeddingSummary | null> {
+  const principal = principalForOrg(m, orgId) ?? principalForWedding(m, orgId, weddingId)
+  if (!principal) return null
+
+  const rows = await withTenant(db, principal, async (tx) =>
+    tx
+      .select(SUMMARY)
+      .from(weddings)
+      .where(and(eq(weddings.id, weddingId), isNull(weddings.deletedAt))),
+  )
+  return rows[0] ?? null
+}
+
+/**
+ * The organisation, read with ORG-WIDE STANDING -- which is what distinguishes this from
+ * `listOrgsForUser` in ./memberships.ts, and the distinction is the point.
+ *
+ * **Amended 2026-08-20.** This docstring used to say `organizations` is readable "only
+ * where `app.org_id` equals the row's own id", and that "a membership row is not a
+ * licence to read the org's billing status". Migration 0005 made the first sentence
+ * incomplete and the second one false at the row level: `org_read_for_members` admits an
+ * organisation row to any member of it, under `withUser`, because the dashboard's sidebar
+ * needed a name for a `member` and there was no path to one.
+ *
+ * What is still true, and is why both functions exist:
+ *
+ *   * 0005 is FOR SELECT only, so a write to `organizations` still requires the org-wide
+ *     principal this function demands.
+ *   * `listOrgsForUser` selects `id, slug, name` and nothing else. Anything that needs
+ *     `plan`, `subscription_status` or `mollie_customer_id` comes through HERE, where
+ *     `principalForOrg` has already refused a `member`.
+ *
+ * So the sentence to carry forward is narrower than the old one: a membership row is a
+ * licence to read the org's NAME, and not its billing.
  *
  * `null` means the user has no org-wide standing here, or the org is soft-deleted.
  */
@@ -131,7 +200,20 @@ export async function getOrg(db: Db, m: Memberships, orgId: string): Promise<Org
     tx
       .select({ id: organizations.id, name: organizations.name, slug: organizations.slug })
       .from(organizations)
-      .where(isNull(organizations.deletedAt)),
+      // This `eq` is belt-and-braces, and it is here because for a few hours it was not.
+      // Until 2026-08-20 the query had no id predicate at all: `tenant_isolation`
+      // (`id = app.org_id`) was the only SELECT policy on this table, so the GUC WAS the
+      // filter. Migration 0005 added a second permissive policy, Postgres ORs those, and
+      // the effective predicate silently became `id = app.org_id OR you are a member of
+      // it` -- measured: a user who is `admin` of org A and `owner` of org C got both rows
+      // back with the transaction pinned to C, and `rows[0]` was A.
+      //
+      // 0005's `app.org_id is null` guard is what actually fixes that, and it fixes the
+      // whole class rather than this caller: deleting this `eq` today changes nothing and
+      // no test notices, verified the same day. It stays anyway, on the rule the rest of
+      // this layer follows -- the policy is the boundary, the clause is the intent -- but
+      // a reader should not mistake it for the thing holding the line.
+      .where(and(eq(organizations.id, orgId), isNull(organizations.deletedAt))),
   )
   return rows[0] ?? null
 }

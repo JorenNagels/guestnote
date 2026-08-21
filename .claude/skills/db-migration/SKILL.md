@@ -57,7 +57,14 @@ In `packages/db/src/schema/index.ts`, add the table to **exactly one** of:
 
 `packages/db/test/schema-coverage.test.ts` fails if a table is unclassified, and — for the three
 *scoped* buckets only — if it is missing a tenant key, `FORCE ROW LEVEL SECURITY`, or a policy.
-`UNSCOPED_TABLES` is exempt from those three by design. That is the mechanism that makes extending the
+`UNSCOPED_TABLES` is exempt from those three by design.
+
+**Adding a policy to a table that already has one is a different job from adding a table**, and
+the buckets above will not lead you to it. `organizations` is the only case so far — migration
+`0005_org_read_for_members`, which lets an org `member` read their organisation's name before a
+tenant is known. It stayed in `SELF_SCOPED_TABLES`, because its tenant key did not change; what
+changed is that it now carries a second, `FOR SELECT` policy on the `app.user_id` axis. If that
+is what you are doing, read §4b below before writing anything. That is the mechanism that makes extending the
 suite mechanical instead of something to remember — do not weaken it to make a table fit.
 
 A new `UNSCOPED_TABLES` entry needs a reason of the same *kind* as the existing ones: the row
@@ -80,8 +87,9 @@ statement for a rename it read as a drop plus an add.
 ### 4. Write the policy and the grants by hand
 
 The generated file is structure only. RLS and grants are hand-written and live in their own
-files by convention — `0001_rls.sql` and `0002_grants.sql` — so policies need no role to exist
-at the time they are created. Follow their shape:
+files by convention — `0001_rls.sql` for the baseline policies, `0002_grants.sql` for the role,
+and from `0005_org_read_for_members.sql` onward one file per *feature-scoped* policy change — so
+policies need no role to exist at the time they are created. Follow their shape:
 
 - `alter table … enable row level security;` **and** `alter table … force row level security;`
 - every policy predicate reads its GUC as
@@ -90,6 +98,49 @@ at the time they are created. Follow their shape:
   no rows.**
 - the predicate must actually name the tenant key. `with check (true)` passes a
   "does a WITH CHECK exist" test and permits everything.
+
+### 4b. Adding a SECOND policy to a table — read this before you do
+
+**PostgreSQL ORs permissive policies together.** Two policies on one table do not each guard
+their own case; the table's effective predicate becomes their union, and it applies to every
+transaction, not just the one you had in mind.
+
+That is not theoretical here. `0005` was first written as a bare `exists (… app.user_id …)` on
+`organizations`, reasoning that a user-axis policy "only decides anything where `app.org_id` is
+unset, which is `withUser`'s". Wrong: `withTenant` sets `app.user_id` too, so it was live
+everywhere, and the effective read predicate silently became
+
+```
+id = app.org_id  OR  you are a member of it
+```
+
+`getOrg` — the one pre-existing `withTenant` read of that table — had no `id` clause of its own,
+because `tenant_isolation` had always been the filter. A user who was staff at two organisations
+got both rows back from a transaction pinned to one, and `rows[0]` was the wrong organisation.
+Measured 2026-08-20 and caught in review, not in production.
+
+So, when adding a second policy:
+
+- **Guard it so it cannot apply in the transaction shape it was not written for.** 0005 uses
+  `nullif(current_setting('app.org_id', true), '') is null and …`, which makes it contribute
+  nothing inside `withTenant`. This is CLAUDE.md's rule — prefer making a dangerous shape
+  unrepresentable over checking for it — and the alternative, adding a defensive `eq` to every
+  existing query on the table, is a rule no test enforces.
+- **Audit every existing query on that table for a predicate it was getting from the old
+  policy.** `grep` for the table in `packages/db/src/repos/`. A query with no `where` beyond
+  soft-delete is the smell.
+- **`for select` unless writes genuinely need it.** SELECT policies are ANDed into a write's
+  row check, never ORed into permission, so a read-only second policy cannot widen writes.
+- **Expect `schema-coverage.test.ts` to fail, and fix it narrowly.** A `for select` policy has a
+  null `WITH CHECK` (skip on `cmd = 'SELECT'`), and one scoped by `app.user_id` on an org-scoped
+  table will not name the tenant key (add its exact name to `USER_SCOPED_POLICY_EXCEPTIONS`).
+  Do **not** loosen `expectedKey` — that would let a regression through on the primary policy.
+- **Write the assertion in `isolation.test.ts`, not in `repos.test.ts`.** A repository function
+  that filters in the query returns the right answer even when the policy is wrong; only a test
+  that sets the GUCs by hand can tell you which is doing the work.
+- **Check the fixture can observe it.** 0005 keys on `org_members`, and no fixture user held two
+  membership rows, which is the single reason the bug above survived to review. `F.staffDual`
+  exists now for that.
 - for a `FOR ALL` policy, Postgres applies `USING` to the NEW row on `UPDATE` as well as the
   existing one. So a rule you only want enforced on write still belongs in `USING`, and INSERT
   tests exercise `WITH CHECK` while UPDATE tests exercise `USING` — different mechanisms,

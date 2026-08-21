@@ -35,6 +35,11 @@ export const TENANT_SCOPED_TABLES = [
  *
  *   organizations  id = app.org_id
  *   weddings       org_id = app.org_id AND (app.wedding_id IS NULL OR id = app.wedding_id)
+ *
+ * `organizations` carries a SECOND policy since migration 0005 -- `org_read_for_members`,
+ * FOR SELECT, on the `app.user_id` axis -- which applies only where `app.org_id` is
+ * unset, so the line above is still what governs every tenant-scoped read. It stays in
+ * this bucket: its tenant key has not changed.
  */
 export const SELF_SCOPED_TABLES = ['organizations', 'weddings'] as const
 
@@ -42,6 +47,11 @@ export const SELF_SCOPED_TABLES = ['organizations', 'weddings'] as const
  * The two deliberate exceptions. Read *before* the tenant is known, in order to
  * determine it, so their policy runs on `app.user_id` instead of the tenant keys.
  * research/07-auth-and-tenancy.md section 4a -- this is correct, not an oversight.
+ *
+ * These are the tables scoped ONLY by that axis, which is what puts them in a bucket of
+ * their own. It is not the same as being the only tables a policy on that axis touches:
+ * `organizations` gained one in migration 0005 without changing bucket, because its
+ * tenant key is unchanged and `tenant_isolation` still governs every tenant read of it.
  */
 export const USER_SCOPED_TABLES = ['org_members', 'wedding_members'] as const
 

@@ -22,6 +22,11 @@ so those were being inferred at planning time, silently, and discovered wrong on
   `packages/db/migrations/`. Filename `NNNN-short-hyphenated-title.md`, all lowercase.
 - Opens with `**Date:** … · **Status:** …`, same as an ADR. Status runs
   `Specified, not built` → `Built YYYY-MM-DD` → `Superseded by NNNN`.
+- **A partly-built spec keeps the `Specified, not built` status and says what exists in a
+  `**Built so far:**` line underneath.** Spec `0001` shipped across three commits and found
+  this gap on the first one. A fourth status term was the alternative and was rejected:
+  "partly built" is not a state anyone can act on, whereas a line naming the built pieces
+  is. `Built YYYY-MM-DD` means the whole spec is real.
 - **A rejected option is never deleted**, the same rule `research/` runs on. The spec records
   what was chosen *and* what was turned down, so the question is not reopened from scratch.
 - **A spec that no longer describes the product gets amended, not left standing.** One that

@@ -67,8 +67,9 @@ export const weddings = pgTable(
  * THE COUPLE (plus staff assigned to this specific wedding).
  *
  * The second of the two tables without `wedding_id` as a separate tenant column --
- * here the wedding IS the scope -- and the second whose policy runs on
- * `app.user_id`. research/07-auth-and-tenancy.md section 4a.
+ * here the wedding IS the scope -- and the second scoped ONLY by `app.user_id`.
+ * research/07-auth-and-tenancy.md section 4a. (Migration 0005 gave `organizations` a
+ * second policy on that same axis; these two remain the only tables with nothing else.)
  *
  * `role` does double duty: `couple` for the clients, `editor` for the staff member
  * assigned to that wedding. That is how "org member = assigned weddings only" is

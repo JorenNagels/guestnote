@@ -75,6 +75,14 @@ stop and ask. The rest are held by convention alone, which is why they are writt
    existing ones: the row is written before a principal exists, so there is no `app.user_id`
    to scope by and a policy would break sign-in outright. `mail_deliveries` and `rate_limits`
    are the newest two.
+   **One sanctioned exception to "names its tenant key":** a table may carry a *second*
+   policy on the `app.user_id` axis where a name has to be readable before a tenant is
+   known. `organizations.org_read_for_members` (migration 0005) is the only one, it is
+   `for select` so writes stay on the tenant key, and it is guarded to apply only where
+   `app.org_id` is unset — without that guard Postgres ORs it with `tenant_isolation` and a
+   tenant-scoped read starts returning other organisations, which is how it was found.
+   It is named individually in `USER_SCOPED_POLICY_EXCEPTIONS` in `schema-coverage.test.ts`,
+   so a *new* policy scoping by neither key still fails.
 
 3. **`Principal` stays a discriminated union.** Never `{ orgId?, weddingId? }`. A principal
    with no `org_members` row *must* carry `weddingId`, or RLS falls through to org-wide

@@ -183,6 +183,165 @@ describe('7. the membership axis (app.user_id)', () => {
   it('memberships are invisible without app.user_id', async () => {
     expect(n(await asPrincipal(h, {}, 'select count(*)::int as n from wedding_members'))).toBe(0)
   })
+
+  /**
+   * Migration 0005's `org_read_for_members`, tested WITHOUT the repository in the way.
+   *
+   * These query `organizations` directly, because `listOrgsForUser` inner-joins
+   * `org_members` and would produce the right answer even if the policy were wrong. So
+   * this block is the only thing holding the policy up, and describe 8 below is the only
+   * thing holding its guard up.
+   *
+   * **Be precise about which mutation each case kills**, because an earlier version of
+   * this comment was not. Measured 2026-08-20, local container:
+   *
+   *   drop `org_members.org_id = organizations.id`  -> staffA reads ['org-a','org-b'].
+   *                                                    CAUGHT here, and only here.
+   *   drop `org_members.user_id = app.user_id`      -> nothing changes, anywhere. The
+   *                                                    subquery reads org_members, and
+   *                                                    Postgres applies THAT table's
+   *                                                    own_memberships policy inside it,
+   *                                                    so app.user_id is already
+   *                                                    filtering one level down. Nothing
+   *                                                    discriminates that clause and
+   *                                                    nothing can: it is redundant by
+   *                                                    construction, not undertested.
+   */
+  it('a user reads the organisations they belong to, and no others', async () => {
+    const rows = await asPrincipal(
+      h,
+      { userId: F.staffA },
+      'select slug from organizations order by slug',
+    )
+    expect(rows.map((r) => r.slug)).toEqual(['org-a'])
+  })
+
+  /** The same, as an actual `member` -- the role 0005 exists for, not an owner. */
+  it('a member reads their own org name, which getOrg cannot give them', async () => {
+    const rows = await asPrincipal(
+      h,
+      { userId: F.memberA },
+      'select slug from organizations order by slug',
+    )
+    expect(rows.map((r) => r.slug)).toEqual(['org-a'])
+  })
+
+  it('a couple reads no organisation at all, holding no org_members row', async () => {
+    expect(
+      n(
+        await asPrincipal(
+          h,
+          { userId: F.coupleA1 },
+          'select count(*)::int as n from organizations',
+        ),
+      ),
+    ).toBe(0)
+  })
+
+  /**
+   * The EMPTY-STRING path, which is a different branch from the NULL one section 1 covers
+   * and is the one `withUser` actually produces -- it sets every unused GUC to `''`
+   * explicitly, so a transaction cannot inherit a value it did not ask for.
+   *
+   * This is what `nullif(current_setting(...), '')` is for. Without the nullif, `''`
+   * reaches the `::uuid` cast and the query raises `invalid input syntax for type uuid`
+   * instead of returning nothing -- measured 2026-08-20. Section 1's `asNobody` cases
+   * cannot reach this branch: they set no GUC at all, so `current_setting` returns NULL.
+   */
+  it('an empty-string user id reads nothing, and does not error', async () => {
+    expect(n(await asPrincipal(h, {}, 'select count(*)::int as n from organizations'))).toBe(0)
+  })
+
+  /**
+   * The policy is FOR SELECT, and this is the assertion that says so. Under `app.user_id`
+   * alone, `tenant_isolation`'s USING cannot match either -- `app.org_id` is unset -- so
+   * nothing grants this write and no row is touched. Widen 0005 to FOR ALL and this fails.
+   *
+   * `reseed()` afterwards is not optional: if the mutation this test exists to catch ever
+   * goes live, the UPDATE succeeds and org A is renamed for every later read in the file.
+   * Following the one other test here that writes successfully.
+   */
+  it('reading an organisation is not a licence to write it', async () => {
+    const updated = await asPrincipal(
+      h,
+      { userId: F.staffA },
+      "update organizations set name = 'Renamed By A Member' returning id",
+    )
+    expect(updated, 'a membership row permitted a write to the organisation').toEqual([])
+    await reseed()
+  })
+})
+
+/**
+ * The composed OR -- the shape that actually went wrong.
+ *
+ * `organizations` is the first table here to carry two permissive policies, and Postgres
+ * ORs them. `withTenant` sets `app.user_id` as well as `app.org_id` (src/tenant.ts), so a
+ * policy keyed on the user axis is live inside every tenant transaction unless something
+ * stops it -- and 0005 as first written had nothing that did. The effective predicate
+ * became `id = app.org_id OR you are a member of it`, and `getOrg`, which carried no `id`
+ * clause of its own because tenant_isolation had always been the filter, began returning
+ * one row per organisation the user belonged to.
+ *
+ * It survived to a review because no fixture user held two `org_members` rows. `F.staffDual`
+ * exists so that cannot be the reason twice: admin of org A, owner of org C, which is the
+ * minimum shape that can observe an OR at all.
+ *
+ * A separate describe from section 7 because that section is about the user axis on its
+ * own, and this is specifically about the two axes composing.
+ */
+describe('8. two policies on one table (app.org_id OR app.user_id)', () => {
+  /**
+   * The regression assertion. Delete the `app.org_id is null` guard from 0005 and this
+   * returns both orgs -- measured 2026-08-20, before the guard existed, with `rows[0]`
+   * being the wrong organisation entirely rather than merely an extra one.
+   */
+  it('a tenant transaction sees only its own org, even for a user in several', async () => {
+    const rows = await asPrincipal(h, AS.staffDualOnC, 'select slug from organizations')
+    expect(
+      rows.map((r) => r.slug),
+      'the member-read policy leaked into a tenant-scoped read',
+    ).toEqual(['org-c'])
+  })
+
+  /**
+   * Guard against a vacuous pass: the assertion above proves nothing unless this user
+   * really does belong to more than one organisation. Under `withUser`'s shape -- no
+   * `app.org_id` -- they must see both, in name order.
+   */
+  it('...and the same user sees both of their orgs when no tenant is pinned', async () => {
+    const rows = await asPrincipal(
+      h,
+      { userId: F.staffDual },
+      'select slug from organizations order by name',
+    )
+    expect(rows.map((r) => r.slug)).toEqual(['org-c', 'org-a'])
+  })
+
+  /**
+   * A forged `app.org_id` still scopes to exactly that org, and to nothing the user
+   * happens to be a member of elsewhere.
+   *
+   * Note what this does NOT claim. Pinning to org B and getting org B back is correct and
+   * is section 1's `a forged org_id scopes to that org` case: `app.org_id` is a
+   * data-scoping mechanism and never a permission, so at the SQL layer there is nothing
+   * to reject -- the guarantee is that `principalForOrg` never builds such a principal.
+   *
+   * What is new here, and what the OR could have broken, is the SECOND half: this user is
+   * staff at org A and org C, and neither may appear beside org B. Written as an exact
+   * `toEqual` rather than a `not.toContain`, so it also fails if the answer becomes empty.
+   */
+  it('a forged org_id admits that org and none of the user own memberships', async () => {
+    const pinned = await asPrincipal(
+      h,
+      { ...AS.staffDualOnC, orgId: F.orgB },
+      'select slug from organizations order by slug',
+    )
+    expect(
+      pinned.map((r) => r.slug),
+      'the member-read policy added the user own orgs to a forged tenant read',
+    ).toEqual(['org-b'])
+  })
 })
 
 describe('the trap: a principal without app.wedding_id', () => {

@@ -1,0 +1,129 @@
+-- A second policy on `organizations`: you may READ an organisation you belong to.
+--
+-- Hand-written, for the reason 0001_rls.sql gives: `CREATE POLICY` is the SQL you most
+-- want to be able to read six months from now, and keeping drizzle-kit out of the policy
+-- business means it can never produce a diff that quietly drops one.
+--
+-- ## The gap this closes
+--
+-- `resolveMemberships` returns `{ orgId, role }` and nothing else -- see the
+-- `OrgMembership` type in src/repos/memberships.ts. It runs under `withUser`, which sets
+-- app.user_id and blanks app.org_id to '' (src/tenant.ts). So the transaction that
+-- resolves memberships cannot read `organizations` at all: 0001's `tenant_isolation`
+-- predicate compares `id` against an app.org_id that is deliberately unset there.
+--
+-- The consequence was invisible until something needed an organisation's NAME. The
+-- dashboard's sidebar head does, and so does its org switcher, and for a `member` there
+-- was no path to it whatsoever: `principalForOrg` returns null for a member on purpose
+-- (a member's access is "assigned weddings only", so there is no legitimate principal
+-- scoping them to a whole organisation), which means `getOrg` returns null and the
+-- chrome has no text. docs/specs/0001-moving-around-the-dashboard.md records the
+-- alternatives that were rejected: one withTenant transaction per org, which still
+-- leaves a member nameless, and falling back to the user's own name, which makes the
+-- same chrome mean two different things depending on role.
+--
+-- ## Why this does not widen anything
+--
+--   * FOR SELECT, never FOR ALL. A member must not write the organisation row -- not
+--     its plan, not its brand, not its subscription. That is the whole reason this is
+--     a second policy rather than a loosened `tenant_isolation`.
+--   * **The `app.org_id is null` guard is the whole safety argument, and it is there
+--     because the obvious version of this policy was wrong.** See the section below.
+--   * The EXISTS reads org_members, whose own `own_memberships` policy already filters
+--     that table to app.user_id. The nesting therefore NARROWS: a user cannot use this
+--     to ask which organisations somebody else belongs to.
+--   * Same `nullif(current_setting(name, true), '')` idiom as every other predicate
+--     here, and for the same reason -- '' means unset, and it would fail a ::uuid cast.
+--     Fails closed: with no GUCs at all the guard passes but the EXISTS compares against
+--     a NULL user id, so no rows. isolation.test.ts §1 covers that shape.
+--
+-- ## The guard, and the bug that produced it
+--
+-- Written first WITHOUT the `app.org_id is null` clause, on the reasoning that a policy
+-- keyed on app.user_id "only ever decides anything in a transaction where app.org_id is
+-- unset, which is withUser's". That reasoning was wrong, and the way it was wrong is
+-- worth keeping: `withTenant` sets app.user_id as well (src/tenant.ts), so the new policy
+-- was live in EVERY transaction. Postgres ORs permissive policies, so the effective SELECT
+-- predicate on this table silently became
+--
+--     id = app.org_id  OR  you are a member of it
+--
+-- and `getOrg` -- the one pre-existing withTenant read of `organizations` -- had no `id`
+-- predicate of its own, because tenant_isolation had always been the filter. Measured
+-- 2026-08-20 on the local container: a user who is `admin` of Studio A and `owner` of
+-- Studio B, in a transaction pinned to Studio B, got BOTH rows back, and `getOrg`'s
+-- `rows[0]` was Studio A. The dashboard would have printed one planner's organisation
+-- above another's wedding list.
+--
+-- Two fixes were available. Adding `eq(organizations.id, orgId)` to `getOrg` closes this
+-- caller; the guard below closes the CLASS, because with app.org_id set this policy
+-- contributes nothing and tenant_isolation is once again the only thing admitting a row.
+-- CLAUDE.md's rule -- prefer making a dangerous shape unrepresentable over checking for
+-- it -- picks the guard: otherwise every future query on this table has to remember an
+-- `eq` that no test would miss. `getOrg` keeps its `eq` as well, now as ordinary
+-- belt-and-braces rather than as the fix.
+--
+-- What made it invisible was the fixture, not the reasoning: no user in test/harness.ts
+-- held two `org_members` rows, and this policy keys on exactly that. `F.staffDual` exists
+-- now for this reason, and `isolation.test.ts` asserts the composed shape directly.
+--
+-- ## Which half of the EXISTS is load-bearing -- measured, not assumed
+--
+-- Measured 2026-08-20, on the local container (`postgres:17-alpine`); the same mutations
+-- were not re-run against Neon, so these two results are tier-1 claims.
+--
+-- The `user_id` comparison inside the EXISTS is REDUNDANT. Deleting it left the whole db
+-- suite green, because the subquery reads org_members and Postgres applies THAT table's
+-- `own_memberships` policy inside the subquery too -- app.user_id is already filtering one
+-- level down, whether this clause is written or not. So the mutation does not admit "every
+-- organisation that has any member": it admits exactly the same set.
+--
+-- The load-bearing half is the `org_id = organizations.id` CORRELATION. Deleting that one
+-- instead is a genuine cross-org leak -- `staffA` reading org-b's row -- and
+-- `isolation.test.ts` §7 is what catches it. That block queries `organizations` with
+-- app.user_id set by hand and no join, precisely because `listOrgsForUser` inner-joins
+-- org_members and would return the right answer even with this policy broken.
+--
+-- The redundant clause stays, on the same argument `listWeddings` makes for its own
+-- redundant `eq`: the policy is the boundary and the clause is the intent, and a reader
+-- should not have to know org_members' policy to see that this reads one user's orgs. But
+-- a reader SHOULD know which of the two is actually holding the line, which is why this
+-- paragraph exists.
+--
+-- ## One correction to 0001_rls.sql, which is not edited
+--
+-- `0001_rls.sql`'s "The two deliberate exceptions, on a different axis entirely" -- and the
+-- matching comments in src/schema/{orgs,weddings,index}.ts -- described org_members and
+-- wedding_members as the only tables whose policy runs on app.user_id. With this file there
+-- are three. Read that comment as "the only two tables scoped ONLY by app.user_id":
+-- `organizations` keeps `tenant_isolation` as its primary policy and gains a second,
+-- SELECT-only one on the user axis. 0001 itself is left alone -- an applied migration is a
+-- record, and `schema-coverage.test.ts` asserts it has not been silently emptied.
+--
+-- ## The cost, stated rather than discovered
+--
+-- This admits the whole organisations ROW to any member of that org, `plan`,
+-- `mollie_customer_id` and `subscription_status` included. `listOrgsForUser` selects
+-- `id, slug, name` and nothing else, so no code path exposes the rest -- but the
+-- boundary is the query, not the grant. Column-level grants or a security_barrier view
+-- would move it into the database; both were rejected as more machinery than one select
+-- list, and this paragraph is the record of that being a choice.
+--
+-- No grant change: 0002_grants.sql already grants table-wide SELECT to app_user, and
+-- ALTER DEFAULT PRIVILEGES covers anything added later.
+
+create policy org_read_for_members on "organizations"
+  for select
+  using (
+    -- The guard. With app.org_id set -- every withTenant transaction -- this policy
+    -- contributes nothing, so tenant_isolation is once again the only thing that can
+    -- admit a row here. Without it, the OR of the two policies let a withTenant read
+    -- return every organisation the user belongs to. See the header.
+    nullif(current_setting('app.org_id', true), '') is null
+    and exists (
+      select 1
+        from org_members
+       where org_members.org_id = organizations.id
+         and org_members.user_id = nullif(current_setting('app.user_id', true), '')::uuid
+    )
+  );

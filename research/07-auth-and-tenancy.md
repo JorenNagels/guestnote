@@ -250,6 +250,15 @@ exception to §4's rule that every tenant-scoped table carries both `org_id` and
 `org_members` are the **only** two exceptions to that section's both-keys rule. Its RLS policy runs on a different
 axis:
 
+> ⚠️ **Amended 2026-08-20: a third policy now runs on this axis.** Migration
+> `0005_org_read_for_members` adds a `FOR SELECT` policy to `organizations`, so a `member`
+> — who has no org-wide principal and for whom `getOrg` returns null — can still read
+> their organisation's name under `withUser`. These two membership tables remain the only
+> ones whose *whole* policy set runs on `app.user_id`; `organizations` carries it as a
+> second policy beside `tenant_isolation`, guarded to apply only where `app.org_id` is
+> unset. `docs/specs/0001-moving-around-the-dashboard.md` argues the decision and prices
+> the rejected alternatives.
+
 ```sql
 ALTER TABLE wedding_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE wedding_members FORCE  ROW LEVEL SECURITY;

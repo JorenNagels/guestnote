@@ -8,12 +8,18 @@
  * enumerates users": the guarantee is a property of what is exported from here.
  */
 
-export type { Memberships, OrgMembership, WeddingMembership } from './memberships.ts'
+export type {
+  Memberships,
+  OrgMembership,
+  OrgSummary,
+  WeddingMembership,
+} from './memberships.ts'
 export {
   landingOrgId,
+  listOrgsForUser,
   principalForOrg,
   principalForWedding,
   resolveMemberships,
 } from './memberships.ts'
-export type { OrgSummary, WeddingSummary } from './weddings.ts'
-export { getOrg, listWeddings } from './weddings.ts'
+export type { WeddingSummary } from './weddings.ts'
+export { getOrg, getWedding, listWeddings } from './weddings.ts'
