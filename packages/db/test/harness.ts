@@ -218,8 +218,9 @@ export const F = {
    * cross-tenant bug for the length of one review: migration 0005's policy keys on
    * `org_members`, so a user with exactly one membership can never demonstrate what the
    * OR of two permissive policies does. `landingOrgId` ranks owner above admin, so this
-   * user lands in org C while org A is the older row -- which is what made `getOrg`'s
-   * missing `id` predicate return the WRONG organisation rather than merely an extra one.
+   * user lands in org C while org A is the older row -- which is what made the then-extant
+   * `getOrg`'s missing `id` predicate return the WRONG organisation rather than merely an
+   * extra one. That function is gone; the fixture shape it exposed is what stays useful.
    */
   staffDual: 'dddddddd-0000-0000-0000-0000000000d3',
   taskA1Shared: '11111111-0000-0000-0000-000000000001',

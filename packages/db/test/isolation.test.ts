@@ -217,7 +217,7 @@ describe('7. the membership axis (app.user_id)', () => {
   })
 
   /** The same, as an actual `member` -- the role 0005 exists for, not an owner. */
-  it('a member reads their own org name, which getOrg cannot give them', async () => {
+  it('a member reads their own org name, which no org-wide principal can give them', async () => {
     const rows = await asPrincipal(
       h,
       { userId: F.memberA },

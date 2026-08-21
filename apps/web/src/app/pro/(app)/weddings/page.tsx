@@ -1,7 +1,7 @@
-import { getOrg, listWeddings, type WeddingSummary } from '@guestnote/db'
+import { listWeddings, type WeddingSummary } from '@guestnote/db'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { getDb } from '../../../../lib/db.ts'
-import { currentMemberships, currentOrgId } from '../../../../lib/principal.ts'
+import { currentMemberships, currentOrgId, currentOrgs } from '../../../../lib/principal.ts'
 import { app } from '../../../../lib/routes.ts'
 import { signOut } from '../actions.ts'
 
@@ -53,10 +53,16 @@ export default async function WeddingsPage() {
   }
 
   const db = getDb()
-  const [org, rows] = await Promise.all([
-    getOrg(db, memberships, orgId),
-    listWeddings(db, memberships, orgId),
-  ])
+  // Named from `currentOrgs()` and NOT from `getOrg`, which used to be here and returned
+  // `null` for an org `member` by design -- `principalForOrg` refuses one. That was fine
+  // while the org was always `landingOrgId`, and became a bug the moment the switcher could
+  // land a planner in an org where they are a member: the wedding list rendered under a
+  // blank org line, at exactly the moment they had two organisations to tell apart.
+  //
+  // `.find` on the id rather than `[0]`: exact match, so this cannot name a different org
+  // than the one asked for, by construction rather than by assertion.
+  const [orgs, rows] = await Promise.all([currentOrgs(), listWeddings(db, memberships, orgId)])
+  const org = orgs.find((o) => o.id === orgId) ?? null
 
   return (
     <Shell title={t('weddings.title')} org={org?.name ?? null} signOutLabel={t('signOut')}>

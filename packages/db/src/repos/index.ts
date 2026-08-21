@@ -22,4 +22,4 @@ export {
   resolveMemberships,
 } from './memberships.ts'
 export type { WeddingSummary } from './weddings.ts'
-export { getOrg, getWedding, listWeddings } from './weddings.ts'
+export { getWedding, listWeddings } from './weddings.ts'

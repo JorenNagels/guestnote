@@ -1,6 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
-  getOrg,
   getWedding,
   listOrgsForUser,
   listWeddings,
@@ -164,69 +163,6 @@ describe('listWeddings', () => {
   })
 })
 
-describe('getOrg', () => {
-  it('reads the organisation for org-wide staff', async () => {
-    const m = await resolveMemberships(h.db, F.staffA)
-    expect(await getOrg(h.db, m, F.orgA)).toEqual({
-      id: F.orgA,
-      name: 'Studio A',
-      slug: 'org-a',
-    })
-  })
-
-  /**
-   * A couple has no org-wide standing, so the org row is not theirs to read -- the name
-   * of the planning agency is not part of the couple's own record. When the couple portal
-   * arrives it will need its own, narrower answer to "whose tool is this", and returning
-   * null here is what forces that decision to be made rather than inherited.
-   */
-  it('returns null for a couple', async () => {
-    const m = await resolveMemberships(h.db, F.coupleA1)
-    expect(await getOrg(h.db, m, F.orgA)).toBeNull()
-  })
-
-  it('returns null for an org the user is not staff at', async () => {
-    const m = await resolveMemberships(h.db, F.staffA)
-    expect(await getOrg(h.db, m, F.orgB)).toBeNull()
-  })
-
-  /**
-   * The gap `listOrgsForUser` exists to fill, asserted here so the two functions are read
-   * together. A member is genuinely staff at Studio A, and this still returns null --
-   * `principalForOrg` admits owner and admin only, because a member's access is "assigned
-   * weddings only" and there is no legitimate principal scoping them to a whole org.
-   *
-   * That is correct for anything that reads the org's BILLING. It was wrong as the only
-   * answer, because the dashboard's sidebar needs the org's NAME for this exact person.
-   */
-  it('returns null for an org member, who has no org-wide standing', async () => {
-    const m = await resolveMemberships(h.db, MEMBER)
-    expect(await getOrg(h.db, m, F.orgA)).toBeNull()
-  })
-
-  /**
-   * The regression this function actually had, on 2026-08-20, for the length of one
-   * review: migration 0005 added a second permissive policy to `organizations`, Postgres
-   * ORed it with `tenant_isolation`, and `getOrg` -- which had no `id` predicate, because
-   * the GUC had always been the filter -- started returning a row per organisation the
-   * user belonged to. `rows[0]` was then whichever came back first, which for this user
-   * is the WRONG org: `landingOrgId` ranks owner above admin, so the dashboard asks for
-   * org C while org A is the older heap row.
-   *
-   * Fixed twice over: the guard in 0005 stops the policy applying inside a tenant
-   * transaction at all, and the `eq` here is belt-and-braces on top. This asserts the
-   * outcome rather than either mechanism, so it holds if one of them is later removed.
-   */
-  it('reads the org it was ASKED for, for a user who is staff at two', async () => {
-    const m = await resolveMemberships(h.db, F.staffDual)
-    expect(await getOrg(h.db, m, F.orgC)).toEqual({
-      id: F.orgC,
-      name: 'Atelier Zero',
-      slug: 'org-c',
-    })
-  })
-})
-
 /**
  * Verified by mutation, not assumed -- measured 2026-08-21 on the local container.
  *
@@ -260,7 +196,7 @@ describe('listOrgsForUser', () => {
    * widened select list, and so it is what holds "a member reads the name and never the
    * billing" up. Add `plan` to the projection and it goes red.
    */
-  it('names the organisation for a member, who getOrg cannot answer for', async () => {
+  it('names the organisation for a member, which no org-wide read can', async () => {
     expect(await listOrgsForUser(h.db, MEMBER)).toEqual([
       { id: F.orgA, name: 'Studio A', slug: 'org-a' },
     ])

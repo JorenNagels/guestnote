@@ -111,9 +111,16 @@ export const currentOrgId = cache(async (): Promise<string | null> => {
  * switcher renders it, in the same request tree, and they should cost one query between
  * them rather than one each.
  *
- * Note this is the only reader of `listOrgsForUser` in the app, and that function is the
- * only thing that can name an organisation for an org `member` -- `getOrg` returns null for
- * them by design. Migration 0005's header has the whole argument.
+ * This is the ONLY way to name an organisation in this app, and that is deliberate. There
+ * used to be a second -- `getOrg`, which read the row under an org-wide principal -- and it
+ * returned null for an org `member` because `principalForOrg` refuses one. Harmless while
+ * the org was always `landingOrgId`; a bug the moment the switcher could land a planner in
+ * an org where they are a member, which rendered the wedding list under a blank org line.
+ * It was deleted rather than fixed, on 2026-08-21, so the shape cannot come back. Migration
+ * 0005 is what makes this readable for a member at all.
+ *
+ * When billing needs `plan` or `subscription_status`, that is a new function taking an
+ * org-wide principal, and it should not be called `getOrg`.
  */
 export const currentOrgs = cache(async (): Promise<OrgSummary[]> => {
   const session = await currentSession()

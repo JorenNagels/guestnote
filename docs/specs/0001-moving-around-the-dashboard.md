@@ -45,7 +45,7 @@ Scouted before any question was asked, and accepted unchanged.
 | **`public/` files 404 on the app host** — measured 2026-08-18; the proxy matcher excludes only five paths, so `/logo.svg` becomes `/pro/logo.svg`. Every icon here is inlined SVG, as `wordmark.tsx` already is | `apps/web/src/proxy.ts:73`, `apps/web/src/components/brand/wordmark.tsx:6` |
 | **`/api/*` must keep bypassing the rewrite** — "the single most breakable line in the file" | `apps/web/src/proxy.ts:141` |
 | **`principalForWedding` returns `null` for an owner/admin on purpose** — `assertScoped` refuses `orgStaff` + `weddingId`. An owner reading one wedding uses the org-wide principal and filters in the query | `packages/db/src/repos/memberships.ts:175` |
-| **`principalForOrg` returns `null` for a `member`** — a member has no legitimate org-wide principal, so `getOrg` cannot name their organisation | `packages/db/src/repos/memberships.ts:163` |
+| **`principalForOrg` returns `null` for a `member`** — a member has no legitimate org-wide principal, so no org-wide read can name their organisation. `listOrgsForUser` is the only path (`getOrg` was the other and was deleted 2026-08-21 once it had no caller) | `packages/db/src/repos/memberships.ts:163` |
 | **A member's wedding list is one transaction per assigned wedding, issued sequentially** — do not "optimise" with `Promise.all` | `packages/db/src/repos/weddings.ts:89` |
 | **GUCs are `is_local = true`, first statements in the transaction** — never session-level `SET` | `packages/db/src/tenant.ts:53`, CLAUDE.md invariant 4 |
 | **The fake-timer trap** — Testing Library only auto-advances *Jest's* fake timers, so `findBy*` under `vi.useFakeTimers()` hangs to timeout | CLAUDE.md, Testing |

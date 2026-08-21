@@ -106,7 +106,7 @@ export async function resolveMemberships(db: Db, userId: string): Promise<Member
  *
  * This is what the dashboard's sidebar head and its org switcher read, and it exists
  * because nothing else could answer the question for a `member`. `principalForOrg`
- * returns `null` for one on purpose, so `getOrg` cannot name their organisation; and
+ * returns `null` for one on purpose, so no org-wide read can name their organisation; and
  * `resolveMemberships` returns ids and roles only. Migration 0005 added the policy that
  * makes this readable under `withUser` -- `org_read_for_members` -- and its header is
  * where the reasoning and the rejected alternatives live.
@@ -117,8 +117,10 @@ export async function resolveMemberships(db: Db, userId: string): Promise<Member
  * and 0005's policy admits the whole row to any member of the org. The select list below
  * is therefore the boundary, not the grant: a member reads the name and never the
  * billing. Widening it is not a refactor -- it is a policy decision being taken in the
- * wrong file. Anything that genuinely needs billing goes through `getOrg`, where
- * `principalForOrg` has already refused a member.
+ * wrong file. Anything that genuinely needs billing wants a different function, taking an
+ * org-wide `Principal` so that `principalForOrg` refuses a member before any SQL runs.
+ * `getOrg` was that function and was deleted on 2026-08-21 for want of a caller -- see
+ * `apps/web/src/lib/principal.ts` for the bug that orphaned it.
  *
  * ## The join, and what it costs the tests
  *

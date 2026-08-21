@@ -98,11 +98,23 @@ describe('switchOrg', () => {
   })
 })
 
+/**
+ * The three writers take typed unions, not `string`. **These tests deliberately go around
+ * that**, and the cast below is the assertion, not a convenience.
+ *
+ * A Server Function is a POST: its argument arrives as whatever the request body said, and
+ * TypeScript has no presence there. So the signature stops a caller-side mistake and the
+ * runtime `parse*` stops a wire-side one, and only the second is testable from here. Typing
+ * the table as `WireWriter` says that out loud -- delete the runtime parse and these go red
+ * even though the code still typechecks, which is exactly the gap worth covering.
+ */
+type WireWriter = (value: string) => Promise<void>
+
 describe('the preference writers', () => {
-  it.each([
-    ['setTheme', setTheme, 'gn_theme', 'dark', 'dark'],
-    ['setDensity', setDensity, 'gn_density', 'compact', 'compact'],
-    ['setNavCollapsed', setNavCollapsed, 'gn_nav', 'collapsed', 'collapsed'],
+  it.each<[string, WireWriter, string, string, string]>([
+    ['setTheme', setTheme as WireWriter, 'gn_theme', 'dark', 'dark'],
+    ['setDensity', setDensity as WireWriter, 'gn_density', 'compact', 'compact'],
+    ['setNavCollapsed', setNavCollapsed as WireWriter, 'gn_nav', 'collapsed', 'collapsed'],
   ])('%s stores a recognised value as itself', async (_name, fn, cookie, input, stored) => {
     await fn(input)
     expect(cookieStore.set).toHaveBeenCalledWith(cookie, stored, expect.anything())
@@ -114,16 +126,16 @@ describe('the preference writers', () => {
    * raw string and coercing on read would pass a naive test and leave attacker-controlled
    * text sitting in a cookie that `<html className>` interpolates.
    */
-  it.each([
-    ['setTheme', setTheme, 'gn_theme', 'light'],
-    ['setDensity', setDensity, 'gn_density', 'comfortable'],
-    ['setNavCollapsed', setNavCollapsed, 'gn_nav', 'expanded'],
+  it.each<[string, WireWriter, string, string]>([
+    ['setTheme', setTheme as WireWriter, 'gn_theme', 'light'],
+    ['setDensity', setDensity as WireWriter, 'gn_density', 'comfortable'],
+    ['setNavCollapsed', setNavCollapsed as WireWriter, 'gn_nav', 'expanded'],
   ])('%s normalises rubbish to the default before writing', async (_n, fn, cookie, fallback) => {
     await fn('"><script>alert(1)</script>')
     expect(cookieStore.set).toHaveBeenCalledWith(cookie, fallback, expect.anything())
   })
 
-  it('all three revalidate the layout, since all three land on <html>', async () => {
+  it('all three revalidate the dashboard tree, since all three land on <html>', async () => {
     await setTheme('dark')
     await setDensity('compact')
     await setNavCollapsed('collapsed')

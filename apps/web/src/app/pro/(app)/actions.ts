@@ -6,13 +6,16 @@ import { redirect } from 'next/navigation'
 import { getAuth } from '../../../lib/auth.ts'
 import {
   DENSITY_COOKIE,
+  type Density,
   NAV_COOKIE,
+  type NavState,
   ORG_COOKIE,
   PREF_COOKIE_OPTIONS,
   parseDensity,
   parseNavState,
   parseTheme,
   THEME_COOKIE,
+  type Theme,
 } from '../../../lib/prefs.ts'
 import { currentMemberships } from '../../../lib/principal.ts'
 import { app } from '../../../lib/routes.ts'
@@ -112,19 +115,27 @@ export async function switchOrg(orgId: string): Promise<void> {
  * the default rather than stored as itself and coerced on every subsequent read. The
  * cookie can then never hold a value the layout has to defend against.
  *
+ * The parameters are typed as the unions rather than as `string`, and the `parse*` call
+ * stays anyway. Both are load-bearing and they guard different things. The type catches the
+ * caller-side mistake -- `setNavCollapsed(String(collapsed))` sends `'true'`, which
+ * normalises to `'expanded'`, so the sidebar silently never collapses and nothing errors
+ * anywhere. The parse catches the wire-side one, because a Server Function is a POST and
+ * its argument arrives as whatever the request body said, TypeScript having no presence
+ * there at all.
+ *
  * All three revalidate `DASHBOARD_TREE` because all three live on `<html>` in root layout B.
  */
-export async function setTheme(value: string): Promise<void> {
+export async function setTheme(value: Theme): Promise<void> {
   ;(await cookies()).set(THEME_COOKIE, parseTheme(value), PREF_COOKIE_OPTIONS)
   revalidatePath(DASHBOARD_TREE, 'layout')
 }
 
-export async function setDensity(value: string): Promise<void> {
+export async function setDensity(value: Density): Promise<void> {
   ;(await cookies()).set(DENSITY_COOKIE, parseDensity(value), PREF_COOKIE_OPTIONS)
   revalidatePath(DASHBOARD_TREE, 'layout')
 }
 
-export async function setNavCollapsed(value: string): Promise<void> {
+export async function setNavCollapsed(value: NavState): Promise<void> {
   ;(await cookies()).set(NAV_COOKIE, parseNavState(value), PREF_COOKIE_OPTIONS)
   revalidatePath(DASHBOARD_TREE, 'layout')
 }

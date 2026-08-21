@@ -1,6 +1,5 @@
 import { and, asc, eq, isNull } from 'drizzle-orm'
 import type { Db } from '../client.ts'
-import { organizations } from '../schema/orgs.ts'
 import { weddings } from '../schema/weddings.ts'
 import { withTenant } from '../tenant.ts'
 import {
@@ -164,63 +163,6 @@ export async function getWedding(
       .select(SUMMARY)
       .from(weddings)
       .where(and(eq(weddings.id, weddingId), isNull(weddings.deletedAt))),
-  )
-  return rows[0] ?? null
-}
-
-/**
- * The organisation, read with ORG-WIDE STANDING -- which is what distinguishes this from
- * `listOrgsForUser` in ./memberships.ts, and the distinction is the point.
- *
- * **Amended 2026-08-20.** This docstring used to say `organizations` is readable "only
- * where `app.org_id` equals the row's own id", and that "a membership row is not a
- * licence to read the org's billing status". Migration 0005 made the first sentence
- * incomplete and the second one false at the row level: `org_read_for_members` admits an
- * organisation row to any member of it, under `withUser`, because the dashboard's sidebar
- * needed a name for a `member` and there was no path to one.
- *
- * What is still true, and is why both functions exist:
- *
- *   * 0005 is FOR SELECT only, so a write to `organizations` still requires the org-wide
- *     principal this function demands.
- *   * `listOrgsForUser` selects `id, slug, name` and nothing else. Anything that needs
- *     `plan`, `subscription_status` or `mollie_customer_id` comes through HERE, where
- *     `principalForOrg` has already refused a `member`.
- *
- * So the sentence to carry forward is narrower than the old one: a membership row is a
- * licence to read the org's NAME, and not its billing.
- *
- * `null` means the user has no org-wide standing here, or the org is soft-deleted.
- *
- * `rows[0]` is safe because the `eq` below makes this at most one row -- but note WHICH
- * mechanism keeps that true. Mutating it to `rows.at(-1)` changes nothing today, measured
- * 2026-08-21; before 0005's guard existed it would have changed which organisation the
- * dashboard named. The single-row property comes from the policy guard first and the `eq`
- * second, not from the primary key alone, because the OR of two permissive policies can
- * admit rows this query never mentions.
- */
-export async function getOrg(db: Db, m: Memberships, orgId: string): Promise<OrgSummary | null> {
-  const principal = principalForOrg(m, orgId)
-  if (!principal) return null
-
-  const rows = await withTenant(db, principal, async (tx) =>
-    tx
-      .select({ id: organizations.id, name: organizations.name, slug: organizations.slug })
-      .from(organizations)
-      // This `eq` is belt-and-braces, and it is here because for a few hours it was not.
-      // Until 2026-08-20 the query had no id predicate at all: `tenant_isolation`
-      // (`id = app.org_id`) was the only SELECT policy on this table, so the GUC WAS the
-      // filter. Migration 0005 added a second permissive policy, Postgres ORs those, and
-      // the effective predicate silently became `id = app.org_id OR you are a member of
-      // it` -- measured: a user who is `admin` of org A and `owner` of org C got both rows
-      // back with the transaction pinned to C, and `rows[0]` was A.
-      //
-      // 0005's `app.org_id is null` guard is what actually fixes that, and it fixes the
-      // whole class rather than this caller: deleting this `eq` today changes nothing and
-      // no test notices, verified the same day. It stays anyway, on the rule the rest of
-      // this layer follows -- the policy is the boundary, the clause is the intent -- but
-      // a reader should not mistake it for the thing holding the line.
-      .where(and(eq(organizations.id, orgId), isNull(organizations.deletedAt))),
   )
   return rows[0] ?? null
 }

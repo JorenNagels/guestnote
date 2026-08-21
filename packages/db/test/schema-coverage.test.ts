@@ -201,7 +201,7 @@ describe('RLS is enabled AND forced', () => {
    * `organizations.org_read_for_members`: migration 0005. `organizations` is read under
    * `withUser`, before any tenant is known, so the dashboard's sidebar can name the
    * organisation for an org `member` -- who has no org-wide principal at all and for whom
-   * `getOrg` therefore returns null. FOR SELECT only, so writes are still governed by
+   * an org-wide read therefore cannot name it. FOR SELECT only, so writes are still governed by
    * `tenant_isolation` and still checked above.
    */
   const USER_SCOPED_POLICY_EXCEPTIONS = new Set(['organizations.org_read_for_members'])
