@@ -1,6 +1,14 @@
-import { connection } from 'next/server'
+import { cookies } from 'next/headers'
 import { getLocale } from 'next-intl/server'
 import type { ReactNode } from 'react'
+import {
+  DENSITY_COOKIE,
+  NAV_COOKIE,
+  parseDensity,
+  parseNavState,
+  parseTheme,
+  THEME_COOKIE,
+} from '../../lib/prefs.ts'
 import '../globals.css'
 
 /**
@@ -14,39 +22,57 @@ import '../globals.css'
  * independent, so changing the host label is a config edit rather than a directory
  * move. `pro.` remains as a permanent redirect.
  *
- * The authenticated shell -- getSession(), the org switcher, the nav -- arrives at M3 in
- * a nested `(app)/layout.tsx`, so that `(public)/login` can sit beside it without one.
+ * The authenticated shell -- getSession(), the org switcher, the nav -- lives in the
+ * nested `(app)/layout.tsx`, so that `(public)/login` can sit beside it without one.
  *
- * ## Why `await connection()`
+ * ## What replaced `await connection()`
  *
- * Without it the placeholder below has no dynamic input, so `next build` prerenders
- * `/pro` as STATIC content -- which was measured, not guessed: the build output showed
- * `○ /pro`. research/05-architecture.md section 1 requires this surface to be
- * `private, no-store`, and a per-user dashboard that is static by accident is the kind of
- * thing that stays correct only until the first real query lands in it.
+ * This layout used to call it, because without any dynamic input `next build` prerendered
+ * `/pro` as STATIC -- measured, not guessed: the build output showed a `○`.
+ * research/05-architecture.md section 1 requires this surface to be `private, no-store`,
+ * and a per-user dashboard that is static by accident stays correct only until the first
+ * real query lands in it.
  *
- * `connection()` rather than `export const dynamic = 'force-dynamic'` on purpose: the
- * segment-config form is the one that becomes an error under Cache Components, and M1b
- * has to flip that flag. This form is the forward-compatible way to say the same thing.
+ * Its own comment said it becomes redundant at M3 and that removing it *then* is correct.
+ * This is M3, and what makes it redundant is three lines below: `cookies()` is dynamic
+ * input, on every request, for every route under this layout. The assertion is the build
+ * output, not this paragraph -- `/pro` must print `f` and not a circle.
  *
- * It becomes redundant at M3, when the shell's `getSession()` makes the subtree dynamic
- * for real. Removing it then is correct; removing it now is not.
+ * If the preference reads below ever move somewhere else, `connection()` has to come back
+ * on the same commit. The reason to leave this note rather than delete the section: the
+ * next person to simplify this layout needs to know it was load-bearing once.
  */
 export default async function ProRootLayout({ children }: { children: ReactNode }) {
-  await connection()
-
   // Resolved from the NEXT_LOCALE cookie, not from the URL -- dashboard paths carry no
   // language prefix, because that is an SEO device and a planner should not lose their
-  // place by switching language. At M3 this reads the user row instead, with the cookie
-  // as the pre-login fallback. See src/i18n/request.ts.
-  const locale = await getLocale()
+  // place by switching language. See src/i18n/request.ts, and lib/prefs.ts for why this
+  // stayed a cookie rather than becoming the `users` column this comment used to promise.
+  const [locale, store] = await Promise.all([getLocale(), cookies()])
+
+  const theme = parseTheme(store.get(THEME_COOKIE)?.value)
+  const density = parseDensity(store.get(DENSITY_COOKIE)?.value)
+  const nav = parseNavState(store.get(NAV_COOKIE)?.value)
 
   return (
-    <html lang={locale} data-density="comfortable">
-      {/* research/08-design-system.md: `[data-density="compact"]` switches row height,
-          cell padding and control height together, because a 300-guest list is
-          unusable at comfortable spacing. The attribute lives here so a future user
-          preference has one place to write to. */}
+    // All three land on <html> rather than on a wrapper, and they have to: `.dark` is
+    // consumed by `@custom-variant dark (&:is(.dark *))` in tokens.css, and both
+    // attributes are read by `:root[...]` selectors. A div would match neither.
+    //
+    // Server-rendered rather than applied by a script on load, which is the whole reason
+    // these are cookies: the first paint is already correct, so there is no flash of the
+    // wrong theme and no jump from a wide sidebar to a narrow one.
+    <html
+      lang={locale}
+      className={theme === 'dark' ? 'dark' : undefined}
+      // research/08-design-system.md: `[data-density="compact"]` switches row height,
+      // cell padding and control height together, because a 300-guest list is unusable at
+      // comfortable spacing.
+      data-density={density}
+      // Read by the sidebar for its initial width. On <html> beside the others so there is
+      // one place the shell's persisted chrome state lives, and so CSS can react to it
+      // before any JavaScript has run.
+      data-nav={nav}
+    >
       <body>{children}</body>
     </html>
   )

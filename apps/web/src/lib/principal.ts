@@ -1,9 +1,16 @@
 import 'server-only'
-import { landingOrgId, type Memberships, resolveMemberships } from '@guestnote/db'
-import { headers } from 'next/headers'
+import {
+  landingOrgId,
+  listOrgsForUser,
+  type Memberships,
+  type OrgSummary,
+  resolveMemberships,
+} from '@guestnote/db'
+import { cookies, headers } from 'next/headers'
 import { cache } from 'react'
 import { getAuth } from './auth.ts'
 import { getDb } from './db.ts'
+import { ORG_COOKIE } from './prefs.ts'
 
 /**
  * Session and memberships, resolved once per request.
@@ -60,11 +67,56 @@ export const currentMemberships = cache(async (): Promise<Memberships | null> =>
  * inside it stay two separate questions -- section 3's rule that `app.org_id` is a
  * data-scoping mechanism and never a permission.
  *
- * When the switcher lands it replaces this function's body and nothing else: the choice
- * becomes explicit (a segment, or a cookie the switcher writes), while every caller
- * keeps asking the same question.
+ * ## The switcher's choice, and why it is checked rather than trusted
+ *
+ * This docstring used to end "when the switcher lands it replaces this function's body and
+ * nothing else". That is what happened, and the shape it predicted -- a cookie -- is the
+ * one that shipped: `gn_org`, written by `switchOrg` in the dashboard's `actions.ts`.
+ * `packages/db/src/repos/memberships.ts` argues why a `last_used_at` column stayed
+ * deferred in its favour.
+ *
+ * A cookie is client state, so it is an ASSERTION and never an answer. It is checked
+ * against the resolved memberships on every read, and anything that does not match is
+ * dropped on the floor in favour of `landingOrgId`. Three cases reach that fallback and
+ * only one of them is unusual:
+ *
+ *   absent   -> first visit since sign-in, or a planner who has never switched.
+ *   unknown  -> a hand-edited cookie. Nothing to report: the value was never a permission,
+ *               so forging it grants exactly what it grants for a legitimate value, which
+ *               is a choice of which org to DISPLAY.
+ *   stale    -> they were removed from the org since. Silently, and deliberately so: being
+ *               removed from an organisation is not the planner's mistake, and an error
+ *               screen explaining it would be the first they heard of it. They land in
+ *               whatever they still have.
+ *
+ * The validation is the `find` below and nothing more, because that is genuinely all it
+ * takes -- `memberships.orgs` is this user's rows and no one else's, so an id present in it
+ * is by definition one they may act in. What may be DONE there is still re-derived by
+ * `principalForOrg` on every query, unchanged.
  */
 export const currentOrgId = cache(async (): Promise<string | null> => {
   const memberships = await currentMemberships()
-  return memberships ? landingOrgId(memberships) : null
+  if (!memberships) return null
+
+  const chosen = (await cookies()).get(ORG_COOKIE)?.value
+  if (chosen && memberships.orgs.some((o) => o.orgId === chosen)) return chosen
+
+  return landingOrgId(memberships)
+})
+
+/**
+ * Every organisation this user belongs to, named, for the sidebar head and the switcher.
+ *
+ * `React.cache` for the same reason as everything else here: the head renders it and the
+ * switcher renders it, in the same request tree, and they should cost one query between
+ * them rather than one each.
+ *
+ * Note this is the only reader of `listOrgsForUser` in the app, and that function is the
+ * only thing that can name an organisation for an org `member` -- `getOrg` returns null for
+ * them by design. Migration 0005's header has the whole argument.
+ */
+export const currentOrgs = cache(async (): Promise<OrgSummary[]> => {
+  const session = await currentSession()
+  if (!session) return []
+  return listOrgsForUser(getDb(), session.userId)
 })

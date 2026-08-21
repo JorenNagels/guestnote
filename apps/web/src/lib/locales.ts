@@ -26,8 +26,14 @@ export const DEFAULT_LOCALE: Locale = 'nl'
  * Where the dashboard's locale lives, since its URLs carry no language prefix.
  *
  * `NEXT_LOCALE` is next-intl's own convention, so a future switch to its middleware would
- * read the same cookie. At M3 this becomes a column on `users` and the cookie becomes the
- * pre-login fallback only.
+ * read the same cookie.
+ *
+ * **2026-08-21: it stays a cookie.** This used to say "at M3 this becomes a column on
+ * `users`". M3 built the shell and did not add the column: the locale is read in ROOT
+ * LAYOUT B, before the session and before memberships, so a user row there is a database
+ * round trip in front of every dashboard render to decide `<html lang>`. `lib/prefs.ts`
+ * makes the same argument for theme and density and records what it costs -- preferences
+ * do not follow a planner to a second device.
  */
 export const LOCALE_COOKIE = 'NEXT_LOCALE'
 

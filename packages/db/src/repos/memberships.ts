@@ -218,18 +218,17 @@ export function principalForWedding(
  * makes the choice STABLE across requests, rather than depending on whatever order
  * Postgres felt like returning.
  *
- * **2026-08-20: the column is deferred again, and this time with a decision behind it.**
- * This comment used to say a real most-recently-used "arrives with the switcher". The
- * switcher is now specified -- docs/specs/0001-moving-around-the-dashboard.md -- and it
- * does NOT bring the column: it will remember its choice in a validated `gn_org` cookie,
- * because a column costs a migration plus a write on every switch, landing on a table
- * whose policy runs on app.user_id rather than a tenant key. The cookie will not follow a
- * planner to a second device; the spec argues that cost.
+ * **2026-08-21: the switcher shipped and the column did not.** This comment used to say a
+ * real most-recently-used "arrives with the switcher". It does not: the choice is a
+ * validated `gn_org` cookie, written by `switchOrg` in the dashboard's `actions.ts` and
+ * checked against these rows on every read in `apps/web/src/lib/principal.ts`. A column
+ * would cost a migration plus a write on every switch, landing on a table whose policy
+ * runs on app.user_id rather than a tenant key; the cookie does not follow a planner to a
+ * second device, and `docs/specs/0001-moving-around-the-dashboard.md` prices that.
  *
- * Written in the future tense on purpose. The cookie is not in the tree yet -- it lands
- * with the shell, and `apps/web/src/lib/principal.ts` still derives the org from this
- * function alone. A comment that describes the next commit as though it were this one is
- * how a reader ends up looking for a validation step that does not exist.
+ * This function is still what decides where they land when the cookie is absent, stale, or
+ * names an org they have been removed from -- which is all three of the fallback paths, so
+ * it is reached far more often than "they have never switched".
  */
 const LANDING_RANK: Record<OrgMembership['role'], number> = { owner: 0, admin: 1, member: 2 }
 
