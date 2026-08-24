@@ -1,9 +1,8 @@
 import { listWeddings, type WeddingSummary } from '@guestnote/db'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { getDb } from '../../../../lib/db.ts'
-import { currentMemberships, currentOrgId, currentOrgs } from '../../../../lib/principal.ts'
+import { currentMemberships, currentOrgId } from '../../../../lib/principal.ts'
 import { app } from '../../../../lib/routes.ts'
-import { signOut } from '../actions.ts'
 
 /**
  * The wedding list. **The first screen in this application to read tenant data.**
@@ -38,34 +37,34 @@ export default async function WeddingsPage() {
     getLocale(),
   ])
 
-  // The layout above guarantees a session; memberships can still be empty.
+  // The layout above guarantees a session; memberships can still be empty. This branch is
+  // the one the layout renders WITHOUT the shell -- no sidebar, no org head -- so it has to
+  // stand on its own and centre itself rather than assuming a content column exists.
   if (!memberships || !orgId) {
     return (
-      <Shell title={t('weddings.title')} org={null} signOutLabel={t('signOut')}>
-        <p className="text-muted-foreground max-w-prose text-sm leading-relaxed">
-          {t('weddings.noOrg')}
-        </p>
-        <p className="text-muted-foreground mt-3 max-w-prose text-sm leading-relaxed">
-          {t('weddings.noOrgHint')}
-        </p>
-      </Shell>
+      <main className="mx-auto grid min-h-dvh max-w-md place-items-center px-6">
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">{t('weddings.title')}</h1>
+          <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
+            {t('weddings.noOrg')}
+          </p>
+          <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
+            {t('weddings.noOrgHint')}
+          </p>
+        </div>
+      </main>
     )
   }
 
-  const db = getDb()
-  // Named from `currentOrgs()` and NOT from `getOrg`, which used to be here and returned
-  // `null` for an org `member` by design -- `principalForOrg` refuses one. That was fine
-  // while the org was always `landingOrgId`, and became a bug the moment the switcher could
-  // land a planner in an org where they are a member: the wedding list rendered under a
-  // blank org line, at exactly the moment they had two organisations to tell apart.
-  //
-  // `.find` on the id rather than `[0]`: exact match, so this cannot name a different org
-  // than the one asked for, by construction rather than by assertion.
-  const [orgs, rows] = await Promise.all([currentOrgs(), listWeddings(db, memberships, orgId)])
-  const org = orgs.find((o) => o.id === orgId) ?? null
+  // The organisation is named by the sidebar now, not by this page. It used to read it
+  // through `getOrg`, which returned `null` for an org `member` by design and so rendered a
+  // blank org line for exactly the person the switcher could strand there -- fixed in
+  // 5efc96a by naming it from `currentOrgs()`, and now the concern of `(app)/layout.tsx`
+  // rather than of every page that happens to want a header.
+  const rows = await listWeddings(getDb(), memberships, orgId)
 
   return (
-    <Shell title={t('weddings.title')} org={org?.name ?? null} signOutLabel={t('signOut')}>
+    <Page title={t('weddings.title')}>
       {rows.length === 0 ? (
         <p className="text-muted-foreground max-w-prose text-sm leading-relaxed">
           {t('weddings.empty')}
@@ -99,7 +98,26 @@ export default async function WeddingsPage() {
           ))}
         </ul>
       )}
-    </Shell>
+    </Page>
+  )
+}
+
+/**
+ * The content column. What is left of the old local `Shell` after the chrome moved into
+ * `(app)/layout.tsx`: a max width, the page's own padding, and its heading.
+ *
+ * `max-w-5xl` rather than the old `max-w-3xl`, because the sidebar now takes its own width
+ * out of the viewport and the content no longer has to centre itself against the whole
+ * window. The tables this will hold want the room.
+ */
+function Page({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="mx-auto max-w-5xl px-6 py-8">
+      <header className="flex items-baseline justify-between gap-6">
+        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+      </header>
+      <div className="mt-7">{children}</div>
+    </div>
   )
 }
 
@@ -148,45 +166,5 @@ function StatusPill({ status, label }: { status: string; label: string }) {
       />
       {label}
     </span>
-  )
-}
-
-function Shell({
-  title,
-  org,
-  signOutLabel,
-  children,
-}: {
-  title: string
-  org: string | null
-  signOutLabel: string
-  children: React.ReactNode
-}) {
-  return (
-    <main className="bg-background text-foreground min-h-dvh">
-      <div className="mx-auto max-w-3xl px-6 py-8">
-        <header className="flex items-baseline justify-between gap-6">
-          <div className="min-w-0">
-            {org ? (
-              <p className="text-muted-foreground truncate text-xs font-semibold tracking-[0.09em] uppercase">
-                {org}
-              </p>
-            ) : null}
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight">{title}</h1>
-          </div>
-
-          <form action={signOut}>
-            <button
-              type="submit"
-              className="border-input hover:border-foreground focus-visible:outline-ring inline-flex h-9 shrink-0 cursor-pointer items-center rounded-[var(--radius)] border px-3.5 text-sm font-medium focus-visible:outline-2"
-            >
-              {signOutLabel}
-            </button>
-          </form>
-        </header>
-
-        <div className="mt-7">{children}</div>
-      </div>
-    </main>
   )
 }

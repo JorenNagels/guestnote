@@ -61,6 +61,38 @@ const schema = z.object({
   GUESTNOTE_APP_SUBDOMAIN: z.string().min(1).default('app'),
 
   /**
+   * The port `next dev` is listening on, for building an absolute local origin.
+   *
+   * Exists because `lib/auth.ts`'s `origin()` hard-coded `:3000` and therefore LIED the
+   * moment the dev server ran anywhere else -- which happens routinely, since `next dev`
+   * silently picks the next free port when 3000 is taken. Better Auth uses that origin as
+   * its `baseURL` and the passkey plugin uses it verbatim as the WebAuthn `origin`, so a
+   * wrong port makes passkey registration fail an origin check with no useful message.
+   *
+   * `PORT` and not a `GUESTNOTE_`-prefixed name: it is the variable Next itself honours, so
+   * `PORT=3001 next dev` makes the server and this agree by construction rather than by
+   * remembering to set two things. Ignored in production, where the origin is https on the
+   * default port.
+   *
+   * **The auto-increment case works for a reason worth naming**, because the sentence above
+   * does not cover it: when 3000 is taken nobody sets `PORT`, so on that reasoning this
+   * would still default to 3000 and still lie. It does not, because `next dev` writes the
+   * port it actually BOUND back into `process.env.PORT` after listening -- see
+   * `next/dist/server/lib/start-server.js:295` -- `process.env.PORT = port + ''`, commented
+   * "Store the selected port to: expose it to render workers" -- verified on 16.3.1. So
+   * parsing on first request sees 3001 even though no shell set it. The corollary is the
+   * thing to remember: do not move this parse to build time to speed up boot, because at
+   * build time the port has not been bound and the value is wrong.
+   */
+  //
+  // `.catch(3000)` and not just `.default(3000)`: an exported-but-empty `PORT=` -- which a CI
+  // runner or a stray `export PORT=` leaves behind routinely -- coerces to `0`, fails
+  // `.positive()`, and would take the entire app down at import with a message about copying
+  // `.env.example`. A malformed dev-only port must not be fatal; a wrong one is a bad local
+  // origin, which is recoverable, and `catch` is the difference between the two.
+  PORT: z.coerce.number().int().positive().catch(3000),
+
+  /**
    * Neon, POOLED (the `-pooler` host), connected as `app_user`.
    *
    * **Optional here on purpose, and validated lazily in lib/db.ts instead.** `next build`
@@ -140,4 +172,5 @@ export const env = {
   // that distinction into the branch with the worse failure mode.
   mailTransport: parsed.data.GUESTNOTE_MAIL_TRANSPORT,
   awsRegion: parsed.data.AWS_REGION,
+  devPort: parsed.data.PORT,
 } as const

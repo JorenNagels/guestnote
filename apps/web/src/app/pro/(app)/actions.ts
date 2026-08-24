@@ -1,9 +1,11 @@
 'use server'
 
+import { getWedding, listWeddings, type WeddingSummary } from '@guestnote/db'
 import { revalidatePath } from 'next/cache'
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { getAuth } from '../../../lib/auth.ts'
+import { getDb } from '../../../lib/db.ts'
 import {
   DENSITY_COOKIE,
   type Density,
@@ -17,7 +19,7 @@ import {
   THEME_COOKIE,
   type Theme,
 } from '../../../lib/prefs.ts'
-import { currentMemberships } from '../../../lib/principal.ts'
+import { currentMemberships, currentOrgId } from '../../../lib/principal.ts'
 import { app } from '../../../lib/routes.ts'
 
 /**
@@ -28,11 +30,15 @@ import { app } from '../../../lib/routes.ts'
  * route**, so the layout's `getSession()` redirect never runs for one. Anybody who can
  * reach the origin can invoke all four.
  *
- * That is acceptable here, and only because of what they do. The three preference writers
+ * That is acceptable, and only because of what each one does. The three preference writers
  * touch nothing but the CALLER's own cookies -- there is no id, no row and no other user
- * reachable through them, so an unauthenticated POST achieves exactly what clearing your
- * own browser storage achieves. `switchOrg` is the one that needs a principal, and it
- * resolves memberships itself rather than trusting the layout to have done it.
+ * reachable through them, so an unauthenticated POST achieves exactly what clearing your own
+ * browser storage achieves. `switchOrg`, `paletteWeddings` and `weddingHeader` each read
+ * tenant rows, and each resolves memberships itself rather than trusting the layout to have
+ * done it -- their own doc comments say so where the work happens.
+ *
+ * The count in this paragraph has been wrong once already; if you add an export, say which
+ * of the two kinds it is.
  *
  * The rule that follows for anything added to this file: it does its own authorization, or
  * it does not belong here. Do not read the route group as a guard.
@@ -138,4 +144,68 @@ export async function setDensity(value: Density): Promise<void> {
 export async function setNavCollapsed(value: NavState): Promise<void> {
   ;(await cookies()).set(NAV_COOKIE, parseNavState(value), PREF_COOKIE_OPTIONS)
   revalidatePath(DASHBOARD_TREE, 'layout')
+}
+
+/**
+ * The palette's list, fetched once when it first opens.
+ *
+ * **Not fed from the layout, and that reverses the spec's first draft.** Resolving it in
+ * `(app)/layout.tsx` would put the list in every page's RSC payload and, worse, make every
+ * dashboard page pay for it: a `member`'s wedding list is one transaction per assigned
+ * wedding, issued sequentially on purpose (`repos/weddings.ts`), so the layout would spend
+ * N round trips on the chance that somebody presses a chord. Fetching on open pays one
+ * round trip, once per page load, and only for planners who actually use it.
+ *
+ * The spec's original objection -- "a round trip per keystroke loses to a spreadsheet's
+ * Ctrl+F" -- still stands and is still honoured. One fetch per open is not per-keystroke;
+ * the filtering after it is local. `docs/specs/0001` records the amendment and the date.
+ *
+ * ## This does its own authorization
+ *
+ * It has to: a Server Function is a POST to its own route, so `(app)/layout.tsx`'s session
+ * gate never runs for it (CLAUDE.md invariant 7). `currentMemberships()` is the check, and
+ * `listWeddings` re-derives the principal from membership rows and scopes through RLS -- so
+ * an unauthenticated call returns `[]` rather than somebody else's weddings.
+ */
+export async function paletteWeddings(): Promise<WeddingSummary[]> {
+  const [memberships, orgId] = await Promise.all([currentMemberships(), currentOrgId()])
+  if (!memberships || !orgId) return []
+  return listWeddings(getDb(), memberships, orgId)
+}
+
+/**
+ * The name and date of one wedding, for the sidebar's wedding-context section.
+ *
+ * ## Why the sidebar cannot just be handed this
+ *
+ * `(app)/layout.tsx` renders the sidebar, and it sits ABOVE `weddings/[id]`. A layout
+ * receives params for its own segment and the ones above it, never below -- so the layout
+ * genuinely cannot know which wedding you are looking at. Three ways out were considered:
+ *
+ *   * Pass the whole wedding list down from the layout and let the client pick by id. Zero
+ *     extra round trips, but it reinstates exactly the cost `paletteWeddings` exists to
+ *     avoid: a `member`'s list is one transaction per assigned wedding, so every dashboard
+ *     page would pay N of them to label one heading.
+ *   * Move the section out of the sidebar and onto the page, where the data already is.
+ *     Cheapest of all, and rejected because `docs/specs/0001` settled that the wedding
+ *     section is part of the nav -- it is what makes the sidebar know where you are.
+ *   * This: one primary-key lookup, only on wedding routes, driven by `useParams`.
+ *
+ * The cost is one indexed round trip per wedding navigation, which `getWedding` was already
+ * written for in 75cd541 -- this is that function's second caller and the reason its
+ * owner-vs-member branch matters twice over.
+ *
+ * Authorizes itself, like everything else here: `getWedding` returns `null` for a wedding
+ * the principal cannot see, and `null` is a 404 and never a 403.
+ */
+export async function weddingHeader(
+  weddingId: string,
+): Promise<{ id: string; name: string; date: string | null } | null> {
+  const [memberships, orgId] = await Promise.all([currentMemberships(), currentOrgId()])
+  if (!memberships || !orgId) return null
+
+  const wedding = await getWedding(getDb(), memberships, orgId, weddingId)
+  return wedding
+    ? { id: wedding.id, name: wedding.coupleDisplayName, date: wedding.weddingDate }
+    : null
 }

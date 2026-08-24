@@ -2,12 +2,7 @@ import { and, asc, eq, isNull } from 'drizzle-orm'
 import type { Db } from '../client.ts'
 import { weddings } from '../schema/weddings.ts'
 import { withTenant } from '../tenant.ts'
-import {
-  type Memberships,
-  type OrgSummary,
-  principalForOrg,
-  principalForWedding,
-} from './memberships.ts'
+import { type Memberships, principalForOrg, principalForWedding } from './memberships.ts'
 
 /**
  * The wedding list, which is the first read in this application to go through

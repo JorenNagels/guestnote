@@ -6,7 +6,7 @@ import './descent.css'
  *
  * `(public)` is a route group, so it adds no URL segment: `/pro/login` stays
  * `/pro/login`, which proxy.ts serves as `app.guestnote.be/login`. Its sibling `(app)`
- * gets the session shell at M3 -- getSession(), the org switcher, the nav -- and the
+ * holds the session shell -- getSession(), the org switcher, the nav -- and the
  * whole point of the split is that this branch never renders any of it.
  *
  * This layout exists only to own the import above. Co-locating the stylesheet with the

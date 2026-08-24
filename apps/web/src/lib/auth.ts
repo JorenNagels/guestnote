@@ -48,11 +48,24 @@ function secretFor(): string {
  * Derived from the same two values `proxy.ts` resolves hosts with, rather than read from
  * its own environment variable, so there is one answer to "what host is the app on" and
  * not two that can disagree. `lib/app-url.ts` derives its link from the same pair.
+ *
+ * ## The port was hard-coded to 3000, and that was a real bug
+ *
+ * `next dev` silently takes the next free port when 3000 is busy, which is the ordinary
+ * case on a machine running more than one project -- so this function confidently returned
+ * an origin the server was not on. Two things consume it and both break quietly: Better
+ * Auth's `baseURL`, and the passkey plugin's `origin`, which WebAuthn compares against the
+ * browser's actual origin and rejects with nothing useful to read.
+ *
+ * Fixed 2026-08-21 by taking the port from `env.devPort`, which reads `PORT` -- the variable
+ * `next dev` itself honours, so `PORT=3001 next dev` keeps the two in step without anyone
+ * having to remember a second setting. Production is https on the default port, so the port
+ * is omitted there rather than defaulted.
  */
 function origin(): string {
   const host = `${env.appSubdomain}.${env.rootDomain}`
   const isLocal = env.rootDomain === 'localhost' || env.rootDomain.endsWith('.localhost')
-  return isLocal ? `http://${host}:3000` : `https://${host}`
+  return isLocal ? `http://${host}:${env.devPort}` : `https://${host}`
 }
 
 export function getAuth() {
@@ -64,7 +77,7 @@ export function getAuth() {
     secret: secretFor(),
     baseURL: origin(),
     /**
-     * `app.guestnote.be` in production, `app.localhost` locally -- and never the apex in
+     * `app.guestnote.be` in production, `app.guestnote.localhost` locally -- and never the apex in
      * either. A passkey scoped to a registrable suffix is usable by every subdomain
      * beneath it, and PH4 puts per-tenant wedding sites there. `rp.id` is hashed into the
      * authenticator at creation and can never be changed, so this value is permanent from

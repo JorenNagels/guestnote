@@ -12,9 +12,10 @@
  * the user row instead". M3 is this feature and the promise is not being kept, so both
  * comments have been corrected rather than left standing.
  *
- * The reason is where the read happens. These four values decide `<html lang>`, `class`
- * and `data-density`, so they are needed in ROOT LAYOUT B -- before the session, before
- * memberships, before anything is rendered. A cookie costs nothing there. A user row costs
+ * The reason is where the read happens. Three of these decide `<html lang>`, `class` and
+ * `data-density`, so they are needed in ROOT LAYOUT B -- before the session, before
+ * memberships, before anything is rendered. (`gn_nav` is the fourth and is read one layer
+ * down, in `(app)/layout.tsx`, because only the sidebar cares.) A cookie costs nothing there. A user row costs
  * a database round trip in front of every single dashboard render, on the critical path of
  * every navigation, to personalise chrome. That trade was invisible when the promise was
  * written and obvious once the layout existed.

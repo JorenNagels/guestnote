@@ -26,10 +26,15 @@ import { app } from './routes.ts'
  */
 function originFor(host: string): string {
   const isLocal = env.rootDomain === 'localhost' || env.rootDomain.endsWith('.localhost')
-  // The dev server's port is not in the environment, and marketing is prerendered at
-  // build time, so it cannot be read from a request either. 3000 is `next dev`'s default
+  // From `env.devPort`, which reads `PORT`. This used to hard-code 3000 and say "the dev
+  // server's port is not in the environment" -- true when it was written, and made false on
+  // 2026-08-21 when `lib/auth.ts` needed the same value for Better Auth's `baseURL` and the
+  // passkey plugin's WebAuthn origin. Leaving it would have been the exact failure that
+  // docstring warns about: two answers to "what host is the app on" that can disagree.
+  //
+  // Marketing is prerendered at build time, so this still cannot come from a request
   // and this branch never runs in a deployed environment.
-  return isLocal ? `http://${host}:3000` : `https://${host}`
+  return isLocal ? `http://${host}:${env.devPort}` : `https://${host}`
 }
 
 function appOrigin(): string {

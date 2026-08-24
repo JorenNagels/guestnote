@@ -181,7 +181,8 @@ async function recordDelivery(entry: DeliveryRecord): Promise<void> {
  * ## Why `createTranslator` and not `getTranslations`
  *
  * next-intl's request-scoped helpers resolve the locale of the *request*. This needs the locale
- * of the *recipient*, which is not the same thing -- and at M3 it becomes a column on `users`,
+ * of the *recipient*, which is not the same thing -- and it stays a cookie for the request's
+ * locale, `lib/prefs.ts` having recorded why the `users` column did not happen,
  * at which point a planner who reads Dutch can be sent mail while an English request is in
  * flight. `createTranslator` takes an arbitrary locale, which is precisely why it exists, and
  * works outside a request context, so a Route Handler or a future queue consumer calls exactly

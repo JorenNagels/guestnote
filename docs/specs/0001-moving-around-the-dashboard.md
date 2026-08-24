@@ -1,12 +1,11 @@
 # Spec 0001 — a planner moves around the dashboard
 
-**Date:** 2026-08-20 · **Status:** Specified, not built
-**Built so far:** the Data section only — migration `0005_org_read_for_members`,
-`listOrgsForUser`, `getWedding` and their tests, landed 2026-08-20. Status stays
-`Specified, not built` until the shell itself exists; see `docs/specs/README.md`.
-**Amended 2026-08-20**, before any code: the palette fetches on open rather than being fed
-by the layout (§Search), and `getWedding`'s signature is what shipped, not what was drafted.
-**Phase:** M3, the authenticated shell — promised by name in `apps/web/src/app/pro/layout.tsx:17`
+**Date:** 2026-08-20 · **Status:** Built 2026-08-21
+**Shipped across four commits:** `75cd541` the database, `c61ad3c` the cookie and org seam,
+`5efc96a` a review fix, and the chrome. **Amended twice — read §Amendments before trusting
+any section below it,** because several decisions here were reversed by the build and the
+reversals are the interesting part.
+**Phase:** M3, the authenticated shell — promised by name in `apps/web/src/app/pro/layout.tsx:25`
 · **Bar:** a planner opens Guestnote, sees whose workspace they are in, and reaches any wedding
 in two keystrokes.
 
@@ -330,6 +329,39 @@ Cost accepted: one branch in the layout and a second visual mode to hold in mind
 coupling. The one thing that does come from there is `LocaleSwitcher`, already wired on the sign-in
 screen at `apps/web/src/components/auth/auth-flow.tsx:339` through its `onSelect` branch.
 
+## Amendments
+
+Two rounds. The first was before any code; the second is what the build actually did, and it
+is recorded here rather than only in source comments because the spec is meant to be the
+contract, not the loser of an argument it never heard.
+
+### 2026-08-20, before code
+
+- **The palette fetches on open** rather than being fed by the layout (§Search, rewritten
+  in place).
+- **`getWedding`'s signature** is `(db, m, orgId, weddingId)` — it resolves the principal
+  itself, because the caller must not choose between `principalForOrg` and
+  `principalForWedding`.
+
+### 2026-08-21, from the build
+
+| Spec said | Shipped | Why |
+|---|---|---|
+| Palette holds **Bruiloften** and **Opdrachten** | Weddings only | The commands duplicated the account menu one click away. The dialog's own name was "Zoeken en opdrachten" in three locales and lied to a screen reader until this was caught; it is now "Zoek een bruiloft". |
+| Count badge on **Bruiloften** | Not built | A count means listing weddings in the layout on every page render, which for a `member` is one sequential transaction per assigned wedding — the exact cost the palette was restructured to avoid. The destination shows it for free. `NavItem`'s `badge` prop was implemented and then removed for want of a caller. |
+| Wedding section passed down from the layout | Client-fetched via `weddingHeader` | A layout receives params for its own segment and above, never below, so it genuinely cannot know which wedding. Costs a duplicate read of the row the page just read, plus a POST, per navigation. |
+| `setLocale` added to the dashboard's actions | Reused from `components/auth/actions.ts` | Honoured — the spec's own "reused, not duplicated" rule. |
+| Files `sidebar.tsx`, `org-menu.tsx` | `shell.tsx`, `org-head.tsx`, plus `menu.tsx`, `monogram.tsx`, `icons.tsx` | The popover and the monogram are shared by the head and the account menu, so they are their own files. |
+| Copy key `app.org.current` ("Huidige organisatie") | Never added; the rail announces `app.org.label` | One string, not two, for the same idea. |
+| Not in the copy table | `app.palette.loading`, `app.wedding.date`, `app.wedding.status` added | The loading state is a real state the spec's table omitted. |
+| States → Loading: "no sidebar skeleton, only the content area streams" | The sidebar has two async states of its own | Consequence of the two amendments above. Both are labelled, neither is a skeleton. |
+| States → Error: a failed membership resolve throws to an error boundary | Falls through to the no-org page | **Still wrong, and marked in the code.** `(app)/layout.tsx` says so at the branch: root layout B has no error boundary above it, so a throw has nowhere to go. A planner who has an org but whose name is unreadable is told they have none. |
+| `/weddings/[id]` is "name, date, status" | Also an untranslated `Slug` row | Deliberate for now — the slug is the subdomain and is the thing a planner needs when a guest site misbehaves. It is not translated because it is not a word. |
+
+Dead keys removed rather than left: `app.palette.close` (threaded through the layout and
+rendered nowhere) and `app.wedding.notFound` (authored for a message `notFound()` must never
+show, because naming the reason is the leak the 404 exists to prevent).
+
 ## Behaviour
 
 ### The sidebar, expanded
@@ -456,28 +488,32 @@ the nav item and the palette group), `app.weddings.dateUnknown`, `app.weddings.s
 
 ## Done means
 
-- [ ] Sidebar renders for owner, admin and member, with the org name present in all three
-- [ ] Head is a plain label at one org and a menu at two or more; switching writes `gn_org` and survives a reload
-- [ ] A `gn_org` naming an org the user is not a member of falls back to `landingOrgId` with no error surfaced
-- [ ] Collapse persists across a reload with no width flash on first paint
-- [ ] Below `md`: drawer opens, traps focus, closes on Escape, returns focus, closes on navigate
-- [ ] ⌘K and Ctrl+K open the palette; a wedding jump lands on `/weddings/[id]`; every command works
-- [ ] Account menu changes taal, thema and dichtheid, each surviving a reload; `.dark` and `data-density="compact"` both actually reach `<html>`
-- [ ] `/weddings/[id]` resolves for an owner, for an admin, and for an assigned member; returns 404 — not 403 — for a member who is not assigned
-- [ ] Signed in with no memberships: no sidebar, `noOrg` message alone
-- [ ] `@media print` hides the chrome
-- [ ] `lib/locales.ts:29` and `pro/layout.tsx:40` amended: they no longer promise the user row at M3, and say what shipped instead
-- [ ] `memberships.ts:215` amended: says the switcher shipped on a cookie and why the column stayed deferred
-- [ ] `await connection()` removed from `pro/layout.tsx`, its comment removed with it, and the build output shows `ƒ /pro`
-- [ ] Every icon inlined — nothing added to `public/` (`proxy.ts:73`)
-- [ ] `npm run check` green
-- [ ] `npm run test:db` green, **both tiers** — the new policy is the point of the exercise, and it needs a test that a member reads their own org's name and reads **no other org's**
-- [ ] `mutation-tester` on the new assertions: break the policy predicate, break the `gn_org` membership check, break the owner-vs-member branch in `getWedding`, and watch each one fail
-- [ ] `tenancy-auditor` clean — this change adds a policy and two read paths
-- [ ] `npm run build -w @guestnote/web`, then the three-host `curl` matrix on `npm run dev`
-- [ ] Ask `/verify` which rungs this actually needs rather than trusting this list
+Ticked 2026-08-21. The unticked items are unticked on purpose and say why.
 
-If the policy behaves differently through Neon's pooler than it does against the local
+- [x] Sidebar renders for owner, admin and member, with the org name present in all three
+- [x] Head is a plain label at one org and a menu at two or more; switching writes `gn_org` and survives a reload
+- [x] A `gn_org` naming an org the user is not a member of falls back to `landingOrgId` with no error surfaced
+- [x] Collapse persists across a reload with no width flash on first paint
+- [x] Below `md`: drawer opens, closes on Escape, on the backdrop and on its own button, returns focus each time, and closes on route change
+- [x] Focus is trapped — by `inert` on the content column. It was on `<main>` first, which left the phone header's menu button tabbable because it is a sibling; asserted now by checking the inerted element *contains* that button
+- [x] ⌘K and Ctrl+K open the palette, it navigates to `/weddings/[id]` on Enter and on pointer down, and it swallows the browser's own Ctrl-K
+- [x] Account menu changes taal, thema and dichtheid, each surviving a reload; `.dark` and `data-density="compact"` both reach `<html>` — verified over the wire, and rubbish cookie values fall back without interpolating
+- [x] `/weddings/[id]` resolves for an owner, an admin and an assigned member; returns 404 — not 403 — for a member who is not assigned, for another org's wedding, and for a foreign wedding id under the caller's own org
+- [x] Signed in with no memberships: no sidebar, `noOrg` message alone
+- [x] `@media print` hides the chrome
+- [x] `lib/locales.ts`, `pro/layout.tsx`, `components/auth/actions.ts` and `lib/mailer.ts` amended: none of them still promises the user row at M3
+- [x] `memberships.ts` amended: the switcher shipped on a cookie
+- [x] `await connection()` removed, build prints `ƒ /pro`
+- [x] Every icon inlined; nothing added to `public/`
+- [x] `npm run check` green (573), `npm run test:db` green (137)
+- [ ] **`(app)/layout.tsx` has no test.** It wires four cookies and thirty labels, and its `.find`-not-`[0]` line is the shape of a bug that already shipped once. Named by `test-critic` as the top priority and deliberately not done here — it needs its own commit rather than being rushed into this one.
+- [ ] **`paletteWeddings` and `weddingHeader` have no tests.** Both claim "this does its own authorization" and nothing asserts it.
+- [ ] **`Menu`'s outside-click dismissal and focus-into-panel are untested**, as are `monogram.ts`'s two pure functions.
+- [ ] `mutation-tester` sweep on the above once they exist
+- [ ] `tenancy-auditor` on this commit — the two new Server Functions read tenant rows
+- [ ] `doc-steward` pass: `README.md:175` still calls the shell "M3's remaining work", and `docs/adr/0003:192` still says the `--sidebar-*` group is needed immediately (it shipped without one, deliberately)
+
+If the policy behavesIf the policy behaves differently through Neon's pooler than it does against the local
 container, that is a **measured** finding and it earns an ADR, not an amendment here.
 
 ## Still open

@@ -21,6 +21,40 @@
         "live": "Live",
         "archived": "Gearchiveerd"
       }
+    },
+    "nav": {
+      "label": "Hoofdnavigatie",
+      "search": "Zoeken",
+      "collapse": "Zijbalk inklappen",
+      "expand": "Zijbalk uitklappen",
+      "openMenu": "Menu openen",
+      "closeMenu": "Menu sluiten",
+      "weddingSection": "Deze bruiloft",
+      "overview": "Overzicht"
+    },
+    "org": {
+      "label": "Organisatie",
+      "switch": "Van organisatie wisselen"
+    },
+    "account": {
+      "label": "Account",
+      "language": "Taal",
+      "theme": "Thema",
+      "themeLight": "Licht",
+      "themeDark": "Donker",
+      "density": "Dichtheid",
+      "densityComfortable": "Ruim",
+      "densityCompact": "Compact"
+    },
+    "palette": {
+      "title": "Zoek een bruiloft",
+      "placeholder": "Zoek een bruiloft",
+      "empty": "Niets gevonden.",
+      "loading": "Even zoeken…"
+    },
+    "wedding": {
+      "status": "Status",
+      "date": "Datum"
     }
   },
   "auth": {

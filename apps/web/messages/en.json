@@ -21,6 +21,40 @@
         "live": "Live",
         "archived": "Archived"
       }
+    },
+    "nav": {
+      "label": "Main navigation",
+      "search": "Search",
+      "collapse": "Collapse sidebar",
+      "expand": "Expand sidebar",
+      "openMenu": "Open menu",
+      "closeMenu": "Close menu",
+      "weddingSection": "This wedding",
+      "overview": "Overview"
+    },
+    "org": {
+      "label": "Organisation",
+      "switch": "Switch organisation"
+    },
+    "account": {
+      "label": "Account",
+      "language": "Language",
+      "theme": "Theme",
+      "themeLight": "Light",
+      "themeDark": "Dark",
+      "density": "Density",
+      "densityComfortable": "Comfortable",
+      "densityCompact": "Compact"
+    },
+    "palette": {
+      "title": "Search a wedding",
+      "placeholder": "Search a wedding",
+      "empty": "Nothing found.",
+      "loading": "Searching…"
+    },
+    "wedding": {
+      "status": "Status",
+      "date": "Date"
     }
   },
   "auth": {

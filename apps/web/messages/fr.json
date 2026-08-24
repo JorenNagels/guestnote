@@ -21,6 +21,40 @@
         "live": "En ligne",
         "archived": "Archivé"
       }
+    },
+    "nav": {
+      "label": "Navigation principale",
+      "search": "Rechercher",
+      "collapse": "Réduire la barre latérale",
+      "expand": "Développer la barre latérale",
+      "openMenu": "Ouvrir le menu",
+      "closeMenu": "Fermer le menu",
+      "weddingSection": "Ce mariage",
+      "overview": "Aperçu"
+    },
+    "org": {
+      "label": "Organisation",
+      "switch": "Changer d'organisation"
+    },
+    "account": {
+      "label": "Compte",
+      "language": "Langue",
+      "theme": "Thème",
+      "themeLight": "Clair",
+      "themeDark": "Sombre",
+      "density": "Densité",
+      "densityComfortable": "Confortable",
+      "densityCompact": "Compact"
+    },
+    "palette": {
+      "title": "Chercher un mariage",
+      "placeholder": "Cherchez un mariage",
+      "empty": "Aucun résultat.",
+      "loading": "Recherche…"
+    },
+    "wedding": {
+      "status": "Statut",
+      "date": "Date"
     }
   },
   "auth": {

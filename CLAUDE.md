@@ -167,8 +167,12 @@ project that has a DOM.
 **Assertions are checked by mutation, not by going green.** Before an assertion counts,
 break the code it covers and watch it fail. A test nobody has seen fail is a test nobody has
 tested. Where a branch genuinely cannot be isolated, say so **beside the assertion that
-cannot discriminate** rather than deleting the branch or faking coverage — the two existing
-notes are in `proxy.test.ts` and `auth-flow.test.tsx`, not in the source files they cover.
+cannot discriminate** rather than deleting the branch or faking coverage — the existing notes
+live in `proxy.test.ts`, `auth-flow.test.tsx`, `components/nav/shell.test.tsx` and
+`weddings/[id]/page.test.tsx`, not in the source files they cover. The three newest are worth
+reading as examples of *why* an assertion could not discriminate: an accessible name `title`
+was quietly supplying, a state clear only observable across a navigation, and a UTC date pin
+that is invisible in any timezone east of Greenwich.
 The `mutation-tester` agent automates the sweep.
 
 **The fake-timer trap:** Testing Library auto-advances fake timers inside `waitFor` only

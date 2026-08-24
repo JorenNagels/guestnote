@@ -1,14 +1,7 @@
 import { cookies } from 'next/headers'
 import { getLocale } from 'next-intl/server'
 import type { ReactNode } from 'react'
-import {
-  DENSITY_COOKIE,
-  NAV_COOKIE,
-  parseDensity,
-  parseNavState,
-  parseTheme,
-  THEME_COOKIE,
-} from '../../lib/prefs.ts'
+import { DENSITY_COOKIE, parseDensity, parseTheme, THEME_COOKIE } from '../../lib/prefs.ts'
 import '../globals.css'
 
 /**
@@ -51,8 +44,12 @@ export default async function ProRootLayout({ children }: { children: ReactNode 
 
   const theme = parseTheme(store.get(THEME_COOKIE)?.value)
   const density = parseDensity(store.get(DENSITY_COOKIE)?.value)
-  const nav = parseNavState(store.get(NAV_COOKIE)?.value)
 
+  // `gn_nav` is NOT read here. It was, as `data-nav` on <html>, with a comment claiming the
+  // sidebar read it for its initial width and that CSS could react before JavaScript ran --
+  // and nothing ever read it, in CSS or anywhere else. The sidebar lives under
+  // `(app)/layout.tsx`, which resolves the cookie into a prop, so that is where it is read.
+  // Writing an attribute no selector matches is worse than not writing one.
   return (
     // All three land on <html> rather than on a wrapper, and they have to: `.dark` is
     // consumed by `@custom-variant dark (&:is(.dark *))` in tokens.css, and both
@@ -68,10 +65,6 @@ export default async function ProRootLayout({ children }: { children: ReactNode 
       // cell padding and control height together, because a 300-guest list is unusable at
       // comfortable spacing.
       data-density={density}
-      // Read by the sidebar for its initial width. On <html> beside the others so there is
-      // one place the shell's persisted chrome state lives, and so CSS can react to it
-      // before any JavaScript has run.
-      data-nav={nav}
     >
       <body>{children}</body>
     </html>

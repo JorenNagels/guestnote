@@ -75,8 +75,14 @@ export async function submitCode(email: string, code: string): Promise<StepResul
  *
  * lib/locales.ts settled why the dashboard uses a cookie rather than a path segment: a
  * language prefix is an SEO device, and a planner should not lose their place by
- * switching language. At M3 this writes the user row instead and the cookie becomes the
- * pre-login fallback -- which is exactly the case this surface is, permanently.
+ * switching language.
+ *
+ * **2026-08-21: it stays a cookie, and this is now the dashboard's writer too.** This used
+ * to say "at M3 this writes the user row instead" and that the pre-login case was "exactly
+ * the case this surface is, permanently". Both halves are now wrong: M3 shipped on cookies
+ * (`lib/prefs.ts` argues why -- a user row here is a query in front of every render), and
+ * `components/nav/account-menu.tsx` imports this rather than declaring a second copy, so it
+ * serves the signed-in surface as well.
  */
 export async function setLocale(locale: Locale): Promise<void> {
   if (!isLocale(locale)) return
