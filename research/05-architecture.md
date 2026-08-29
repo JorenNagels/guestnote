@@ -692,9 +692,11 @@ ARN rather than `*`).
 > ⚠️ **Superseded 2026-08-29 — see §2's note.** M1a shipped as **SST v3**, whose Pulumi
 > engine does not have this split: `sst.config.ts` owns CloudFront + Lambda + Route 53 +
 > the OpenNext cache in one component, and the three `infra/*.yaml` (SES events, OIDC,
-> budgets) stay separate hand-applied CloudFormation. The `NODEJS_24_X` / ARM64 / OAC /
-> scoped-SES hygiene carried forward as intended — it lives in `sst.config.ts` and
-> `infra/github-oidc.yaml` now.
+> budgets) stay separate hand-applied CloudFormation. The ARM64 / OAC / scoped-SES hygiene
+> carried forward as intended — it lives in `sst.config.ts` and `infra/github-oidc.yaml`
+> now. The Lambda runtime is **`nodejs22.x`, not 24**: SST 3.19.3's AWS provider rejects
+> `nodejs24.x`, and it is moot anyway — OpenNext ships bundled JS, so the repo's build-time
+> Node 24 floor does not reach the deployed function.
 
 **Environments: `dev` and `prod` only.** A solo dev at 8 h/week will not maintain three, and an
 unused staging environment rots and then lies to you. Add staging when you have paying planners

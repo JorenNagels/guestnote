@@ -256,8 +256,10 @@ apply here — it is a genuinely viable host for this surface, reachable in abou
 - `sst`: `3.19.3` (`package.json`)
 - OpenNext (`@opennextjs/aws`, pulled in by `sst` at deploy time): record after first deploy
   from `.sst/` — `_______`
+- OpenNext: `3.9.14` (bundled by `sst` 3.19.3, seen in the first deploy log)
 - Next: `16.3.1` (`apps/web/package.json`)
-- Node runtime: `nodejs24.x`, `arm64`
+- Lambda runtime: `nodejs22.x`, `arm64` — `nodejs24.x` is rejected by SST 3.19.3's AWS
+  provider; revisit on an `sst` bump. Runtime Node != the repo's build-time Node 24.
 
 ---
 

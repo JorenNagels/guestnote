@@ -136,8 +136,14 @@ export default $config({
       server: {
         // research/05-architecture.md section 2: ARM64 + 1536 MB is the cold-start
         // mitigation (more memory -> more CPU -> shorter, often cheaper, invocations).
-        // nodejs24.x matches the repo's Node 24 floor and its native type stripping.
-        runtime: 'nodejs24.x',
+        //
+        // nodejs22.x, not 24: SST 3.19.3's bundled Pulumi AWS provider (aws-6.66.2) rejects
+        // `nodejs24.x` outright ("expected runtime to be one of [...nodejs22.x]"), measured
+        // on the first staging deploy 2026-08-29. It does not matter at runtime -- OpenNext
+        // ships the app as esbuild-bundled JS, so the repo's Node 24 floor (native `.ts`
+        // type stripping for local dev and tooling) has nothing to do with the Lambda. Move
+        // to 24 when an SST/provider bump supports it.
+        runtime: 'nodejs22.x',
         architecture: 'arm64',
         memory: '1536 MB',
       },
