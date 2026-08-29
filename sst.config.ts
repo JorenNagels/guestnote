@@ -121,6 +121,18 @@ export default $config({
     const web = new sst.aws.Nextjs('Web', {
       path: 'apps/web',
       domain,
+      // The server function sends sign-in codes through SES (packages/email/src/ses.ts,
+      // SendEmailCommand -> the `ses:SendEmail` action). `sst.aws.Nextjs` grants nothing
+      // for SES by default, so before this line every send failed with
+      // AccessDeniedException before it left the account -- measured on staging 2026-08-29,
+      // the sign-in form reporting success while no mail was ever attempted.
+      //
+      // `resources: ['*']` rather than the identity ARN: SES sandbox plus per-identity
+      // verification already decide what can actually be sent (ADR 0002), the account has
+      // one sending identity, and pinning the ARN here would drag the account id into a
+      // file that otherwise reads every account specific from SSM. Scope it down if a
+      // second identity ever exists.
+      permissions: [{ actions: ['ses:SendEmail'], resources: ['*'] }],
       environment: {
         // proxy.ts resolves which surface answers from the Host header, against these two.
         GUESTNOTE_ROOT_DOMAIN: rootDomain,
