@@ -36,6 +36,27 @@ Decided 2026-08-11. Companion to `04-speclist.md` (what to build) and `06-hostin
 > render** — `assertScoped` requires a `userId`, but §1 has the guest site rendering in a
 > `use cache` scope with no user. See ADR 0003 §9.
 
+> ## ⚠️ Corrected by M1a, 2026-08-29
+>
+> The deploy infrastructure landed (`sst.config.ts`, `.github/workflows/`, `infra/*.yaml`,
+> `infra/README.md`). It changed two decisions in this document; detail is in the dated
+> notes in §2 and §8, this is the index of what is now stale:
+>
+> 1. **IaC is SST v3 (`sst.aws.Nextjs`), not CDK.** §0's "Hosting" and "IaC" rows, §2's
+>    comparison-table row 1 ("via CDK"), §8's "**CDK, two stacks**" paragraph and its
+>    `infra/  # CDK app` tree line, and §9's M1a "+ CDK" are all superseded. SST runs on a
+>    Pulumi engine, so the `FoundationStack` / `AppStack` split is dropped and `infra/*.yaml`
+>    stay hand-applied CloudFormation. The stack is one `sst.config.ts` at the repo root.
+> 2. **Two environments, `production` and `staging`, from M1a** — not "dev and prod only"
+>    (§8). §8's "Preview environments" line about "the shared `dev` deployment" means
+>    `staging`. Why the reversal: §8's dated note.
+> 3. **The warmer ships off** (`warm: 0`). §2's "they only affect the dashboard, which the
+>    warmer covers" is not the running config — a ~1 s dashboard cold start is accepted for
+>    an invite-only audience, and it keeps the 5-minute poke off the shared Neon free tier.
+> 4. **M0's "scoped deploy role" shipped as `AdministratorAccess`** with least-privilege
+>    scoping deferred (`infra/README.md` "Deferred"). The trust policy is pinned to one repo
+>    and two branches.
+
 Constraints this design is optimising for: **one developer, ~8–10 h/week, alongside a
 full-time job and a July 2027 wedding.** Every choice below trades cleverness for the thing
 that survives that.
@@ -148,7 +169,7 @@ Four options were compared. Summary of why the other three lost:
 
 | Option | Verdict |
 |---|---|
-| **OpenNext on Lambda + CloudFront + S3, via CDK** | **Chosen.** Correct on-demand revalidation, full CloudFront control, €0 idle, no wall at 100 tenants |
+| **OpenNext on Lambda + CloudFront + S3** (via CDK as written; **SST v3** as built — see the note below) | **Chosen.** Correct on-demand revalidation, full CloudFront control, €0 idle, no wall at 100 tenants |
 | AWS Amplify Hosting | **Rejected.** **5 domains per app, 50 subdomains per domain and the 50 is not adjustable** — a permanent wall for a product whose Studio tier is sold on white-label domains. Also: AWS docs still say Next.js support goes "up through 15" |
 | `next start` on ECS Fargate / App Runner | **Rejected.** ~$27/mo floor (Fargate + ALB) at zero traffic, and Next's default ISR cache is on **local disk** — with >1 task, `revalidateTag` on task A doesn't reach task B and they serve divergent content |
 | Lambda Web Adapter running `next start` | **Contingency only.** Same broken-ISR-across-instances problem, and here it's guaranteed to bite. Keep as an escape hatch if OpenNext ever breaks on a Next release — accept a dumber time-based cache and be back online in a day |
@@ -157,11 +178,21 @@ Four options were compared. Summary of why the other three lost:
 (more CPU → shorter duration, often *cheaper* per request), and OpenNext's built-in warmer
 function on a 5-minute EventBridge rule. **Lambda SnapStart does not support Node.js** — don't
 plan around it. With ISR, cold starts are off the guest read path entirely; they only affect
-the dashboard, which the warmer covers.
+the dashboard. *(M1a shipped `warm: 0` — a ~1 s dashboard cold start is accepted rather than
+keeping the warmer's 5-minute poke on the shared Neon free tier. See the 2026-08-29 note.)*
 
 **If the OpenNext plumbing eats more than one weekend**, switch wholesale to **SST v3**
 (`sst.aws.Nextjs`), which wraps OpenNext and gives preview stages nearly free. Different IaC
 paradigm, so it's an either/or, not a mix. Decide once in M1 and don't revisit.
+
+> ✅ **Decided 2026-08-29: SST v3 it is** — not as a fallback but from the first deploy.
+> M1a landed with two environments wanted at once (`production` + `staging`, see §8's
+> correction note), and SST's multi-stage is one branch of `sst.config.ts` where the CDK
+> two-stack of §8 would have been a second parameterised app and pipeline. **The accepted
+> cost:** SST v3 runs on a Pulumi engine, not CloudFormation, so §8's `FoundationStack` /
+> `AppStack` split is dropped, and `infra/mail-events.yaml`'s "absorbed into it later" plan
+> with it — the two `infra/*.yaml` templates stay hand-applied CloudFormation. The whole
+> stack is `sst.config.ts` at the repo root; the runbook is `infra/README.md`.
 
 ---
 
@@ -640,7 +671,8 @@ guestnote/
     templates/                 # the 5–6 site templates
     ui/                        # shadcn/ui ported from se-parti-rsvp
     config/                    # zod schemas for block props, theme, dynamic questions
-  infra/                       # CDK app
+  infra/                       # hand-applied CloudFormation (SES events, OIDC, budgets)
+  sst.config.ts                # the hosting stack -- SST v3, added at M1a
   .github/workflows/
 ```
 
@@ -657,15 +689,39 @@ deploy. Separated so an app deploy can never touch stateful resources. Runtime
 `emma-joren/infrastructure/lib/stack.ts` (Origin Access Control, SES IAM scoped to the identity
 ARN rather than `*`).
 
+> ⚠️ **Superseded 2026-08-29 — see §2's note.** M1a shipped as **SST v3**, whose Pulumi
+> engine does not have this split: `sst.config.ts` owns CloudFront + Lambda + Route 53 +
+> the OpenNext cache in one component, and the three `infra/*.yaml` (SES events, OIDC,
+> budgets) stay separate hand-applied CloudFormation. The `NODEJS_24_X` / ARM64 / OAC /
+> scoped-SES hygiene carried forward as intended — it lives in `sst.config.ts` and
+> `infra/github-oidc.yaml` now.
+
 **Environments: `dev` and `prod` only.** A solo dev at 8 h/week will not maintain three, and an
 unused staging environment rots and then lies to you. Add staging when you have paying planners
 and can't afford a bad Friday.
 
-**CI/CD** — GitHub Actions + OIDC, reusing the `GitHubActionsDeployRole` pattern:
-- `pr.yml`: typecheck · lint · `vitest run` (including F6) · `drizzle-kit check` · Playwright smoke
-- `deploy-prod.yml` on push to `main`: build → migrate → deploy. Use `main` rather than the
-  current `v*.*.*` tag trigger; tagging every deploy is friction a solo dev eventually skips.
-- Cache `~/.npm` and `.next/cache` — the latter materially cuts build times.
+> ⚠️ **Corrected 2026-08-29: there are two, `production` and `staging`, from M1a.** The
+> premise above assumed the risk was a *bad Friday* on a product with users. The actual
+> situation at M1a is the opposite: invite-only, no real users, and prod is deliberately
+> being used as a test bed. That makes a safety net for the **prod domain and prod schema**
+> worth more than the maintenance cost, not less. Staging is isolated from prod *writes* —
+> its own Neon branch, copy-on-write off prod — so it is a web-app deploy target only and
+> "rots and then lies" is bounded to "the app is stale", never "the data is wrong". It is
+> **not** free of prod *data*: the branch is a point-in-time copy of every prod row, PII
+> included, so a staging credential is a prod credential. And it is cheap under SST (§2's
+> correction): one config branch, €0 idle on the same free tiers.
+
+**CI/CD** — GitHub Actions + OIDC:
+- `pr.yml`: `npm run check` (typecheck · lint · unit · component) · `drizzle-kit check` ·
+  the DB tier-1 suite. Playwright smoke joins when a browser E2E layer exists (none yet).
+- `deploy.yml`: push `main` → `production`, push `staging` → `staging`, plus a manual
+  stage picker. `main`, not a `v*.*.*` tag — tagging every deploy is friction a solo dev
+  eventually skips. Steps: restore `.next/cache` → apply new migrations (direct endpoint,
+  `--single-transaction`) → `sst deploy --stage <stage>`.
+- The `GitHubActionsDeployRole` in the se-parti account cannot be reused — guestnote is a
+  separate AWS account (929219061071). `infra/github-oidc.yaml` creates the equivalent,
+  `GuestnoteDeployRole`, scoped to this repo's two deploy branches.
+- Cache `~/.npm` (via `actions/setup-node`) and `apps/web/.next/cache`.
 
 **Migration discipline:** migrations run *before* the new code deploys, so there is always a
 window where old code runs against a new schema. Adopt **expand → deploy → contract** now,
@@ -673,7 +729,8 @@ while it's cheap: never drop or rename a column in the same PR that stops using 
 
 **Preview environments:** Neon's database branching makes per-PR *data* free, but per-PR
 OpenNext + CloudFront still takes 15+ minutes and real money for an audience of one. Use local
-dev plus a `workflow_dispatch` push to the shared `dev` deployment. **Rollback is
+dev plus a `workflow_dispatch` deploy to `staging` (was written as "the shared `dev`
+deployment"; the stage is `staging` — see the 2026-08-29 note above). **Rollback is
 `git revert` + redeploy** — at this scale that is genuinely correct.
 
 ---
@@ -697,7 +754,7 @@ dev plus a `workflow_dispatch` push to the shared `dev` deployment. **Rollback i
 | # | Milestone | Effort | Gate |
 |---|---|---|---|
 | **M0** | Register domains, Route 53 zone, ACM cert (`guestnote.be` + `www` + `*.guestnote.be`, one cert, three SANs) in **us-east-1**, scoped deploy role, budget alarms | ½ wknd | |
-| **M1a** | **Deployable skeleton** — Next 16 + OpenNext + CDK behind CloudFront, one alias `pro.guestnote.be`, `private, no-store`, `/api/health` doing a real `withTenant` round-trip, `proxy.ts` with all four host branches (wildcard and custom → 404). Prove: `x-forwarded-host` arrives intact · a `__Host-` session cookie survives CloudFront → Function URL · `/pro/*` is never cached · rollback by `git revert` works | 1 | Hard timebox. Fallback written into `infra/README.md` |
+| **M1a** | **Deployable skeleton** — Next 16 + OpenNext + SST v3 behind CloudFront (see the 2026-08-29 note; was "CDK"), one alias `pro.guestnote.be`, `private, no-store`, `/api/health` doing a real `withTenant` round-trip, `proxy.ts` with all four host branches (wildcard and custom → 404). Prove: `x-forwarded-host` arrives intact · a `__Host-` session cookie survives CloudFront → Function URL · `/pro/*` is never cached · rollback by `git revert` works | 1 | Hard timebox. Fallback written into `infra/README.md` |
 | **M1b** | **Per-tenant ISR** — two hardcoded tenants render differently · ISR caches per host · `revalidateTag` busts one and not the other · `x-forwarded-host` in the CloudFront cache key policy | 1–1.5 | **Moved to immediately before M4/P4.** Gate becomes "build no *guest-site* features until this is green" |
 | **M2** | Neon + Drizzle schema + RLS + `withTenant` + F6 isolation suite + migrations in CI. **Seed a synthetic two-org / three-wedding fixture**, not the two `se-parti-rsvp` weddings — those seed nothing useful for a planner app, and the fixture is what the isolation suite needs anyway | 1–2 | **← the gate. `npm run test:db` exits 0** |
 | **M3** | Better Auth for **authentication only** (`users`/`sessions`/`accounts`/`verifications`, `passkey` + `emailOTP`) behind `packages/core/auth`; `organizations`, `org_members` and the merged `invitations` are hand-rolled in Drizzle. `pro.guestnote.be` login → org switcher → wedding list. See `07-auth-and-tenancy.md` §1 for why the scope narrowed | 1–2 | |

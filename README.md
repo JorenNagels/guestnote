@@ -176,8 +176,9 @@ Scoped to the **planner platform**. Tenant wedding-site theming is parked.
   `docs/specs/0001-moving-around-the-dashboard.md`.
 - `apps/web/` — the one Next.js 16 app. Marketing on the apex, the dashboard on
   `app.guestnote.be`, guest sites on `<slug>.guestnote.be`, all four host branches real and
-  tested — `src/proxy.test.ts` covers every branch, header and cache rule, mutation-checked. NL/EN/FR. Runs locally; **not deployed** — M1a's OpenNext + CDK is still deferred.
-  See `apps/web/README.md` and `docs/adr/0003-one-app-three-hosts.md`.
+  tested — `src/proxy.test.ts` covers every branch, header and cache rule, mutation-checked. NL/EN/FR. Runs locally; **not deployed**. M1a's OpenNext + SST wiring has landed
+  (`sst.config.ts`, `.github/workflows/`); the one-time AWS bootstrap in `infra/README.md`
+  has not been run. See `apps/web/README.md` and `docs/adr/0003-one-app-three-hosts.md`.
 - `packages/email/` — **sign-in mail actually sends.** react-email's renderer (not its deprecated
   component library — see the ADR) into SES v2, NL/EN/FR from the same `next-intl` catalogues,
   every attempt logged to `mail_deliveries`, and Better Auth's rate limiter moved off in-memory
@@ -189,9 +190,11 @@ Scoped to the **planner platform**. Tenant wedding-site theming is parked.
   aliases. DMARC is published at `p=none` with aggregate reports going to Postmark's free digest.
   Sending is unchanged — SES still sends as `noreply@` over `mail.guestnote.be`, and `Reply-To`
   is still deliberately unset. `docs/adr/0005-the-apex-receives-mail.md`.
-- `infra/` — the repo's first infrastructure as code: one CloudFormation template publishing SES
-  bounce and complaint events to SNS. Deliberately not CDK yet; `research/05-architecture.md` §8's
-  `FoundationStack` owns that at M1a.
+- `infra/` — three hand-applied CloudFormation templates: SES bounce/complaint → SNS, GitHub
+  OIDC + deploy role, budget alarms. The M1a hosting stack is `sst.config.ts` at the repo
+  root (SST v3, wraps OpenNext); `research/05-architecture.md` §8's `FoundationStack` /
+  `AppStack` split was dropped for SST — see that file's 2026-08-29 note. Runbook:
+  `infra/README.md`.
 - `coming-soon/` — the holding page for `guestnote.be`. One self-contained `index.html`,
   NL/EN, no external requests. Deploy notes in `coming-soon/README.md`. Still the live apex;
   the app's marketing surface is a placeholder until there is real copy.
@@ -241,7 +244,7 @@ Full reasoning in `research/05-architecture.md`; costs in `research/06-hosting-c
 | | Choice |
 |---|---|
 | Framework | Next.js 16 App Router, **ISR + tag revalidation** (server-rendered on publish, not per request) |
-| Hosting | OpenNext on Lambda + CloudFront + S3, wired with CDK, `eu-central-1` |
+| Hosting | OpenNext on Lambda + CloudFront + S3, `eu-central-1` *(**Corrected 2026-08-29:** wired with **SST v3**, not hand-rolled CDK — `research/05-architecture.md` §2 note)* |
 | Database | **Neon Postgres** + Drizzle — real Postgres at €0, over HTTP, so no VPC and no $37.96/mo NAT Gateway |
 | Auth | **Better Auth** self-hosted (confirmed 2026-08-12, `07-auth-and-tenancy.md`). Guests never get accounts — signed household links |
 | Custom domains | Deferred to v2. Subdomains only at launch; schema reserved |

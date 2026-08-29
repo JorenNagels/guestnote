@@ -1,0 +1,78 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: >-
+  AWS Budgets alarms at EUR 25 / 50 / 100 a month. research/06-hosting-costs.md section 7:
+  "AWS Budgets alarms at EUR 25 / 50 / 100 on day one. Cheapest insurance in the stack."
+
+# Applied by hand, once:
+#
+#   aws cloudformation deploy \
+#     --template-file infra/budgets.yaml \
+#     --stack-name guestnote-budgets \
+#     --profile guestnote --region eu-central-1 \
+#     --parameter-overrides NotifyEmail=you@example.com
+#
+# Budgets is a global (us-east-1-backed) service but the stack can live in any region.
+# There is no confirmation-link step -- budget notifications are delivered to the address
+# directly, unlike the SNS email subscription in mail-events.yaml.
+
+Parameters:
+  NotifyEmail:
+    Type: String
+    AllowedPattern: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+    ConstraintDescription: must be an email address
+    Description: Where the threshold alerts go.
+
+  Currency:
+    Type: String
+    Default: EUR
+    Description: >-
+      Must match the currency the account is billed in. If billing is in USD, change this
+      and re-run -- a mismatched currency makes the budget evaluate against nothing.
+
+Resources:
+  MonthlyCostBudget:
+    Type: AWS::Budgets::Budget
+    Properties:
+      Budget:
+        BudgetName: guestnote-monthly-cost
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        BudgetLimit:
+          Amount: 100
+          Unit: !Ref Currency
+      NotificationsWithSubscribers:
+        # Three actual-spend thresholds plus one forecast, so a runaway is caught before
+        # month end rather than after it.
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 25
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref NotifyEmail
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 50
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref NotifyEmail
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 100
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref NotifyEmail
+        - Notification:
+            NotificationType: FORECASTED
+            ComparisonOperator: GREATER_THAN
+            Threshold: 100
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref NotifyEmail

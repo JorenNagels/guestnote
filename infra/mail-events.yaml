@@ -24,6 +24,13 @@ Description: >-
 # under IaC means `cdk import` / `aws cloudformation create-change-set --import-existing-
 # resources`, which is a deliberate exercise and not a side effect of wiring up bounce
 # notifications. Until then the ADR is the source of truth for those four.
+#
+# Correction 2026-08-29: M1a landed as SST v3, not the FoundationStack / AppStack CDK split
+# this header anticipated -- see research/05-architecture.md section 2's dated note. So this
+# template will NOT be "absorbed into it": it stays a standalone hand-applied CloudFormation
+# stack alongside infra/github-oidc.yaml and infra/budgets.yaml, and "its dev-and-prod story"
+# above is now production-and-staging. The reasoning for CloudFormation-not-CDK here still
+# holds; only the "absorbed later" clause is void.
 
 Parameters:
   NotifyEmail:

@@ -1,0 +1,127 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: >-
+  GitHub Actions OIDC provider and the GuestnoteDeployRole that .github/workflows/deploy.yml
+  assumes to run `sst deploy`. No long-lived AWS keys anywhere.
+
+# Why this is CloudFormation and not CDK or SST
+# --------------------------------------------
+# Same reasoning as infra/mail-events.yaml's header: this is the bootstrap that lets CI run
+# SST at all, so it cannot itself be an SST resource, and pulling in aws-cdk-lib for two
+# resources is not worth it. Applied by hand, once, from the laptop:
+#
+#   aws cloudformation deploy \
+#     --template-file infra/github-oidc.yaml \
+#     --stack-name guestnote-github-oidc \
+#     --capabilities CAPABILITY_NAMED_IAM \
+#     --profile guestnote --region eu-central-1 \
+#     --parameter-overrides GitHubSub='<see below>'
+#
+# The guestnote AWS account (929219061071) is separate from the se-parti siblings'
+# 438465163166, so their shared GitHubActionsDeployRole cannot be reused -- this is the
+# equivalent, scoped to this one repo and its two deploy branches.
+
+Parameters:
+  GitHubOrg:
+    Type: String
+    Default: JorenNagels
+    Description: The GitHub account that owns the repo.
+
+  GitHubRepo:
+    Type: String
+    Default: guestnote
+
+  GitHubSub:
+    Type: CommaDelimitedList
+    Default: >-
+      repo:JorenNagels/guestnote:ref:refs/heads/main,repo:JorenNagels/guestnote:ref:refs/heads/staging
+    Description: >-
+      The exact `sub` claims allowed to assume the role. Defaults to the two deploy
+      branches. IMPORTANT: repositories created after mid-2025 also present an IMMUTABLE
+      subject of the shape `repo:<org>@<orgId>/<repo>@<repoId>:ref:refs/heads/main` -- the
+      classic pattern above then silently fails to match and every deploy is
+      "not authorized to perform sts:AssumeRoleWithWebIdentity". Check with:
+        gh api /repos/JorenNagels/guestnote --jq '{org: .owner.id, repo: .id}'
+      and append `repo:JorenNagels@<orgId>/guestnote@<repoId>:ref:refs/heads/main` (and the
+      staging one) to this list. Append, never replace -- same rule the sibling repos' role
+      documents.
+
+  CreateOIDCProvider:
+    Type: String
+    AllowedValues: ["true", "false"]
+    Default: "true"
+    Description: >-
+      Set to false if token.actions.githubusercontent.com is already registered as an IAM
+      OIDC provider in this account (only one per URL is allowed). A fresh member account has
+      none, so the default creates it.
+
+Conditions:
+  ShouldCreateOIDCProvider: !Equals [!Ref CreateOIDCProvider, "true"]
+
+Resources:
+  GitHubOIDCProvider:
+    Type: AWS::IAM::OIDCProvider
+    Condition: ShouldCreateOIDCProvider
+    Properties:
+      Url: https://token.actions.githubusercontent.com
+      ClientIdList:
+        - sts.amazonaws.com
+      # IAM validates GitHub's certificate against its own trusted-CA store now, so this
+      # value is no longer load-bearing, but AWS::IAM::OIDCProvider still requires the
+      # property. These are GitHub's published intermediate-cert thumbprints.
+      ThumbprintList:
+        - 6938fd4d98bab03faadb97b34396831e3780aea1
+        - 1c58a3a8518e8759bf075b76b750d4f2df264fcd
+
+  DeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: GuestnoteDeployRole
+      # 2 h, not the 1 h default: a first-ever CloudFront distribution create runs 20-30 min
+      # and `.github/workflows/deploy.yml` asks for `role-duration-seconds: 7200` to outlast
+      # it. The two must agree or `AssumeRoleWithWebIdentity` rejects the request.
+      MaxSessionDuration: 7200
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated: !If
+                - ShouldCreateOIDCProvider
+                - !Ref GitHubOIDCProvider
+                - !Sub "arn:${AWS::Partition}:iam::${AWS::AccountId}:oidc-provider/token.actions.githubusercontent.com"
+            Action: sts:AssumeRoleWithWebIdentity
+            Condition:
+              # All exact matches. `StringEquals`, not `StringLike`: every value here is
+              # literal, so a `*` accidentally hand-appended to GitHubSub (the note there
+              # tells the operator to append immutable-form claims) is inert rather than a
+              # wildcard.
+              StringEquals:
+                token.actions.githubusercontent.com:aud: sts.amazonaws.com
+                # `sub` is the intended boundary -- only these refs. The `repository` /
+                # `repository_owner` pair is belt-and-braces that does NOT depend on `sub`
+                # being edited correctly: even a botched `sub` cannot let this role be
+                # assumed from outside this one repo, which matters because
+                # AdministratorAccess is behind it.
+                token.actions.githubusercontent.com:repository: !Sub "${GitHubOrg}/${GitHubRepo}"
+                token.actions.githubusercontent.com:repository_owner: !Ref GitHubOrg
+                token.actions.githubusercontent.com:sub: !Ref GitHubSub
+      ManagedPolicyArns:
+        # SST v3 / Pulumi provisions across many services (CloudFront, Lambda, S3, IAM
+        # roles for the functions, Route 53, ACM, DynamoDB, SQS, EventBridge, CloudWatch,
+        # the SST state bucket) and the exact action set shifts between SST releases.
+        # AdministratorAccess is what the SST docs recommend for a self-hosted CI role, and
+        # the real containment here is (a) this is a single-app member account and (b) the
+        # trust policy above admits only two branches of one repo.
+        #
+        # The residual cost, stated plainly: any workflow run on `main` or `staging` -- and
+        # anyone who can push to those branches -- has full admin on account 929219061071
+        # via OIDC, with no further scoping. Tightening to a least-privilege policy is a
+        # follow-up (infra/README.md "Deferred") once `sst deploy` has run once and
+        # CloudTrail can report the action set it actually used.
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/AdministratorAccess"
+
+Outputs:
+  DeployRoleArn:
+    Description: Put this account id into the AWS_ACCOUNT_ID GitHub Actions secret.
+    Value: !GetAtt DeployRole.Arn

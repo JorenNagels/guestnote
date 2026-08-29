@@ -1,0 +1,166 @@
+name: Deploy
+
+# push main    -> production
+# push staging -> staging
+# manual       -> whichever stage you pick (code-only: no migrations, see below)
+#
+# research/05-architecture.md section 8 argues for a branch trigger over the sibling repos'
+# `v*.*.*` tag: tagging every deploy is friction a solo dev eventually skips. Rollback is
+# `git revert` + push, which re-runs this on the prior tree.
+
+on:
+  push:
+    branches: [main, staging]
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: Stage to deploy (code only -- migrations are applied by a push)
+        type: choice
+        options: [staging, production]
+        default: staging
+
+# Serialize per RESOLVED stage. `inputs.stage` is empty on a push, so keying on it would
+# put a push-to-main prod deploy and a dispatched prod deploy in different groups and race
+# them against one Pulumi state lock. The ternary is repeated here because a workflow-level
+# `concurrency` cannot read job `env`.
+concurrency:
+  group: deploy-${{ github.event_name == 'workflow_dispatch' && inputs.stage || (github.ref == 'refs/heads/main' && 'production' || 'staging') }}
+  cancel-in-progress: false
+
+permissions:
+  id-token: write # OIDC
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      # event first: a `workflow_dispatch` from the default branch (`main`) would otherwise
+      # take the `refs/heads/main` arm and silently ignore the stage picker, forcing prod.
+      STAGE: ${{ github.event_name == 'workflow_dispatch' && inputs.stage || (github.ref == 'refs/heads/main' && 'production' || 'staging') }}
+      AWS_REGION: eu-central-1
+    # A GitHub Environment per stage. Configure `production` with "Deployment branches:
+    # main only" and, ideally, a required reviewer -- research/05 section 8's correction
+    # note frames staging as the safety net for the prod domain and schema, and that net is
+    # only half-built while a dispatch can reach production with no gate. See infra/README.md.
+    environment: ${{ github.event_name == 'workflow_dispatch' && inputs.stage || (github.ref == 'refs/heads/main' && 'production' || 'staging') }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history: the migrate step diffs `github.event.before..github.sha`, and a
+          # merge commit (or "Rebase and merge") advances the branch by more than one
+          # commit, so `before` can be well outside a shallow fetch. A `fatal: bad object`
+          # there must abort, not be swallowed -- see the step.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Restore Next build cache
+        uses: actions/cache/restore@v4
+        with:
+          path: apps/web/.next/cache
+          key: next-${{ env.STAGE }}-${{ github.sha }}
+          restore-keys: |
+            next-${{ env.STAGE }}-
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GuestnoteDeployRole
+          aws-region: ${{ env.AWS_REGION }}
+          # A first-ever CloudFront distribution create can take 20-30 min; the default
+          # 1 h session then expires mid-provision and leaves a half-built stack.
+          role-duration-seconds: 7200
+
+      # Migrations run BEFORE the code deploy (expand -> deploy -> contract, section 8), over
+      # the DIRECT/unpooled endpoint as the owner -- DDL through Neon's transaction-mode
+      # pooler is unsupported (packages/db/README.md).
+      #
+      # This database has no __drizzle_migrations journal (CLAUDE.md invariant 8), so we
+      # cannot "replay from zero". Instead: apply only the migration files ADDED in this
+      # push. What that costs, and why it is still the right call:
+      #   - A `workflow_dispatch` has no `github.event.before`, so it cannot know what is
+      #     already applied. It is therefore treated as CODE-ONLY: no migrations. Dispatch
+      #     is for re-deploying after a secret rotation or a flaked deploy, not for schema.
+      #   - Applying raw `.sql` with `psql -f` is not idempotent -- a re-run of the same
+      #     range stops on "already exists". The first deploy of a stage is bootstrapped by
+      #     hand with the full set (infra/README.md, step "First deploy"); after that every
+      #     push carries at most the migrations it added.
+      - name: Apply new migrations
+        if: github.event_name == 'push'
+        run: |
+          set -euo pipefail
+
+          UNPOOLED=$(aws ssm get-parameter \
+            --name "/guestnote/$STAGE/DATABASE_URL_UNPOOLED" \
+            --with-decryption --query Parameter.Value --output text)
+          # Keep a full-privilege production credential out of the log if a later `set -x`
+          # or `psql -e` ever prints it. Actions masks exact strings, so mask the password
+          # substring too.
+          echo "::add-mask::$UNPOOLED"
+          PW=$(printf '%s' "$UNPOOLED" | sed -E 's#^[a-z]+://[^:]+:([^@]+)@.*#\1#')
+          [ -n "$PW" ] && [ "$PW" != "$UNPOOLED" ] && echo "::add-mask::$PW"
+
+          BEFORE='${{ github.event.before }}'
+          ZERO=0000000000000000000000000000000000000000
+          if [ "$BEFORE" = "$ZERO" ]; then
+            # First push to a new branch -- no baseline to diff. The first deploy of a
+            # stage applies the full migration set by hand anyway (infra/README.md).
+            echo "New branch (before=$ZERO): skipping migration diff. Bootstrap the schema by hand."
+            exit 0
+          fi
+          if ! git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
+            # A real, non-zero SHA that the checkout cannot see. Do NOT guess -- a wrong
+            # diff here means a missed or double-applied migration against a tenant DB.
+            echo "::error::cannot resolve github.event.before ($BEFORE) -- migration diff would be wrong. Apply migrations by hand (infra/README.md) or deepen the checkout."
+            exit 1
+          fi
+
+          NEW=$(git diff --name-only --diff-filter=A "$BEFORE" "${{ github.sha }}" \
+            -- 'packages/db/migrations/0*.sql' | sort)
+
+          if [ -z "$NEW" ]; then
+            echo "No new migration files in this push."
+            exit 0
+          fi
+
+          for f in $NEW; do
+            echo "::group::applying $f"
+            psql "$UNPOOLED" -v ON_ERROR_STOP=1 --single-transaction -f "$f"
+            echo "::endgroup::"
+          done
+
+      - name: Deploy
+        run: npx sst deploy --stage "$STAGE"
+
+      # The one gate that catches a DATABASE_URL pointed at a BYPASSRLS role -- the ADR 0001
+      # trap, which disables every RLS policy with no error anywhere. `/api/health` does a
+      # real withUser round-trip and returns 503 / ok:false when the connected role is not
+      # `app_user` or can bypass RLS. Without this step a deploy against a mis-set URL goes
+      # green and every tenant read crosses org boundaries.
+      #
+      # Targets the real hostname, so on `production` this expects the apex/app cutover to
+      # be done (infra/README.md) -- the first prod deploy is a laptop step anyway.
+      - name: Verify RLS is armed
+        run: |
+          set -euo pipefail
+          ROOT_DOMAIN=$([ "$STAGE" = production ] && echo guestnote.be || echo staging.guestnote.be)
+          URL="https://app.${ROOT_DOMAIN}/api/health"
+          echo "GET $URL"
+          BODY=$(curl -fsS --retry 6 --retry-all-errors --retry-delay 10 "$URL")
+          echo "$BODY"
+          echo "$BODY" | grep -q '"ok": true' || {
+            echo "::error::/api/health did not report ok:true. RLS may be disarmed (ADR 0001) -- check the role behind /guestnote/$STAGE/DATABASE_URL. The deploy is live; investigate now."
+            exit 1
+          }
+
+      - name: Save Next build cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: apps/web/.next/cache
+          key: next-${{ env.STAGE }}-${{ github.sha }}

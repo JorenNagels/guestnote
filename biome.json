@@ -16,7 +16,8 @@
       "!coming-soon",
       "!waitlist",
       "!design-system",
-      "!**/*.svg"
+      "!**/*.svg",
+      "!sst-env.d.ts"
     ]
   },
   "formatter": {

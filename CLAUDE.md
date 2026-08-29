@@ -28,7 +28,8 @@ warning once let `npm install` write a dependency into `package.json` without in
 | `research/` | The reasoning: market, architecture, auth/tenancy, planner spec. |
 | `design-system/` | Tokens for the planner platform. Tenant theming is parked. |
 | `.impeccable/surfaces/` | Per-surface design briefs. The login brief is the live one. |
-| `infra/` | Deployed infrastructure. CloudFormation, not CDK — see the header in `mail-events.yaml`. |
+| `infra/` | Hand-applied CloudFormation (SES events, GitHub OIDC, budgets) — not CDK, see the header in `mail-events.yaml`. |
+| `sst.config.ts` | The hosting stack — SST v3 (`sst.aws.Nextjs`), one per stage. Pulumi engine, not CloudFormation. Runbook: `infra/README.md`. |
 | `test/` | The shared Vitest setup and the `server-only` stub. Named by `vitest.config.ts`. |
 
 `packages/db`, `packages/email` and `apps/web` each have a README that argues its decisions
@@ -252,8 +253,10 @@ Biome, 100 columns, single quotes, no semicolons, trailing commas. `npm run form
 
 **No part of the app is deployed yet.** `coming-soon/` is the live apex, `waitlist/` the
 Lambda behind its form, and `infra/mail-events.yaml` the deployed SES→SNS bounce path — the
-repo's first IaC. M1a (OpenNext + CDK) is deliberately still deferred. Do not write code that
-assumes a deployed *application* environment exists.
+repo's first IaC. M1a's OpenNext + SST wiring has **landed** (`sst.config.ts`,
+`.github/workflows/deploy.yml`, `infra/README.md`) but nothing is deployed — the one-time
+bootstrap in `infra/README.md` has not been run. Do not write code that assumes a deployed
+*application* environment exists.
 
 # AWS Guidance
 

@@ -1,0 +1,69 @@
+name: PR
+
+# The gate, in CI. Mirrors `npm run check` plus the database tier-1 suite. No AWS, no
+# secrets -- deploy.yml owns anything that touches the cloud.
+#
+# Playwright smoke (research/05-architecture.md section 8) is deliberately absent: there is
+# no browser E2E in the repo yet (CLAUDE.md "Testing", README.md). It joins here when it
+# exists.
+
+on:
+  pull_request:
+  push:
+    branches: [main, staging]
+
+concurrency:
+  group: pr-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # typecheck + lint + unit + component.
+      - run: npm run check
+      # drizzle-kit check: the migrations are internally consistent and nothing was
+      # hand-edited into a state generate would not produce.
+      - run: npm run db:check
+
+  db:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_PASSWORD: verify
+          POSTGRES_DB: guestnote
+        ports:
+          - 55433:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d guestnote"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # The tier-1 recipe from packages/db/README.md, verbatim: a non-bypassing app_user,
+      # then every migration file in order. `npm run test:db` needs no env -- it defaults
+      # to localhost:55433. Tier 2 (the real Neon pooler) cannot run here and is the
+      # user's local pre-merge check.
+      - name: Prepare database
+        env:
+          PGPASSWORD: verify
+        run: |
+          psql -h localhost -p 55433 -U postgres -d guestnote \
+            -c "create role app_user login password 'verify' nobypassrls;"
+          for f in packages/db/migrations/0*.sql; do
+            echo "applying $f"
+            psql -h localhost -p 55433 -U postgres -d guestnote -v ON_ERROR_STOP=1 -q -f "$f"
+          done
+      - run: npm run test:db
