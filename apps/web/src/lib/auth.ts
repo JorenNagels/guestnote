@@ -88,6 +88,20 @@ export function getAuth() {
     newId,
 
     /**
+     * The Google OAuth client, passed only when BOTH halves are set.
+     *
+     * `env.ts` keeps these optional so a `next build` needs no credentials; the seam keeps
+     * `socialProviders` empty when `google` is undefined. Composing the object here -- rather
+     * than always passing `{ clientId: env.googleClientId, ... }` with empty strings -- is
+     * what makes "forgot to configure Google" resolve to "no button" instead of "a button
+     * that fails an OAuth handshake". Same shape as `secretFor()`'s dev fallback: the value
+     * you get by omission is the safe one.
+     */
+    ...(env.googleClientId && env.googleClientSecret
+      ? { google: { clientId: env.googleClientId, clientSecret: env.googleClientSecret } }
+      : {}),
+
+    /**
      * The code, by email, through `packages/email`.
      *
      * ## Awaited, against the plugin's own advice

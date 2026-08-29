@@ -55,7 +55,7 @@ that survives that.
 | Database | **Neon Postgres** (on AWS eu-central-1) |
 | Query layer | **Drizzle ORM** + `drizzle-kit` migrations |
 | Isolation | Tenant-scoped repository layer **+ Postgres RLS** as the backstop |
-| Auth | **Better Auth** self-hosted — `passkey` + `emailOTP` plugins, no magic link and no password (superseded 2026-08-18; see `07-auth-and-tenancy.md`). Organization plugin NOT used. Guests never get accounts |
+| Auth | **Better Auth** self-hosted — `passkey` + `emailOTP` plugins, plus a secondary "Continue with Google", no password (credential superseded 2026-08-18, Google added 2026-08-29; see `07-auth-and-tenancy.md`). Organization plugin NOT used. Guests never get accounts |
 | Email | **SES** + `react-email` templates. Friendly-From white-labelling in v1 |
 | Payments | **Mollie** (Bancontact/iDEAL economics decide it) |
 | Jobs | EventBridge Scheduler one-shots → SQS → Lambda |
@@ -485,6 +485,14 @@ Enterprise conversation — there is no identity sub-processor to put on the DPA
 **Hedge:** keep auth behind a thin `packages/core/auth` interface exposing only `getSession()`,
 `requireOrgMember(orgId, minRole)` and the invitation flow. Swapping to Clerk later becomes a
 bounded one-weekend job.
+
+> **Correction 2026-08-29.** "there is no identity sub-processor to put on the DPA at all" no
+> longer holds: a secondary "Continue with Google" sign-in was added, so Google is now an
+> identity sub-processor. It is one full-width button below the email form, replacing neither
+> passkey nor the email code, wired conditionally on the Google client env vars. The reasoning
+> and the accepted cost are in `07-auth-and-tenancy.md` — see the "Social sign-in added
+> 2026-08-29" note near the top. Data residency (Neon + SES in `eu-central-1`) is unaffected;
+> only the identity claim narrows.
 
 ### Roles
 

@@ -22,6 +22,8 @@ export const COPY: AuthCopy = {
     emailPlaceholder: 'PLACEHOLDER-EMAIL',
     continue: 'ACTION-CONTINUE',
     passkey: 'ACTION-PASSKEY',
+    orContinue: 'DIVIDER-OR-CONTINUE',
+    google: 'ACTION-GOOGLE',
   },
   verify: {
     title: 'TITLE-VERIFY',

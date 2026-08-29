@@ -14,6 +14,7 @@ import {
   finishPasskeyEnrollment,
   requestCode,
   setLocale,
+  startGoogleSignIn,
   submitCode,
 } from './actions.ts'
 import { type AuthCopy, fill, splitAround } from './copy.ts'
@@ -30,6 +31,12 @@ type Props = {
   locales: readonly Locale[]
   /** False until W3. See `passkeysAvailable()` on the seam. */
   passkeysEnabled: boolean
+  /**
+   * Whether to draw the "Continue with Google" button below the form. `googleAvailable()`
+   * on the seam -- true only when the Google OAuth client env vars are set, so an
+   * unconfigured environment shows no button rather than one that fails on click.
+   */
+  googleEnabled: boolean
   /** An invitation binds the address: pre-filled and not editable. */
   boundEmail?: string
   /** The sentence above the field on an invitation landing. */
@@ -99,6 +106,7 @@ export function AuthFlow({
   locale,
   locales,
   passkeysEnabled,
+  googleEnabled,
   boundEmail,
   lead,
   blocked,
@@ -119,6 +127,10 @@ export function AuthFlow({
   const [conditionalAvailable, setConditionalAvailable] = useState(false)
   const [platformAvailable, setPlatformAvailable] = useState(false)
   const [enrollment, setEnrollment] = useState<Enrollment>('offered')
+  // Not `startTransition`: `onGoogle` ends in a full-page navigation to Google, so the
+  // transition would never resolve. A plain flag disables the button while the URL is
+  // being minted -- long enough that a second click cannot fire a second round trip.
+  const [googlePending, setGooglePending] = useState(false)
   const [pending, startTransition] = useTransition()
 
   const emailRef = useRef<HTMLInputElement>(null)
@@ -283,6 +295,31 @@ export function AuthFlow({
   }
 
   /**
+   * "Continue with Google": ask the server for the outbound URL, then navigate to it.
+   *
+   * A real navigation, not a transition -- the OAuth flow leaves the app entirely and comes
+   * back through `/api/auth/callback/google`, which is where the session cookie is set.
+   *
+   * This handler only owns the step *before* the redirect: minting the URL. If that fails
+   * (client misconfigured, Google unreachable) the button re-enables and nothing else
+   * happens -- the same silent posture the passkey outcomes have. A failure *after* the
+   * redirect (the visitor cancels at Google, the state token expires) never returns here;
+   * `errorCallbackURL` in the seam sends it back to this same login form instead.
+   *
+   * `googlePending` is left true on the success path so the button cannot be double-fired
+   * in the moment before the page unloads.
+   */
+  async function onGoogle() {
+    setGooglePending(true)
+    const result = await startGoogleSignIn().catch(() => ({ ok: false }) as const)
+    if (!result.ok) {
+      setGooglePending(false)
+      return
+    }
+    window.location.assign(result.url)
+  }
+
+  /**
    * Whether rung 0 draws an explicit passkey control, and whether rung 2 may offer to
    * create one. Two questions, one shared capability answer -- see the state above.
    */
@@ -412,6 +449,36 @@ export function AuthFlow({
                       <Button variant="secondary" className="mt-2 h-10" icon={<KeyIcon />}>
                         {copy.signIn.passkey}
                       </Button>
+                    )}
+                    {/* Google sits below the primary path, under a divider -- the secondary
+                      method position (shadcn login-01/04, the "one unambiguous primary CTA"
+                      argument). Hidden on an invitation landing: that flow pins the address
+                      on purpose, and a Google button is a way to pick a different one.
+                      research/07's "Social sign-in added 2026-08-29" note has the why. */}
+                    {googleEnabled && !boundEmail && (
+                      <>
+                        {/* The whole divider is decorative: a screen reader still reaches
+                          the form and the button by normal traversal, and `role="separator"`
+                          on the label would push the word itself out of the a11y tree
+                          (browsers force `presentation` on a separator's descendants). */}
+                        <div
+                          className="my-4 flex items-center gap-3 text-xs text-muted-foreground"
+                          aria-hidden="true"
+                        >
+                          <span className="h-px flex-1 bg-[var(--gn-input,var(--input))]" />
+                          {copy.signIn.orContinue}
+                          <span className="h-px flex-1 bg-[var(--gn-input,var(--input))]" />
+                        </div>
+                        <Button
+                          variant="secondary"
+                          className="h-10"
+                          icon={<GoogleGIcon />}
+                          disabled={googlePending}
+                          onClick={() => void onGoogle()}
+                        >
+                          {copy.signIn.google}
+                        </Button>
+                      </>
                     )}
                   </>
                 )}
@@ -581,5 +648,38 @@ function TickIcon() {
     >
       <path d="M3.5 8.5l3 3 6-6.5" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
+  )
+}
+
+/**
+ * The Google "G", in its four fixed brand colours.
+ *
+ * Google's sign-in branding guidelines forbid recolouring the mark and require it on a
+ * white background, so it does not take `currentColor` like the icons above and it carries
+ * its own white tile -- which also lets it read on the dark theme's transparent button.
+ * Paths are Google's own official asset, untouched.
+ */
+function GoogleGIcon() {
+  return (
+    <span className="inline-flex size-5 items-center justify-center rounded-sm bg-white">
+      <svg viewBox="0 0 48 48" aria-hidden="true" className="size-3.5">
+        <path
+          fill="#EA4335"
+          d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+        />
+        <path
+          fill="#4285F4"
+          d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 3-2.26 5.54-4.78 7.25l7.73 6c4.51-4.18 7.09-10.36 7.09-17.72z"
+        />
+        <path
+          fill="#FBBC05"
+          d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
+        />
+        <path
+          fill="#34A853"
+          d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+        />
+      </svg>
+    </span>
   )
 }

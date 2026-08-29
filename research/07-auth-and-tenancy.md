@@ -61,6 +61,44 @@ remembers that `se-parti-rsvp` already uses Clerk.
 > `<slug>.guestnote.be`. `rp.id` is hashed into the authenticator at creation and can never be
 > edited. This is the one thing on the surface that cannot be retrofitted.
 
+> ⚠️ **Social sign-in added 2026-08-29: "Continue with Google", as a secondary method.**
+>
+> §1 point 4 below says *"EU residency is free … there is no identity sub-processor to name on
+> the DPA at all"*, and `socialProviders` was empty on that basis. That is now narrowed, on a
+> product call rather than a measurement:
+>
+> - **Google is added as a secondary sign-in method**, replacing neither passkey nor the
+>   six-digit email code — one full-width "Continue with Google" button under an "Or continue
+>   with" divider, at rung 0 beside the email field and the passkey control. It is **not** a
+>   new step on `.impeccable/surfaces/src-app-pro-public-login.md`'s credential ladder — that
+>   ladder is a one-path-at-a-time model and a button beside two other methods sits outside
+>   it. The brief still lists social sign-in under "Not building" and needs its own amendment.
+>   **There is still no password.**
+> - **Two reasons for the flip.** (1) Belgian planners and venue staff live in Google
+>   Workspace, so a one-tap button beats email-then-code — most of all in the "phone, one bar
+>   of signal, on the day" scene the login brief is designed against. (2) A recognisable
+>   Google button on an invite-only B2B tool reads as more legitimate to a planner evaluating
+>   it, and lowers first-login drop-off.
+> - **The accepted cost.** Google becomes an identity sub-processor: a sub-processor entry on
+>   the DPA and a disclosure to B2B customers who ask. This is the exact thing point 4 was
+>   written to avoid; it is now a known, priced trade rather than an omission.
+> - **Data residency is untouched.** Neon and SES stay in `eu-central-1`; only the *identity*
+>   claim narrows. No user record leaves — Better Auth still owns `users`, and Google supplies
+>   only the OAuth profile on the `accounts` row it already has columns for.
+> - **The seam holds.** `packages/core/src/auth/better-auth.ts` stays the only file importing
+>   `better-auth`; the new `startGoogleSignIn` returns a plain redirect URL and leaks no
+>   library type. `socialProviders` is wired **conditionally** on `GOOGLE_CLIENT_ID` /
+>   `GOOGLE_CLIENT_SECRET`, so an environment that forgets them has no button, never a broken
+>   one.
+> - **Account linking is on**, `trustedProviders: ['google']`: Google asserts `email_verified`,
+>   so a Google login whose address matches an existing code-created `users` row adopts that
+>   row rather than colliding on the unique email. The button is hidden on the *bound*
+>   staff-invitation flow (`boundEmail` set — that flow pins the address on purpose), and
+>   `resolveInvitation` is still fixtures (M3), so an invitation actually granting a role via
+>   Google is future.
+> - **Still bounded to reverse.** Removing the button is deleting the env vars and the
+>   `socialProviders.google` branch; the `accounts` OAuth columns were always present.
+
 ---
 
 ## 1. Why not Clerk — the honest version

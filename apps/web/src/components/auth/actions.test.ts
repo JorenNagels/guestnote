@@ -1,27 +1,33 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 /**
- * The three Server Functions the sign-in surface calls.
+ * The Server Functions the sign-in surface calls.
  *
  * ## What is mocked, and why only this much
  *
- * `getAuth()` and `next/headers` are replaced; nothing else is. The seam is mocked because
- * these tests are about what the ACTION does with an answer -- validate before asking,
- * pass a failure through unchanged, thread the request headers -- and not about Better
- * Auth. That separation is the seam's whole purpose (`packages/core/src/auth/index.ts`),
- * so honouring it here is consistent rather than lazy: a test that stood up Better Auth to
- * check an email regex would fail for reasons that have nothing to do with the regex.
+ * `getAuth()`, `next/headers` and `lib/app-url.ts` are replaced; nothing else is. The seam
+ * is mocked because these tests are about what the ACTION does with an answer -- validate
+ * before asking, pass a failure through unchanged, thread the request headers -- and not
+ * about Better Auth. That separation is the seam's whole purpose
+ * (`packages/core/src/auth/index.ts`), so honouring it here is consistent rather than lazy:
+ * a test that stood up Better Auth to check an email regex would fail for reasons that have
+ * nothing to do with the regex.
  *
  * The real `lib/auth.ts` also reaches for a database and a secret at call time, so mocking
  * it is what keeps this in the `unit` project rather than dragging it into `db`.
  */
 const requestEmailCode = vi.fn()
 const verifyEmailCode = vi.fn()
+const startGoogleSignInSeam = vi.fn()
 const cookieStore = { set: vi.fn() }
 const requestHeaders = new Headers({ 'user-agent': 'test-agent' })
 
 vi.mock('../../lib/auth.ts', () => ({
-  getAuth: () => ({ requestEmailCode, verifyEmailCode }),
+  getAuth: () => ({
+    requestEmailCode,
+    verifyEmailCode,
+    startGoogleSignIn: startGoogleSignInSeam,
+  }),
 }))
 
 vi.mock('next/headers', () => ({
@@ -29,12 +35,21 @@ vi.mock('next/headers', () => ({
   headers: async () => requestHeaders,
 }))
 
-const { requestCode, setLocale, submitCode } = await import('./actions.ts')
+vi.mock('../../lib/app-url.ts', () => ({
+  appHomeUrl: () => 'http://app.guestnote.localhost:3000/',
+  appLoginUrl: () => 'http://app.guestnote.localhost:3000/login',
+}))
+
+const { requestCode, setLocale, startGoogleSignIn, submitCode } = await import('./actions.ts')
 
 beforeEach(() => {
   vi.clearAllMocks()
   requestEmailCode.mockResolvedValue({ ok: true, value: {} })
   verifyEmailCode.mockResolvedValue({ ok: true, value: { userId: 'u1', needsName: false } })
+  startGoogleSignInSeam.mockResolvedValue({
+    ok: true,
+    value: { url: 'https://accounts.google.com/o/oauth2/v2/auth?client_id=x' },
+  })
 })
 
 describe('requestCode', () => {
@@ -190,6 +205,39 @@ describe('submitCode', () => {
     // would be a second place to be wrong about `codeLength`.
     await submitCode('ilse@studiowit.be', '')
     expect(verifyEmailCode).toHaveBeenCalledOnce()
+  })
+})
+
+describe('startGoogleSignIn', () => {
+  it('returns the redirect url the seam minted', async () => {
+    await expect(startGoogleSignIn()).resolves.toEqual({
+      ok: true,
+      url: 'https://accounts.google.com/o/oauth2/v2/auth?client_id=x',
+    })
+  })
+
+  it('asks the seam for absolute success and error callbacks, and threads the request headers', async () => {
+    // Both URLs must be absolute -- Better Auth redirects the browser to them from its own
+    // callback route, and a bare path would resolve against accounts.google.com. `errorURL`
+    // is what stops a cancelled Google sign-in landing on Better Auth's raw error page. The
+    // headers matter for the same reason they do on `submitCode`: the callback sets the
+    // session cookie against this request.
+    await startGoogleSignIn()
+    expect(startGoogleSignInSeam).toHaveBeenCalledWith({
+      callbackURL: 'http://app.guestnote.localhost:3000/',
+      errorURL: 'http://app.guestnote.localhost:3000/login',
+      headers: requestHeaders,
+    })
+  })
+
+  it('collapses a seam failure to a bare { ok: false }, carrying no reason', async () => {
+    // Every way this fails renders identically on the surface -- as nothing. The action
+    // drops the seam's `failure` so a client cannot accidentally render it, the same
+    // posture the passkey actions take.
+    startGoogleSignInSeam.mockResolvedValue({ ok: false, failure: 'unavailable' })
+    const result = await startGoogleSignIn()
+    expect(result).toEqual({ ok: false })
+    expect(Object.hasOwn(result, 'failure')).toBe(false)
   })
 })
 

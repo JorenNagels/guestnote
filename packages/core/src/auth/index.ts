@@ -33,6 +33,7 @@ export type {
 export type Auth = ReturnType<typeof createBetterAuthProvider> & {
   resolveInvitation: (token: string) => Promise<Invitation>
   passkeysAvailable: () => boolean
+  googleAvailable: () => boolean
 }
 
 export function createAuth(config: AuthConfig): Auth {
@@ -66,6 +67,18 @@ export function createAuth(config: AuthConfig): Auth {
      */
     passkeysAvailable(): boolean {
       return true
+    },
+
+    /**
+     * Whether to draw the "Continue with Google" button.
+     *
+     * True only when the Google OAuth client was supplied -- `apps/web/src/lib/auth.ts`
+     * passes `config.google` only when both env vars are set. So a deployment that has not
+     * configured Google gets a login form with no Google button, never a button whose click
+     * 500s. The login page threads this through as `googleEnabled`.
+     */
+    googleAvailable(): boolean {
+      return config.google !== undefined
     },
   }
 }

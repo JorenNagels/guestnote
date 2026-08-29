@@ -70,7 +70,9 @@
       "emailLabel": "Adresse e-mail",
       "emailPlaceholder": "vous@studiowit.be",
       "continue": "Continuer",
-      "passkey": "Utiliser votre passkey"
+      "passkey": "Utiliser votre passkey",
+      "orContinue": "Ou continuer avec",
+      "google": "Continuer avec Google"
     },
     "verify": {
       "title": "Saisissez votre code",

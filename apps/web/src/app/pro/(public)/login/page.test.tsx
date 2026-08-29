@@ -41,7 +41,7 @@ vi.mock('next/navigation', () => ({
 }))
 
 vi.mock('../../../../lib/auth.ts', () => ({
-  getAuth: () => ({ passkeysAvailable: () => true }),
+  getAuth: () => ({ passkeysAvailable: () => true, googleAvailable: () => true }),
 }))
 
 /**

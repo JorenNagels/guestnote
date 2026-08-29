@@ -2,6 +2,7 @@
 
 import type { AuthFailure, PasskeyCreationOptions, PasskeyRegistration } from '@guestnote/core/auth'
 import { cookies, headers } from 'next/headers'
+import { appHomeUrl, appLoginUrl } from '../../lib/app-url.ts'
 import { getAuth } from '../../lib/auth.ts'
 import { isLocale, LOCALE_COOKIE, type Locale } from '../../lib/locales.ts'
 
@@ -68,6 +69,34 @@ export async function submitCode(email: string, code: string): Promise<StepResul
   return result.attemptsLeft === undefined
     ? { ok: false, failure: result.failure }
     : { ok: false, failure: result.failure, attemptsLeft: result.attemptsLeft }
+}
+
+/**
+ * Begin "Continue with Google": return the URL the browser should navigate to.
+ *
+ * The client does `window.location.assign(url)` -- a real navigation, not a `fetch` --
+ * because the OAuth flow is a full-page round trip to Google and back through
+ * `/api/auth/callback/google`, where Better Auth sets the session cookie itself. So unlike
+ * `submitCode`, no cookie is set on this action's response.
+ *
+ * Both URLs are absolute origins from `lib/app-url.ts` (not bare paths), because Better
+ * Auth redirects the browser to them from its own callback route:
+ *   - `callbackURL` -- `appHomeUrl()`, the dashboard, on success.
+ *   - `errorURL` -- `appLoginUrl()`, so a visitor who cancels at Google's account chooser
+ *     (or whose 10-minute OAuth state expires) lands back on the sign-in form instead of
+ *     Better Auth's bare `/api/auth/error` page. See the seam method for why that matters.
+ *
+ * Failure carries no reason, matching the passkey actions: every way this fails is one the
+ * surface renders as nothing -- the button does not navigate, or the visitor is returned
+ * to the plain login form.
+ */
+export async function startGoogleSignIn(): Promise<{ ok: true; url: string } | { ok: false }> {
+  const result = await getAuth().startGoogleSignIn({
+    callbackURL: appHomeUrl(),
+    errorURL: appLoginUrl(),
+    headers: await headers(),
+  })
+  return result.ok ? { ok: true, url: result.value.url } : { ok: false }
 }
 
 /**

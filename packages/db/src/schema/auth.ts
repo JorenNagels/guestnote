@@ -82,12 +82,22 @@ export const sessions = pgTable(
 )
 
 /**
- * Present because half of Better Auth's core expects it, not because it is used.
+ * One row per linked OAuth account -- today only "Continue with Google"
+ * (`provider_id = 'google'`), with the token columns populated. Passkeys are NOT here;
+ * they have their own `passkeys` table below, and `emailOTP` has no table of its own.
  *
- * There is no password and no social provider: research/07-auth-and-tenancy.md rules
- * OAuth out (it would put an identity sub-processor on the DPA, undoing the EU-residency
- * argument for self-hosting). `password` therefore stays null on every row, and a
- * non-null value in this column means something has gone wrong.
+ * ## `password` is still always null
+ *
+ * There is no email+password anywhere -- `emailAndPassword.enabled` is false. So a non-null
+ * `password` on any row still means something has gone wrong, exactly as before.
+ *
+ * ## Empty until the first Google sign-in, as of 2026-08-29
+ *
+ * This comment used to say "no social provider: research/07 rules OAuth out (identity
+ * sub-processor on the DPA, undoing the EU-residency argument)". That was reversed on a
+ * product call -- see the "Social sign-in added 2026-08-29" note near the top of
+ * research/07-auth-and-tenancy.md. The columns were always present (Better Auth's core
+ * emits them); only the decision not to use them changed.
  */
 export const accounts = pgTable(
   'accounts',

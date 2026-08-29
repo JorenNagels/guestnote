@@ -32,6 +32,10 @@ export type AuthCopy = Readonly<{
     emailPlaceholder: string
     continue: string
     passkey: string
+    /** Divider label above the Google button. Google's own guidelines permit localising it. */
+    orContinue: string
+    /** Must stay one of Google's three sanctioned strings; "Continue with Google" is it. */
+    google: string
   }>
   verify: Readonly<{
     title: string
@@ -127,6 +131,8 @@ export async function getAuthCopy(): Promise<AuthCopy> {
       emailPlaceholder: t('signIn.emailPlaceholder'),
       continue: t('signIn.continue'),
       passkey: t('signIn.passkey'),
+      orContinue: t('signIn.orContinue'),
+      google: t('signIn.google'),
     },
     verify: {
       title: t('verify.title'),

@@ -58,6 +58,19 @@ export type AuthConfig = {
   sendCode: (args: { email: string; code: string; type: string }) => Promise<void>
   /** uuidv7, from @guestnote/db. See `generateId` below for why this is not optional. */
   newId: () => string
+  /**
+   * The Google OAuth client, for the "Continue with Google" sign-in.
+   *
+   * **Optional, and absent by default.** When it is undefined `socialProviders` stays `{}`
+   * and nothing about the OAuth flow is reachable -- `apps/web/src/lib/auth.ts` only passes
+   * it when both `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set, so an environment
+   * that forgets them gets a login form with no Google button rather than one that fails on
+   * click.
+   *
+   * Social sign-in was ruled out in research/07 (an identity sub-processor on the DPA); that
+   * was reversed on a product call 2026-08-29 -- see that file's "Social sign-in added" note.
+   */
+  google?: { clientId: string; clientSecret: string }
 }
 
 export function createBetterAuthProvider(config: AuthConfig) {
@@ -150,9 +163,45 @@ export function createBetterAuthProvider(config: AuthConfig) {
     // wrong, and nothing to leak.
     emailAndPassword: { enabled: false },
 
-    // No social providers: research/07-auth-and-tenancy.md rules them out because an
-    // identity sub-processor would undo the EU-residency argument for self-hosting.
-    socialProviders: {},
+    /**
+     * One social provider: Google, and only when `config.google` was supplied.
+     *
+     * research/07-auth-and-tenancy.md originally ruled OAuth out entirely -- an identity
+     * sub-processor on the DPA, against the EU-residency argument for self-hosting. That was
+     * reversed 2026-08-29 on a product call (planners live in Google Workspace; a recognised
+     * button lowers first-login drop-off on an invite-only tool). See that file's "Social
+     * sign-in added" note for the accepted cost.
+     *
+     * Built conditionally rather than always-on with empty strings: an env that forgets the
+     * client id/secret gets `{}` here and no OAuth surface at all, which is the safe value to
+     * land on by omission -- the same rule `GUESTNOTE_MAIL_TRANSPORT` follows.
+     */
+    socialProviders: config.google
+      ? { google: { clientId: config.google.clientId, clientSecret: config.google.clientSecret } }
+      : {},
+
+    account: {
+      /**
+       * Encrypt the OAuth tokens at rest, against the plugin's plaintext default.
+       *
+       * Same argument as `storeOTP: 'hashed'` below: `accounts` rows are written by an
+       * unscoped adapter and carry no RLS, so anything that can read one row should not get a
+       * usable Google refresh token out of it. We never call a Google API with these, so
+       * encryption costs nothing we use.
+       */
+      encryptOAuthTokens: true,
+      accountLinking: {
+        enabled: true,
+        /**
+         * A Google sign-in whose (Google-verified) email matches an existing `users` row --
+         * created earlier by an email code -- adopts that row instead of colliding on the
+         * unique email. Safe because our only account-creation paths (emailOTP, Google) both
+         * prove the address, so the local row is always `emailVerified: true` and the
+         * plugin's `requireLocalEmailVerified` gate (default on) holds.
+         */
+        trustedProviders: ['google'],
+      },
+    },
 
     session: {
       expiresIn: AUTH_POLICY.sessionTtlSeconds,
@@ -258,6 +307,64 @@ export function createBetterAuthProvider(config: AuthConfig) {
           ok: true,
           value: { userId: result.user.id, needsName: !result.user.name },
         }
+      } catch (error) {
+        return { ok: false, failure: classify(error) }
+      }
+    },
+
+    /**
+     * Begin "Continue with Google": hand back the URL to send the browser to.
+     *
+     * Unlike the code and passkey flows, this one is a full-page redirect to Google and
+     * back through `/api/auth/callback/google` (the `[...all]` route handler) -- Better Auth
+     * sets the session cookie on the callback response, so there is no Server Action cookie
+     * to worry about here. This call only mints the outbound URL.
+     *
+     * Returns just `{ url }` as plain data; no Better Auth type crosses the seam.
+     *
+     * ## Two failure surfaces, and both have to be quiet
+     *
+     * A failure *before* the redirect (misconfigured client, provider unreachable) goes
+     * through `classify()` here and the caller renders it as nothing -- a Google button that
+     * does not navigate, the same posture the passkey outcomes have.
+     *
+     * A failure *after* the browser has left for Google -- the visitor cancels at the
+     * account chooser, or Better Auth's 10-minute state token expires mid-flow -- is
+     * handled by the callback route, not by this function. Without `errorCallbackURL` that
+     * route bounces to Better Auth's bare `/api/auth/error` page on the dashboard host,
+     * which is exactly the unexplained-screen-then-support-email outcome `login/page.tsx`
+     * exists to prevent. So `errorURL` (the login page) is passed through as
+     * `errorCallbackURL`: a cancelled Google sign-in lands back on the plain sign-in form.
+     * `login/page.tsx` reads only `?reason=`, so the `?error=` Better Auth appends is
+     * ignored and the visitor simply sees the form again -- "nothing", as intended.
+     *
+     * ## Not guarded here
+     *
+     * The button is only *rendered* when `googleAvailable()` is true. This function is a
+     * Server Function -- a POST to its own route (CLAUDE.md invariant 7) -- so a direct
+     * request with `config.google` unset still reaches it; `auth.api.signInSocial` then
+     * throws and `classify` returns `unavailable`, which the caller renders as nothing.
+     */
+    async startGoogleSignIn(input: {
+      callbackURL: string
+      errorURL: string
+      headers: Headers
+    }): Promise<AuthResult<{ url: string }>> {
+      try {
+        const result = await auth.api.signInSocial({
+          body: {
+            provider: 'google',
+            callbackURL: input.callbackURL,
+            errorCallbackURL: input.errorURL,
+          },
+          headers: input.headers,
+        })
+        // `url` is optional in the endpoint's return type (it is absent for the id-token
+        // and disableRedirect paths, neither of which this uses). Treat a missing url as a
+        // failure the caller can swallow rather than handing back an empty string.
+        return result.url
+          ? { ok: true, value: { url: result.url } }
+          : { ok: false, failure: 'unavailable' }
       } catch (error) {
         return { ok: false, failure: classify(error) }
       }

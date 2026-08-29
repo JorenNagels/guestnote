@@ -70,7 +70,9 @@
       "emailLabel": "E-mailadres",
       "emailPlaceholder": "jij@studiowit.be",
       "continue": "Doorgaan",
-      "passkey": "Gebruik je passkey"
+      "passkey": "Gebruik je passkey",
+      "orContinue": "Of ga verder met",
+      "google": "Doorgaan met Google"
     },
     "verify": {
       "title": "Voer je code in",

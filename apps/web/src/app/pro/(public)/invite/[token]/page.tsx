@@ -36,6 +36,9 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
     locale: isLocale(locale) ? locale : LOCALES[0],
     locales: LOCALES,
     passkeysEnabled: getAuth().passkeysAvailable(),
+    // Rendered only on the non-bound cases (e.g. `accepted`): the `staff` branch pins the
+    // address, and `auth-flow.tsx` hides Google whenever `boundEmail` is set.
+    googleEnabled: getAuth().googleAvailable(),
     continueHref: app.home(),
     stage,
   } as const

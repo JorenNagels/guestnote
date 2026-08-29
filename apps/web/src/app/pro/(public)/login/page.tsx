@@ -60,6 +60,7 @@ export default async function LoginPage({
       locale={isLocale(locale) ? locale : LOCALES[0]}
       locales={LOCALES}
       passkeysEnabled={getAuth().passkeysAvailable()}
+      googleEnabled={getAuth().googleAvailable()}
       continueHref={app.home()}
       stage={stage}
       {...(reason === 'session-expired' ? { notice: copy.errors.sessionExpired } : {})}

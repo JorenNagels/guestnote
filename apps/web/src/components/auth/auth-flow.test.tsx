@@ -18,6 +18,7 @@ import { COPY, STAGE } from './auth-flow.fixture.ts'
 const requestCode = vi.fn()
 const submitCode = vi.fn()
 const setLocale = vi.fn()
+const startGoogleSignIn = vi.fn()
 const conditionalMediationAvailable = vi.fn()
 const platformAuthenticatorAvailable = vi.fn()
 const createPasskey = vi.fn()
@@ -28,6 +29,7 @@ vi.mock('./actions.ts', () => ({
   requestCode: (...args: unknown[]) => requestCode(...args),
   submitCode: (...args: unknown[]) => submitCode(...args),
   setLocale: (...args: unknown[]) => setLocale(...args),
+  startGoogleSignIn: (...args: unknown[]) => startGoogleSignIn(...args),
   beginPasskeyEnrollment: (...args: unknown[]) => beginPasskeyEnrollment(...args),
   finishPasskeyEnrollment: (...args: unknown[]) => finishPasskeyEnrollment(...args),
 }))
@@ -71,6 +73,10 @@ beforeEach(() => {
   vi.clearAllMocks()
   requestCode.mockResolvedValue({ ok: true })
   submitCode.mockResolvedValue({ ok: true })
+  startGoogleSignIn.mockResolvedValue({
+    ok: true,
+    url: 'https://accounts.google.com/o/oauth2/v2/auth?x=1',
+  })
   // Passkeys off unless a test turns them on: the capability effect otherwise races with
   // every unrelated assertion.
   conditionalMediationAvailable.mockResolvedValue(false)
@@ -104,6 +110,7 @@ function renderFlow(overrides: Overrides = {}) {
       locale="nl"
       locales={['nl', 'en', 'fr']}
       passkeysEnabled={false}
+      googleEnabled={false}
       continueHref="/weddings"
       stage={STAGE}
       {...overrides}
@@ -757,6 +764,68 @@ describe('the passkey control', () => {
     const primary = screen.getByRole('button', { name: 'ACTION-CONTINUE' })
     expect(passkey.className).toContain('bg-transparent')
     expect(primary.className).not.toContain('bg-transparent')
+  })
+})
+
+describe('the Google button', () => {
+  const googleButton = () => screen.queryByRole('button', { name: 'ACTION-GOOGLE' })
+
+  it('is absent when the deployment has not configured Google', () => {
+    // `googleEnabled` is `googleAvailable()` on the seam -- false unless both client env
+    // vars are set. A button that 500s on click is worse than no button.
+    renderFlow({ googleEnabled: false })
+    expect(googleButton()).not.toBeInTheDocument()
+  })
+
+  it('appears below the form, under a divider, when Google is configured', () => {
+    renderFlow({ googleEnabled: true })
+    expect(googleButton()).toBeInTheDocument()
+    expect(screen.getByText('DIVIDER-OR-CONTINUE')).toBeInTheDocument()
+  })
+
+  it('is secondary weight, never primary', () => {
+    renderFlow({ googleEnabled: true })
+    expect(googleButton()?.className).toContain('bg-transparent')
+    expect(screen.getByRole('button', { name: 'ACTION-CONTINUE' }).className).not.toContain(
+      'bg-transparent',
+    )
+  })
+
+  it('hides the divider from assistive tech but keeps the word in the DOM', () => {
+    // `role="separator"` on the label would drop the word from the a11y tree -- browsers
+    // force `presentation` onto a separator's descendants. So the whole strip is
+    // `aria-hidden` and a screen reader reaches the button directly instead.
+    renderFlow({ googleEnabled: true })
+    const label = screen.getByText('DIVIDER-OR-CONTINUE')
+    expect(label.closest('[aria-hidden="true"]')).not.toBeNull()
+  })
+
+  it('navigates to the URL the server minted', async () => {
+    const { user } = renderFlow({ googleEnabled: true })
+    await user.click(googleButton() as HTMLElement)
+    await waitFor(() => expect(startGoogleSignIn).toHaveBeenCalledOnce())
+    expect(assign).toHaveBeenCalledWith('https://accounts.google.com/o/oauth2/v2/auth?x=1')
+  })
+
+  it('does nothing visible when the server refuses -- no error, no navigation', async () => {
+    startGoogleSignIn.mockResolvedValue({ ok: false })
+    const { user } = renderFlow({ googleEnabled: true })
+    await user.click(googleButton() as HTMLElement)
+    await waitFor(() => expect(startGoogleSignIn).toHaveBeenCalledOnce())
+    expect(assign).not.toHaveBeenCalled()
+    // The button comes back enabled so a second attempt is possible.
+    expect(googleButton()).toBeEnabled()
+  })
+
+  it('is hidden on an invitation landing, which pins the address', () => {
+    renderFlow({ googleEnabled: true, boundEmail: 'tom@studiowit.be' })
+    expect(googleButton()).not.toBeInTheDocument()
+  })
+
+  it('is gone once past rung 0', async () => {
+    const { user } = renderFlow({ googleEnabled: true })
+    await reachVerifyRung(user)
+    expect(googleButton()).not.toBeInTheDocument()
   })
 })
 

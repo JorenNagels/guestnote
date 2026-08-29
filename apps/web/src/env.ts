@@ -121,6 +121,23 @@ const schema = z.object({
   BETTER_AUTH_SECRET: z.string().optional(),
 
   /**
+   * The Google OAuth client, for the "Continue with Google" sign-in button.
+   *
+   * **Both optional, and the button only appears when both are set** (`lib/auth.ts` passes
+   * `google` to the seam only then). That is the same "safe by omission" rule
+   * `GUESTNOTE_MAIL_TRANSPORT` follows: an environment that forgets these gets a login form
+   * with no Google button, never a button that 500s on click. Social sign-in itself was a
+   * 2026-08-29 reversal of research/07's no-OAuth decision -- see that file's "Social sign-in
+   * added" note for the cost.
+   *
+   * Optional here (not required) for the same reason `BETTER_AUTH_SECRET` is: `next build`
+   * evaluates route modules while collecting page data, and a required value would make these
+   * a build-time dependency. Deployed values come from SSM at `/guestnote/<env>/*`.
+   */
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+
+  /**
    * Which mail transport to build: `ses` sends, `console` renders to disk and prints.
    *
    * **Optional, and resolved in `lib/mailer.ts` rather than defaulted here**, because the
@@ -167,6 +184,8 @@ export const env = {
   appSubdomain: parsed.data.GUESTNOTE_APP_SUBDOMAIN,
   databaseUrl: parsed.data.DATABASE_URL ?? '',
   betterAuthSecret: parsed.data.BETTER_AUTH_SECRET ?? '',
+  googleClientId: parsed.data.GOOGLE_CLIENT_ID ?? '',
+  googleClientSecret: parsed.data.GOOGLE_CLIENT_SECRET ?? '',
   // Left as `undefined` rather than coerced to '': `lib/mailer.ts` distinguishes "not set,
   // so decide from NODE_ENV" from "set to something", and an empty string would collapse
   // that distinction into the branch with the worse failure mode.
