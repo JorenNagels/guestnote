@@ -55,6 +55,13 @@ Parameters:
       default above (org 37642555, repo 1336925415, from
       `gh api /repos/JorenNagels/guestnote --jq '{org: .owner.id, repo: .id}'`). If those
       ids ever change, append -- never replace -- the new pair.
+      TRAP, measured 2026-08-29: editing this Default does NOT update an existing stack.
+      `aws cloudformation deploy` sends UsePreviousValue=true for any parameter absent from
+      --parameter-overrides, so the stored value wins and the run reports "No changes to
+      deploy" and exits 0. Always pass this parameter explicitly, and as JSON rather than
+      shorthand -- the value is itself comma-separated, the shorthand parser splits on those
+      commas, and that is how three of the four deployed entries acquired a trailing
+      backslash. infra/README.md step 4 has the command and the read-back check.
 
   CreateOIDCProvider:
     Type: String

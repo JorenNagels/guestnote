@@ -126,22 +126,39 @@ aws cloudformation deploy --template-file infra/github-oidc.yaml \
 The trust policy pins the role to two **stage environments** (`environment:staging`,
 `environment:production`), not to branch refs — `deploy.yml` runs every deploy against a
 GitHub Environment, so that is the claim it presents. Both the classic and the
-immutable-subject forms (org `37642555`, repo `1336925415`) are baked into the template's
-`GitHubSub` default, so no `--parameter-overrides` is needed unless those ids change. Verify
-they have not:
+immutable-subject forms (org `37642555`, repo `1336925415`) are in the template's
+`GitHubSub` default. Verify those ids have not changed:
 
 ```bash
 gh api /repos/JorenNagels/guestnote --jq '{org: .owner.id, repo: .id}'
 ```
 
-**Re-apply this stack** after the 2026-08-29 branch→environment change — the deployed
-version still trusts `refs/heads/main` / `refs/heads/staging` and CI will fail
-`sts:AssumeRoleWithWebIdentity` until it is updated:
+> ⚠️ **`GitHubSub` must be passed explicitly on every re-apply. Editing the template's
+> `Default:` does nothing to an existing stack** — `aws cloudformation deploy` sends
+> `UsePreviousValue=true` for any parameter absent from `--parameter-overrides`, so the
+> stored value wins and, if nothing else in the template changed a resource, CFN reports
+> "No changes to deploy" and exits 0. Measured 2026-08-29: the branch→environment re-apply
+> looked like it succeeded and changed nothing at all. **And pass it as JSON, not
+> shorthand** — the value is itself comma-separated (`CommaDelimitedList`) and the
+> shorthand parser splits on those commas; that is how the deployed policy ended up with a
+> trailing `\` glued to three of its four entries.
+
+**Re-apply after any `GitHubSub` change** — until it lands, CI fails at
+`sts:AssumeRoleWithWebIdentity`:
 
 ```bash
+cat > /tmp/oidc-params.json <<'JSON'
+[{"ParameterKey":"GitHubSub","ParameterValue":"repo:JorenNagels/guestnote:environment:staging,repo:JorenNagels/guestnote:environment:production,repo:JorenNagels@37642555/guestnote@1336925415:environment:staging,repo:JorenNagels@37642555/guestnote@1336925415:environment:production"}]
+JSON
+
 aws cloudformation deploy --template-file infra/github-oidc.yaml \
   --stack-name guestnote-github-oidc --capabilities CAPABILITY_NAMED_IAM \
-  --profile guestnote --region eu-central-1
+  --profile guestnote --region eu-central-1 \
+  --parameter-overrides file:///tmp/oidc-params.json
+
+# Confirm -- `deploy` exits 0 on "No changes", so read the result back, never trust the exit code.
+aws iam get-role --role-name GuestnoteDeployRole --profile guestnote \
+  --query 'Role.AssumeRolePolicyDocument.Statement[0].Condition.StringEquals."token.actions.githubusercontent.com:sub"'
 ```
 
 Add the repo secret: `gh secret set AWS_ACCOUNT_ID --body 929219061071`.
