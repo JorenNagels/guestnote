@@ -104,12 +104,13 @@ logo lockup, never a shared identity.
 | PH0 | Wedding as a first-class record · orgs, roles, wedding-scoped invitations · task engine · task comments · cross-tenant isolation tests |
 | PH1 | Shared assigned checklist · couple portal · wedding-date-anchored due dates · checklist templates · assignment and weekly-digest email |
 | PH2 | Budget · payment schedule · vendor directory · day-of run sheet · files per wedding |
-| PH3 | "Due this week" across every wedding · reusable template library · vendor's own run-sheet slice · run-sheet PDF and budget CSV export · team seats |
+| PH3 | "Due this week" across every wedding · reusable template library · vendor's own run-sheet slice · run-sheet PDF and budget CSV export · team seats · moodboard per wedding (native image board; Pinterest API import is a later add-on) |
 | PH4 | The wedding site + RSVP product folded in (all of `research/04-speclist.md`) |
 
 **Deliberately not building:** contracts and e-signature, invoicing/accounting, a lead
-pipeline or sales CRM (Guestnote starts once a couple is *booked*), moodboards, and a
-native mobile app.
+pipeline or sales CRM (Guestnote starts once a couple is *booked*), and a native mobile
+app. *(Moodboards were on this list until the 2026-08-29 planner calls; now PH3 P21, built
+as a native image board.)*
 
 **Technical constraints that bind design:**
 

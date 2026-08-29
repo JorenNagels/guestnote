@@ -102,6 +102,7 @@ Where it stops being a to-do list and starts replacing the spreadsheet.
 | **P18** | Vendor gets a link to *their slice* of the run sheet | 🤝 | M | Scoped so a vendor sees their own rows, not the budget. Uses the new `vendor` role |
 | **P19** | Exports — run sheet PDF, budget CSV | 🎩 | S | Planners live in PDFs when they are on site with no signal |
 | **P20** | Team seats — a second planner in the org, assigned per wedding | 🎩 | M | **V12**; `org_members.member` + `wedding_members.editor` already express it |
+| **P21** | **Moodboard per wedding** — native image board: upload images (including ones saved off Pinterest), arrange in a grid, comment per image, share with the couple | 🎩👰 | M | Reuses **P15** file storage (S3 + signed URLs). Removes the "download from Pinterest → arrange in Canva → share a link" round-trip planners run today, and keeps the couple's feedback in Guestnote instead of a thread nobody can find later. Decided on the 2026-08-29 planner calls, reversing the "not building" line below. **Pinterest API import** — connect an account, pull a board's pins straight in — is a later additive enhancement, *not* PH3: v5 exposes only your *own* account's data, needs app review with a video demo, and its terms bar caching pin data, so it can only ever sit on top of the native board, never replace it |
 
 ---
 
@@ -132,7 +133,7 @@ Naming these now stops them creeping in later.
 | Contracts + e-signature | HoneyBook and Dubsado territory. Large scope, legal surface, and Belgian planners already have tooling |
 | Invoicing / accounting | Same. Integrate before rebuilding |
 | Lead pipeline / sales CRM | Guestnote starts once a couple is *booked*. Pre-booking is a different product |
-| Moodboards / design boards | Aisle Planner does it well; planners use Pinterest anyway. Revisit only if calls demand it |
+| ~~Moodboards / design boards~~ → **now P21** | Was "Aisle Planner does it well; planners use Pinterest anyway. Revisit only if calls demand it." The 2026-08-29 planner calls demanded it: they want the images and the couple's comments in one place, not scattered across Pinterest, Canva and WhatsApp. Built as a native image board (**P21**), not a Pinterest embed |
 | A native mobile app | The run sheet needs to work on a phone. That is responsive web, not an app |
 
 ---
