@@ -10,7 +10,7 @@ name: PR
 on:
   pull_request:
   push:
-    branches: [main, staging]
+    branches: [main]
 
 concurrency:
   group: pr-${{ github.workflow }}-${{ github.ref }}

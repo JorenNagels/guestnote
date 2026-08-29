@@ -71,6 +71,9 @@ for STAGE in production staging; do
     --value "$(openssl rand -base64 32)"                                                # distinct per stage
   aws ssm put-parameter --type SecureString --name /guestnote/$STAGE/GOOGLE_CLIENT_ID   --value '...'
   aws ssm put-parameter --type SecureString --name /guestnote/$STAGE/GOOGLE_CLIENT_SECRET --value '...'
+  # The migration marker -- see "First deploy" for the value. String, not SecureString:
+  # it holds a git SHA, nothing secret.
+  aws ssm put-parameter --type String --name /guestnote/$STAGE/MIGRATED_THROUGH --value '<sha>'
 done
 ```
 
@@ -79,6 +82,10 @@ done
   check verifies this after deploy.
 - `DATABASE_URL_UNPOOLED` is the **direct** host, as the branch owner. Used only by the CI
   migrate step. Never handed to the app.
+- `MIGRATED_THROUGH` is the last git SHA whose migration files are applied to that stage's
+  Neon branch. `deploy.yml` reads it, applies only migration files added since, and advances
+  it. There is no `__drizzle_migrations` journal to derive this from (CLAUDE.md invariant 8),
+  so it is tracked here.
 - The Neon `staging` branch inherits `app_user` from the primary branch with the same
   password, so only the host differs between the two `DATABASE_URL`s.
 
@@ -116,30 +123,52 @@ aws cloudformation deploy --template-file infra/github-oidc.yaml \
   --profile guestnote --region eu-central-1
 ```
 
-Then check the immutable subject claim (see the template's `GitHubSub` parameter):
+The trust policy pins the role to two **stage environments** (`environment:staging`,
+`environment:production`), not to branch refs — `deploy.yml` runs every deploy against a
+GitHub Environment, so that is the claim it presents. Both the classic and the
+immutable-subject forms (org `37642555`, repo `1336925415`) are baked into the template's
+`GitHubSub` default, so no `--parameter-overrides` is needed unless those ids change. Verify
+they have not:
 
 ```bash
 gh api /repos/JorenNagels/guestnote --jq '{org: .owner.id, repo: .id}'
 ```
 
-If the numbers come back, re-run the `deploy` with
-`--parameter-overrides GitHubSub='repo:JorenNagels/guestnote:ref:refs/heads/main,repo:JorenNagels/guestnote:ref:refs/heads/staging,repo:JorenNagels@<org>/guestnote@<repo>:ref:refs/heads/main,repo:JorenNagels@<org>/guestnote@<repo>:ref:refs/heads/staging'`.
+**Re-apply this stack** after the 2026-08-29 branch→environment change — the deployed
+version still trusts `refs/heads/main` / `refs/heads/staging` and CI will fail
+`sts:AssumeRoleWithWebIdentity` until it is updated:
+
+```bash
+aws cloudformation deploy --template-file infra/github-oidc.yaml \
+  --stack-name guestnote-github-oidc --capabilities CAPABILITY_NAMED_IAM \
+  --profile guestnote --region eu-central-1
+```
 
 Add the repo secret: `gh secret set AWS_ACCOUNT_ID --body 929219061071`.
 
 `GuestnoteDeployRole` carries `AdministratorAccess` (SST's recommendation for a self-hosted
 CI role). The trust policy pins it to this repo (`repository` + `repository_owner`) and the
-two deploy branches, so a botched `GitHubSub` edit cannot widen it beyond the repo — but
-anyone who can push to `main` or `staging` has admin on the account through it. Least-privilege
-scoping is [deferred](#deferred).
+two stage environments, so a botched `GitHubSub` edit cannot widen it beyond the repo — but
+any deploy run has admin on the account through it, and for `production` the environment's
+required reviewer is the only gate. Least-privilege scoping is [deferred](#deferred).
 
 ### 4b. GitHub Environment protection
 
-In the repo's Settings → Environments, for **`production`**: set *Deployment branches* to
-`main` only, and (recommended) add yourself as a *Required reviewer*. Without this, a
-`workflow_dispatch` or a stray push can reach production with no gate — and
-`research/05` §8's correction note is what frames staging as the safety net that this rule
-completes.
+`deploy.yml` runs against a GitHub Environment named for the stage. In the repo's
+Settings → Environments:
+
+- **`staging`** — created automatically on first use. No protection rules needed; a `main`
+  push deploys it unattended, which is the point.
+- **`production`** — you must configure it before the first `v*` tag:
+  - **Required reviewers:** add yourself. This is the gate — a tag push starts the deploy
+    and then waits for your approval.
+  - **Deployment branches and tags:** *Selected* → add a rule for the tag pattern `v*`.
+    Without it any tag can trigger a prod run (still behind the reviewer, but noisier).
+
+The OIDC trust policy in `github-oidc.yaml` pins the deploy role to
+`environment:production` / `environment:staging`, so these environments are load-bearing,
+not decoration — CI cannot assume the role without them. `research/05` §8's 2026-08-29
+correction note frames why the tag + reviewer gate replaced the old `main`→prod push.
 
 ### 5. Budgets — already done
 
@@ -156,8 +185,9 @@ OpenNext/Next incompatibility should never arrive via a silent minor bump (`rese
 
 ### 7. First deploy (bootstraps SST state + the migration baseline)
 
-CI's migrate step only applies migrations **added in a push**. The initial full schema has
-to go on by hand, once per stage, before CI ever deploys that stage:
+CI's migrate step only applies migrations **added since `/guestnote/<stage>/MIGRATED_THROUGH`**
+and refuses to run if that marker is unset. The initial full schema, and the marker, have to
+go on by hand, once per stage, before CI ever deploys that stage:
 
 ```bash
 # staging first
@@ -167,28 +197,42 @@ for f in packages/db/migrations/0*.sql; do
   psql "$UNPOOLED" -v ON_ERROR_STOP=1 --single-transaction -f "$f"
 done
 
+# Point the marker at the commit whose migration set you just applied (usually HEAD).
+aws ssm put-parameter --type String --overwrite \
+  --name /guestnote/staging/MIGRATED_THROUGH --value "$(git rev-parse HEAD)"
+
 npx sst deploy --stage staging          # auto-creates the sst-state bucket on first run
 ```
 
 Run the [verification](#verification) against staging. Then repeat for `production`
-(migrations + `npx sst deploy --stage production`) and do the [apex cutover](#the-apex-cutover).
+(migrations + marker + `npx sst deploy --stage production`) and do the
+[apex cutover](#the-apex-cutover).
 
-After that, every deploy is `git push`.
+After that: a `main` push deploys staging, a `v*` tag deploys production.
+
+> **Status 2026-08-29:** `staging` is bootstrapped — its Neon branch is at migration `0005`
+> and `sst deploy --stage staging` has run from a laptop. It still needs
+> `/guestnote/staging/MIGRATED_THROUGH` set (to the SHA of the commit that added `0005` or
+> later) before the first CI deploy, or that deploy will try to re-apply `0005` and fail on
+> "already exists". `production` is not bootstrapped at all.
 
 ---
 
 ## The pipeline
 
 - **`.github/workflows/pr.yml`** — `npm run check` + `npm run db:check` + the DB tier-1
-  suite against a Postgres service container. On every PR and on push to `main`/`staging`.
-- **`.github/workflows/deploy.yml`** — push `main` → `production`, push `staging` →
-  `staging`, or `workflow_dispatch` with a stage picker. OIDC into `GuestnoteDeployRole`,
-  no stored keys. Steps: restore `.next/cache` → apply new migrations (direct endpoint,
-  `--single-transaction`) → `sst deploy --stage <stage>`.
+  suite against a Postgres service container. On every PR and on push to `main`.
+- **`.github/workflows/deploy.yml`** — push `main` → `staging`, push a `v*` tag →
+  `production` (behind the `production` environment's required reviewer), or
+  `workflow_dispatch` with a stage picker (code only, no migrations). OIDC into
+  `GuestnoteDeployRole`, no stored keys. Steps: restore `.next/cache` → apply new migrations
+  (direct endpoint, `--single-transaction`, marker-diffed) → `sst deploy --stage <stage>` →
+  verify `/api/health`.
 
-**Rollback:** `git revert <sha> && git push`. The pipeline redeploys the prior tree.
-Migrations are not auto-reverted — `expand → deploy → contract` (never drop/rename a column
-in the same change that stops using it) is what keeps a revert safe.
+**Rollback:** `git revert <sha>`, then `git push` (staging) or a fresh `v*` tag (production).
+The pipeline redeploys the prior tree. Migrations are not auto-reverted — `expand → deploy →
+contract` (never drop/rename a column in the same change that stops using it) is what keeps
+a revert safe.
 
 ---
 
@@ -235,7 +279,7 @@ The M1a gate (`research/05` §9). Run against **staging** first, then production
 | 5 | apex marketing | `curl -sI https://staging.guestnote.be/` | 308 → `/nl`; `cache-control: public, s-maxage=60, stale-while-revalidate=86400` |
 | 6 | wildcard 404s | `curl -sI https://no-such-slug.staging.guestnote.be/` | 404 |
 | 7 | `www` redirect | `curl -sI https://www.staging.guestnote.be/` | 308 → `https://staging.guestnote.be/` |
-| 8 | rollback | revert a trivial commit on `staging`, push | redeploy serves the prior tree |
+| 8 | rollback | revert a trivial commit, push to `main` | redeploy serves the prior tree |
 
 **If verification 1 fails** (every path 404s): OpenNext did not surface the viewer `Host` as
 `x-forwarded-host`. Add a CloudFront viewer-request function that copies `Host` into
@@ -269,7 +313,7 @@ apply here — it is a genuinely viable host for this surface, reachable in abou
   `sst deploy` has run a full create for both stages, pull the action set from CloudTrail
   (or `sst`'s own IAM report) and replace the managed policy in `infra/github-oidc.yaml`
   with a scoped inline one. Blast radius until then: full admin on account `929219061071`
-  for anyone who can push to `main` or `staging`.
+  for any deploy run — a `main` push, or a `v*` tag once its `production` review is approved.
 - **`sst.config.ts` type coverage.** It sits outside `npm run check` — no `tsconfig`
   `include` covers it and it is only linted, not typechecked, because SST's ambient types
   (`sst-env.d.ts`) exist only after `sst install`. A wrong SSM path or env-var name is

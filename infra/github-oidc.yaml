@@ -19,7 +19,15 @@ Description: >-
 #
 # The guestnote AWS account (929219061071) is separate from the se-parti siblings'
 # 438465163166, so their shared GitHubActionsDeployRole cannot be reused -- this is the
-# equivalent, scoped to this one repo and its two deploy branches.
+# equivalent, scoped to this one repo and its two stage environments.
+#
+# 2026-08-29: the trust boundary moved from deploy BRANCHES to deploy ENVIRONMENTS.
+# `.github/workflows/deploy.yml` now runs every deploy against a GitHub Environment named
+# for its stage (`staging` on a `main` push, `production` on a `v*` tag), so the OIDC
+# token's `sub` claim is `repo:<org>/<repo>:environment:<stage>` rather than
+# `...:ref:refs/heads/<branch>`. Pinning to the environment is strictly tighter: the
+# `production` environment carries a required-reviewer gate, so the role cannot be assumed
+# for a prod deploy without a human approving the run.
 
 Parameters:
   GitHubOrg:
@@ -34,17 +42,19 @@ Parameters:
   GitHubSub:
     Type: CommaDelimitedList
     Default: >-
-      repo:JorenNagels/guestnote:ref:refs/heads/main,repo:JorenNagels/guestnote:ref:refs/heads/staging
+      repo:JorenNagels/guestnote:environment:staging,repo:JorenNagels/guestnote:environment:production,repo:JorenNagels@37642555/guestnote@1336925415:environment:staging,repo:JorenNagels@37642555/guestnote@1336925415:environment:production
     Description: >-
-      The exact `sub` claims allowed to assume the role. Defaults to the two deploy
-      branches. IMPORTANT: repositories created after mid-2025 also present an IMMUTABLE
-      subject of the shape `repo:<org>@<orgId>/<repo>@<repoId>:ref:refs/heads/main` -- the
-      classic pattern above then silently fails to match and every deploy is
-      "not authorized to perform sts:AssumeRoleWithWebIdentity". Check with:
-        gh api /repos/JorenNagels/guestnote --jq '{org: .owner.id, repo: .id}'
-      and append `repo:JorenNagels@<orgId>/guestnote@<repoId>:ref:refs/heads/main` (and the
-      staging one) to this list. Append, never replace -- same rule the sibling repos' role
-      documents.
+      The exact `sub` claims allowed to assume the role -- one per (stage environment x
+      subject form). `deploy.yml` sets `environment:` on every run, so the claim is
+      `repo:<org>/<repo>:environment:<stage>`, never a branch or tag ref: a `main` push
+      deploys `staging`, a `v*` tag deploys `production`, and neither ref appears here.
+      IMPORTANT: repositories created after 2026-07-15 also present an IMMUTABLE subject of
+      the shape `repo:<org>@<orgId>/<repo>@<repoId>:environment:<stage>` -- the classic form
+      alone then silently fails to match and every deploy is "not authorized to perform
+      sts:AssumeRoleWithWebIdentity". guestnote is one of those, so BOTH forms are in the
+      default above (org 37642555, repo 1336925415, from
+      `gh api /repos/JorenNagels/guestnote --jq '{org: .owner.id, repo: .id}'`). If those
+      ids ever change, append -- never replace -- the new pair.
 
   CreateOIDCProvider:
     Type: String
@@ -98,10 +108,10 @@ Resources:
               # wildcard.
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
-                # `sub` is the intended boundary -- only these refs. The `repository` /
-                # `repository_owner` pair is belt-and-braces that does NOT depend on `sub`
-                # being edited correctly: even a botched `sub` cannot let this role be
-                # assumed from outside this one repo, which matters because
+                # `sub` is the intended boundary -- only these stage environments. The
+                # `repository` / `repository_owner` pair is belt-and-braces that does NOT
+                # depend on `sub` being edited correctly: even a botched `sub` cannot let
+                # this role be assumed from outside this one repo, which matters because
                 # AdministratorAccess is behind it.
                 token.actions.githubusercontent.com:repository: !Sub "${GitHubOrg}/${GitHubRepo}"
                 token.actions.githubusercontent.com:repository_owner: !Ref GitHubOrg
@@ -112,13 +122,14 @@ Resources:
         # the SST state bucket) and the exact action set shifts between SST releases.
         # AdministratorAccess is what the SST docs recommend for a self-hosted CI role, and
         # the real containment here is (a) this is a single-app member account and (b) the
-        # trust policy above admits only two branches of one repo.
+        # trust policy above admits only two stage environments of one repo.
         #
-        # The residual cost, stated plainly: any workflow run on `main` or `staging` -- and
-        # anyone who can push to those branches -- has full admin on account 929219061071
-        # via OIDC, with no further scoping. Tightening to a least-privilege policy is a
-        # follow-up (infra/README.md "Deferred") once `sst deploy` has run once and
-        # CloudTrail can report the action set it actually used.
+        # The residual cost, stated plainly: any deploy run -- a `main` push (staging) or an
+        # approved `v*` tag (production) -- has full admin on account 929219061071 via OIDC,
+        # with no further scoping. The `production` environment's required reviewer is the
+        # only thing between "can push a tag" and "prod admin". Tightening to a
+        # least-privilege policy is a follow-up (infra/README.md "Deferred") once `sst
+        # deploy` has run once and CloudTrail can report the action set it actually used.
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/AdministratorAccess"
 
 Outputs:

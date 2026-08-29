@@ -720,9 +720,25 @@ and can't afford a bad Friday.
   stage picker. `main`, not a `v*.*.*` tag — tagging every deploy is friction a solo dev
   eventually skips. Steps: restore `.next/cache` → apply new migrations (direct endpoint,
   `--single-transaction`) → `sst deploy --stage <stage>`.
+
+  > ⚠️ **Corrected 2026-08-29: `main` → `staging`, and a `v*` tag → `production`.** The
+  > "no tag" call above assumed the risk was a *bad Friday* with users. With `app.guestnote.be`
+  > a real domain and `main` the branch where work integrates, an integration branch that
+  > also auto-ships to production is a mis-click away from shipping half-done work. So `main`
+  > push now deploys **staging only**, and production moves on a deliberate `git tag v*` —
+  > one tag per release is friction that is finally worth it. The `production` deploy runs
+  > against a required-reviewer GitHub Environment, so the tag *starts* it and a human
+  > *approves* it. There is no long-lived `staging` branch — staging is always whatever
+  > `main` is. `deploy.yml`'s header and `infra/README.md` carry the mechanics; the migrate
+  > step now diffs a per-stage `MIGRATED_THROUGH` SSM marker rather than `github.event.before`.
+  > Rollback is unchanged in spirit: `git revert` then push (staging) or a fresh tag (prod).
 - The `GitHubActionsDeployRole` in the se-parti account cannot be reused — guestnote is a
   separate AWS account (929219061071). `infra/github-oidc.yaml` creates the equivalent,
   `GuestnoteDeployRole`, scoped to this repo's two deploy branches.
+
+  > ⚠️ **Corrected 2026-08-29:** scoped to this repo's two **stage environments**
+  > (`environment:staging`, `environment:production`), not branch refs — `deploy.yml` runs
+  > every deploy against a GitHub Environment, so that is the OIDC `sub` claim it presents.
 - Cache `~/.npm` (via `actions/setup-node`) and `apps/web/.next/cache`.
 
 **Migration discipline:** migrations run *before* the new code deploys, so there is always a

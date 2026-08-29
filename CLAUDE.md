@@ -251,12 +251,16 @@ Biome, 100 columns, single quotes, no semicolons, trailing commas. `npm run form
 
 ## Deployment status
 
-**No part of the app is deployed yet.** `coming-soon/` is the live apex, `waitlist/` the
-Lambda behind its form, and `infra/mail-events.yaml` the deployed SES→SNS bounce path — the
-repo's first IaC. M1a's OpenNext + SST wiring has **landed** (`sst.config.ts`,
-`.github/workflows/deploy.yml`, `infra/README.md`) but nothing is deployed — the one-time
-bootstrap in `infra/README.md` has not been run. Do not write code that assumes a deployed
-*application* environment exists.
+**`staging` is deployed; `production` is not.** `coming-soon/` is still the live apex,
+`waitlist/` the Lambda behind its form, and `infra/mail-events.yaml` the deployed SES→SNS
+bounce path — the repo's first IaC. As of 2026-08-29 `sst deploy --stage staging` has run
+from a laptop: the app answers on `*.staging.guestnote.be` against its own Neon branch (a
+COW clone of prod, so a staging credential is a prod credential). CI has not deployed
+anything yet — the OIDC stack still trusts the old branch refs and the `MIGRATED_THROUGH`
+markers are unset (`infra/README.md`). Trigger model: a `main` push deploys **staging**, a
+`v*` tag deploys **production** behind a required-reviewer gate. Do not write code that
+assumes a deployed *production* environment exists, or that a laptop `sst deploy` is
+reproducible from CI without the bootstrap.
 
 # AWS Guidance
 
