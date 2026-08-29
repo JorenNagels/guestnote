@@ -1,10 +1,19 @@
 AWSTemplateFormatVersion: "2010-09-09"
 
 Description: >-
-  AWS Budgets alarms at EUR 25 / 50 / 100 a month. research/06-hosting-costs.md section 7:
+  AWS Budgets alarms at 25 / 50 / 100 a month. research/06-hosting-costs.md section 7:
   "AWS Budgets alarms at EUR 25 / 50 / 100 on day one. Cheapest insurance in the stack."
 
-# Applied by hand, once:
+# STATUS 2026-08-29: NOT applied. The `guestnote` account (929219061071) already carries
+# three separate budgets -- `guestnote-monthly-cost-{25,50,100}usd`, each alerting at
+# ACTUAL > 100% of its limit, subscriber njoren@gmail.com, the $25 one also FORECASTED --
+# created outside this repo. This template is the IaC equivalent for a fresh account, or to
+# adopt those three into one stack later. Applying it now just adds a duplicate.
+#
+# The account is billed in USD, and AWS Budgets rejects any other unit ("EUR is not in the
+# supported unit set: [USD]"), so the research doc's "EUR 25/50/100" is really USD here.
+#
+# Applied by hand, once (on a clean account):
 #
 #   aws cloudformation deploy \
 #     --template-file infra/budgets.yaml \
@@ -25,10 +34,12 @@ Parameters:
 
   Currency:
     Type: String
-    Default: EUR
+    Default: USD
+    AllowedValues: [USD]
     Description: >-
-      Must match the currency the account is billed in. If billing is in USD, change this
-      and re-run -- a mismatched currency makes the budget evaluate against nothing.
+      AWS Budgets only accepts the account's billing currency, and this account is billed in
+      USD -- any other value is a hard create failure ("EUR is not in the supported unit
+      set: [USD]"), which is exactly how the EUR default here was caught on 2026-08-29.
 
 Resources:
   MonthlyCostBudget:

@@ -141,13 +141,12 @@ In the repo's Settings → Environments, for **`production`**: set *Deployment b
 `research/05` §8's correction note is what frames staging as the safety net that this rule
 completes.
 
-### 5. Budgets
+### 5. Budgets — already done
 
-```bash
-aws cloudformation deploy --template-file infra/budgets.yaml \
-  --stack-name guestnote-budgets --profile guestnote --region eu-central-1 \
-  --parameter-overrides NotifyEmail=you@example.com
-```
+The account already carries `guestnote-monthly-cost-{25,50,100}usd` (actual-spend alerts at
+$25 / $50 / $100, subscriber `njoren@gmail.com`), created outside this repo. `infra/budgets.yaml`
+is the IaC equivalent for a clean account and applying it now only duplicates them — its
+header explains. (The account is billed in USD; AWS Budgets rejects any other unit.)
 
 ### 6. `sst` is pinned
 
