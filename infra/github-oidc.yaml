@@ -30,27 +30,11 @@ Description: >-
 # for a prod deploy without a human approving the run.
 
 Parameters:
-  GitHubOrg:
-    Type: String
-    Default: JorenNagels
-    Description: The GitHub account that owns the repo.
-
-  GitHubRepo:
-    Type: String
-    Default: guestnote
-
-  # The numeric ids behind the immutable subject form. Read once with
-  #   gh api /repos/JorenNagels/guestnote --jq '{org: .owner.id, repo: .id}'
-  # They are immutable for the life of the account and the repo -- a rename does not change
-  # them, which is the whole point of the format.
-  GitHubOrgId:
-    Type: String
-    Default: "37642555"
-
-  GitHubRepoId:
-    Type: String
-    Default: "1336925415"
-
+  # There is deliberately no GitHubOrg / GitHubRepo parameter. They existed to build the
+  # `repository` and `repository_owner` conditions, which IAM cannot evaluate (see the trust
+  # policy below) -- leaving them would be two knobs that look like they re-scope the role
+  # and do nothing at all. The org and repo are inside every GitHubSub value instead, where
+  # they are actually enforced.
   GitHubSub:
     Type: CommaDelimitedList
     Default: >-
@@ -125,29 +109,32 @@ Resources:
               # literal, so a `*` accidentally hand-appended to GitHubSub (the note there
               # tells the operator to append immutable-form claims) is inert rather than a
               # wildcard.
+              #
+              # ## Two claims, and NOT `repository` / `repository_owner`
+              #
+              # This pinned those two as well until 2026-08-30, as belt-and-braces against a
+              # botched `sub`. **It denied every deploy**, and silently: `sub`, `aud`,
+              # `repository` and `repository_owner` in the real token were compared
+              # byte-for-byte against this policy and all four matched, yet STS answered
+              # "Not authorized to perform sts:AssumeRoleWithWebIdentity" for two hours. The
+              # bisect (drop the pair, change nothing else) went green on the same `sub`.
+              #
+              # The reason: **IAM only populates a handful of OIDC claims as condition keys
+              # -- `aud`, `sub`, and for this provider `job_workflow_ref`.** GitHub's custom
+              # claims are in the JWT but are not condition keys, so `StringEquals` on one
+              # compares against a key that does not exist, which is false, which denies.
+              # IAM's own guardrail names the usable pair: a trust policy for this provider
+              # that scopes neither `sub` nor `job_workflow_ref` is rejected outright at
+              # write time ("must evaluate ... :sub or ... :job_workflow_ref which is not
+              # scoped to all"). That error is how the pair was identified.
+              #
+              # Nothing is lost by dropping them. The immutable subject form carries the org
+              # id and the repo id (`repo:JorenNagels@37642555/guestnote@1336925415:...`), so
+              # a matching `sub` already proves which repository asked -- the belt-and-braces
+              # was restating what `sub` says, and could not be evaluated anyway.
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
-                # `sub` is the intended boundary -- only these stage environments. It alone
-                # is sufficient: the immutable form carries the org and repo ids, so a
-                # matching `sub` already proves which repository asked.
                 token.actions.githubusercontent.com:sub: !Ref GitHubSub
-                # Belt-and-braces that does NOT depend on `sub` being edited correctly: even
-                # a botched `sub` cannot let this role be assumed from outside this one repo,
-                # which matters because AdministratorAccess is behind it.
-                #
-                # BOTH forms of each, and that is not paranoia -- it is measured. On
-                # 2026-08-30 the first CI deploy was refused with `sub` matching exactly:
-                # this repo presents the immutable subject form, and it carries that form
-                # into `repository` and `repository_owner` too, so pinning them to the plain
-                # `JorenNagels/guestnote` denied every request. A list is an OR, and every
-                # value stays literal -- no StringLike, so the "a stray `*` is inert" property
-                # the GitHubSub note relies on still holds.
-                token.actions.githubusercontent.com:repository:
-                  - !Sub "${GitHubOrg}/${GitHubRepo}"
-                  - !Sub "${GitHubOrg}@${GitHubOrgId}/${GitHubRepo}@${GitHubRepoId}"
-                token.actions.githubusercontent.com:repository_owner:
-                  - !Ref GitHubOrg
-                  - !Sub "${GitHubOrg}@${GitHubOrgId}"
       ManagedPolicyArns:
         # SST v3 / Pulumi provisions across many services (CloudFront, Lambda, S3, IAM
         # roles for the functions, Route 53, ACM, DynamoDB, SQS, EventBridge, CloudWatch,

@@ -133,6 +133,15 @@ immutable-subject forms (org `37642555`, repo `1336925415`) are in the template'
 gh api /repos/JorenNagels/guestnote --jq '{org: .owner.id, repo: .id}'
 ```
 
+> ⚠️ **`sub` and `aud` are the only claims this policy can pin.** IAM populates just those
+> two (plus `job_workflow_ref`) as condition keys; GitHub's `repository` and
+> `repository_owner` are in the token but are **not** condition keys, so a `StringEquals`
+> on one compares against a key that does not exist — false — and denies every request.
+> Measured 2026-08-30: those two were pinned to values the token matched byte-for-byte and
+> every deploy was refused for two hours. Do not "harden" this by adding them back. Nothing
+> is lost: the immutable `sub` already carries the org and repo ids. ADR 0006 has the full
+> account.
+
 > ⚠️ **`GitHubSub` must be passed explicitly on every re-apply. Editing the template's
 > `Default:` does nothing to an existing stack** — `aws cloudformation deploy` sends
 > `UsePreviousValue=true` for any parameter absent from `--parameter-overrides`, so the
