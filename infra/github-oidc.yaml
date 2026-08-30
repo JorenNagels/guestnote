@@ -39,6 +39,18 @@ Parameters:
     Type: String
     Default: guestnote
 
+  # The numeric ids behind the immutable subject form. Read once with
+  #   gh api /repos/JorenNagels/guestnote --jq '{org: .owner.id, repo: .id}'
+  # They are immutable for the life of the account and the repo -- a rename does not change
+  # them, which is the whole point of the format.
+  GitHubOrgId:
+    Type: String
+    Default: "37642555"
+
+  GitHubRepoId:
+    Type: String
+    Default: "1336925415"
+
   GitHubSub:
     Type: CommaDelimitedList
     Default: >-
@@ -115,14 +127,27 @@ Resources:
               # wildcard.
               StringEquals:
                 token.actions.githubusercontent.com:aud: sts.amazonaws.com
-                # `sub` is the intended boundary -- only these stage environments. The
-                # `repository` / `repository_owner` pair is belt-and-braces that does NOT
-                # depend on `sub` being edited correctly: even a botched `sub` cannot let
-                # this role be assumed from outside this one repo, which matters because
-                # AdministratorAccess is behind it.
-                token.actions.githubusercontent.com:repository: !Sub "${GitHubOrg}/${GitHubRepo}"
-                token.actions.githubusercontent.com:repository_owner: !Ref GitHubOrg
+                # `sub` is the intended boundary -- only these stage environments. It alone
+                # is sufficient: the immutable form carries the org and repo ids, so a
+                # matching `sub` already proves which repository asked.
                 token.actions.githubusercontent.com:sub: !Ref GitHubSub
+                # Belt-and-braces that does NOT depend on `sub` being edited correctly: even
+                # a botched `sub` cannot let this role be assumed from outside this one repo,
+                # which matters because AdministratorAccess is behind it.
+                #
+                # BOTH forms of each, and that is not paranoia -- it is measured. On
+                # 2026-08-30 the first CI deploy was refused with `sub` matching exactly:
+                # this repo presents the immutable subject form, and it carries that form
+                # into `repository` and `repository_owner` too, so pinning them to the plain
+                # `JorenNagels/guestnote` denied every request. A list is an OR, and every
+                # value stays literal -- no StringLike, so the "a stray `*` is inert" property
+                # the GitHubSub note relies on still holds.
+                token.actions.githubusercontent.com:repository:
+                  - !Sub "${GitHubOrg}/${GitHubRepo}"
+                  - !Sub "${GitHubOrg}@${GitHubOrgId}/${GitHubRepo}@${GitHubRepoId}"
+                token.actions.githubusercontent.com:repository_owner:
+                  - !Ref GitHubOrg
+                  - !Sub "${GitHubOrg}@${GitHubOrgId}"
       ManagedPolicyArns:
         # SST v3 / Pulumi provisions across many services (CloudFront, Lambda, S3, IAM
         # roles for the functions, Route 53, ACM, DynamoDB, SQS, EventBridge, CloudWatch,
