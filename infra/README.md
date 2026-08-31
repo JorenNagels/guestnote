@@ -241,6 +241,11 @@ After that: a `main` push deploys staging, a `v*` tag deploys production.
 > `/guestnote/staging/MIGRATED_THROUGH` set (to the SHA of the commit that added `0005` or
 > later) before the first CI deploy, or that deploy will try to re-apply `0005` and fail on
 > "already exists". `production` is not bootstrapped at all.
+>
+> **Updated 2026-08-30:** done. The marker is set, and CI has deployed staging end to end
+> twice (runs 33302554938 and 33307284710) — every step green, including "Apply new
+> migrations", which fails closed when the marker is unset, and the `/api/health` RLS gate.
+> `production` is still not bootstrapped and its marker is still unset.
 
 ---
 

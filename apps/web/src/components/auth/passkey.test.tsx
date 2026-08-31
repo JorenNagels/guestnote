@@ -3,6 +3,7 @@ import {
   conditionalMediationAvailable,
   createPasskey,
   platformAuthenticatorAvailable,
+  signInWithPasskey,
 } from './passkey.ts'
 
 /**
@@ -310,5 +311,235 @@ describe('createPasskey', () => {
   it('is cancelled when the browser resolves null instead of throwing', async () => {
     withCredentials(vi.fn().mockResolvedValue(null))
     await expect(createPasskey(OPTIONS)).resolves.toBe('cancelled')
+  })
+})
+
+/**
+ * The sign-in ceremony.
+ *
+ * Two things here can break without anything throwing, and both are asserted rather than
+ * assumed. `allowCredentials` must stay **absent** when the server sent none -- an empty
+ * array is the value that means "these credentials and no others", so normalising it would
+ * refuse every discoverable credential, which on this path is all of them. And no
+ * `authenticatorAttachment` may appear, because pinning one suppresses the cross-device QR
+ * flow the surface brief says not to suppress.
+ */
+const REQUEST = {
+  challenge: 'Y2hhbGxlbmdl',
+  rpId: 'app.localhost',
+  userVerification: 'preferred' as const,
+}
+
+function fakeAssertion(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'credential-id',
+    rawId: utf8('credential-id').buffer,
+    type: 'public-key',
+    getClientExtensionResults: () => ({}),
+    response: {
+      clientDataJSON: utf8('{}').buffer,
+      authenticatorData: utf8('authdata').buffer,
+      signature: utf8('sig').buffer,
+      userHandle: utf8('user').buffer,
+    },
+    ...overrides,
+  }
+}
+
+function withGet(get: unknown): void {
+  Object.defineProperty(navigator, 'credentials', {
+    value: get === undefined ? {} : { get },
+    configurable: true,
+    writable: true,
+  })
+}
+
+/** The whole argument object `get()` received -- `publicKey` plus mediation and signal. */
+function argsPassedTo(get: Mock): Record<string, unknown> {
+  const call = get.mock.calls[0]
+  if (!call) throw new Error('navigator.credentials.get was never called')
+  return call[0] as Record<string, unknown>
+}
+
+const publicKeyOf = (get: Mock) => argsPassedTo(get).publicKey as Record<string, unknown>
+
+describe('signInWithPasskey', () => {
+  afterEach(() => {
+    Reflect.deleteProperty(navigator as unknown as Record<string, unknown>, 'credentials')
+  })
+
+  it('is unsupported when the browser has no credentials API', async () => {
+    expect(navigator.credentials).toBeUndefined()
+    await expect(signInWithPasskey(REQUEST)).resolves.toBe('unsupported')
+  })
+
+  it('is unsupported when the API exists but get() does not', async () => {
+    withGet(undefined)
+    await expect(signInWithPasskey(REQUEST)).resolves.toBe('unsupported')
+  })
+
+  it('decodes the challenge into bytes before calling the browser', async () => {
+    const get = vi.fn().mockResolvedValue(fakeAssertion())
+    withGet(get)
+
+    await signInWithPasskey(REQUEST)
+
+    expect(bytesOf(publicKeyOf(get).challenge)).toEqual(bytesOf(utf8('challenge')))
+    expect(publicKeyOf(get).rpId).toBe('app.localhost')
+  })
+
+  it('passes fields it does not model straight through', async () => {
+    // Same promise PasskeyRequestOptions makes: `extensions` is deliberately unmodelled,
+    // so this is the assertion that keeps it arriving anyway.
+    const get = vi.fn().mockResolvedValue(fakeAssertion())
+    withGet(get)
+
+    await signInWithPasskey({ ...REQUEST, extensions: { largeBlob: { read: true } } } as never)
+
+    expect(publicKeyOf(get).extensions).toEqual({ largeBlob: { read: true } })
+  })
+
+  it('omits allowCredentials entirely when the server sent none', async () => {
+    // The one that would break usernameless sign-in outright. An empty array means "only
+    // these credentials", which matches nothing; absence means "any discoverable one".
+    const get = vi.fn().mockResolvedValue(fakeAssertion())
+    withGet(get)
+
+    await signInWithPasskey(REQUEST)
+
+    expect('allowCredentials' in publicKeyOf(get)).toBe(false)
+  })
+
+  it('omits allowCredentials when the server sent an EMPTY list', async () => {
+    // `[]` is truthy, so a bare `options.allowCredentials ? …` guard sends it through --
+    // and `allowCredentials: []` means "these credentials and no others", matching nothing.
+    // The guard tests `.length` for exactly this.
+    const get = vi.fn().mockResolvedValue(fakeAssertion())
+    withGet(get)
+
+    await signInWithPasskey({ ...REQUEST, allowCredentials: [] })
+
+    expect('allowCredentials' in publicKeyOf(get)).toBe(false)
+  })
+
+  it('decodes allowCredentials ids and defaults their type when the server sent some', async () => {
+    const get = vi.fn().mockResolvedValue(fakeAssertion())
+    withGet(get)
+
+    await signInWithPasskey({
+      ...REQUEST,
+      allowCredentials: [{ id: 'dXNlcg', transports: ['internal'] }],
+    })
+
+    const allow = (
+      publicKeyOf(get).allowCredentials as { id: unknown; type: string; transports: string[] }[]
+    )[0]
+    expect(bytesOf(allow?.id)).toEqual(bytesOf(utf8('user')))
+    expect(allow?.type).toBe('public-key')
+  })
+
+  it('never pins an authenticator attachment, so the platform may draw its QR', async () => {
+    // Enrollment pins `platform` on purpose. Mirroring that here would silently kill the
+    // desktop-plus-phone flow the brief says we "must simply not suppress".
+    const get = vi.fn().mockResolvedValue(fakeAssertion())
+    withGet(get)
+
+    await signInWithPasskey(REQUEST)
+
+    expect(publicKeyOf(get).authenticatorAttachment).toBeUndefined()
+    expect((publicKeyOf(get).authenticatorSelection as unknown) ?? undefined).toBeUndefined()
+  })
+
+  it('sends no mediation or signal key when it was given neither', async () => {
+    // A `mediation: undefined` is not the same as no mediation to every engine, and a
+    // stray `signal: undefined` would abort nothing while looking like it might.
+    const get = vi.fn().mockResolvedValue(fakeAssertion())
+    withGet(get)
+
+    await signInWithPasskey(REQUEST)
+
+    expect('mediation' in argsPassedTo(get)).toBe(false)
+    expect('signal' in argsPassedTo(get)).toBe(false)
+  })
+
+  it('forwards conditional mediation and the abort signal when asked', async () => {
+    const get = vi.fn().mockResolvedValue(fakeAssertion())
+    withGet(get)
+    const controller = new AbortController()
+
+    await signInWithPasskey(REQUEST, { mediation: 'conditional', signal: controller.signal })
+
+    expect(argsPassedTo(get).mediation).toBe('conditional')
+    expect(argsPassedTo(get).signal).toBe(controller.signal)
+  })
+
+  it('encodes the assertion back to base64url', async () => {
+    withGet(vi.fn().mockResolvedValue(fakeAssertion()))
+
+    const result = await signInWithPasskey(REQUEST)
+
+    expect(result).toEqual({
+      id: 'credential-id',
+      rawId: 'Y3JlZGVudGlhbC1pZA',
+      type: 'public-key',
+      clientExtensionResults: {},
+      response: {
+        clientDataJSON: 'e30',
+        authenticatorData: 'YXV0aGRhdGE',
+        signature: 'c2ln',
+        userHandle: 'dXNlcg',
+      },
+    })
+  })
+
+  it('omits userHandle when the authenticator sent none', async () => {
+    withGet(
+      vi.fn().mockResolvedValue(
+        fakeAssertion({
+          response: {
+            clientDataJSON: utf8('{}').buffer,
+            authenticatorData: utf8('a').buffer,
+            signature: utf8('s').buffer,
+            userHandle: null,
+          },
+        }),
+      ),
+    )
+
+    const result = await signInWithPasskey(REQUEST)
+
+    expect(result).not.toHaveProperty('response.userHandle')
+  })
+
+  it('is cancelled when the visitor dismisses the OS sheet', async () => {
+    withGet(vi.fn().mockRejectedValue(new Error('NotAllowedError')))
+    await expect(signInWithPasskey(REQUEST)).resolves.toBe('cancelled')
+  })
+
+  it('is cancelled when the request is aborted', async () => {
+    // The conditional path's ordinary ending: the visitor typed their email instead, and
+    // AuthFlow aborted. An AbortError is a cancellation like any other -- the three silent
+    // outcomes stay one outcome.
+    const controller = new AbortController()
+    withGet(
+      vi.fn(
+        () =>
+          new Promise((_resolve, reject) => {
+            controller.signal.addEventListener('abort', () =>
+              reject(new DOMException('aborted', 'AbortError')),
+            )
+          }),
+      ),
+    )
+
+    const pending = signInWithPasskey(REQUEST, { signal: controller.signal })
+    controller.abort()
+
+    await expect(pending).resolves.toBe('cancelled')
+  })
+
+  it('is cancelled when the browser resolves null instead of throwing', async () => {
+    withGet(vi.fn().mockResolvedValue(null))
+    await expect(signInWithPasskey(REQUEST)).resolves.toBe('cancelled')
   })
 })

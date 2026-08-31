@@ -253,13 +253,20 @@ Biome, 100 columns, single quotes, no semicolons, trailing commas. `npm run form
 
 **`staging` is deployed; `production` is not.** `coming-soon/` is still the live apex,
 `waitlist/` the Lambda behind its form, and `infra/mail-events.yaml` the deployed SES→SNS
-bounce path — the repo's first IaC. As of 2026-08-29 `sst deploy --stage staging` has run
-from a laptop: the app answers on `*.staging.guestnote.be` against its own Neon branch (a
-COW clone of prod, so a staging credential is a prod credential). CI has not deployed
-anything yet — the OIDC stack still trusts the old branch refs and the `MIGRATED_THROUGH`
-markers are unset (`infra/README.md`). Trigger model: a `main` push deploys **staging**, a
-`v*` tag deploys **production** behind a required-reviewer gate. Do not write code that
-assumes a deployed *production* environment exists, or that a laptop `sst deploy` is
+bounce path — the repo's first IaC. The app answers on `*.staging.guestnote.be` against its
+own Neon branch (a COW clone of prod, so a staging credential is a prod credential).
+
+**CI deploys staging, as of 2026-08-30.** The `Deploy` workflow went green on `main` after
+three OIDC fixes ending in `de73a5a` — first green run 33302554938 (a re-run, `docs/adr/0006`
+records it at 10:41 UTC), first green on its own first attempt 33307284710 at 10:46 UTC,
+2m31s. `/guestnote/staging/MIGRATED_THROUGH` is set and advances on every push; the
+workflow's migration step fails closed when it is not, which is how we know. This paragraph
+used to say "CI has not deployed anything yet"; it was true until that morning.
+
+**`production` has never been deployed by anything and its marker is unset**
+(`infra/README.md`). Trigger model: a `main` push deploys **staging**, a `v*` tag deploys
+**production** behind a required-reviewer gate. Do not write code that assumes a deployed
+*production* environment exists, or that a laptop `sst deploy --stage production` is
 reproducible from CI without the bootstrap.
 
 # AWS Guidance

@@ -11,7 +11,9 @@ import type { Locale } from '../../lib/locales.ts'
 import { Wordmark } from '../brand/wordmark.tsx'
 import {
   beginPasskeyEnrollment,
+  beginPasskeySignIn,
   finishPasskeyEnrollment,
+  finishPasskeySignIn,
   requestCode,
   setLocale,
   startGoogleSignIn,
@@ -22,6 +24,7 @@ import {
   conditionalMediationAvailable,
   createPasskey,
   platformAuthenticatorAvailable,
+  signInWithPasskey,
 } from './passkey.ts'
 import { Stage, type StageContent } from './stage.tsx'
 
@@ -29,7 +32,7 @@ type Props = {
   copy: AuthCopy
   locale: Locale
   locales: readonly Locale[]
-  /** False until W3. See `passkeysAvailable()` on the seam. */
+  /** Whether the deployment can verify a passkey at all. `passkeysAvailable()` on the seam. */
   passkeysEnabled: boolean
   /**
    * Whether to draw the "Continue with Google" button below the form. `googleAvailable()`
@@ -70,6 +73,30 @@ type Rung = 0 | 1 | 2
  */
 type Enrollment = 'offered' | 'working' | 'settled'
 
+/**
+ * How the session on rung 2 was obtained, and the reason rung 2 needs to know.
+ *
+ * The surface brief's state 27 is "a passkey for this device exists -> never offer". This
+ * answers the half of that we can know for free: someone who just signed in *with* a
+ * passkey plainly has one, and offering to create another produces an OS sheet that says
+ * "you already have one" -- which reads as the product not knowing what it just did.
+ *
+ * It does not cover the other half: signing in with a code on a device that already holds
+ * a passkey. That needs a round trip asking whether this user has any credential, which was
+ * rejected in docs/specs/0002 -- a query on every sign-in, and it leaks "this account has a
+ * passkey" to anyone who reaches rung 2. Named there under "Still open" rather than left to
+ * be rediscovered.
+ *
+ * It also over-reaches in one direction, accepted knowingly: a **cross-device** sign-in --
+ * the QR flow `passkey.ts` deliberately does not suppress -- proves a passkey exists on a
+ * *phone*, not on the laptop in front of the visitor, which is what state 27 actually keys
+ * on. So that planner is never offered one here. Rejected the narrower gate on the
+ * assertion's `authenticatorAttachment`, because `PasskeyAssertion` does not carry that
+ * field and reading it would mean trusting a client-supplied value to decide what to show.
+ * The cost is a missed offer on the rarest of the three paths.
+ */
+type SignedInWith = 'code' | 'passkey'
+
 /** Matches the ground transition in descent.css. Changing one means changing both. */
 const DESCENT_MS = 380
 
@@ -81,6 +108,56 @@ function prefersReducedMotion(): boolean {
 }
 
 const LOOKS_LIKE_EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
+
+/**
+ * The whole passkey sign-in ceremony, both paths, as three outcomes.
+ *
+ * Module scope rather than a closure inside the component, and that is not only a hooks
+ * convenience: the conditional path and the explicit button run *identical* ceremonies and
+ * differ by one argument. Two copies would be two places to forget that a `gone` result is
+ * the only one allowed to speak.
+ *
+ * `'silent'` collapses every outcome the interface renders as nothing -- a dismissed sheet,
+ * a browser that cannot, an aborted request, a server that refused the assertion. The first
+ * two arrive as `SilentPasskeyOutcome` from passkey.ts, which argues why they are one
+ * outcome; the last two can only be seen here, which is why this function is where they
+ * join. `finishPasskeySignIn` in actions.ts has the rest: why only `gone` survives the trip.
+ */
+async function runPasskeySignIn(init?: {
+  mediation?: 'conditional'
+  signal?: AbortSignal
+}): Promise<'ok' | 'gone' | 'silent'> {
+  const challenge = await beginPasskeySignIn().catch(() => ({ ok: false }) as const)
+  if (!challenge.ok) return 'silent'
+
+  const assertion = await signInWithPasskey(challenge.options, init)
+  // A `SilentPasskeyOutcome` is a string; an assertion is an object. Narrowed on the shape
+  // rather than a flag, the same way `onEnroll` narrows -- it keeps passkey.ts's "every
+  // silent outcome is one outcome" promise from needing a second representation here.
+  if (typeof assertion === 'string') return 'silent'
+
+  /**
+   * The abort is checked HERE, before the next line, and not only by the caller afterwards.
+   *
+   * `finishPasskeySignIn` is the call that mints the session -- the plugin sets the cookie
+   * itself. Checking the signal after it returns would be checking after the dangerous
+   * thing already happened, which is the inverse of this repo's rule.
+   *
+   * The failure it prevents, on venue wifi: the visitor picks their passkey, the verify
+   * round trip is in flight, they see nothing happen and press Continue with their email
+   * already typed. `onIdentify` aborts and sends a code. The passkey request then completes
+   * server-side anyway -- counter bumped, session row created, `Set-Cookie` delivered -- so
+   * the browser is signed in while the screen asks for a code that cost an SES send. Bailing
+   * first means an aborted ceremony never reaches the server at all.
+   */
+  if (init?.signal?.aborted) return 'silent'
+
+  const verified = await finishPasskeySignIn(assertion).catch(
+    () => ({ ok: false, gone: false }) as const,
+  )
+  if (verified.ok) return 'ok'
+  return verified.gone ? 'gone' : 'silent'
+}
 
 /**
  * The whole sign-in flow: one route segment, one state machine, three rungs.
@@ -120,21 +197,39 @@ export function AuthFlow({
   const [announcement, setAnnouncement] = useState('')
   const [resendIn, setResendIn] = useState(0)
   // Kept as two separate answers rather than one derived boolean, because the interface asks
-  // two different questions of them: `platform && !conditional` decides whether rung 0 draws
-  // a passkey control, and `platform` alone decides whether rung 2 may offer enrollment. The
-  // single boolean this replaced conflated the two, and rung 2 offered a passkey to devices
-  // with no authenticator to store one in.
+  // two different questions of them, and the answers diverge. `conditional` decides which
+  // ceremony runs at rung 0 -- the autofill sheet, or an explicit control; `platform` is what
+  // says this device can KEEP a passkey, which is rung 2's question. The single boolean this
+  // replaced conflated them, and rung 2 offered a passkey to devices with no authenticator
+  // to store one in.
+  //
+  // Neither is the whole gate any more: `showPasskeyControl` and `offerEnrollment` below
+  // each add their own terms, and those two consts are where the current rules live.
   const [conditionalAvailable, setConditionalAvailable] = useState(false)
   const [platformAvailable, setPlatformAvailable] = useState(false)
   const [enrollment, setEnrollment] = useState<Enrollment>('offered')
+  const [signedInWith, setSignedInWith] = useState<SignedInWith>('code')
   // Not `startTransition`: `onGoogle` ends in a full-page navigation to Google, so the
   // transition would never resolve. A plain flag disables the button while the URL is
   // being minted -- long enough that a second click cannot fire a second round trip.
   const [googlePending, setGooglePending] = useState(false)
+  // Not `startTransition` either, and for the sharper version of the same reason: the OS
+  // sheet is a human deciding, not a request in flight. See `onPasskey`.
+  const [passkeyPending, setPasskeyPending] = useState(false)
   const [pending, startTransition] = useTransition()
 
   const emailRef = useRef<HTMLInputElement>(null)
   const codeRef = useRef<HTMLInputElement>(null)
+  /**
+   * The conditional passkey request's abort handle.
+   *
+   * A conditional `navigator.credentials.get()` has no natural end -- it stays open,
+   * attached to the browser's autofill sheet, until somebody uses it or aborts it. This
+   * component owns that lifetime because it is the only thing that knows when the request
+   * has stopped being relevant: on unmount, and the moment the visitor commits to the email
+   * path instead. Left running, it can resolve onto a rung that no longer exists.
+   */
+  const conditionalAbort = useRef<AbortController | null>(null)
   // Rung 0 is the landing state, so its field must not be stolen from a visitor who has
   // already started typing by the time hydration finishes.
   const hasMoved = useRef(false)
@@ -164,6 +259,80 @@ export function AuthFlow({
     }
   }, [passkeysEnabled])
 
+  /**
+   * Offer the passkey from inside the browser's own autofill sheet, from first paint.
+   *
+   * **This is the entire passkey affordance on a modern browser.** The interface draws no
+   * button and no prompt; the email field's `autocomplete="username webauthn"` is what
+   * attaches the credential to the sheet, and this open request is what the sheet resolves.
+   * If nothing appears to happen here, that is the feature working -- see
+   * `showPasskeyControl` below for the browsers that need a visible control instead.
+   *
+   * Not gated on `platformAvailable`. Conditional mediation is exactly the case where the
+   * credential need not live on this device: the platform is free to draw a QR and take the
+   * assertion from a phone, which passkey.ts is careful not to suppress.
+   *
+   * Suppressed on an invitation landing, and on a blocked one. `boundEmail` means the
+   * address is pinned on purpose, and a discoverable credential ignores it entirely -- so
+   * the sheet could sign someone in as a different account while the invitation sits
+   * unclaimed with nothing on screen saying so. Same argument that already hides the Google
+   * button there. `blocked` replaces the whole form, including the field this ceremony
+   * attaches to: without that term an expired or unusable invitation would still fire an
+   * unauthenticated challenge request, write a `verifications` row and open a `get()` the
+   * page has no input for the browser to hang it on.
+   *
+   * ## The dependency array is primitives, and that is load-bearing
+   *
+   * `copy` was in here and it made the effect **retrigger itself indefinitely**. `copy` is
+   * an object from the RSC payload, so its identity changes on any re-render of the route --
+   * and this effect causes exactly such a re-render: `beginPasskeySignIn` sets the challenge
+   * cookie, `nextCookies()` writes it through `cookies().set()`, and Next 16 documents that
+   * as unconditionally re-rendering the page. So: effect runs, POSTs, gets a new `copy`
+   * identity back, cleanup aborts the in-flight `credentials.get()`, effect fires again. One
+   * round trip at a time, forever, a `verifications` row per lap, and the credential never
+   * stays in the autofill sheet long enough for anyone to pick it -- the feature not working
+   * at all, on the browsers it is entirely aimed at.
+   *
+   * The two strings are what the body actually reads, and they compare by value, so a real
+   * locale switch re-runs this once instead of never. Found by review 2026-08-31, invisible
+   * to the suite because `auth-flow.test.tsx` passes a module-constant `COPY` whose identity
+   * never changes -- which is the "no E2E layer" gap in docs/specs/0002 biting immediately.
+   */
+  const passkeyGoneMessage = copy.errors.passkeyGone
+  const arriveTitle = copy.arrive.title
+
+  useEffect(() => {
+    if (!passkeysEnabled || !conditionalAvailable || boundEmail || blocked) return
+
+    const controller = new AbortController()
+    conditionalAbort.current = controller
+
+    void (async () => {
+      const outcome = await runPasskeySignIn({
+        mediation: 'conditional',
+        signal: controller.signal,
+      })
+      // The abort path lands here too, as `silent`. Checking the signal keeps a request the
+      // flow deliberately cancelled from writing state onto whatever rung replaced it.
+      if (controller.signal.aborted) return
+      if (outcome === 'silent') return
+      if (outcome === 'gone') {
+        setError(passkeyGoneMessage)
+        return
+      }
+      hasMoved.current = true
+      setError(null)
+      setSignedInWith('passkey')
+      setRung(2)
+      setAnnouncement(arriveTitle)
+    })()
+
+    return () => {
+      controller.abort()
+      conditionalAbort.current = null
+    }
+  }, [passkeysEnabled, conditionalAvailable, boundEmail, blocked, passkeyGoneMessage, arriveTitle])
+
   /** Focus follows the rung, so a keyboard or screen-reader user lands on the new control. */
   useEffect(() => {
     if (!hasMoved.current) return
@@ -191,6 +360,12 @@ export function AuthFlow({
         return copy.errors.rateLimited
       case 'delivery_failed':
         return copy.errors.deliveryFailed
+      // Reached only if a future caller hands a raw `AuthFailure` here. The passkey paths
+      // set this sentence directly, because `finishPasskeySignIn` narrows the seam's enum
+      // to a single boolean before it crosses back. Listed anyway so the two cannot drift
+      // into rendering different words for the same failure.
+      case 'passkey_unknown':
+        return copy.errors.passkeyGone
       default:
         return copy.errors.unavailable
     }
@@ -225,8 +400,51 @@ export function AuthFlow({
       setError(copy.errors.emailFormat)
       return
     }
+    // The visitor has chosen the code path, so the conditional request is now waiting for
+    // an answer to a question nobody is asking. Aborted here rather than only on unmount:
+    // this component does not unmount between rungs -- that is the point of it being one
+    // component -- so without this the request stays open across rung 1 and can resolve a
+    // passkey sign-in on top of a code the visitor is halfway through typing.
+    conditionalAbort.current?.abort()
     setEmail(address)
     send(address)
+  }
+
+  /**
+   * The explicit passkey control, for browsers with an authenticator but no conditional UI.
+   *
+   * Same ceremony as the effect above with one difference: no `mediation`, so the OS sheet
+   * opens immediately rather than waiting inside an autofill list this browser cannot draw.
+   *
+   * Not wrapped in `startTransition`, for the reason `onEnroll` gives: the middle hop is a
+   * sheet waiting on a face or a finger, which can sit there for half a minute, and a React
+   * transition should not be held open for the length of a human decision. `passkeyPending`
+   * is the busy signal instead -- and it doubles as the "we are waiting" state the surface
+   * brief asks for on the cross-device path, where the platform is drawing a QR and the
+   * screen's only honest job is to say it has not finished.
+   *
+   * **No abort here, and it is safe only because of a gate two screens away:**
+   * `showPasskeyControl` requires `!conditionalAvailable` and the conditional effect
+   * requires `conditionalAvailable`, so the two ceremonies are mutually exclusive and this
+   * one can never race the one holding `conditionalAbort`. If that gate ever widens -- and
+   * it is one term away, as adding `!boundEmail` just showed -- this needs its own
+   * controller, or two concurrent `get()` calls end up sharing one.
+   */
+  async function onPasskey() {
+    setPasskeyPending(true)
+    const outcome = await runPasskeySignIn()
+    setPasskeyPending(false)
+
+    if (outcome === 'silent') return
+    if (outcome === 'gone') {
+      setError(copy.errors.passkeyGone)
+      return
+    }
+    hasMoved.current = true
+    setError(null)
+    setSignedInWith('passkey')
+    setRung(2)
+    setAnnouncement(copy.arrive.title)
   }
 
   function onVerify() {
@@ -278,7 +496,7 @@ export function AuthFlow({
 
     const created = await createPasskey(challenge.options)
     // A `SilentPasskeyOutcome` is a string; an attestation is an object. Narrowing on the
-    // shape rather than a flag keeps the "all three outcomes are one outcome" promise in
+    // shape rather than a flag keeps the "every silent outcome is one outcome" promise in
     // passkey.ts from needing a second representation here.
     if (typeof created === 'string') {
       setEnrollment('offered')
@@ -323,8 +541,36 @@ export function AuthFlow({
    * Whether rung 0 draws an explicit passkey control, and whether rung 2 may offer to
    * create one. Two questions, one shared capability answer -- see the state above.
    */
-  const showPasskeyControl = passkeysEnabled && platformAvailable && !conditionalAvailable
+  // `!boundEmail && !blocked` on the control and not on `canEnroll`: an invitation must not
+  // offer a way to sign in as somebody else, and a blocked one has no form at all -- but
+  // once the invited person HAS signed in, rung 2's enrollment offer is about the device in
+  // their hands and is exactly as welcome as on any other first sign-in.
+  //
+  // The `blocked` term is belt to the JSX's braces: this control already renders inside the
+  // `blocked ? … : …` false branch, so it is unreachable there either way. Stated here
+  // anyway so the rule lives in one place and matches the conditional effect above, which
+  // has no JSX to hide behind and where its absence was a real bug.
+  const showPasskeyControl =
+    passkeysEnabled && platformAvailable && !conditionalAvailable && !boundEmail && !blocked
   const canEnroll = passkeysEnabled && platformAvailable
+
+  /**
+   * Whether rung 2 offers to create a passkey -- capability, **and** whether one was just
+   * used.
+   *
+   * `canEnroll` alone answers "could this device keep a passkey". It cannot answer "should
+   * we ask", and it was the whole gate until this feature landed -- harmless while nobody
+   * could sign in with a passkey at all, and wrong the moment they could: someone who signed
+   * in with their face would have been offered a passkey, and the OS sheet would have told
+   * them they already had one. That is reasoned from the plugin sending `excludeCredentials`
+   * on enrollment, not measured -- nobody ever saw it, because sign-in did not exist. See
+   * `SignedInWith` for the two halves of the brief's state 27 this still does not reach.
+   *
+   * It gates the redirect timer as well as the card, and it has to: rung 2 holds itself
+   * open only while there is an offer standing on it, so a gate that hid the card without
+   * releasing the timer would leave a blank screen waiting on a button nobody can see.
+   */
+  const offerEnrollment = canEnroll && signedInWith !== 'passkey'
 
   /**
    * Rung 2 leaves on its own -- **unless there is an enrollment offer standing on it.**
@@ -344,13 +590,13 @@ export function AuthFlow({
    */
   useEffect(() => {
     if (rung !== 2) return
-    if (canEnroll && enrollment !== 'settled') return
+    if (offerEnrollment && enrollment !== 'settled') return
     const id = window.setTimeout(
       () => window.location.assign(continueHref),
       prefersReducedMotion() ? 0 : DESCENT_MS,
     )
     return () => window.clearTimeout(id)
-  }, [rung, canEnroll, enrollment, continueHref])
+  }, [rung, offerEnrollment, enrollment, continueHref])
 
   const stepLabel =
     rung === 0 ? copy.steps.public : rung === 1 ? copy.steps.verifying : copy.steps.private
@@ -446,7 +692,14 @@ export function AuthFlow({
                       {copy.signIn.continue}
                     </Button>
                     {showPasskeyControl && (
-                      <Button variant="secondary" className="mt-2 h-10" icon={<KeyIcon />}>
+                      <Button
+                        variant="secondary"
+                        className="mt-2 h-10"
+                        icon={<KeyIcon />}
+                        busy={passkeyPending}
+                        busyLabel={copy.busy.checking}
+                        onClick={() => void onPasskey()}
+                      >
                         {copy.signIn.passkey}
                       </Button>
                     )}
@@ -561,15 +814,16 @@ export function AuthFlow({
                   the shell's, not this surface's -- prompting mid-sign-in converts worse.
                   It is rendered here only while there is no shell to host it. M3 moves it.
 
-                  Gated on `canEnroll` and not on `passkeysEnabled` alone, which is what it
-                  used to be: the deployment being able to verify a passkey says nothing
-                  about this device having an authenticator to keep one in, and offering
-                  "use your face or fingerprint" to a desktop with neither is an offer that
-                  can only fail. `platformAuthenticatorAvailable()` is the other half.
+                  Gated on `offerEnrollment`, which is `canEnroll` plus "they did not just
+                  use a passkey" -- see that const. `canEnroll` itself was already narrower
+                  than `passkeysEnabled`, which is what this used to be: the deployment
+                  being able to verify a passkey says nothing about this device having an
+                  authenticator to keep one in, and offering "use your face or fingerprint"
+                  to a desktop with neither is an offer that can only fail.
 
                   It disappears once `settled`, so the moment either button resolves the
                   screen is the plain arrive screen again for the instant before it leaves. */}
-                {canEnroll && enrollment !== 'settled' && (
+                {offerEnrollment && enrollment !== 'settled' && (
                   <div className="mt-7 rounded-[var(--radius)] border-input border p-4">
                     <h2 className="mb-1 text-sm font-semibold">{copy.enroll.title}</h2>
                     <p className="mb-3.5 text-xs leading-relaxed text-muted-foreground">

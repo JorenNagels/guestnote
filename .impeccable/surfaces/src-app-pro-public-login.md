@@ -491,6 +491,35 @@ cookie, the passkey ceremony and the org resolution are W3/M3. `passkeysAvailabl
 returns false until then, which the interface treats identically to a browser with no
 platform authenticator — states 2, 3 and 6 already render the same.
 
+## Built 2026-08-31 — passkey sign-in
+
+The paragraph immediately above is a record of 2026-08-18 and is now history on every point.
+Sessions, the cookie and enrollment landed 2026-08-19; the **sign-in** ceremony landed today,
+specified in `docs/specs/0002-signing-in-with-a-passkey.md`.
+
+`passkeysAvailable()` now returns `true`, and it means both halves are wired — for eleven
+days it meant only that the server could verify a credential, so a passkey could be created
+and never used. The browser still has the final say through `conditionalMediationAvailable()`
+and `platformAuthenticatorAvailable()`.
+
+What the §5 Passkey table asked for is built as written: conditional mediation preloaded on
+mount with no control drawn, the secondary-weight control only where conditional UI is
+absent, the passkey path skipping rung 1, and cross-device left unsuppressed. Two departures
+worth recording here rather than only in the spec:
+
+- **State 6's log is wider than asked.** A counter regression cannot be told apart from a bad
+  signature at our seam — the plugin catches SimpleWebAuthn's throw and rethrows a flat
+  `AUTHENTICATION_FAILED` — so every failed assertion is logged with its credential id.
+  Nothing is said on screen, as required.
+- **State 27 is only partly covered.** The enrollment offer is suppressed after a passkey
+  sign-in, but not after a code sign-in on a device that already holds one, and it is
+  suppressed after a *cross-device* sign-in where the credential is on a phone rather than
+  this laptop. Both are named in the spec's "Still open".
+
+Not built, still: `.impeccable` state 25's placement (rung 2 hosts the enrollment prompt until
+M3 gives it a shell to live in), and passkey management, which §"Not in scope" puts in account
+settings.
+
 **Found while building:** a file in `apps/web/public/` is unreachable on the app host.
 proxy.ts rewrites every non-`/api` path to `/pro/*` and its matcher excludes only
 `_next/static`, `_next/image`, `favicon.ico`, `robots.txt` and `sitemap.xml`. The mark is

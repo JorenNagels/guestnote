@@ -19,6 +19,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const requestEmailCode = vi.fn()
 const verifyEmailCode = vi.fn()
 const startGoogleSignInSeam = vi.fn()
+const createPasskeyRequest = vi.fn()
+const verifyPasskeyAssertion = vi.fn()
 const cookieStore = { set: vi.fn() }
 const requestHeaders = new Headers({ 'user-agent': 'test-agent' })
 
@@ -27,6 +29,8 @@ vi.mock('../../lib/auth.ts', () => ({
     requestEmailCode,
     verifyEmailCode,
     startGoogleSignIn: startGoogleSignInSeam,
+    createPasskeyRequest,
+    verifyPasskeyAssertion,
   }),
 }))
 
@@ -40,7 +44,22 @@ vi.mock('../../lib/app-url.ts', () => ({
   appLoginUrl: () => 'http://app.guestnote.localhost:3000/login',
 }))
 
-const { requestCode, setLocale, startGoogleSignIn, submitCode } = await import('./actions.ts')
+const {
+  beginPasskeySignIn,
+  finishPasskeySignIn,
+  requestCode,
+  setLocale,
+  startGoogleSignIn,
+  submitCode,
+} = await import('./actions.ts')
+
+const ASSERTION = {
+  id: 'credential-id',
+  rawId: 'Y3JlZGVudGlhbC1pZA',
+  type: 'public-key' as const,
+  clientExtensionResults: {},
+  response: { clientDataJSON: 'e30', authenticatorData: 'YXV0aA', signature: 'c2ln' },
+}
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -50,6 +69,8 @@ beforeEach(() => {
     ok: true,
     value: { url: 'https://accounts.google.com/o/oauth2/v2/auth?client_id=x' },
   })
+  createPasskeyRequest.mockResolvedValue({ ok: true, value: { challenge: 'Y2hhbGxlbmdl' } })
+  verifyPasskeyAssertion.mockResolvedValue({ ok: true, value: null })
 })
 
 describe('requestCode', () => {
@@ -271,5 +292,63 @@ describe('setLocale', () => {
     await setLocale('nl')
     const [, , options] = cookieStore.set.mock.calls[0] as [string, string, Record<string, unknown>]
     expect(options).not.toHaveProperty('secure', true)
+  })
+})
+
+describe('beginPasskeySignIn', () => {
+  it('asks for a challenge and hands back the options', async () => {
+    await expect(beginPasskeySignIn()).resolves.toEqual({
+      ok: true,
+      options: { challenge: 'Y2hhbGxlbmdl' },
+    })
+  })
+
+  it('threads the request headers, which is what the challenge cookie rides on', async () => {
+    await beginPasskeySignIn()
+    expect(createPasskeyRequest).toHaveBeenCalledWith({ headers: requestHeaders })
+  })
+
+  it('names no account, because it runs for anyone who can reach the login page', async () => {
+    // The guard on an unauthenticated Server Function is having nothing to probe with. If
+    // an email or a user id ever appears in this call, the enumeration oracle is back.
+    await beginPasskeySignIn()
+    const [args] = createPasskeyRequest.mock.calls[0] as [Record<string, unknown>]
+    expect(Object.keys(args)).toEqual(['headers'])
+  })
+
+  it('drops the reason on failure -- there is no branch a visitor could act on', async () => {
+    createPasskeyRequest.mockResolvedValue({ ok: false, failure: 'unavailable' })
+    await expect(beginPasskeySignIn()).resolves.toEqual({ ok: false })
+  })
+})
+
+describe('finishPasskeySignIn', () => {
+  it('reports success with nothing else -- the seam sets the session cookie', async () => {
+    await expect(finishPasskeySignIn(ASSERTION)).resolves.toEqual({ ok: true })
+    expect(verifyPasskeyAssertion).toHaveBeenCalledWith({
+      assertion: ASSERTION,
+      headers: requestHeaders,
+    })
+  })
+
+  it('says gone for an unknown credential, and only for that', async () => {
+    verifyPasskeyAssertion.mockResolvedValue({ ok: false, failure: 'passkey_unknown' })
+    await expect(finishPasskeySignIn(ASSERTION)).resolves.toEqual({ ok: false, gone: true })
+  })
+
+  it.each(['unavailable', 'rate_limited', 'code_wrong'] as const)(
+    'collapses %s to gone: false, so the dangerous distinctions cannot be rendered',
+    async (failure) => {
+      // A counter regression -- a possible cloned authenticator -- arrives as one of these.
+      // It must be indistinguishable from a dismissed sheet on the client side.
+      verifyPasskeyAssertion.mockResolvedValue({ ok: false, failure })
+      await expect(finishPasskeySignIn(ASSERTION)).resolves.toEqual({ ok: false, gone: false })
+    },
+  )
+
+  it('takes no user id, so no caller can bind a session to another account', async () => {
+    await finishPasskeySignIn(ASSERTION)
+    const [args] = verifyPasskeyAssertion.mock.calls[0] as [Record<string, unknown>]
+    expect(Object.keys(args).sort()).toEqual(['assertion', 'headers'])
   })
 })

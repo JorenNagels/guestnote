@@ -99,6 +99,50 @@ describe('better-auth stays behind the packages/core/auth seam', () => {
         offenders.join('\n  '),
     ).toEqual([])
   })
+
+  /**
+   * The scoped packages, which the pattern above cannot see.
+   *
+   * An import of the scoped plugin does not contain the substring the assertion above greps
+   * for -- the leading `@` breaks it -- so that check missed the plugin entirely, and
+   * `@simplewebauthn`, which the plugin hoists, was in neither this file nor `biome.json`.
+   * (Both patterns are written without a quoted example on purpose: a literal one in this
+   * comment is itself a match, and would make this file its own offender.)
+   * Both are **phantom dependencies**:
+   * declared in no `package.json`, resolvable from `apps/web`, and `npm run check` passed on
+   * a probe file importing them (measured 2026-08-31, during the passkey sign-in review).
+   *
+   * That mattered the moment sign-in landed. `passkey.ts` hand-rolls base64url in two
+   * directions specifically to avoid `@simplewebauthn/browser`'s
+   * `parseRequestOptionsFromJSON`, and until this test existed a comment was the only thing
+   * stopping the next person undoing that.
+   */
+  it('is imported only there under its scoped names either, plugin and WebAuthn library', () => {
+    const offenders = gitGrep("from '(@better-auth/[^']*|@simplewebauthn/[^']*)'").filter(
+      (f) => !ALLOWED.some((re) => re.test(f)),
+    )
+    expect(
+      offenders,
+      'These files import a scoped provider package directly. The WebAuthn ceremony types ' +
+        'are hand-written in packages/core/src/auth/types.ts on purpose -- see the comment ' +
+        'on PasskeyCreationOptions:\n  ' +
+        offenders.join('\n  '),
+    ).toEqual([])
+  })
+
+  /**
+   * The canary this file already runs for `@guestnote/db/unsafe`, applied to the pattern
+   * above: a regex that matches nothing passes forever, and would have passed for the whole
+   * eleven days the scoped ban did not exist.
+   */
+  it('has a pattern that actually matches the one legitimate importer', () => {
+    const found = gitGrep("from '(@better-auth/[^']*|@simplewebauthn/[^']*)'")
+    expect(
+      found,
+      'The scoped-import pattern matched nothing at all, so the assertion above proves ' +
+        'nothing. better-auth.ts imports @better-auth/passkey and should be found here.',
+    ).toContain('packages/core/src/auth/better-auth.ts')
+  })
 })
 
 describe('the AWS SES SDK stays behind the packages/email seam', () => {

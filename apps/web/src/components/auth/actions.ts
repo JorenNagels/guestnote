@@ -1,6 +1,12 @@
 'use server'
 
-import type { AuthFailure, PasskeyCreationOptions, PasskeyRegistration } from '@guestnote/core/auth'
+import type {
+  AuthFailure,
+  PasskeyAssertion,
+  PasskeyCreationOptions,
+  PasskeyRegistration,
+  PasskeyRequestOptions,
+} from '@guestnote/core/auth'
 import { cookies, headers } from 'next/headers'
 import { appHomeUrl, appLoginUrl } from '../../lib/app-url.ts'
 import { getAuth } from '../../lib/auth.ts'
@@ -11,15 +17,38 @@ import { isLocale, LOCALE_COOKIE, type Locale } from '../../lib/locales.ts'
  *
  * proxy.ts is explicit that it does NOT do authorization, and quotes Next's own warning
  * that "Server Functions are POST requests to the route that uses them, so a matcher
- * change can silently remove proxy coverage". The first three are unauthenticated by
+ * change can silently remove proxy coverage". Most of these are unauthenticated by
  * nature -- they are how you become authenticated -- so what matters there instead is that
- * every guard they DO need lives inside them: input shape, and rate limiting behind the
- * seam.
+ * every guard they DO need lives inside them: input shape, and the rule that none of them
+ * takes an argument naming an account.
  *
- * **The two passkey functions are the exception, and they are not unauthenticated.** Both
- * sit behind a session check inside the seam, and a fresh one at that. They are still here
- * rather than under `(app)/` because enrollment is offered on rung 2 of this surface, in
- * the seconds after a code was verified, which is where research/07 says it converts.
+ * ## Two of the four passkey functions are authenticated, and two are not
+ *
+ * **`beginPasskeyEnrollment` / `finishPasskeyEnrollment` are authenticated**, behind a
+ * *fresh* session check inside the seam. They are here rather than under `(app)/` because
+ * enrollment is offered on rung 2 of this surface, in the seconds after a code was
+ * verified, which is where research/07 says it converts.
+ *
+ * **`beginPasskeySignIn` / `finishPasskeySignIn` are not**, and cannot be: they are the
+ * door. What stands in for a session check there is that neither takes an argument naming
+ * an account -- see each one's note. This paragraph used to claim all the passkey functions
+ * were authenticated, which was true until sign-in landed (docs/specs/0002) and is the kind
+ * of sentence that quietly becomes a false security argument.
+ *
+ * ## What none of them get
+ *
+ * Better Auth's rate limiter. It runs in the library's own router and therefore only
+ * covers `/api/auth/*`; a Server Function calls `auth.api.*` directly and goes straight
+ * past it. That is a real gap on the *email* path especially, where each unmetered call is
+ * an SES send -- recorded in docs/specs/0002 "Not in scope" and owed its own change.
+ *
+ * `beginPasskeySignIn` changes the shape of that gap and the change is worth naming: it is
+ * the first of these that runs **without anyone pressing anything**, on mount, for every
+ * visitor whose browser does conditional mediation. So the unmetered baseline is now
+ * ordinary login-page traffic rather than a deliberate act, and each of those writes a
+ * `verifications` row that nothing prunes until M10. Still deferred -- production is not
+ * deployed and `requestCode` is strictly more expensive per call -- but it must close before
+ * a `v*` tag.
  */
 
 /**
@@ -164,4 +193,65 @@ export async function finishPasskeyEnrollment(
     headers: await headers(),
   })
   return { ok: result.ok }
+}
+
+/**
+ * Sign-in, step one: ask for a challenge to sign.
+ *
+ * Takes nothing, and that is the guard. This runs for anyone who can reach the login page,
+ * so the only way to keep it from being an account-probing oracle is to give it no account
+ * to probe with -- no email, no user id, no token. The seam's `createPasskeyRequest` has
+ * the rest of the argument: the assertion that comes back is against a discoverable
+ * credential, chosen by the authenticator, so the address in the email field is neither
+ * read nor sent.
+ *
+ * Reason dropped on failure, as with enrollment: there is no branch here a visitor could
+ * act on, and `SilentPasskeyOutcome` in `passkey.ts` is emphatic about what a passkey
+ * failure renders.
+ *
+ * The `Set-Cookie` this produces carries the challenge that `finishPasskeySignIn` verifies
+ * against. `nextCookies()` is what makes it real on a Server Function's response.
+ */
+export async function beginPasskeySignIn(): Promise<
+  { ok: true; options: PasskeyRequestOptions } | { ok: false }
+> {
+  const result = await getAuth().createPasskeyRequest({ headers: await headers() })
+  return result.ok ? { ok: true, options: result.value } : { ok: false }
+}
+
+/**
+ * Sign-in, step two: hand the signed assertion back. **A session is minted here.**
+ *
+ * `assertion` is attacker-controlled in full, and takes no user id for the same reason
+ * `finishPasskeyEnrollment` does not: the account comes off the *stored* credential the
+ * server looks up by id, after checking the signature against a challenge it put in its own
+ * signed cookie and checking the origin and RP ID. There is no argument on this function
+ * through which a caller could choose whose session to receive.
+ *
+ * ## One bit of the reason survives, and only one
+ *
+ * Every other passkey function here drops the failure entirely, because
+ * `SilentPasskeyOutcome` requires the browser-side outcomes to render identically, and the
+ * server-side refusals it does not name -- a counter regression above all, which means a
+ * possible cloned authenticator -- have to render the same way. This one returns `gone`.
+ *
+ * `gone` is true for exactly one seam failure -- `passkey_unknown`, a credential this
+ * deployment has never stored -- and false for every other, so a counter regression, a bad
+ * signature and an unreachable server all arrive at the client wearing the same face. The
+ * dangerous distinction stays *unrepresentable* rather than merely unrendered, which is the
+ * rule this file already runs on; what changes is that the one failure a visitor can act on
+ * is now sayable. Their passkey is gone and the code path still works, and refusing to tell
+ * them that leaves an autofill sheet that does nothing and no reason why.
+ *
+ * docs/specs/0002-signing-in-with-a-passkey.md records the rejected alternative: silence
+ * for everything, which is simpler and produces exactly that dead end.
+ */
+export async function finishPasskeySignIn(
+  assertion: PasskeyAssertion,
+): Promise<{ ok: true } | { ok: false; gone: boolean }> {
+  const result = await getAuth().verifyPasskeyAssertion({
+    assertion,
+    headers: await headers(),
+  })
+  return result.ok ? { ok: true } : { ok: false, gone: result.failure === 'passkey_unknown' }
 }

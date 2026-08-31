@@ -34,6 +34,23 @@ export type AuthFailure =
   | 'code_wrong'
   /** The address hard-bounced. `email_log`'s job to know; ours to say. */
   | 'delivery_failed'
+  /**
+   * The assertion was for a credential this deployment has never heard of -- deleted
+   * server-side, or minted against a different `rpID` (a staging passkey on production).
+   *
+   * **The only passkey failure the interface is allowed to name.** Every other one renders
+   * as nothing: the browser-side ones (a dismissed sheet, an absent authenticator) via
+   * `SilentPasskeyOutcome` in `apps/web/src/components/auth/passkey.ts`, and the server-side
+   * ones (a signature that did not verify, a counter that went backwards) via
+   * `runPasskeySignIn`'s `'silent'` in `auth-flow.tsx`. Both files argue why silence is the
+   * correct rendering and not a shrug. This one is different because it is the only failure
+   * the visitor can act on: their passkey is gone, and the code path still works.
+   *
+   * docs/specs/0002-signing-in-with-a-passkey.md argues the split, and
+   * `finishPasskeySignIn` in `actions.ts` is where it narrows to a single boolean so the
+   * dangerous distinctions cannot reach a client at all.
+   */
+  | 'passkey_unknown'
   /** The provider is not reachable, or not built yet. */
   | 'unavailable'
 
@@ -174,5 +191,73 @@ export type PasskeyRegistration = {
     readonly attestationObject: string
     /** `usb`, `internal`, `hybrid`. Stored so a later assertion can hint the right sheet. */
     readonly transports?: readonly string[]
+  }
+}
+
+/**
+ * WebAuthn credential-*request* options, for `navigator.credentials.get()`.
+ *
+ * The sign-in twin of `PasskeyCreationOptions`, and everything that type's comment says
+ * about the W3C JSON form and the cost of writing it out structurally applies here too --
+ * including the reason the browser half spreads the object through and replaces only the
+ * encoded fields.
+ *
+ * ## What is missing from this type, on purpose
+ *
+ * There is no user id and no email, and `allowCredentials` will in practice be **absent**
+ * on every sign-in this product performs. Better Auth only populates it when a session
+ * already exists (measured on the installed @better-auth/passkey 1.7.1), so an
+ * unauthenticated assertion is always against a *discoverable* credential -- the
+ * authenticator itself decides which account it is offering, and the address typed into
+ * the field is never sent anywhere.
+ *
+ * That is what forces `residentKey: 'required'` on enrollment over in `better-auth.ts`: a
+ * non-discoverable credential would enrol perfectly and then be unofferable here, with
+ * nothing on either side able to notice.
+ */
+export type PasskeyRequestOptions = {
+  readonly challenge: string
+  readonly rpId?: string
+  readonly timeout?: number
+  readonly userVerification?: 'discouraged' | 'preferred' | 'required'
+  readonly allowCredentials?: readonly {
+    readonly id: string
+    readonly type?: 'public-key'
+    readonly transports?: readonly string[]
+  }[]
+  // No `extensions`, deliberately -- `PasskeyCreationOptions` omits it too. The W3C type
+  // for it is a closed interface with no index signature, so modelling it here would mean
+  // either importing the provider's type across the seam or widening it to something that
+  // does not typecheck against the source. It still reaches the browser: the ceremony
+  // spreads the whole options object and replaces only the encoded fields, which is the
+  // paid-down cost `PasskeyCreationOptions`' comment describes.
+}
+
+/**
+ * What the authenticator signed, base64url, on its way to be verified.
+ *
+ * Attacker-controlled in full, and safe for the same reason `PasskeyRegistration` is: the
+ * signature is checked against a challenge the server itself put in a signed cookie, and
+ * the account is read off the *stored* credential rather than off anything in here. There
+ * is no field on this type through which a caller could name whose session to mint --
+ * which is why `verifyPasskeyAssertion` takes no user id.
+ *
+ * `userHandle` is the one field a caller might be tempted to trust. Do not: Better Auth
+ * looks the credential up by `id` and ignores it.
+ */
+export type PasskeyAssertion = {
+  readonly id: string
+  readonly rawId: string
+  readonly type: 'public-key'
+  // No `authenticatorAttachment`. `PasskeyRegistration` carries one because enrollment
+  // records how the credential was made; a sign-in has no use for it, we never send it,
+  // and modelling it as a plain `string` fails against the provider's narrow union at the
+  // one place it would be handed over. A field nobody reads is not worth a cast.
+  readonly clientExtensionResults: Record<string, unknown>
+  readonly response: {
+    readonly clientDataJSON: string
+    readonly authenticatorData: string
+    readonly signature: string
+    readonly userHandle?: string
   }
 }

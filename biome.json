@@ -43,6 +43,9 @@
           "options": {
             "paths": {
               "better-auth": "Only packages/core/src/auth/better-auth.ts may import this. Everything else goes through the packages/core/auth seam, so swapping provider stays a bounded job. See research/07-auth-and-tenancy.md section 1.",
+              "@better-auth/passkey": "Same seam as better-auth, and the one people actually reach for: its client half exports startAuthentication({ useBrowserAutofill }), which is exactly what apps/web/src/components/auth/passkey.ts hand-rolls base64url to avoid. Only packages/core/src/auth/better-auth.ts may import it.",
+              "@simplewebauthn/browser": "A phantom dependency -- hoisted by @better-auth/passkey, declared in no package.json, and resolvable from apps/web. Its parseRequestOptionsFromJSON()/toJSON() were rejected on reach (Safari 17.4, Firefox 135), which is why passkey.ts encodes by hand. Importing it lands provider types in the app and undoes that decision silently.",
+              "@simplewebauthn/server": "Server half of the same phantom dependency. Verification belongs behind the seam in packages/core/src/auth/better-auth.ts, which is the only file allowed to know a WebAuthn library exists.",
               "@guestnote/db/unsafe": "Bypasses tenant isolation. packages/db/** and the migration runner only. See research/05-architecture.md section 4.",
               "@aws-sdk/client-sesv2": "Only packages/email/src/ses.ts may import this (and its test, to construct the SDK error classes it maps). Everything else goes through the packages/email seam, so swapping mail provider stays a bounded job -- and so the AWS SDK cannot be pulled into a bundle by a stray import. See research/05-architecture.md section 6."
             }

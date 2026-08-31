@@ -22,8 +22,11 @@ const startGoogleSignIn = vi.fn()
 const conditionalMediationAvailable = vi.fn()
 const platformAuthenticatorAvailable = vi.fn()
 const createPasskey = vi.fn()
+const signInWithPasskey = vi.fn()
 const beginPasskeyEnrollment = vi.fn()
 const finishPasskeyEnrollment = vi.fn()
+const beginPasskeySignIn = vi.fn()
+const finishPasskeySignIn = vi.fn()
 
 vi.mock('./actions.ts', () => ({
   requestCode: (...args: unknown[]) => requestCode(...args),
@@ -32,12 +35,15 @@ vi.mock('./actions.ts', () => ({
   startGoogleSignIn: (...args: unknown[]) => startGoogleSignIn(...args),
   beginPasskeyEnrollment: (...args: unknown[]) => beginPasskeyEnrollment(...args),
   finishPasskeyEnrollment: (...args: unknown[]) => finishPasskeyEnrollment(...args),
+  beginPasskeySignIn: (...args: unknown[]) => beginPasskeySignIn(...args),
+  finishPasskeySignIn: (...args: unknown[]) => finishPasskeySignIn(...args),
 }))
 
 vi.mock('./passkey.ts', () => ({
   conditionalMediationAvailable: () => conditionalMediationAvailable(),
   platformAuthenticatorAvailable: () => platformAuthenticatorAvailable(),
   createPasskey: (...args: unknown[]) => createPasskey(...args),
+  signInWithPasskey: (...args: unknown[]) => signInWithPasskey(...args),
 }))
 
 const { AuthFlow } = await import('./auth-flow.tsx')
@@ -67,6 +73,16 @@ const REGISTRATION = {
   response: { clientDataJSON: 'e30', attestationObject: 'o2M', transports: ['internal'] },
 }
 
+const REQUEST_OPTIONS = { challenge: 'Y2hhbGxlbmdl', rpId: 'app.localhost' }
+
+const ASSERTION = {
+  id: 'credential-id',
+  rawId: 'Y3JlZGVudGlhbC1pZA',
+  type: 'public-key' as const,
+  clientExtensionResults: {},
+  response: { clientDataJSON: 'e30', authenticatorData: 'YXV0aA', signature: 'c2ln' },
+}
+
 const assign = vi.fn()
 
 beforeEach(() => {
@@ -86,6 +102,12 @@ beforeEach(() => {
   beginPasskeyEnrollment.mockResolvedValue({ ok: true, options: CREATION_OPTIONS })
   createPasskey.mockResolvedValue(REGISTRATION)
   finishPasskeyEnrollment.mockResolvedValue({ ok: true })
+  // The sign-in ceremony's happy path, for the same reason: a test that wants a failure
+  // names the hop that fails. `signInWithPasskey` is only ever *reached* when a test turns
+  // a capability on, so these defaults are inert everywhere else.
+  beginPasskeySignIn.mockResolvedValue({ ok: true, options: REQUEST_OPTIONS })
+  signInWithPasskey.mockResolvedValue(ASSERTION)
+  finishPasskeySignIn.mockResolvedValue({ ok: true })
 
   // jsdom's `location.assign` is a no-op that logs "Not implemented"; `vi.spyOn` on it
   // records nothing (measured). Replacing the whole object is what makes rung 2 observable.
@@ -764,6 +786,350 @@ describe('the passkey control', () => {
     const primary = screen.getByRole('button', { name: 'ACTION-CONTINUE' })
     expect(passkey.className).toContain('bg-transparent')
     expect(primary.className).not.toContain('bg-transparent')
+  })
+
+  it('is absent on an invitation landing, which pins the address', async () => {
+    // Same argument that hides Google there: a discoverable credential ignores the pinned
+    // address entirely, so the sheet could sign someone in as a different account while the
+    // invitation sits unclaimed.
+    conditionalMediationAvailable.mockResolvedValue(false)
+    platformAuthenticatorAvailable.mockResolvedValue(true)
+    renderFlow({ passkeysEnabled: true, boundEmail: 'tom@studiowit.be' })
+    await waitFor(() => expect(platformAuthenticatorAvailable).toHaveBeenCalled())
+    expect(screen.queryByRole('button', { name: 'ACTION-PASSKEY' })).not.toBeInTheDocument()
+  })
+})
+
+/**
+ * Passkey sign-in -- the ceremony that turns an enrolled credential into a session.
+ *
+ * Two entry points running one ceremony: conditional mediation, which starts itself on
+ * mount and draws nothing, and the explicit control for browsers without it. The
+ * assertions below are about which hop ran and what the screen did next; encoding belongs
+ * to `passkey.ts` and is tested there.
+ */
+describe('passkey sign-in', () => {
+  describe('through the browser autofill sheet', () => {
+    beforeEach(() => {
+      conditionalMediationAvailable.mockResolvedValue(true)
+      platformAuthenticatorAvailable.mockResolvedValue(true)
+    })
+
+    it('starts a conditional request on mount, drawing no control at all', async () => {
+      renderFlow({ passkeysEnabled: true })
+
+      await waitFor(() => expect(signInWithPasskey).toHaveBeenCalled())
+      expect(signInWithPasskey.mock.calls[0]?.[1]).toMatchObject({ mediation: 'conditional' })
+      // The refusal of the method menu: the field is the whole affordance.
+      expect(screen.queryByRole('button', { name: 'ACTION-PASSKEY' })).not.toBeInTheDocument()
+    })
+
+    it('lands on rung 2 without ever sending an email', async () => {
+      renderFlow({ passkeysEnabled: true })
+
+      expect(await screen.findByRole('heading', { name: 'TITLE-ARRIVE' })).toBeInTheDocument()
+      expect(requestCode).not.toHaveBeenCalled()
+      // Rung 1 is skipped outright, not passed through quickly.
+      expect(screen.queryByLabelText('LABEL-CODE')).not.toBeInTheDocument()
+      await waitFor(() => expect(liveRegion()).toHaveTextContent('TITLE-ARRIVE'))
+    })
+
+    it('never offers to make a passkey to someone who just used one', async () => {
+      // Brief state 27. `canEnroll` is device capability and would say yes here; the OS
+      // would then answer "you already have one", which reads as us not knowing.
+      renderFlow({ passkeysEnabled: true })
+      await screen.findByRole('heading', { name: 'TITLE-ARRIVE' })
+      expect(screen.queryByText('TITLE-ENROLL')).not.toBeInTheDocument()
+    })
+
+    it('leaves for the dashboard rather than waiting on an offer nobody can see', async () => {
+      // The suppression above releases the redirect timer too. Gating only the card would
+      // hold rung 2 open forever waiting for a button that is not rendered.
+      renderFlow({ passkeysEnabled: true })
+      await screen.findByRole('heading', { name: 'TITLE-ARRIVE' })
+      await waitFor(() => expect(assign).toHaveBeenCalledWith('/weddings'), {
+        timeout: DESCENT_MS * 4,
+      })
+    })
+
+    it('says nothing at all when the ceremony fails silently', async () => {
+      signInWithPasskey.mockResolvedValue('cancelled')
+      renderFlow({ passkeysEnabled: true })
+
+      await waitFor(() => expect(signInWithPasskey).toHaveBeenCalled())
+      expect(screen.getByRole('heading', { name: 'TITLE-SIGNIN' })).toBeInTheDocument()
+      expect(screen.queryByText('ERR-PASSKEY-GONE')).not.toBeInTheDocument()
+      expect(screen.queryByText('ERR-UNAVAILABLE')).not.toBeInTheDocument()
+      expect(liveRegion()).toHaveTextContent('')
+    })
+
+    it('says nothing when the server refuses the assertion, and never why', async () => {
+      // A counter regression arrives here as `gone: false`, indistinguishable from a bad
+      // signature -- deliberately, because naming it tells the wrong person something.
+      finishPasskeySignIn.mockResolvedValue({ ok: false, gone: false })
+      renderFlow({ passkeysEnabled: true })
+
+      await waitFor(() => expect(finishPasskeySignIn).toHaveBeenCalled())
+      expect(screen.queryByText('ERR-PASSKEY-GONE')).not.toBeInTheDocument()
+      expect(liveRegion()).toHaveTextContent('')
+    })
+
+    it('says the passkey is gone, and only for an unknown credential', async () => {
+      // The single exception to the silence: the one failure a visitor can act on.
+      finishPasskeySignIn.mockResolvedValue({ ok: false, gone: true })
+      renderFlow({ passkeysEnabled: true })
+
+      expect(await screen.findByText('ERR-PASSKEY-GONE')).toBeInTheDocument()
+      // And it leaves the code path usable rather than blocking on it.
+      expect(emailField()).toBeInTheDocument()
+    })
+
+    it('survives a thrown Server Function without hanging or speaking', async () => {
+      beginPasskeySignIn.mockRejectedValue(new Error('offline'))
+      renderFlow({ passkeysEnabled: true })
+
+      await waitFor(() => expect(beginPasskeySignIn).toHaveBeenCalled())
+      expect(signInWithPasskey).not.toHaveBeenCalled()
+      expect(screen.getByRole('heading', { name: 'TITLE-SIGNIN' })).toBeInTheDocument()
+    })
+
+    it('aborts the open request when the visitor commits to the email path', async () => {
+      // The component does not unmount between rungs, so unmount cleanup alone would leave
+      // the conditional request live across rung 1 -- where it could resolve a passkey
+      // sign-in on top of a code being typed.
+      signInWithPasskey.mockReturnValue(new Promise(() => {}))
+      const { user } = renderFlow({ passkeysEnabled: true })
+      await waitFor(() => expect(signInWithPasskey).toHaveBeenCalled())
+
+      const signal = signInWithPasskey.mock.calls[0]?.[1]?.signal as AbortSignal
+      expect(signal.aborted).toBe(false)
+
+      await user.type(emailField(), 'ilse@studiowit.be')
+      await user.click(screen.getByRole('button', { name: 'ACTION-CONTINUE' }))
+
+      expect(signal.aborted).toBe(true)
+    })
+
+    it('is not started at all on an invitation landing', async () => {
+      /**
+       * The positive control is inside the test, and it has to be.
+       *
+       * Waiting only on `conditionalMediationAvailable` proves nothing here: it resolves
+       * one microtask before `setConditionalAvailable(true)` lands, so the effect under
+       * test has not yet had its chance to run and a bare `not.toHaveBeenCalled()` passes
+       * whether the `boundEmail` guard exists or not -- caught by mutation, 2026-08-30,
+       * where deleting the guard left this green.
+       *
+       * So: render once WITHOUT the bound address and wait for the call that proves the
+       * conditional effect has fired, then repeat with the address pinned and give it the
+       * same settle. The `act` flush is what closes the window the first version left open.
+       */
+      const first = renderFlow({ passkeysEnabled: true })
+      await waitFor(() => expect(beginPasskeySignIn).toHaveBeenCalled())
+      first.unmount()
+      beginPasskeySignIn.mockClear()
+      signInWithPasskey.mockClear()
+
+      renderFlow({ passkeysEnabled: true, boundEmail: 'tom@studiowit.be' })
+      await waitFor(() => expect(conditionalMediationAvailable).toHaveBeenCalledTimes(2))
+      await act(async () => {})
+
+      expect(beginPasskeySignIn).not.toHaveBeenCalled()
+      expect(signInWithPasskey).not.toHaveBeenCalled()
+    })
+
+    it('is not started when the deployment cannot verify a passkey', async () => {
+      renderFlow({ passkeysEnabled: false })
+      await Promise.resolve()
+      expect(beginPasskeySignIn).not.toHaveBeenCalled()
+    })
+
+    it('is not started on a blocked invitation, which has no field to attach to', async () => {
+      /**
+       * `blocked` replaces the whole form, the email input included. Without the guard this
+       * fires an unauthenticated challenge request and writes a `verifications` row on a
+       * dead-end screen, and opens a `get()` the page has no input to hang it on.
+       *
+       * Positive control **after** the negative one, not before. The `boundEmail` sibling
+       * above runs its control first and can afford to, because it clears the mock in
+       * between; here that ordering leaked -- the control render fires this effect a second
+       * time after the clear, so the count under test was never zero and the test failed for
+       * a reason that had nothing to do with `blocked` (measured 2026-08-31). Asserting the
+       * absence first means nothing has run yet that could contaminate it, and the control
+       * that follows still proves the wait is long enough to have caught a call.
+       */
+      const blockedRender = renderFlow({
+        passkeysEnabled: true,
+        blocked: 'ERR-INVITE-EXPIRED',
+      })
+      await waitFor(() => expect(conditionalMediationAvailable).toHaveBeenCalled())
+      await act(async () => {})
+
+      expect(beginPasskeySignIn).not.toHaveBeenCalled()
+      expect(signInWithPasskey).not.toHaveBeenCalled()
+
+      // The control: identical conditions, `blocked` lifted, same settle -- and now it fires.
+      blockedRender.unmount()
+      renderFlow({ passkeysEnabled: true })
+      await waitFor(() => expect(beginPasskeySignIn).toHaveBeenCalled())
+    })
+
+    it('does not restart the ceremony when copy arrives as a new object', async () => {
+      /**
+       * The bug this pins is the worst one in the feature, and it was invisible here until
+       * this test existed: `copy` was in the effect's dependency array, and it is an object
+       * from the RSC payload whose identity changes on every re-render of the route -- which
+       * this effect *causes*, because `beginPasskeySignIn` sets the challenge cookie and
+       * `nextCookies()` writes it through `cookies().set()`, which Next 16 documents as
+       * re-rendering the page. Effect runs, POSTs, gets a new `copy`, cleanup aborts the
+       * open `credentials.get()`, effect fires again. Forever, one round trip per lap, with
+       * the credential never staying in the autofill sheet long enough to be picked.
+       *
+       * Every other test in this file passes the module-constant `COPY`, whose identity
+       * never changes, so none of them could see it. This one re-renders with a fresh object
+       * carrying identical strings -- exactly what the RSC payload does -- and asserts the
+       * ceremony was not restarted. The fix is depending on the two strings the body reads,
+       * which compare by value.
+       *
+       * The ceremony is held open deliberately: a resolved one would move the flow to rung 2
+       * and unmount the effect, hiding the restart this is looking for.
+       */
+      signInWithPasskey.mockReturnValue(new Promise(() => {}))
+      const props = {
+        locale: 'nl' as const,
+        locales: ['nl', 'en', 'fr'] as const,
+        passkeysEnabled: true,
+        googleEnabled: false,
+        continueHref: '/weddings',
+        stage: STAGE,
+      }
+      const { rerender } = render(<AuthFlow copy={COPY} {...props} />)
+      await waitFor(() => expect(beginPasskeySignIn).toHaveBeenCalledTimes(1))
+
+      rerender(<AuthFlow copy={{ ...COPY }} {...props} />)
+      await act(async () => {})
+
+      expect(beginPasskeySignIn).toHaveBeenCalledTimes(1)
+    })
+
+    it('never mints a session for a ceremony the flow already abandoned', async () => {
+      /**
+       * The venue-wifi race. `finishPasskeySignIn` is what creates the session, so an abort
+       * has to be seen BEFORE it, not after: otherwise the visitor ends up signed in
+       * server-side while the screen asks for an emailed code.
+       *
+       * Driven by resolving the ceremony only after the abort has happened, which is the
+       * exact interleaving -- the assertion is back, the flow has moved on.
+       */
+      let releaseCeremony!: (value: unknown) => void
+      signInWithPasskey.mockReturnValue(
+        new Promise((resolve) => {
+          releaseCeremony = resolve
+        }),
+      )
+      const { user } = renderFlow({ passkeysEnabled: true })
+      await waitFor(() => expect(signInWithPasskey).toHaveBeenCalled())
+
+      await user.type(emailField(), 'ilse@studiowit.be')
+      await user.click(screen.getByRole('button', { name: 'ACTION-CONTINUE' }))
+
+      await act(async () => {
+        releaseCeremony(ASSERTION)
+      })
+
+      expect(finishPasskeySignIn).not.toHaveBeenCalled()
+      // And the code path it chose instead is intact.
+      expect(requestCode).toHaveBeenCalledWith('ilse@studiowit.be')
+    })
+  })
+
+  describe('through the explicit control', () => {
+    beforeEach(() => {
+      conditionalMediationAvailable.mockResolvedValue(false)
+      platformAuthenticatorAvailable.mockResolvedValue(true)
+    })
+
+    it('does not open a conditional request -- the OS sheet is modal here', async () => {
+      renderFlow({ passkeysEnabled: true })
+      await screen.findByRole('button', { name: 'ACTION-PASSKEY' })
+      expect(signInWithPasskey).not.toHaveBeenCalled()
+    })
+
+    it('runs the ceremony on tap and lands on rung 2', async () => {
+      const { user } = renderFlow({ passkeysEnabled: true })
+      await user.click(await screen.findByRole('button', { name: 'ACTION-PASSKEY' }))
+
+      await waitFor(() => expect(signInWithPasskey).toHaveBeenCalled())
+      // No mediation: this browser cannot draw an autofill sheet, so the ceremony must be
+      // the modal one.
+      expect(signInWithPasskey.mock.calls[0]?.[1]).toBeUndefined()
+      expect(await screen.findByRole('heading', { name: 'TITLE-ARRIVE' })).toBeInTheDocument()
+      expect(requestCode).not.toHaveBeenCalled()
+    })
+
+    it('shows the waiting label while the sheet is open, without collapsing the button', async () => {
+      // Also the cross-device state: the platform is drawing a QR and the only honest thing
+      // this screen can say is that it has not finished.
+      let release!: (value: unknown) => void
+      signInWithPasskey.mockReturnValue(
+        new Promise((resolve) => {
+          release = resolve
+        }),
+      )
+      const { user } = renderFlow({ passkeysEnabled: true })
+      await user.click(await screen.findByRole('button', { name: 'ACTION-PASSKEY' }))
+
+      const busy = await screen.findByRole('button', { name: 'BUSY-CHECKING' })
+      expect(busy).toBeInTheDocument()
+
+      await act(async () => {
+        release(ASSERTION)
+      })
+    })
+
+    it('returns to the untouched form when the visitor dismisses the sheet', async () => {
+      signInWithPasskey.mockResolvedValue('cancelled')
+      const { user } = renderFlow({ passkeysEnabled: true })
+      await user.click(await screen.findByRole('button', { name: 'ACTION-PASSKEY' }))
+
+      await waitFor(() => expect(signInWithPasskey).toHaveBeenCalled())
+      expect(screen.getByRole('heading', { name: 'TITLE-SIGNIN' })).toBeInTheDocument()
+      expect(screen.queryByText('ERR-PASSKEY-GONE')).not.toBeInTheDocument()
+      // Pressable again: a dismissal is routine, not a dead end.
+      expect(await screen.findByRole('button', { name: 'ACTION-PASSKEY' })).toBeEnabled()
+    })
+
+    it('says the passkey is gone for an unknown credential', async () => {
+      finishPasskeySignIn.mockResolvedValue({ ok: false, gone: true })
+      const { user } = renderFlow({ passkeysEnabled: true })
+      await user.click(await screen.findByRole('button', { name: 'ACTION-PASSKEY' }))
+
+      expect(await screen.findByText('ERR-PASSKEY-GONE')).toBeInTheDocument()
+    })
+
+    it('never offers to make a passkey afterwards either', async () => {
+      const { user } = renderFlow({ passkeysEnabled: true })
+      await user.click(await screen.findByRole('button', { name: 'ACTION-PASSKEY' }))
+      await screen.findByRole('heading', { name: 'TITLE-ARRIVE' })
+      expect(screen.queryByText('TITLE-ENROLL')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('the code path still offers enrollment', () => {
+    it('offers it after a code sign-in on a capable device', async () => {
+      // The control assertion for the two suppressions above: they must be about HOW the
+      // session was obtained, not about passkeys being on. Without this, gating on a
+      // constant `false` would pass every test in this describe block.
+      conditionalMediationAvailable.mockResolvedValue(false)
+      platformAuthenticatorAvailable.mockResolvedValue(true)
+      const { user } = renderFlow({ passkeysEnabled: true })
+      await reachVerifyRung(user)
+      await user.type(codeField(), '194720')
+      await user.click(screen.getByRole('button', { name: 'ACTION-SUBMIT' }))
+      await screen.findByRole('heading', { name: 'TITLE-ARRIVE' })
+
+      expect(await screen.findByText('TITLE-ENROLL')).toBeInTheDocument()
+    })
   })
 })
 

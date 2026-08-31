@@ -8,8 +8,10 @@ import type {
   AuthFailure,
   AuthResult,
   CodeRequested,
+  PasskeyAssertion,
   PasskeyCreationOptions,
   PasskeyRegistration,
+  PasskeyRequestOptions,
   Session,
   Verified,
 } from './types.ts'
@@ -229,6 +231,21 @@ export function createBetterAuthProvider(config: AuthConfig) {
      * on client IP, and the documented behaviour with that option unset is to trust "only
      * single-value IP headers". Behind CloudFront `x-forwarded-for` is a chain, so until it is
      * configured every request will key to the same value and this table becomes decorative.
+     *
+     * ## The larger caveat, found 2026-08-30: this covers `/api/auth/*` and nothing else
+     *
+     * The limiter runs inside `router()`'s `onRequest` hook. A **Server Function** calls
+     * `auth.api.*` directly and never enters that router, so none of the reasoning above
+     * protects the paths this app actually signs people in through -- `requestCode`,
+     * `submitCode`, and now `beginPasskeySignIn`, which fires on page load. The sentence
+     * about a loop burning the SES quota describes a defence the sign-in surface does not
+     * have.
+     *
+     * Left standing rather than deleted because it is correct about the OAuth callback and
+     * the `[...all]` handler, which do go through the router. The fix is its own change --
+     * it needs the still-placeholder thresholds in `policy.ts` decided, and
+     * `trustedProxies` above settled first, or any limiter keys every visitor to one
+     * bucket. docs/specs/0002 "Not in scope" carries the full argument.
      */
     rateLimit: { enabled: true, storage: 'database' },
 
@@ -263,6 +280,30 @@ export function createBetterAuthProvider(config: AuthConfig) {
         rpID: config.rpID,
         rpName: config.rpName,
         origin: config.baseURL,
+
+        /**
+         * `required`, against the plugin's `preferred` default -- and this is the one
+         * enrollment setting that sign-in depends on.
+         *
+         * Sign-in here is usernameless: `generatePasskeyAuthenticationOptions` sets
+         * `allowCredentials` only when a session already exists, so an unauthenticated
+         * assertion can only ever come from a **discoverable** credential. Under
+         * `preferred`, an authenticator is free to mint a non-discoverable one -- which
+         * enrols successfully, stores a perfectly valid row in `passkeys`, and can then
+         * never be offered at sign-in. Neither the visitor nor the server can tell: the
+         * autofill sheet simply lists nothing.
+         *
+         * Rejected: leaving it `preferred` for wider authenticator support. The cost
+         * accepted instead is that an authenticator with no resident-key storage now
+         * refuses to enrol -- narrow, because the offer is already gated on
+         * `platformAuthenticatorAvailable()` in the app and Touch ID, Face ID and Windows
+         * Hello all store discoverable credentials.
+         *
+         * Merged *under* the per-request `authenticatorAttachment: 'platform'` that
+         * `createPasskeyChallenge` passes, so the two do not fight -- read off the
+         * installed 1.7.1, which spreads this object before the query parameter.
+         */
+        authenticatorSelection: { residentKey: 'required', requireResidentKey: true },
       }),
 
       // MUST be last. It lets Server Actions set the session cookie; without it the
@@ -402,9 +443,15 @@ export function createBetterAuthProvider(config: AuthConfig) {
      * The offer is only ever shown when `platformAuthenticatorAvailable()` said yes, and
      * the copy promises a face or a fingerprint on *this* device. Leaving the attachment
      * unset makes the OS sheet also offer a security key and a phone-by-QR flow, which is
-     * a different promise than the one on screen. Everything else -- `residentKey:
-     * preferred`, `userVerification: preferred`, `attestation: none` -- is the plugin's
-     * default and deliberately left alone.
+     * a different promise than the one on screen.
+     *
+     * `userVerification: preferred` and `attestation: none` are the plugin's defaults and
+     * are deliberately left alone. **`residentKey` is not** -- the plugin config above sets
+     * it to `required`, because sign-in is usernameless and a non-discoverable credential
+     * would enrol cleanly here and then never be offerable. This sentence used to list
+     * `residentKey: preferred` among the untouched defaults, which was true until sign-in
+     * landed; anyone who "restored the default" on its word would reintroduce exactly the
+     * invisible failure that override exists to prevent.
      *
      * ## The challenge travels in a cookie
      *
@@ -459,6 +506,98 @@ export function createBetterAuthProvider(config: AuthConfig) {
       }
     },
 
+    /**
+     * Sign-in, step one: the challenge, for `navigator.credentials.get()`.
+     *
+     * ## It takes no session, and no address
+     *
+     * The mirror image of `createPasskeyChallenge` above, which demands a *fresh* session.
+     * This one is the unauthenticated door: there is nothing to be fresh about yet.
+     *
+     * There is also no email parameter, and that is not an omission. The plugin populates
+     * `allowCredentials` only when a session exists, so every assertion this path produces
+     * is against a discoverable credential -- the authenticator decides which account it
+     * offers. The address a visitor has typed into the field is never read here and never
+     * sent. Adding a parameter for it would create the account-naming argument the whole
+     * design is built to not have.
+     *
+     * ## The challenge travels in a cookie, again
+     *
+     * Same mechanism as enrollment and the same trap: the plugin stores a signed cookie
+     * plus a `verifications` row rather than handing the challenge back, and
+     * `verifyPasskeyAssertion` reads both. So this call's `Set-Cookie` has to survive its
+     * way to the browser, which from a Server Function is `nextCookies()`'s job. Without
+     * it, sign-in fails at the second step with "challenge not found" -- which looks like a
+     * browser problem and is not.
+     */
+    async createPasskeyRequest(input: {
+      headers: Headers
+    }): Promise<AuthResult<PasskeyRequestOptions>> {
+      try {
+        const options = await auth.api.generatePasskeyAuthenticationOptions({
+          headers: input.headers,
+        })
+        return { ok: true, value: options }
+      } catch (error) {
+        return { ok: false, failure: classify(error) }
+      }
+    },
+
+    /**
+     * Step two: hand the signed assertion back, and let the library mint the session.
+     *
+     * **This is the one call in the seam that creates a session without a code or a
+     * password.** It takes no user id, and there is no argument here through which a caller
+     * could choose whose session that is: the plugin looks the credential up by its id,
+     * verifies the signature against the challenge from the signed cookie, checks the
+     * origin and the RP ID hash, bumps `counter`, and only then creates a session for
+     * *that credential's* owner. `assertion.userHandle` is present in the payload and is
+     * ignored -- trusting it would be exactly the hole this shape avoids.
+     *
+     * `setSessionCookie` is called by the plugin itself, so unlike `verifyEmailCode` there
+     * is nothing to return but success: `nextCookies()` turns it into a real `Set-Cookie`
+     * on the Server Function's response.
+     *
+     * ## Why a failure is logged here and nowhere else in this file
+     *
+     * The surface brief requires a counter regression -- a possible cloned authenticator --
+     * to be refused, fall back to the code path, **and be logged**. It must never be
+     * explained on screen, because saying so tells the wrong person something useful.
+     *
+     * The seam cannot tell a counter regression from a bad signature: SimpleWebAuthn throws
+     * on the former, the plugin catches it, logs the discriminating message through its own
+     * logger, and rethrows a flat `AUTHENTICATION_FAILED` (measured on the installed 1.7.1,
+     * 2026-08-30). So this logs every failed assertion with the credential it was for, and
+     * accepts being wider than the brief asked. The alternative was an
+     * `authentication.afterVerification` hook, rejected because it only runs on *success* --
+     * it cannot see the case that matters.
+     *
+     * An audit table is the sink this actually wants; `console.warn` reaches CloudWatch and
+     * holds the line until there is one. docs/specs/0002 names it as still open.
+     */
+    async verifyPasskeyAssertion(input: {
+      assertion: PasskeyAssertion
+      headers: Headers
+    }): Promise<AuthResult<null>> {
+      try {
+        await auth.api.verifyPasskeyAuthentication({
+          body: { response: input.assertion },
+          headers: input.headers,
+        })
+        return { ok: true, value: null }
+      } catch (error) {
+        const failure = classify(error)
+        // Not logged for `passkey_unknown`: a credential we have never stored is an
+        // ordinary revocation, not a signal about an authenticator we know.
+        if (failure !== 'passkey_unknown') {
+          console.warn('[auth] passkey assertion failed verification', {
+            credentialId: input.assertion.id,
+          })
+        }
+        return { ok: false, failure }
+      }
+    },
+
     async signOut(headers: Headers): Promise<void> {
       await auth.api.signOut({ headers })
     },
@@ -468,10 +607,20 @@ export function createBetterAuthProvider(config: AuthConfig) {
 /**
  * Better Auth's failures, in this codebase's vocabulary.
  *
- * The three codes come from the plugin's own `EMAIL_OTP_ERROR_CODES`, read off the
+ * The three code errors come from the plugin's own `EMAIL_OTP_ERROR_CODES`, read off the
  * installed 1.7.1 rather than remembered. The distinction between them is not cosmetic:
  * the surface brief requires "expired" and "invalid" to be different sentences, because
  * one means ask for a new code and the other means look again.
+ *
+ * `PASSKEY_NOT_FOUND` is `@better-auth/passkey`'s, and lands here for the same reason: it
+ * is the one passkey failure that earns a sentence. Its sibling `AUTHENTICATION_FAILED`
+ * is deliberately *not* listed -- it falls to `unavailable`, which the sign-in surface
+ * renders as nothing.
+ *
+ * All four are matched on the `code` **key**, not the message: `defineErrorCodes` in
+ * `@better-auth/core` builds `{ code: <key>, message: <sentence> }`, so the key is what
+ * reaches `body.code`. Verified on the installed package 2026-08-30 rather than assumed,
+ * because matching the sentence instead would break silently on any copy edit upstream.
  *
  * Read structurally rather than by importing `APIError`, so the library's types stay
  * inside this file -- which is the entire point of the seam.
@@ -487,9 +636,17 @@ function classify(error: unknown): AuthFailure {
       return 'code_wrong'
     case 'TOO_MANY_ATTEMPTS':
       return 'code_spent'
+    case 'PASSKEY_NOT_FOUND':
+      return 'passkey_unknown'
     default:
       // Better Auth's own limiter answers 429. Everything else is genuinely unknown, and
       // saying so is better than guessing at a cause the visitor could act on.
+      //
+      // Worth knowing before trusting this branch: it is currently unreachable from every
+      // caller in this seam. The limiter lives in the library's router, and each method here
+      // is invoked as `auth.api.*` from a Server Function, which bypasses it -- see the
+      // `rateLimit` note above. This is a guard against a future router-mediated call, not a
+      // live path, and `errors.rateLimited` copy renders for a state nothing produces yet.
       return status === 429 || status === 'TOO_MANY_REQUESTS' ? 'rate_limited' : 'unavailable'
   }
 }

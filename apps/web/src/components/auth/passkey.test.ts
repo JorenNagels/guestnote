@@ -3,6 +3,7 @@ import {
   conditionalMediationAvailable,
   fromBase64Url,
   platformAuthenticatorAvailable,
+  signInWithPasskey,
   toBase64Url,
 } from './passkey.ts'
 
@@ -36,6 +37,14 @@ describe('during server rendering, where there is no window', () => {
     await expect(
       Promise.all([conditionalMediationAvailable(), platformAuthenticatorAvailable()]),
     ).resolves.toEqual([false, false])
+  })
+
+  it('reports the sign-in ceremony as unsupported rather than reaching for navigator', async () => {
+    // `signInWithPasskey` guards on `typeof navigator`, not `typeof window`, and this is
+    // the only project that can prove the guard fires: Node 24 defines a global
+    // `navigator` with no `credentials`, so the second half of the same condition is what
+    // actually catches -- which is why the guard tests both.
+    await expect(signInWithPasskey({ challenge: 'Y2hhbGxlbmdl' })).resolves.toBe('unsupported')
   })
 })
 

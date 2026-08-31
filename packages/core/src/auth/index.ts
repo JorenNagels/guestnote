@@ -8,8 +8,10 @@ export type {
   AuthResult,
   CodeRequested,
   Invitation,
+  PasskeyAssertion,
   PasskeyCreationOptions,
   PasskeyRegistration,
+  PasskeyRequestOptions,
   Principal,
   Session,
   Verified,
@@ -59,7 +61,14 @@ export function createAuth(config: AuthConfig): Auth {
     },
 
     /**
-     * True now that the passkey plugin is configured.
+     * True: the plugin is configured and **both** halves of the ceremony are wired --
+     * enrollment since 2026-08-19, sign-in since docs/specs/0002.
+     *
+     * This used to say "true now that the passkey plugin is configured", which was
+     * accurate and misleading in the same breath: for eleven days it meant a passkey could
+     * be created and never used, because nothing called
+     * `navigator.credentials.get()`. Callers reading this as "passkeys work" were wrong
+     * through no fault of their own.
      *
      * The browser still gets the final say: `conditionalMediationAvailable()` and
      * `platformAuthenticatorAvailable()` in the app decide whether a credential can

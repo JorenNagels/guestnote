@@ -176,9 +176,9 @@ Scoped to the **planner platform**. Tenant wedding-site theming is parked.
   `docs/specs/0001-moving-around-the-dashboard.md`.
 - `apps/web/` — the one Next.js 16 app. Marketing on the apex, the dashboard on
   `app.guestnote.be`, guest sites on `<slug>.guestnote.be`, all four host branches real and
-  tested — `src/proxy.test.ts` covers every branch, header and cache rule, mutation-checked. NL/EN/FR. Runs locally; **not deployed**. M1a's OpenNext + SST wiring has landed
-  (`sst.config.ts`, `.github/workflows/`); the one-time AWS bootstrap in `infra/README.md`
-  has not been run. See `apps/web/README.md` and `docs/adr/0003-one-app-three-hosts.md`.
+  tested — `src/proxy.test.ts` covers every branch, header and cache rule, mutation-checked. NL/EN/FR. Deployed to **staging** at `*.staging.guestnote.be`, from CI since
+  2026-08-30 (`sst.config.ts`, `.github/workflows/`). `production` is not deployed and
+  `coming-soon/` is still the live apex. See `apps/web/README.md` and `docs/adr/0003-one-app-three-hosts.md`.
 - `packages/email/` — **sign-in mail actually sends.** react-email's renderer (not its deprecated
   component library — see the ADR) into SES v2, NL/EN/FR from the same `next-intl` catalogues,
   every attempt logged to `mail_deliveries`, and Better Auth's rate limiter moved off in-memory
