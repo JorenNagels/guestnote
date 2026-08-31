@@ -262,22 +262,47 @@ export async function createPasskey(
     return 'cancelled'
   }
 
-  const created = credential as PublicKeyCredential
-  const attestation = created.response as AuthenticatorAttestationResponse
+  /**
+   * **Guarded, and it was not until 2026-08-31.**
+   *
+   * Everything below reads fields off an object a *browser extension* may have produced. A
+   * password manager implements `navigator.credentials.create` itself, so `response`,
+   * `getClientExtensionResults` and `getTransports` are its shapes, not Chrome's -- and a
+   * missing method here is a `TypeError`, not a WebAuthn error.
+   *
+   * That threw outside the `try` above, in a function reached from `void onEnroll()`, so it
+   * became an **unhandled promise rejection**: the ceremony succeeded, the credential was
+   * saved in the manager's vault, and nothing was ever sent to the server. No throw anything
+   * caught, no `onFailure`, no transport failure, no server-side report -- silence at every
+   * layer, which is what made this cost eleven days and four rounds of instrumentation that
+   * all sat on the far side of it.
+   *
+   * `getClientExtensionResults` and `getTransports` are both optional-chained rather than
+   * assumed, because an implementation that omits them is exactly the case this is here for
+   * -- and neither is load-bearing: extension results are diagnostic, and an empty transport
+   * list only costs a slightly less specific sheet next time.
+   */
+  try {
+    const created = credential as PublicKeyCredential
+    const attestation = created.response as AuthenticatorAttestationResponse
 
-  return {
-    id: created.id,
-    rawId: toBase64Url(created.rawId),
-    type: 'public-key',
-    clientExtensionResults: created.getClientExtensionResults() as Record<string, unknown>,
-    response: {
-      clientDataJSON: toBase64Url(attestation.clientDataJSON),
-      attestationObject: toBase64Url(attestation.attestationObject),
-      // Optional-chained for the same reason the capability checks are: the method
-      // postdates the interface, and a browser without it still registers fine. An empty
-      // list only costs a slightly less specific OS sheet on the next sign-in.
-      transports: attestation.getTransports?.() ?? [],
-    },
+    return {
+      id: created.id,
+      rawId: toBase64Url(created.rawId),
+      type: 'public-key',
+      clientExtensionResults: (created.getClientExtensionResults?.() ?? {}) as Record<
+        string,
+        unknown
+      >,
+      response: {
+        clientDataJSON: toBase64Url(attestation.clientDataJSON),
+        attestationObject: toBase64Url(attestation.attestationObject),
+        transports: attestation.getTransports?.() ?? [],
+      },
+    }
+  } catch (error) {
+    onFailure?.(describe(error))
+    return 'cancelled'
   }
 }
 
@@ -409,22 +434,30 @@ export async function signInWithPasskey(
     return 'cancelled'
   }
 
-  const got = credential as PublicKeyCredential
-  const assertion = got.response as AuthenticatorAssertionResponse
+  // Guarded for the same reason `createPasskey`'s conversion is: these are an extension's
+  // shapes when a password manager handles the ceremony, and a missing method is a TypeError
+  // that would otherwise escape as an unhandled rejection.
+  try {
+    const got = credential as PublicKeyCredential
+    const assertion = got.response as AuthenticatorAssertionResponse
 
-  return {
-    id: got.id,
-    rawId: toBase64Url(got.rawId),
-    type: 'public-key',
-    clientExtensionResults: got.getClientExtensionResults() as Record<string, unknown>,
-    response: {
-      clientDataJSON: toBase64Url(assertion.clientDataJSON),
-      authenticatorData: toBase64Url(assertion.authenticatorData),
-      signature: toBase64Url(assertion.signature),
-      // Present for a discoverable credential, absent otherwise. Encoded and forwarded
-      // because the payload shape expects it -- but see `PasskeyAssertion`: the server
-      // looks the credential up by `id` and ignores this.
-      ...(assertion.userHandle ? { userHandle: toBase64Url(assertion.userHandle) } : {}),
-    },
+    return {
+      id: got.id,
+      rawId: toBase64Url(got.rawId),
+      type: 'public-key',
+      clientExtensionResults: (got.getClientExtensionResults?.() ?? {}) as Record<string, unknown>,
+      response: {
+        clientDataJSON: toBase64Url(assertion.clientDataJSON),
+        authenticatorData: toBase64Url(assertion.authenticatorData),
+        signature: toBase64Url(assertion.signature),
+        // Present for a discoverable credential, absent otherwise. Encoded and forwarded
+        // because the payload shape expects it -- but see `PasskeyAssertion`: the server
+        // looks the credential up by `id` and ignores this.
+        ...(assertion.userHandle ? { userHandle: toBase64Url(assertion.userHandle) } : {}),
+      },
+    }
+  } catch (error) {
+    init?.onFailure?.(describe(error))
+    return 'cancelled'
   }
 }

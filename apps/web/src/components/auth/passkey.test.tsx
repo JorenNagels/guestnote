@@ -292,6 +292,35 @@ describe('createPasskey', () => {
     expect(result).toMatchObject({ response: { transports: [] } })
   })
 
+  it('reports rather than throwing when the credential has no getClientExtensionResults', async () => {
+    // A password manager implements navigator.credentials.create itself, so the returned
+    // object is ITS shape. A missing method here is a TypeError, and it used to escape the
+    // try block entirely -- becoming an unhandled rejection in `void onEnroll()`, with the
+    // credential saved in the vault and nothing ever sent to our server.
+    const created = fakeCredential()
+    Reflect.deleteProperty(created, 'getClientExtensionResults')
+    withCredentials(vi.fn().mockResolvedValue(created))
+
+    const onFailure = vi.fn()
+    const result = await createPasskey(OPTIONS, onFailure)
+
+    // Optional-chained, so this degrades to {} rather than failing at all.
+    expect(result).toMatchObject({ clientExtensionResults: {} })
+    expect(onFailure).not.toHaveBeenCalled()
+  })
+
+  it('reports rather than throwing when the credential has no response at all', async () => {
+    // The shape that actually throws. Note `response: {}` does NOT: `toBase64Url(undefined)`
+    // quietly yields an empty string, so a half-formed response reaches the server and fails
+    // verification there -- which is at least reported. A null response is a TypeError, and
+    // before this was guarded it escaped as an unhandled rejection with nothing logged.
+    withCredentials(vi.fn().mockResolvedValue(fakeCredential({ response: null })))
+
+    const onFailure = vi.fn()
+    await expect(createPasskey(OPTIONS, onFailure)).resolves.toBe('cancelled')
+    expect(onFailure).toHaveBeenCalledWith(expect.objectContaining({ name: 'TypeError' }))
+  })
+
   it('is cancelled when the visitor dismisses the OS sheet', async () => {
     // A real dismissal is a NotAllowedError, indistinguishable from a genuine failure by
     // design. SilentPasskeyOutcome is why that does not matter.
