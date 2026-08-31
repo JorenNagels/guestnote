@@ -166,8 +166,21 @@ async function runPasskeySignIn(init?: {
 
   const assertion = await signInWithPasskey(challenge.options, {
     ...init,
-    // Fire-and-forget: a diagnostic must never delay or fail the ceremony it describes.
+    /**
+     * Fire-and-forget: a diagnostic must never delay or fail the ceremony it describes.
+     *
+     * **`NotAllowedError` on the conditional path is not reported**, and that exclusion is
+     * the difference between a signal and a flood. A conditional request is offered on every
+     * single page view and is *expected* to end unused -- the visitor types their email, or
+     * the 60-second WebAuthn deadline passes -- and the spec hands out `NotAllowedError` for
+     * exactly that. Reporting it would put one event on every login page view that did not
+     * use a passkey, which is most of them, against a 5,000/month tier.
+     *
+     * Every other name still reports on both paths, including `NotAllowedError` from the
+     * *explicit* control -- there someone pressed a button, so a refusal is worth knowing.
+     */
     onFailure: (failure) => {
+      if (init?.mediation === 'conditional' && failure.name === 'NotAllowedError') return
       void reportCeremonyFailure('signin', failure.name, failure.message).catch(() => {})
     },
   })
@@ -651,6 +664,21 @@ export function AuthFlow({
    */
   useEffect(() => {
     if (rung !== 2) return
+
+    /**
+     * Hold while a ceremony is outstanding, ahead of the offer check.
+     *
+     * Defence in depth, and stated as such: it is **not** what fixed enrollment. The
+     * navigation that broke it for eleven days was not this timer at all -- it was a server
+     * redirect, see `login/page.tsx`. A mutation removing this line still passes the suite,
+     * because in this component `offerEnrollment` is always true wherever the card is
+     * clickable, so the check below already covers every reachable path.
+     *
+     * Kept anyway because `offerEnrollment` is one term away from not covering it -- it has
+     * already grown two -- and "never navigate away from an outstanding write" is the rule,
+     * while "an offer is drawable" is a proxy for it that happens to coincide today.
+     */
+    if (enrollment === 'working') return
     if (offerEnrollment && enrollment !== 'settled') return
     const id = window.setTimeout(
       () => window.location.assign(continueHref),

@@ -79,46 +79,44 @@ describe('the sign-in page', () => {
     expect(redirect).not.toHaveBeenCalled()
   })
 
-  it('sends a signed-in visitor to the dashboard instead', async () => {
+  /**
+   * These four used to assert the opposite: that a signed-in visitor is redirected to the
+   * dashboard. They were right about the behaviour and the behaviour was removed, because it
+   * made passkey enrollment structurally impossible -- `login/page.tsx` carries the full
+   * argument and the measurement.
+   *
+   * They are replaced rather than deleted, because "no redirect" is now a load-bearing
+   * property with a non-obvious reason, and the failure it prevents is invisible from this
+   * file. Anyone restoring the guard on the old rationale should fail here and be sent to
+   * read why.
+   */
+  it('renders the form for a signed-in visitor rather than redirecting', async () => {
     currentSession.mockResolvedValue({ userId: 'u1', email: 'ilse@studiowit.be' })
 
-    await expect(render()).rejects.toThrow('NEXT_REDIRECT:/')
-    expect(redirect).toHaveBeenCalledWith('/')
+    await expect(render()).resolves.toBeDefined()
+    expect(redirect).not.toHaveBeenCalled()
   })
 
-  it('redirects to the path the browser shows, never the /pro rewrite target', async () => {
-    // lib/routes.ts exists to hold this line. proxy.ts serves app.guestnote.be/ from
-    // /pro, so redirecting to the internal path would put `/pro` in the URL bar.
+  it('does not redirect mid-enrollment, which is the whole reason the guard went', async () => {
+    // The sequence that broke: rung 2 holds a session, `beginPasskeyEnrollment` sets the
+    // challenge cookie, Next re-renders this route on `cookies().set()`, and the old guard
+    // threw the visitor to the dashboard with the OS sheet still open -- so the attestation
+    // posted from a dying document and was aborted. A re-render with a live session must be
+    // an ordinary render.
     currentSession.mockResolvedValue({ userId: 'u1' })
 
-    await render().catch(() => {})
-    expect(redirect).toHaveBeenCalledWith(expect.not.stringContaining('/pro'))
+    await expect(render({ reason: 'session-expired' })).resolves.toBeDefined()
+    expect(redirect).not.toHaveBeenCalled()
   })
 
-  it('redirects even when a session-expired notice was requested', async () => {
-    // The lapsed-session link is the most likely way to arrive here with a live cookie:
-    // one tab expired, another refreshed it. Showing "your session expired" to somebody
-    // whose session is fine is the confusing outcome the notice exists to prevent.
+  it('does not read the session at all any more', async () => {
+    // Not merely "does not act on it". The read was the cost the ordering test above used to
+    // defend; with no redirect there is nothing to read it for, and a future reader should
+    // not reintroduce one on the assumption it is already paid for.
     currentSession.mockResolvedValue({ userId: 'u1' })
 
-    await expect(render({ reason: 'session-expired' })).rejects.toThrow('NEXT_REDIRECT:/')
-  })
+    await render()
 
-  it('checks the session before doing any rendering work', async () => {
-    // Ordering, not just outcome: a signed-in visitor should not pay for a message catalogue
-    // and a date format for a screen they will never see. Asserted from inside the session
-    // read, because by the time the redirect throws everything has already run.
-    let copyDoneFirst: boolean | undefined
-    currentSession.mockImplementation(async () => {
-      copyDoneFirst = getTranslations.mock.calls.length > 0 || getFormatter.mock.calls.length > 0
-      return { userId: 'u1' }
-    })
-
-    await render().catch(() => {})
-
-    expect(currentSession).toHaveBeenCalledOnce()
-    expect(copyDoneFirst).toBe(false)
-    // And the work really is skipped, not merely deferred.
-    expect(getFormatter).not.toHaveBeenCalled()
+    expect(currentSession).not.toHaveBeenCalled()
   })
 })

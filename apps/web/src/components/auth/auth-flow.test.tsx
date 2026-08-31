@@ -640,6 +640,43 @@ describe('passkey enrollment on rung 2', () => {
     expect(screen.getByText('TITLE-ENROLL')).toBeInTheDocument()
   })
 
+  it('does not navigate while the ceremony is still in flight', async () => {
+    /**
+     * A page that leaves mid-ceremony posts the attestation from a dying document, to the
+     * wrong route, and it dies with it -- which is what happened for eleven days, though by
+     * a server redirect rather than this timer (see `login/page.tsx`).
+     *
+     * **This assertion does not discriminate the `enrollment === 'working'` guard**, and
+     * that is recorded here rather than hidden: removing that line leaves the suite green,
+     * because `offerEnrollment` is always true wherever the card is clickable so the older
+     * check already holds. It pins the *behaviour* -- no navigation mid-ceremony -- not the
+     * mechanism, and it would catch a future change that released either one.
+     */
+    let releaseCeremony!: (value: unknown) => void
+    createPasskey.mockReturnValue(
+      new Promise((resolve) => {
+        releaseCeremony = resolve
+      }),
+    )
+    const { user } = renderFlow({ passkeysEnabled: true })
+    await reachOffer(user)
+    await user.click(enrollButton())
+
+    // The ceremony is open. Well past the descent, nothing may navigate.
+    await waitFor(() => expect(createPasskey).toHaveBeenCalled())
+    await new Promise((r) => setTimeout(r, DESCENT_MS * 3))
+    expect(assign).not.toHaveBeenCalled()
+
+    // And once it answers, the flow completes and leaves as normal.
+    await act(async () => {
+      releaseCeremony(REGISTRATION)
+    })
+    await waitFor(() => expect(finishPasskeyEnrollment).toHaveBeenCalled())
+    await waitFor(() => expect(assign).toHaveBeenCalledWith('/weddings'), {
+      timeout: DESCENT_MS * 4,
+    })
+  })
+
   it('leaves for the dashboard when the offer is declined', async () => {
     const { user } = renderFlow({ passkeysEnabled: true })
     await reachOffer(user)
@@ -1189,6 +1226,40 @@ describe('passkey sign-in', () => {
       )
       // Still silent on screen -- the report is for us, never for the visitor.
       expect(screen.queryByText('ERR-PASSKEY-GONE')).not.toBeInTheDocument()
+    })
+
+    it('does not report a NotAllowedError from the conditional path', async () => {
+      // An unused autofill offer ends this way on every page view that did not use a
+      // passkey. Reporting it would be one event per login view against a 5,000/month tier.
+      conditionalMediationAvailable.mockResolvedValue(true)
+      signInWithPasskey.mockImplementation(async (_options, init) => {
+        init?.onFailure?.({ name: 'NotAllowedError', message: 'timed out or not allowed' })
+        return 'cancelled'
+      })
+      renderFlow({ passkeysEnabled: true })
+
+      await waitFor(() => expect(signInWithPasskey).toHaveBeenCalled())
+      await act(async () => {})
+      expect(reportCeremonyFailure).not.toHaveBeenCalled()
+    })
+
+    it('still reports every other name from the conditional path', async () => {
+      // The exclusion is one name on one path, not a blanket silence -- a NotSupportedError
+      // there is a real diagnosis and must survive.
+      conditionalMediationAvailable.mockResolvedValue(true)
+      signInWithPasskey.mockImplementation(async (_options, init) => {
+        init?.onFailure?.({ name: 'NotSupportedError', message: 'no matching algorithm' })
+        return 'cancelled'
+      })
+      renderFlow({ passkeysEnabled: true })
+
+      await waitFor(() =>
+        expect(reportCeremonyFailure).toHaveBeenCalledWith(
+          'signin',
+          'NotSupportedError',
+          'no matching algorithm',
+        ),
+      )
     })
 
     it('reports the browser ceremony failure by its DOMException name', async () => {

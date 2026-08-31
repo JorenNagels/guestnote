@@ -1,11 +1,9 @@
-import { redirect } from 'next/navigation'
 import { getLocale } from 'next-intl/server'
 import { AuthFlow } from '@/components/auth/auth-flow.tsx'
 import { getAuthCopy } from '@/components/auth/copy.ts'
 import { getStageContent } from '@/components/auth/stage-content.ts'
 import { getAuth } from '../../../../lib/auth.ts'
 import { isLocale, LOCALES } from '../../../../lib/locales.ts'
-import { currentSession } from '../../../../lib/principal.ts'
 import { app } from '../../../../lib/routes.ts'
 
 /**
@@ -47,9 +45,32 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
-  // Before the copy and the stage panel, so a signed-in visitor costs one session read and
-  // not three catalogues plus a date format they will never see.
-  if (await currentSession()) redirect(app.home())
+  /**
+   * **No redirect here, and removing it is what made passkey enrollment work at all.**
+   *
+   * This read `if (await currentSession()) redirect(app.home())` from 2026-08-18 until
+   * 2026-08-31, to stop a signed-in visitor being offered a code they do not need.
+   *
+   * It also made enrollment structurally impossible, and that took eleven days to find. The
+   * offer lives on rung 2, *after* sign-in, so the visitor holds a session. Asking for a
+   * challenge sets a cookie -- Better Auth has nowhere else to put it -- and `nextCookies()`
+   * writes it through `cookies().set()`, which Next 16 documents as re-rendering the current
+   * route. That re-render hit this line, found the session it had just been given, and threw
+   * the visitor to the dashboard **with the OS sheet still open**. The attestation then
+   * posted from a dying document to the wrong route and was aborted, so nothing ever reached
+   * the server -- and neither did any failure report, which travels the same connection.
+   * Measured locally 2026-08-31: `beginPasskeyEnrollment()` immediately followed by `GET /`,
+   * `GET /weddings`, then `POST /weddings` with ECONNRESET.
+   *
+   * What replaces it: nothing, for now. A signed-in visitor who navigates here sees the
+   * sign-in form. That is a worse screen than a redirect and a far better one than a feature
+   * that cannot work -- and the quota argument survives, because `requestCode` needs a
+   * deliberate press, not a page load.
+   *
+   * The durable fix is the one `auth-flow.tsx` already names: the enrollment prompt belongs
+   * to the post-login moment on the *shell*, not to this surface, and M3 moves it. Once it
+   * lives there this page has no flow to protect and the guard can come back.
+   */
 
   const [copy, locale, { reason }] = await Promise.all([getAuthCopy(), getLocale(), searchParams])
   const stage = await getStageContent(copy)
