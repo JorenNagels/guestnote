@@ -148,6 +148,56 @@ function describe(error: unknown): CeremonyFailure {
 }
 
 /**
+ * How long to wait for a WebAuthn ceremony before giving up on it ourselves.
+ *
+ * **The browser's own `timeout` is not a backstop.** WebAuthn's `timeout` is enforced by the
+ * *user agent*, and a browser extension that intercepts `navigator.credentials.create()`
+ * replaces the user agent's implementation entirely -- so if it never settles the promise,
+ * nothing settles it. Measured on staging 2026-08-31: a password-manager extension whose
+ * desktop connection was broken swallowed every enrollment ceremony for **eleven days**. No
+ * throw, no rejection, no report; the challenge row was written and then silence, on every
+ * environment, from the day the feature shipped.
+ *
+ * A ceremony that has not answered by now is not a slow authenticator, it is a lost one.
+ * Fifteen seconds past the server's own deadline, so this only ever fires *after* a
+ * well-behaved browser would already have rejected -- meaning a `CeremonyTimeout` report
+ * always means something replaced the browser, never that a person was slow.
+ */
+const CEREMONY_GRACE_MS = 15_000
+const DEFAULT_CEREMONY_TIMEOUT_MS = 60_000
+
+/**
+ * Race a ceremony against the clock, and **abort it** rather than merely stop waiting.
+ *
+ * The abort matters as much as the timer: `AbortSignal` is the one lever the spec gives a
+ * page over an in-flight ceremony, so aborting closes the OS sheet and unsticks the
+ * interface instead of leaving a modal nobody can dismiss over a screen that will not move.
+ * A well-behaved interceptor honours it; one that does not at least leaves us a log line.
+ */
+async function withCeremonyTimeout<T>(
+  run: (signal: AbortSignal) => Promise<T>,
+  timeoutMs: number,
+  onTimeout: () => void,
+): Promise<T | 'timeout'> {
+  const controller = new AbortController()
+  let timer: ReturnType<typeof setTimeout> | undefined
+
+  const expiry = new Promise<'timeout'>((resolve) => {
+    timer = setTimeout(() => {
+      onTimeout()
+      controller.abort()
+      resolve('timeout')
+    }, timeoutMs)
+  })
+
+  try {
+    return await Promise.race([run(controller.signal), expiry])
+  } finally {
+    if (timer !== undefined) clearTimeout(timer)
+  }
+}
+
+/**
  * Run the enrollment ceremony: challenge in, attestation out.
  *
  * Returns a `SilentPasskeyOutcome` rather than throwing, because every way this can fail is
@@ -170,27 +220,41 @@ export async function createPasskey(
     return 'unsupported'
   }
 
-  let credential: Credential | null
+  let credential: Credential | null | 'timeout'
   try {
-    credential = await navigator.credentials.create({
-      // Cast because the DOM types want `BufferSource` and `AuthenticatorTransport[]`
-      // where the JSON form has strings, and the spread carries fields TypeScript cannot
-      // see. Every field the cast covers is written two lines above it.
-      publicKey: {
-        ...options,
-        challenge: fromBase64Url(options.challenge),
-        user: { ...options.user, id: fromBase64Url(options.user.id) },
-        excludeCredentials: (options.excludeCredentials ?? []).map((c) => ({
-          ...c,
-          type: 'public-key',
-          id: fromBase64Url(c.id),
-        })),
-      } as unknown as PublicKeyCredentialCreationOptions,
-    })
+    credential = await withCeremonyTimeout(
+      (signal) =>
+        navigator.credentials.create({
+          // Cast because the DOM types want `BufferSource` and `AuthenticatorTransport[]`
+          // where the JSON form has strings, and the spread carries fields TypeScript cannot
+          // see. Every field the cast covers is written two lines above it.
+          publicKey: {
+            ...options,
+            challenge: fromBase64Url(options.challenge),
+            user: { ...options.user, id: fromBase64Url(options.user.id) },
+            excludeCredentials: (options.excludeCredentials ?? []).map((c) => ({
+              ...c,
+              type: 'public-key',
+              id: fromBase64Url(c.id),
+            })),
+          } as unknown as PublicKeyCredentialCreationOptions,
+          signal,
+        }),
+      (options.timeout ?? DEFAULT_CEREMONY_TIMEOUT_MS) + CEREMONY_GRACE_MS,
+      () =>
+        onFailure?.({
+          name: 'CeremonyTimeout',
+          message:
+            'navigator.credentials.create never settled -- an extension may have intercepted it',
+        }),
+    )
   } catch (error) {
     onFailure?.(describe(error))
     return 'cancelled'
   }
+
+  // The timeout already reported; rendered as `cancelled` like every other silent outcome.
+  if (credential === 'timeout') return 'cancelled'
 
   // Null is documented as possible and means the browser declined without throwing.
   if (!credential) {
@@ -282,34 +346,63 @@ export async function signInWithPasskey(
    */
   const { allowCredentials, ...rest } = options
 
-  let credential: Credential | null
+  let credential: Credential | null | 'timeout'
   try {
-    credential = await navigator.credentials.get({
-      // Cast for the same reason `createPasskey` casts: the DOM types want `BufferSource`
-      // where the JSON form has base64url strings, and the spread carries fields
-      // TypeScript cannot see. Every field the cast covers is written just below it.
-      publicKey: {
-        ...rest,
-        challenge: fromBase64Url(options.challenge),
-        ...(allowCredentials?.length
-          ? {
-              allowCredentials: allowCredentials.map((c) => ({
-                ...c,
-                type: 'public-key',
-                id: fromBase64Url(c.id),
-              })),
-            }
-          : {}),
-      } as unknown as PublicKeyCredentialRequestOptions,
-      ...(init?.mediation ? { mediation: init.mediation } : {}),
-      ...(init?.signal ? { signal: init.signal } : {}),
-    })
+    /**
+     * **Only the modal path gets a timeout.** A conditional request is *supposed* to sit
+     * open indefinitely -- it is attached to the autofill sheet and resolves whenever the
+     * visitor picks their passkey, which may be a minute after the page loaded or never.
+     * Timing it out would kill the feature on exactly the browsers it is built for.
+     *
+     * The explicit control is the opposite: an OS sheet is on screen and someone is looking
+     * at it, so a ceremony that never answers is the swallowed-by-an-extension case that
+     * `CEREMONY_GRACE_MS` documents.
+     */
+    const run = (signal?: AbortSignal) =>
+      navigator.credentials.get({
+        // Cast for the same reason `createPasskey` casts: the DOM types want `BufferSource`
+        // where the JSON form has base64url strings, and the spread carries fields
+        // TypeScript cannot see. Every field the cast covers is written just below it.
+        publicKey: {
+          ...rest,
+          challenge: fromBase64Url(options.challenge),
+          ...(allowCredentials?.length
+            ? {
+                allowCredentials: allowCredentials.map((c) => ({
+                  ...c,
+                  type: 'public-key',
+                  id: fromBase64Url(c.id),
+                })),
+              }
+            : {}),
+        } as unknown as PublicKeyCredentialRequestOptions,
+        ...(init?.mediation ? { mediation: init.mediation } : {}),
+        // The caller's signal wins when it has one -- AuthFlow owns the conditional
+        // request's lifetime and aborts it when the visitor types their email instead.
+        ...(init?.signal ? { signal: init.signal } : signal ? { signal } : {}),
+      })
+
+    credential = init?.mediation
+      ? await run(init.signal)
+      : await withCeremonyTimeout(
+          run,
+          (options.timeout ?? DEFAULT_CEREMONY_TIMEOUT_MS) + CEREMONY_GRACE_MS,
+          () =>
+            init?.onFailure?.({
+              name: 'CeremonyTimeout',
+              message:
+                'navigator.credentials.get never settled -- an extension may have intercepted it',
+            }),
+        )
   } catch (error) {
     // An abort is the conditional path's ordinary ending, not a failure worth a log line --
     // AuthFlow cancels this every time somebody types their email instead.
     if (!init?.signal?.aborted) init?.onFailure?.(describe(error))
     return 'cancelled'
   }
+
+  // The timeout already reported; rendered as `cancelled` like every other silent outcome.
+  if (credential === 'timeout') return 'cancelled'
 
   if (!credential) {
     init?.onFailure?.({ name: 'NullCredential', message: 'get() resolved null' })

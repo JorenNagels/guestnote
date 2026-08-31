@@ -450,16 +450,62 @@ describe('signInWithPasskey', () => {
     expect((publicKeyOf(get).authenticatorSelection as unknown) ?? undefined).toBeUndefined()
   })
 
-  it('sends no mediation or signal key when it was given neither', async () => {
-    // A `mediation: undefined` is not the same as no mediation to every engine, and a
-    // stray `signal: undefined` would abort nothing while looking like it might.
+  it('sends no mediation, but does carry its own abort signal, on the modal path', async () => {
+    // A `mediation: undefined` is not the same as no mediation to every engine.
+    //
+    // The signal is ours and it is new: the modal path races the ceremony against a timer
+    // and aborts on expiry, because WebAuthn's own `timeout` is enforced by the user agent
+    // and an extension that intercepts the call replaces the user agent. See
+    // CEREMONY_GRACE_MS.
     const get = vi.fn().mockResolvedValue(fakeAssertion())
     withGet(get)
 
     await signInWithPasskey(REQUEST)
 
     expect('mediation' in argsPassedTo(get)).toBe(false)
-    expect('signal' in argsPassedTo(get)).toBe(false)
+    expect(argsPassedTo(get).signal).toBeInstanceOf(AbortSignal)
+  })
+
+  it('reports a timeout and gives up when the ceremony never settles', async () => {
+    // The eleven-day bug: a password-manager extension swallowed every ceremony, so the
+    // promise neither resolved nor rejected and nothing anywhere said so.
+    vi.useFakeTimers()
+    try {
+      const get = vi.fn().mockReturnValue(new Promise(() => {}))
+      withGet(get)
+      const onFailure = vi.fn()
+
+      const pending = signInWithPasskey({ ...REQUEST, timeout: 1_000 }, { onFailure })
+      await vi.advanceTimersByTimeAsync(16_100)
+
+      await expect(pending).resolves.toBe('cancelled')
+      expect(onFailure).toHaveBeenCalledWith(expect.objectContaining({ name: 'CeremonyTimeout' }))
+      // Aborted, not merely abandoned -- that is what closes the OS sheet.
+      expect((argsPassedTo(get).signal as AbortSignal).aborted).toBe(true)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('never times out a conditional request, which is meant to stay open', async () => {
+    // Conditional mediation sits attached to the autofill sheet until the visitor picks a
+    // credential. Timing it out would kill the feature on the browsers it exists for.
+    vi.useFakeTimers()
+    try {
+      const get = vi.fn().mockReturnValue(new Promise(() => {}))
+      withGet(get)
+      const onFailure = vi.fn()
+
+      void signInWithPasskey(
+        { ...REQUEST, timeout: 1_000 },
+        { mediation: 'conditional', onFailure },
+      )
+      await vi.advanceTimersByTimeAsync(120_000)
+
+      expect(onFailure).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('forwards conditional mediation and the abort signal when asked', async () => {
