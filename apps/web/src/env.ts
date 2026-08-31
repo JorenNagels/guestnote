@@ -138,6 +138,45 @@ const schema = z.object({
   GOOGLE_CLIENT_SECRET: z.string().optional(),
 
   /**
+   * Sentry's ingest endpoint. **Optional, and unset means error reporting is off.**
+   *
+   * The same safe-by-omission rule as the Google pair above: an environment that forgets
+   * this reports nothing, rather than crashing on boot or silently pointing at whatever
+   * project it can reach. `src/instrumentation.ts` is the only reader.
+   *
+   * ## Server-side only, and NOT `NEXT_PUBLIC_`
+   *
+   * A DSN is a write-only ingest URL and is safe to publish -- it is in the client bundle of
+   * every site that reports browser errors. This one is deliberately not, for two reasons
+   * that have nothing to do with secrecy:
+   *
+   *   1. **Invariant 6.** A browser file cannot import this module (`server-only`), so a
+   *      client SDK would have to read `process.env` itself, and this app has exactly one
+   *      env reader.
+   *   2. **The login bundle.** `components/auth/copy.ts` refuses to ship a message catalogue
+   *      to this surface because it is "the first thing an unauthenticated visitor downloads
+   *      on a phone with one bar of signal at a venue". The Sentry browser SDK is tens of
+   *      kilobytes against that same argument, and it would be inconsistent to spend it here
+   *      after refusing to spend it there.
+   *
+   * The cost is that a browser-side exception -- a WebAuthn ceremony throwing in an OS we
+   * have never tested on -- is invisible. Accepted for now because the failures being chased
+   * are server-side, and revisitable: it is a client config file and a `NEXT_PUBLIC_` twin,
+   * not a rearrangement.
+   *
+   * ## The organisation is on Sentry's EU region, and that is not reversible
+   *
+   * `de.sentry.io`, hosted in Germany. research/07 section 1's EU-residency argument for
+   * self-hosting auth is only true while nothing leaves, and an error tracker sees stack
+   * frames from the sign-in path. The region is chosen at organisation creation and **cannot
+   * be changed afterwards** -- switching means a new organisation and a new DSN.
+   *
+   * Sentry is a data sub-processor either way; that cost is accepted, and it is why
+   * `lib/scrub.ts` runs in-process rather than trusting Sentry's own field-name defaults.
+   */
+  SENTRY_DSN: z.string().optional(),
+
+  /**
    * Which mail transport to build: `ses` sends, `console` renders to disk and prints.
    *
    * **Optional, and resolved in `lib/mailer.ts` rather than defaulted here**, because the
@@ -186,6 +225,10 @@ export const env = {
   betterAuthSecret: parsed.data.BETTER_AUTH_SECRET ?? '',
   googleClientId: parsed.data.GOOGLE_CLIENT_ID ?? '',
   googleClientSecret: parsed.data.GOOGLE_CLIENT_SECRET ?? '',
+  // Left `undefined` rather than coerced to '', like `mailTransport` below: `sentryDsn`
+  // being absent is what turns reporting off, and an empty string is a value that would
+  // have the SDK initialise against nothing.
+  sentryDsn: parsed.data.SENTRY_DSN,
   // Left as `undefined` rather than coerced to '': `lib/mailer.ts` distinguishes "not set,
   // so decide from NODE_ENV" from "set to something", and an empty string would collapse
   // that distinction into the branch with the worse failure mode.

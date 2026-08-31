@@ -71,6 +71,11 @@ for STAGE in production staging; do
     --value "$(openssl rand -base64 32)"                                                # distinct per stage
   aws ssm put-parameter --type SecureString --name /guestnote/$STAGE/GOOGLE_CLIENT_ID   --value '...'
   aws ssm put-parameter --type SecureString --name /guestnote/$STAGE/GOOGLE_CLIENT_SECRET --value '...'
+  # Sentry. MUST exist -- `secret()` in sst.config.ts fails the whole deploy on a missing
+  # parameter -- but need not be real: apps/web/src/instrumentation.ts checks the value is a
+  # URL, not merely present, so this placeholder means "reporting off" rather than "broken".
+  aws ssm put-parameter --type SecureString --name /guestnote/$STAGE/SENTRY_DSN \
+    --value 'unset-see-apps-web-src-env-ts'
   # The migration marker -- see "First deploy" for the value. String, not SecureString:
   # it holds a git SHA, nothing secret.
   aws ssm put-parameter --type String --name /guestnote/$STAGE/MIGRATED_THROUGH --value '<sha>'

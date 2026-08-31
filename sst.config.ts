@@ -141,6 +141,10 @@ export default $config({
         BETTER_AUTH_SECRET: secret('BETTER_AUTH_SECRET'),
         GOOGLE_CLIENT_ID: secret('GOOGLE_CLIENT_ID'),
         GOOGLE_CLIENT_SECRET: secret('GOOGLE_CLIENT_SECRET'),
+        // Unset means error reporting is off -- env.ts states the rule. Read from SSM like
+        // the rest, even though a DSN is a write-only ingest URL and not really a secret:
+        // one place to look for "what is configured here" beats two.
+        SENTRY_DSN: secret('SENTRY_DSN'),
         // GUESTNOTE_MAIL_TRANSPORT is deliberately unset: lib/mailer.ts resolves an unset
         // value to `ses` in a deployed environment, which is the safe direction. AWS_REGION
         // is injected by the Lambda runtime; env.ts defaults it anyway.
@@ -158,6 +162,25 @@ export default $config({
         runtime: 'nodejs22.x',
         architecture: 'arm64',
         memory: '1536 MB',
+
+        /**
+         * JSON logs, so CloudWatch Logs Insights can filter on fields instead of grepping
+         * strings.
+         *
+         * `lib/observability.ts` writes `console.warn('[silent-failure] …', context)` beside
+         * every Sentry report, deliberately, because CloudWatch is the sink that still works
+         * when the DSN is unset or Sentry is unreachable. In `text` format that context
+         * object is a flattened string and the only query available is a substring match; in
+         * `json` it is queryable structure, which is the difference between "did enrollment
+         * fail" and "how many times, with which reason".
+         *
+         * `retention` is stated rather than left implicit, and the value is SST's own
+         * default -- one month is right for a pre-launch app, and writing it down means a
+         * future SST changing its default cannot quietly change ours. Not shortened: the
+         * failure that started this took eleven days to notice, and a two-week window would
+         * have aged out half the evidence.
+         */
+        logging: { format: 'json', retention: '1 month' },
       },
       // Warmer OFF for now. The dashboard is the only warm-path consumer and a ~1 s cold
       // start is acceptable for an invite-only tester audience; keeping it off also keeps

@@ -6,6 +6,7 @@ import { env } from '../env.ts'
 import { getDb } from './db.ts'
 import { DEFAULT_LOCALE, LOCALE_COOKIE } from './locales.ts'
 import { sendSignInCode } from './mailer.ts'
+import { reportSilentFailure } from './observability.ts'
 
 /**
  * The app's single auth instance.
@@ -86,6 +87,15 @@ export function getAuth() {
     rpID: `${env.appSubdomain}.${env.rootDomain}`,
     rpName: 'Guestnote',
     newId,
+
+    /**
+     * Where the seam sends a failure the interface is required not to explain.
+     *
+     * Passed as a function for the same reason `sendCode` and `newId` are: `packages/core`
+     * knows no provider but Better Auth, so Sentry stays on this side of the seam. See
+     * `lib/observability.ts` for what it does and why the silence needed breaking.
+     */
+    report: reportSilentFailure,
 
     /**
      * The Google OAuth client, passed only when BOTH halves are set.

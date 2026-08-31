@@ -73,6 +73,25 @@ export type AuthConfig = {
    * was reversed on a product call 2026-08-29 -- see that file's "Social sign-in added" note.
    */
   google?: { clientId: string; clientSecret: string }
+
+  /**
+   * Where a failure the *interface* must not explain goes instead.
+   *
+   * The sign-in surface renders every passkey failure as nothing, and `actions.ts` narrows
+   * the reason to one boolean before it can reach a client. Both are deliberate. Together
+   * they meant that when enrollment failed on staging for eleven days, `passkeys` stayed
+   * empty and nothing anywhere said why (found 2026-08-31). Silence on screen is a decision;
+   * silence in the logs was an accident.
+   *
+   * A **callback**, not an import, for the same reason `sendCode` and `newId` are: this
+   * package reads no environment and knows no provider but Better Auth. Handing it a
+   * reporter keeps `apps/web/src/lib/observability.ts` -- and therefore Sentry -- on the far
+   * side of the seam, so invariant 5 still describes one vendor and not two.
+   *
+   * Optional, and a no-op when absent: a script, a test or a migration runner constructs
+   * this provider without one and reports nothing.
+   */
+  report?: (message: string, context: Record<string, unknown>) => void
 }
 
 export function createBetterAuthProvider(config: AuthConfig) {
@@ -473,6 +492,11 @@ export function createBetterAuthProvider(config: AuthConfig) {
         })
         return { ok: true, value: options }
       } catch (error) {
+        // Reported for the same reason step two is: `beginPasskeyEnrollment` drops the
+        // reason, so a stale session or an unreachable database here looks exactly like a
+        // visitor who declined. `SESSION_NOT_FRESH` is the expected one and it is worth
+        // seeing rather than inferring.
+        config.report?.('passkey enrollment challenge refused', { reason: reasonOf(error) })
         return { ok: false, failure: classify(error) }
       }
     },
@@ -502,7 +526,29 @@ export function createBetterAuthProvider(config: AuthConfig) {
         })
         return { ok: true, value: null }
       } catch (error) {
-        return { ok: false, failure: classify(error) }
+        /**
+         * **The line whose absence cost eleven days.**
+         *
+         * `onEnroll` in auth-flow.tsx discards this call's result on purpose -- a refused
+         * attestation has nothing to retry, so the visitor is let into the dashboard they
+         * are already signed in to. Correct, and it made a failing enrollment
+         * indistinguishable from a working one from *both* ends: nothing on screen by
+         * design, and nothing in the logs by omission. `passkeys` was empty on all three
+         * Neon branches from 2026-08-19 to 2026-08-31 and no line anywhere said why.
+         *
+         * `reasonOf` is what makes the report worth having. The two candidates left after
+         * the forensics -- the ceremony never returning an attestation, versus the challenge
+         * cookie not surviving the round trip -- are told apart by exactly one string:
+         * `CHALLENGE_NOT_FOUND` means the signed cookie did not come back, which is a
+         * transport problem (CloudFront, `nextCookies()`), not a browser one.
+         */
+        const failure = classify(error)
+        config.report?.('passkey enrollment failed verification', {
+          credentialId: input.registration.id,
+          failure,
+          reason: reasonOf(error),
+        })
+        return { ok: false, failure }
       }
     },
 
@@ -539,6 +585,11 @@ export function createBetterAuthProvider(config: AuthConfig) {
         })
         return { ok: true, value: options }
       } catch (error) {
+        // This one runs on page load for every visitor with conditional mediation, so it is
+        // the report most likely to become noise. Left in anyway: it is also the first thing
+        // that breaks if the database is unreachable, and a silent sign-in page that simply
+        // never offers a passkey is exactly the failure this whole file exists to surface.
+        config.report?.('passkey sign-in challenge refused', { reason: reasonOf(error) })
         return { ok: false, failure: classify(error) }
       }
     },
@@ -587,11 +638,13 @@ export function createBetterAuthProvider(config: AuthConfig) {
         return { ok: true, value: null }
       } catch (error) {
         const failure = classify(error)
-        // Not logged for `passkey_unknown`: a credential we have never stored is an
+        // Not reported for `passkey_unknown`: a credential we have never stored is an
         // ordinary revocation, not a signal about an authenticator we know.
         if (failure !== 'passkey_unknown') {
-          console.warn('[auth] passkey assertion failed verification', {
+          config.report?.('passkey assertion failed verification', {
             credentialId: input.assertion.id,
+            failure,
+            reason: reasonOf(error),
           })
         }
         return { ok: false, failure }
@@ -625,6 +678,27 @@ export function createBetterAuthProvider(config: AuthConfig) {
  * Read structurally rather than by importing `APIError`, so the library's types stay
  * inside this file -- which is the entire point of the seam.
  */
+/**
+ * The provider's own error code, for a log line -- never for the interface.
+ *
+ * `classify()` deliberately collapses everything it does not recognise into `unavailable`,
+ * which is right for choosing a sentence and useless for debugging: `CHALLENGE_NOT_FOUND`
+ * and `FAILED_TO_VERIFY_REGISTRATION` are the same `AuthFailure` and completely different
+ * problems -- one is a cookie that did not come back, the other an attestation that did not
+ * check out.
+ *
+ * Read structurally, like `classify()`, so no library type crosses the seam. Returns a
+ * string rather than a widened `AuthFailure` so it cannot be mistaken for something the
+ * interface may render, and falls back to the HTTP status because an error with neither is
+ * still worth counting.
+ */
+function reasonOf(error: unknown): string {
+  const code = (error as { body?: { code?: string } })?.body?.code
+  if (typeof code === 'string') return code
+  const status = (error as { status?: number | string })?.status
+  return status === undefined ? 'unknown' : `status:${String(status)}`
+}
+
 function classify(error: unknown): AuthFailure {
   const code = (error as { body?: { code?: string } })?.body?.code
   const status = (error as { status?: number | string })?.status
