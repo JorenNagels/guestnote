@@ -113,6 +113,41 @@ export function toBase64Url(buffer: ArrayBuffer): string {
 }
 
 /**
+ * Told what went wrong, so somebody can fix it -- **never so the screen can say it.**
+ *
+ * `SilentPasskeyOutcome` deliberately renders four different WebAuthn failures identically,
+ * and that stays true. But collapsing them before anyone has *seen* them is how enrollment
+ * failed on staging from 2026-08-19 to 2026-08-31 with nobody able to say why: the ceremony
+ * never returned an attestation, the interface correctly said nothing, and the reason died
+ * in a `catch` block (measured 2026-08-31 -- three verification rows written, zero passkey
+ * rows, zero log lines).
+ *
+ * The `DOMException` name is the whole diagnosis and the spec is careful about which ones it
+ * hands out:
+ *
+ *   - `NotAllowedError` -- dismissed, or timed out. The spec deliberately merges "the
+ *     visitor said no" with "the authenticator failed", so this one stays ambiguous by
+ *     design and that is fine: it is the benign case.
+ *   - `NotSupportedError` -- no algorithm or option the authenticator accepts. What
+ *     `residentKey: 'required'` looks like on hardware that cannot store one.
+ *   - `SecurityError` -- the `rpID` is not a registrable suffix of the origin, or the origin
+ *     is not secure.
+ *   - `InvalidStateError` -- a credential for this account already exists on this device.
+ *
+ * A **callback rather than a return value**, so the outcome type keeps its narrowing
+ * (`typeof result === 'string'`) and no caller can accidentally render this. Nothing here is
+ * user data: a class name and the browser's own message, both attacker-influenced, which is
+ * why the Server Function that receives it clamps what it accepts.
+ */
+export type CeremonyFailure = { readonly name: string; readonly message: string }
+
+/** Names the failure without trusting it to be an `Error` -- a browser may throw anything. */
+function describe(error: unknown): CeremonyFailure {
+  if (error instanceof Error) return { name: error.name, message: error.message }
+  return { name: 'NonError', message: String(error) }
+}
+
+/**
  * Run the enrollment ceremony: challenge in, attestation out.
  *
  * Returns a `SilentPasskeyOutcome` rather than throwing, because every way this can fail is
@@ -128,8 +163,10 @@ export function toBase64Url(buffer: ArrayBuffer): string {
  */
 export async function createPasskey(
   options: PasskeyCreationOptions,
+  onFailure?: (failure: CeremonyFailure) => void,
 ): Promise<PasskeyRegistration | SilentPasskeyOutcome> {
   if (typeof navigator === 'undefined' || typeof navigator.credentials?.create !== 'function') {
+    onFailure?.({ name: 'NoCredentialsApi', message: 'navigator.credentials.create missing' })
     return 'unsupported'
   }
 
@@ -150,12 +187,16 @@ export async function createPasskey(
         })),
       } as unknown as PublicKeyCredentialCreationOptions,
     })
-  } catch {
+  } catch (error) {
+    onFailure?.(describe(error))
     return 'cancelled'
   }
 
   // Null is documented as possible and means the browser declined without throwing.
-  if (!credential) return 'cancelled'
+  if (!credential) {
+    onFailure?.({ name: 'NullCredential', message: 'create() resolved null' })
+    return 'cancelled'
+  }
 
   const created = credential as PublicKeyCredential
   const attestation = created.response as AuthenticatorAttestationResponse
@@ -213,9 +254,14 @@ export async function createPasskey(
  */
 export async function signInWithPasskey(
   options: PasskeyRequestOptions,
-  init?: { mediation?: 'conditional'; signal?: AbortSignal },
+  init?: {
+    mediation?: 'conditional'
+    signal?: AbortSignal
+    onFailure?: (failure: CeremonyFailure) => void
+  },
 ): Promise<PasskeyAssertion | SilentPasskeyOutcome> {
   if (typeof navigator === 'undefined' || typeof navigator.credentials?.get !== 'function') {
+    init?.onFailure?.({ name: 'NoCredentialsApi', message: 'navigator.credentials.get missing' })
     return 'unsupported'
   }
 
@@ -258,11 +304,17 @@ export async function signInWithPasskey(
       ...(init?.mediation ? { mediation: init.mediation } : {}),
       ...(init?.signal ? { signal: init.signal } : {}),
     })
-  } catch {
+  } catch (error) {
+    // An abort is the conditional path's ordinary ending, not a failure worth a log line --
+    // AuthFlow cancels this every time somebody types their email instead.
+    if (!init?.signal?.aborted) init?.onFailure?.(describe(error))
     return 'cancelled'
   }
 
-  if (!credential) return 'cancelled'
+  if (!credential) {
+    init?.onFailure?.({ name: 'NullCredential', message: 'get() resolved null' })
+    return 'cancelled'
+  }
 
   const got = credential as PublicKeyCredential
   const assertion = got.response as AuthenticatorAssertionResponse

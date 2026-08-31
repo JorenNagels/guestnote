@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/nextjs'
 import { env } from './env.ts'
+import { setReporter } from './lib/observability.ts'
 import { scrubEvent } from './lib/scrub.ts'
 
 /**
@@ -74,6 +75,28 @@ export async function register(): Promise<void> {
     // research/07 section 1 rests on it and a future SDK default should not silently change
     // what this app sends.
     sendDefaultPii: false,
+  })
+
+  /**
+   * Hand `lib/observability.ts` a Sentry-backed reporter, rather than letting it import the
+   * SDK itself.
+   *
+   * That file explains why the direction matters: `@sentry/nextjs` drags a webpack bundler
+   * plugin into its module graph, so any app module importing it breaks every test that
+   * transitively reaches it. Pushing the vendor in from here -- the one file Next loads on
+   * the server and no test loads at all -- keeps `@sentry/nextjs` reachable from exactly one
+   * place, which is what invariant 5 asks of a provider library.
+   */
+  setReporter((message, context) => {
+    Sentry.captureException(new Error(message), {
+      // `warning`, not `error`. Every one of these is a path the product handles
+      // gracefully; marking them `error` would train whoever is watching to ignore the word.
+      level: 'warning',
+      // Grouped by message rather than the synthetic stack, which is this callback every
+      // time and would collapse unrelated failures into a single issue.
+      fingerprint: [message],
+      extra: context,
+    })
   })
 }
 

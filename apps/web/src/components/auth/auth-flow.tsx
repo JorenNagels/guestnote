@@ -14,6 +14,7 @@ import {
   beginPasskeySignIn,
   finishPasskeyEnrollment,
   finishPasskeySignIn,
+  reportCeremonyFailure,
   requestCode,
   setLocale,
   startGoogleSignIn,
@@ -130,7 +131,13 @@ async function runPasskeySignIn(init?: {
   const challenge = await beginPasskeySignIn().catch(() => ({ ok: false }) as const)
   if (!challenge.ok) return 'silent'
 
-  const assertion = await signInWithPasskey(challenge.options, init)
+  const assertion = await signInWithPasskey(challenge.options, {
+    ...init,
+    // Fire-and-forget: a diagnostic must never delay or fail the ceremony it describes.
+    onFailure: (failure) => {
+      void reportCeremonyFailure('signin', failure.name, failure.message).catch(() => {})
+    },
+  })
   // A `SilentPasskeyOutcome` is a string; an assertion is an object. Narrowed on the shape
   // rather than a flag, the same way `onEnroll` narrows -- it keeps passkey.ts's "every
   // silent outcome is one outcome" promise from needing a second representation here.
@@ -494,7 +501,9 @@ export function AuthFlow({
       return
     }
 
-    const created = await createPasskey(challenge.options)
+    const created = await createPasskey(challenge.options, (failure) => {
+      void reportCeremonyFailure('enroll', failure.name, failure.message).catch(() => {})
+    })
     // A `SilentPasskeyOutcome` is a string; an attestation is an object. Narrowing on the
     // shape rather than a flag keeps the "every silent outcome is one outcome" promise in
     // passkey.ts from needing a second representation here.

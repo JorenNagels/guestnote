@@ -1,59 +1,70 @@
 import 'server-only'
-import * as Sentry from '@sentry/nextjs'
 import { scrub } from './scrub.ts'
 
 /**
- * The one function the rest of the app calls to report something that went wrong quietly.
+ * Where a failure the interface is required to hide goes instead.
  *
- * ## Why this exists at all, rather than `Sentry.captureException` at each call site
+ * ## Why the failures worth reporting are exactly the invisible ones
  *
- * Because the failures worth reporting here are the ones the interface is *required* to
- * swallow. The sign-in surface renders every passkey failure identically -- as nothing --
- * and `components/auth/actions.ts` narrows the reason to a single boolean before it can
- * reach a client. That is correct for the visitor and it left us blind: eleven days of
- * enrollment failing on staging with `passkeys` empty and not one line anywhere saying so
- * (found 2026-08-31). Silence on screen is a design decision. Silence in the logs was an
- * accident, and this is the file that separates the two.
+ * The sign-in surface renders every passkey failure identically -- as nothing -- and
+ * `components/auth/actions.ts` narrows the reason to one boolean before it can reach a
+ * client. Both are deliberate and both stay. Together they hid a broken enrollment for
+ * eleven days: `passkeys` empty on all three Neon branches, three challenge rows written on
+ * staging, and not one line anywhere naming a cause (2026-08-31). Silence on screen is a
+ * design decision. Silence in the logs was an accident, and this is the file that keeps them
+ * apart.
  *
- * ## Why `packages/core` does not import it
+ * ## This file imports no vendor, and that is load-bearing
  *
- * `packages/core/src/auth/better-auth.ts` cannot: that package reads no environment and
- * touches no provider but Better Auth, which is invariant 5 and the thing that keeps an auth
- * swap a bounded job. Adding a Sentry import there would put a second vendor behind the same
- * seam. So the seam takes a **reporter callback** as configuration -- exactly as it already
- * takes `sendCode` and `newId` -- and `lib/auth.ts` passes this one in. The package keeps
- * returning plain data to a function it knows nothing about.
+ * It used to `import * as Sentry from '@sentry/nextjs'`, and that broke every test that
+ * transitively reached it: the SDK pulls a **webpack bundler plugin** into its module graph,
+ * which throws `The URL must be of scheme file` the moment Vitest loads it. `actions.ts`
+ * imports this, and `login/page.test.tsx` imports that, so one import here reached across
+ * the app.
  *
- * ## A no-op when there is no DSN
+ * So the vendor is *pushed in* rather than pulled: `instrumentation.ts` -- which Next loads
+ * once, on the server, outside any test -- calls `setReporter()` with a Sentry-backed
+ * function. Nothing else in the app knows Sentry exists.
  *
- * `Sentry.captureException` without an initialised client does nothing and does not throw,
- * so this needs no guard of its own: `instrumentation.ts` simply never calls `init`, and
- * every call here evaporates. A fresh clone reports nothing and notices nothing.
+ * That is the same shape invariant 5 states for Better Auth and the AWS SDK, and the same
+ * shape `packages/core`'s `report` callback uses one layer down. Three vendors, one file
+ * each, and none of them reachable from a component. The cost is a mutable module-level
+ * slot, which is the price of a seam that must not be imported.
+ */
+
+type Reporter = (message: string, context: Record<string, unknown>) => void
+
+/**
+ * Null until `instrumentation.ts` installs one, and null forever when there is no DSN.
+ *
+ * A no-op default rather than a queue: an event raised before `register()` runs is an event
+ * from a request that cannot exist yet, and buffering would mean deciding how much to hold
+ * and when to drop it. Losing nothing real is worth more than the machinery.
+ */
+let reporter: Reporter | null = null
+
+export function setReporter(next: Reporter | null): void {
+  reporter = next
+}
+
+/**
+ * Report something the product handled gracefully and the visitor must not be told about.
+ *
+ * Both sinks, always, and the pairing is the point: CloudWatch needs no vendor, costs
+ * nothing at this volume, and is the one that still works when the DSN is unset or Sentry is
+ * unreachable -- which is exactly when something is going wrong.
  */
 export function reportSilentFailure(message: string, context: Record<string, unknown> = {}): void {
-  // Scrubbed at the call site as well as in `beforeSend`, and that is not redundant: this
-  // context object is attached as structured extra data, and belt-and-braces on the one
-  // path that deliberately carries auth-adjacent fields is worth the microseconds.
+  // Scrubbed here as well as in `beforeSend`, and not redundantly: this object is attached
+  // as structured data and this is the one path that deliberately carries auth-adjacent
+  // fields. The CloudWatch line below never reaches `beforeSend` at all.
   const safe = scrub(context)
 
-  /**
-   * Logged as well as reported, always.
-   *
-   * CloudWatch is free at this volume, needs no vendor, and is the only thing that still
-   * works when the DSN is unset or Sentry is unreachable -- which is precisely when
-   * something is going wrong. `console.warn` and not `error`: these are handled outcomes
-   * the product recovers from, and reserving `error` for genuine faults keeps a CloudWatch
-   * metric filter useful later.
-   */
+  // `warn`, not `error`: every one of these is a path the product recovers from, and
+  // reserving `error` for genuine faults keeps a CloudWatch metric filter useful later.
+  // JSON log format is set in sst.config.ts so this object stays queryable in Logs Insights
+  // rather than collapsing to a string.
   console.warn(`[silent-failure] ${message}`, safe)
 
-  Sentry.captureException(new Error(message), {
-    // `warning`, not `error`. Every one of these is a path the product handles gracefully;
-    // marking them `error` would train whoever is watching to ignore the word.
-    level: 'warning',
-    // Grouped by the message rather than the synthetic stack, which is this function every
-    // time and would collapse unrelated failures into one issue.
-    fingerprint: [message],
-    extra: safe,
-  })
+  reporter?.(message, safe)
 }

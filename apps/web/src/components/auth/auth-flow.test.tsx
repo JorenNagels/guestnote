@@ -658,7 +658,7 @@ describe('passkey enrollment on rung 2', () => {
     await waitFor(() => expect(finishPasskeyEnrollment).toHaveBeenCalledWith(REGISTRATION))
     // The challenge has to reach the ceremony unchanged: the server bound it to a cookie,
     // so a re-derived or defaulted options object would fail verification.
-    expect(createPasskey).toHaveBeenCalledWith(CREATION_OPTIONS)
+    expect(createPasskey).toHaveBeenCalledWith(CREATION_OPTIONS, expect.any(Function))
     await waitFor(() => expect(assign).toHaveBeenCalledWith('/weddings'), {
       timeout: DESCENT_MS * 4,
     })
@@ -1061,8 +1061,10 @@ describe('passkey sign-in', () => {
 
       await waitFor(() => expect(signInWithPasskey).toHaveBeenCalled())
       // No mediation: this browser cannot draw an autofill sheet, so the ceremony must be
-      // the modal one.
-      expect(signInWithPasskey.mock.calls[0]?.[1]).toBeUndefined()
+      // the modal one. Asserted on the absence of the key rather than on the whole argument
+      // being undefined -- every call now carries an `onFailure` reporter, and the thing
+      // under test is which ceremony runs, not whether diagnostics are attached.
+      expect(signInWithPasskey.mock.calls[0]?.[1]).not.toHaveProperty('mediation')
       expect(await screen.findByRole('heading', { name: 'TITLE-ARRIVE' })).toBeInTheDocument()
       expect(requestCode).not.toHaveBeenCalled()
     })

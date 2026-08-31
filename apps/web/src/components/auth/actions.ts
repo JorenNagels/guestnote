@@ -11,6 +11,7 @@ import { cookies, headers } from 'next/headers'
 import { appHomeUrl, appLoginUrl } from '../../lib/app-url.ts'
 import { getAuth } from '../../lib/auth.ts'
 import { isLocale, LOCALE_COOKIE, type Locale } from '../../lib/locales.ts'
+import { reportSilentFailure } from '../../lib/observability.ts'
 
 /**
  * The Server Functions the sign-in surface calls.
@@ -254,4 +255,51 @@ export async function finishPasskeySignIn(
     headers: await headers(),
   })
   return result.ok ? { ok: true } : { ok: false, gone: result.failure === 'passkey_unknown' }
+}
+
+/**
+ * Report a WebAuthn ceremony that failed in the browser. **Diagnostics only.**
+ *
+ * The gap this closes: `createPasskey` and `signInWithPasskey` fail inside the browser,
+ * where nothing server-side can see them, and the interface is required to render every one
+ * of those failures as nothing. Between 2026-08-19 and 2026-08-31 that combination hid a
+ * broken enrollment completely -- three challenge rows written on staging, zero passkey rows,
+ * and not one line anywhere naming a cause.
+ *
+ * A dedicated Server Function rather than the Sentry browser SDK, and the reason is
+ * `env.ts`'s: `components/auth/copy.ts` refuses to ship a message catalogue to this surface
+ * because it is the first thing a planner downloads on one bar of signal at a venue, and
+ * tens of kilobytes of SDK would be the same spend it refused. This costs one POST on a path
+ * that has already failed.
+ *
+ * ## It is unauthenticated and takes attacker-controlled strings
+ *
+ * So it treats both as hostile. `stage` is narrowed to a two-value union by the type and
+ * re-checked at runtime, because a Server Function is a POST and TypeScript is not there.
+ * `name` and `message` are clamped hard: names come from a fixed WebAuthn vocabulary, so
+ * anything outside `[A-Za-z]` is dropped rather than escaped, and the message is truncated.
+ * That is what stops a log line being forged out of a crafted `message` -- newlines and
+ * control characters never survive.
+ *
+ * It reports nothing a caller could not already discover about their own browser: no email,
+ * no user id, no session. The cost is that it is one more unmetered write on the sign-in
+ * surface, which docs/specs/0002's rate-limiter note already covers.
+ */
+export async function reportCeremonyFailure(
+  stage: 'enroll' | 'signin',
+  name: string,
+  message: string,
+): Promise<void> {
+  if (stage !== 'enroll' && stage !== 'signin') return
+
+  const safeName = name.replace(/[^A-Za-z]/g, '').slice(0, 48) || 'Unnamed'
+  const safeMessage = message.replace(/[^\x20-\x7E]/g, ' ').slice(0, 200)
+
+  reportSilentFailure(`passkey ${stage} ceremony failed in the browser`, {
+    ceremony: stage,
+    // Not `name`/`message`: `lib/scrub.ts` has no opinion on those, and calling the field
+    // `errorName` keeps it in the same vocabulary as the seam's `reason`.
+    errorName: safeName,
+    detail: safeMessage,
+  })
 }
