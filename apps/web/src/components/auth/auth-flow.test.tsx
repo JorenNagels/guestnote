@@ -27,6 +27,7 @@ const beginPasskeyEnrollment = vi.fn()
 const finishPasskeyEnrollment = vi.fn()
 const beginPasskeySignIn = vi.fn()
 const finishPasskeySignIn = vi.fn()
+const reportCeremonyFailure = vi.fn()
 
 vi.mock('./actions.ts', () => ({
   requestCode: (...args: unknown[]) => requestCode(...args),
@@ -37,6 +38,7 @@ vi.mock('./actions.ts', () => ({
   finishPasskeyEnrollment: (...args: unknown[]) => finishPasskeyEnrollment(...args),
   beginPasskeySignIn: (...args: unknown[]) => beginPasskeySignIn(...args),
   finishPasskeySignIn: (...args: unknown[]) => finishPasskeySignIn(...args),
+  reportCeremonyFailure: (...args: unknown[]) => reportCeremonyFailure(...args),
 }))
 
 vi.mock('./passkey.ts', () => ({
@@ -108,6 +110,7 @@ beforeEach(() => {
   beginPasskeySignIn.mockResolvedValue({ ok: true, options: REQUEST_OPTIONS })
   signInWithPasskey.mockResolvedValue(ASSERTION)
   finishPasskeySignIn.mockResolvedValue({ ok: true })
+  reportCeremonyFailure.mockResolvedValue(undefined)
 
   // jsdom's `location.assign` is a no-op that logs "Not implemented"; `vi.spyOn` on it
   // records nothing (measured). Replacing the whole object is what makes rung 2 observable.
@@ -1114,6 +1117,95 @@ describe('passkey sign-in', () => {
       await user.click(await screen.findByRole('button', { name: 'ACTION-PASSKEY' }))
       await screen.findByRole('heading', { name: 'TITLE-ARRIVE' })
       expect(screen.queryByText('TITLE-ENROLL')).not.toBeInTheDocument()
+    })
+  })
+
+  describe('a Server Function that never lands is reported, not swallowed', () => {
+    /**
+     * Four separate `.catch` sites on this surface swallowed a rejection with no report, and
+     * each was found only after a day of debugging staging: the seam's verify, then the
+     * finish transport, then the begin transport. A rejecting Server Function means the POST
+     * never reached the server, so neither the seam's report nor the browser ceremony's can
+     * fire -- leaving a `verifications` row, no passkey row, and no log line anywhere.
+     *
+     * `reportingCatch` is one helper now precisely so this is testable in one place.
+     */
+    beforeEach(() => {
+      conditionalMediationAvailable.mockResolvedValue(false)
+      platformAuthenticatorAvailable.mockResolvedValue(true)
+    })
+
+    it('reports when the enrollment challenge request never lands', async () => {
+      beginPasskeyEnrollment.mockRejectedValue(new TypeError('Failed to fetch'))
+      const { user } = renderFlow({ passkeysEnabled: true })
+      await reachVerifyRung(user)
+      await user.type(codeField(), '194720')
+      await user.click(screen.getByRole('button', { name: 'ACTION-SUBMIT' }))
+      await screen.findByText('TITLE-ENROLL')
+      await user.click(screen.getByRole('button', { name: 'ACTION-ENROLL-CONFIRM' }))
+
+      await waitFor(() =>
+        expect(reportCeremonyFailure).toHaveBeenCalledWith(
+          'enroll',
+          'ActionTransport',
+          expect.stringContaining('beginPasskeyEnrollment'),
+        ),
+      )
+      // And it still leaves rather than dead-ending on a screen whose button cannot work.
+      await waitFor(() => expect(assign).toHaveBeenCalledWith('/weddings'), {
+        timeout: DESCENT_MS * 4,
+      })
+    })
+
+    it('reports when the enrollment attestation never lands', async () => {
+      finishPasskeyEnrollment.mockRejectedValue(new TypeError('Failed to fetch'))
+      const { user } = renderFlow({ passkeysEnabled: true })
+      await reachVerifyRung(user)
+      await user.type(codeField(), '194720')
+      await user.click(screen.getByRole('button', { name: 'ACTION-SUBMIT' }))
+      await screen.findByText('TITLE-ENROLL')
+      await user.click(screen.getByRole('button', { name: 'ACTION-ENROLL-CONFIRM' }))
+
+      await waitFor(() =>
+        expect(reportCeremonyFailure).toHaveBeenCalledWith(
+          'enroll',
+          'ActionTransport',
+          expect.stringContaining('finishPasskeyEnrollment'),
+        ),
+      )
+    })
+
+    it('reports when the sign-in challenge request never lands', async () => {
+      beginPasskeySignIn.mockRejectedValue(new TypeError('Failed to fetch'))
+      const { user } = renderFlow({ passkeysEnabled: true })
+      await user.click(await screen.findByRole('button', { name: 'ACTION-PASSKEY' }))
+
+      await waitFor(() =>
+        expect(reportCeremonyFailure).toHaveBeenCalledWith(
+          'signin',
+          'ActionTransport',
+          expect.stringContaining('beginPasskeySignIn'),
+        ),
+      )
+      // Still silent on screen -- the report is for us, never for the visitor.
+      expect(screen.queryByText('ERR-PASSKEY-GONE')).not.toBeInTheDocument()
+    })
+
+    it('reports the browser ceremony failure by its DOMException name', async () => {
+      signInWithPasskey.mockImplementation(async (_options, init) => {
+        init?.onFailure?.({ name: 'NotSupportedError', message: 'no matching algorithm' })
+        return 'cancelled'
+      })
+      const { user } = renderFlow({ passkeysEnabled: true })
+      await user.click(await screen.findByRole('button', { name: 'ACTION-PASSKEY' }))
+
+      await waitFor(() =>
+        expect(reportCeremonyFailure).toHaveBeenCalledWith(
+          'signin',
+          'NotSupportedError',
+          'no matching algorithm',
+        ),
+      )
     })
   })
 

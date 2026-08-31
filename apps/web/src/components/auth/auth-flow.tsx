@@ -111,6 +111,37 @@ function prefersReducedMotion(): boolean {
 const LOOKS_LIKE_EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
 
 /**
+ * A `.catch` that reports before it swallows.
+ *
+ * **Every unreported `.catch` on this surface has cost a day of debugging**, and this is the
+ * fourth one found: `verifyPasskeyRegistration` was blind, then `finishPasskeyEnrollment`'s
+ * transport was blind, then `beginPasskeyEnrollment`'s was. Each time the fix was correct and
+ * each time the next one along was still silent, because the pattern was written out by hand
+ * at every call site and one of them always got missed.
+ *
+ * So the pattern is a function now. A Server Function that rejects means the POST never
+ * reached the server or never came back -- the seam is never entered, so the seam's own
+ * report cannot fire, and the browser ceremony never runs so its reporter cannot either. That
+ * combination is exactly what leaves a `verifications` row with no passkey row and no log
+ * line, which is the shape staging produced on 2026-08-19, 08-30, 08-31 twice, and again
+ * after each partial fix.
+ *
+ * The report is fire-and-forget and its own failure is swallowed: it travels over the same
+ * transport that just failed, so it may well not arrive either. CloudWatch gets the line
+ * whenever the POST does land, which is what makes an intermittent transport fault visible.
+ */
+function reportingCatch<T>(stage: 'enroll' | 'signin', step: string, fallback: T) {
+  return (error: unknown): T => {
+    void reportCeremonyFailure(
+      stage,
+      'ActionTransport',
+      `${step}: ${error instanceof Error ? `${error.name}: ${error.message}` : String(error)}`,
+    ).catch(() => {})
+    return fallback
+  }
+}
+
+/**
  * The whole passkey sign-in ceremony, both paths, as three outcomes.
  *
  * Module scope rather than a closure inside the component, and that is not only a hooks
@@ -128,7 +159,9 @@ async function runPasskeySignIn(init?: {
   mediation?: 'conditional'
   signal?: AbortSignal
 }): Promise<'ok' | 'gone' | 'silent'> {
-  const challenge = await beginPasskeySignIn().catch(() => ({ ok: false }) as const)
+  const challenge = await beginPasskeySignIn().catch(
+    reportingCatch('signin', 'beginPasskeySignIn', { ok: false } as const),
+  )
   if (!challenge.ok) return 'silent'
 
   const assertion = await signInWithPasskey(challenge.options, {
@@ -159,17 +192,11 @@ async function runPasskeySignIn(init?: {
    */
   if (init?.signal?.aborted) return 'silent'
 
-  const verified = await finishPasskeySignIn(assertion).catch((error: unknown) => {
-    // Same blind spot as `onEnroll`'s: a transport failure never reaches the seam, so the
-    // seam's own report never fires. Reported here, and only for the throw -- an `ok: false`
-    // answer was already reported server-side.
-    void reportCeremonyFailure(
-      'signin',
-      'ActionTransport',
-      error instanceof Error ? `${error.name}: ${error.message}` : String(error),
-    ).catch(() => {})
-    return { ok: false, gone: false } as const
-  })
+  // Only the throw is ours: an `ok: false` answer already produced a report inside the seam,
+  // and reporting it again would double-count.
+  const verified = await finishPasskeySignIn(assertion).catch(
+    reportingCatch('signin', 'finishPasskeySignIn', { ok: false, gone: false } as const),
+  )
   if (verified.ok) return 'ok'
   return verified.gone ? 'gone' : 'silent'
 }
@@ -503,7 +530,9 @@ export function AuthFlow({
   async function onEnroll() {
     setEnrollment('working')
 
-    const challenge = await beginPasskeyEnrollment().catch(() => ({ ok: false }) as const)
+    const challenge = await beginPasskeyEnrollment().catch(
+      reportingCatch('enroll', 'beginPasskeyEnrollment', { ok: false } as const),
+    )
     if (!challenge.ok) {
       setEnrollment('settled')
       return
@@ -538,14 +567,9 @@ export function AuthFlow({
      * `ok: false` from the seam is NOT reported here -- that already produced a report
      * inside the seam, and reporting again would double-count. Only the throw is ours.
      */
-    await finishPasskeyEnrollment(created).catch((error: unknown) => {
-      void reportCeremonyFailure(
-        'enroll',
-        'ActionTransport',
-        error instanceof Error ? `${error.name}: ${error.message}` : String(error),
-      ).catch(() => {})
-      return { ok: false }
-    })
+    await finishPasskeyEnrollment(created).catch(
+      reportingCatch('enroll', 'finishPasskeyEnrollment', { ok: false }),
+    )
     setEnrollment('settled')
   }
 
