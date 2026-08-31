@@ -147,6 +147,33 @@ Rejected: firing the ceremony only from the explicit control. No open promise to
 on Chrome and Safari — most planners — the passkey would then never be offered at all. That
 is the method menu the brief refuses, inverted.
 
+### Enrollment no longer pins `authenticatorAttachment`
+
+**Amended 2026-08-31.** Enrollment passed `authenticatorAttachment: 'platform'` from the
+commit that shipped it (`12c5ae3`, 2026-08-19) until today, so that the OS sheet matched the
+copy's promise of a face or a fingerprint on *this* device rather than also offering a
+security key or a phone by QR.
+
+**Enrollment never once succeeded in that window** — `passkeys` empty on all three Neon
+branches for eleven days, with the ceremony never returning at all rather than failing, so
+nothing threw and nothing could be reported. The pin's introduction is an exact match for the
+start of the failure window. The working theory is that a password-manager extension patches
+`navigator.credentials.create` before the browser evaluates these options, and a request
+pinned to a device-bound authenticator is one it neither handles nor cleanly declines.
+
+Unpinning is also the better product decision on its own merits, and that is the part worth
+keeping even if the theory is wrong. A synced credential is worth more than a device-bound one
+to a planner moving between a laptop, a phone and a venue iPad, and password managers are how
+most people will actually keep a passkey. Refusing them to keep one sentence of copy literally
+true is the wrong trade.
+
+**Consequence for the copy, still owed:** `auth.enroll.body` promises "je gezicht of
+vingerafdruk" in three locales, and the sheet may now also offer a security key or a phone.
+The copy should widen; it has not yet.
+
+Rejected: keeping the pin and telling planners to use Touch ID. That is the trade this whole
+amendment exists to undo.
+
 ### Cross-device is honoured by not filtering
 
 **The sign-in `get()` passes no `authenticatorAttachment` and restricts no transports**, so

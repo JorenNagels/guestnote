@@ -318,9 +318,10 @@ export function createBetterAuthProvider(config: AuthConfig) {
          * `platformAuthenticatorAvailable()` in the app and Touch ID, Face ID and Windows
          * Hello all store discoverable credentials.
          *
-         * Merged *under* the per-request `authenticatorAttachment: 'platform'` that
-         * `createPasskeyChallenge` passes, so the two do not fight -- read off the
-         * installed 1.7.1, which spreads this object before the query parameter.
+         * Nothing overrides it any more: `createPasskeyChallenge` used to pass a per-request
+         * `authenticatorAttachment: 'platform'`, which the plugin spreads *after* this
+         * object, and that pin was removed 2026-08-31 -- see that method's note for why it
+         * is the prime suspect for eleven days of enrollment never completing.
          */
         authenticatorSelection: { residentKey: 'required', requireResidentKey: true },
       }),
@@ -457,12 +458,31 @@ export function createBetterAuthProvider(config: AuthConfig) {
      * settings grows an "add a passkey" button: **that** call site needs a
      * re-authentication step in front of it, not a wider middleware here.
      *
-     * ## `platform`, not left unset
+     * ## The attachment is NOT pinned, and that is a correction
      *
-     * The offer is only ever shown when `platformAuthenticatorAvailable()` said yes, and
-     * the copy promises a face or a fingerprint on *this* device. Leaving the attachment
-     * unset makes the OS sheet also offer a security key and a phone-by-QR flow, which is
-     * a different promise than the one on screen.
+     * This passed `authenticatorAttachment: 'platform'` from 2026-08-19 to 2026-08-31, on
+     * the argument that the offer is only shown when `platformAuthenticatorAvailable()` said
+     * yes and the copy promises a face or a fingerprint on *this* device -- so leaving it
+     * unset would also offer a security key and a phone-by-QR flow, a different promise than
+     * the one on screen.
+     *
+     * **Enrollment never once succeeded during that entire window.** `passkeys` was empty on
+     * all three Neon branches for eleven days, and the ceremony did not fail -- it never
+     * returned at all, so nothing threw and nothing could be reported. The pin was
+     * introduced by `12c5ae3`, the same commit that shipped enrollment, which is an exact
+     * match for the failure window. The theory, and it is a theory: a password-manager
+     * extension patches `navigator.credentials.create` before the browser sees these
+     * options, and a request pinned to a device-bound authenticator is one it neither
+     * handles nor cleanly declines.
+     *
+     * Unpinning is the better product call independently of the bug. A synced credential is
+     * worth more than a device-bound one to a planner working across a laptop, a phone and a
+     * venue iPad, and refusing password managers -- how most people will actually keep a
+     * passkey -- to keep one sentence of copy literally true is the wrong trade. The copy is
+     * what should move; docs/specs/0002 carries that amendment.
+     *
+     * Cost accepted: the OS sheet may now offer a security key or a phone by QR where the
+     * copy still says face or fingerprint.
      *
      * `userVerification: preferred` and `attestation: none` are the plugin's defaults and
      * are deliberately left alone. **`residentKey` is not** -- the plugin config above sets
@@ -487,7 +507,6 @@ export function createBetterAuthProvider(config: AuthConfig) {
     }): Promise<AuthResult<PasskeyCreationOptions>> {
       try {
         const options = await auth.api.generatePasskeyRegistrationOptions({
-          query: { authenticatorAttachment: 'platform' },
           headers: input.headers,
         })
         return { ok: true, value: options }
