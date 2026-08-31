@@ -159,9 +159,17 @@ async function runPasskeySignIn(init?: {
    */
   if (init?.signal?.aborted) return 'silent'
 
-  const verified = await finishPasskeySignIn(assertion).catch(
-    () => ({ ok: false, gone: false }) as const,
-  )
+  const verified = await finishPasskeySignIn(assertion).catch((error: unknown) => {
+    // Same blind spot as `onEnroll`'s: a transport failure never reaches the seam, so the
+    // seam's own report never fires. Reported here, and only for the throw -- an `ok: false`
+    // answer was already reported server-side.
+    void reportCeremonyFailure(
+      'signin',
+      'ActionTransport',
+      error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+    ).catch(() => {})
+    return { ok: false, gone: false } as const
+  })
   if (verified.ok) return 'ok'
   return verified.gone ? 'gone' : 'silent'
 }
@@ -517,7 +525,27 @@ export function AuthFlow({
     // a cloned authenticator. None of those get better by pressing the button again, and
     // `SilentPasskeyOutcome` forbids saying which one it was, so the only honest move left is
     // to let them into the dashboard they are already signed in to.
-    await finishPasskeyEnrollment(created).catch(() => ({ ok: false }))
+    /**
+     * The last blind spot on this path, and the one the instrumentation missed twice.
+     *
+     * This `catch` swallows a *transport* failure -- the Server Function never reaching the
+     * server at all, or answering non-2xx. When that happens the seam is never entered, so
+     * `verifyPasskeyRegistration`'s report never runs, and `createPasskey` succeeded so the
+     * ceremony reporter never runs either. Both instrumented paths sit on the far side of
+     * exactly this line, which is why an enrollment could fail on staging leaving a
+     * challenge row, no passkey row, and no log line anywhere (2026-08-19 to 2026-08-31).
+     *
+     * `ok: false` from the seam is NOT reported here -- that already produced a report
+     * inside the seam, and reporting again would double-count. Only the throw is ours.
+     */
+    await finishPasskeyEnrollment(created).catch((error: unknown) => {
+      void reportCeremonyFailure(
+        'enroll',
+        'ActionTransport',
+        error instanceof Error ? `${error.name}: ${error.message}` : String(error),
+      ).catch(() => {})
+      return { ok: false }
+    })
     setEnrollment('settled')
   }
 
