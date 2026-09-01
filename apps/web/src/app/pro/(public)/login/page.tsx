@@ -1,3 +1,5 @@
+import { headers } from 'next/headers'
+import { redirect } from 'next/navigation'
 import { getLocale } from 'next-intl/server'
 import { AuthFlow } from '@/components/auth/auth-flow.tsx'
 import { getAuthCopy } from '@/components/auth/copy.ts'
@@ -26,8 +28,35 @@ import { app } from '../../../../lib/routes.ts'
  *
  * Sent to the dashboard, because a sign-in form has nothing to offer someone who is already
  * in -- and worse, it invites them to request a code they do not need, which spends a send
- * against a sandbox quota of 200 a day and looks like the session having been lost. Signing in
- * as somebody else is what sign-out is for.
+ * against a sandbox quota of 200 a day and looks like the session having been lost. Signing
+ * in as somebody else is what sign-out is for.
+ *
+ * **This guard was deleted on 2026-08-31 and restored on 2026-09-01, and the eleven days in
+ * between are the reason it is worth reading about.** It made passkey enrollment
+ * structurally impossible: the offer lived on rung 2, *after* sign-in, so the visitor held a
+ * session; asking for a challenge sets a cookie -- Better Auth has nowhere else to put it --
+ * and `nextCookies()` writes it through `cookies().set()`, which Next 16 documents as
+ * re-rendering the current route. That re-render hit this line, found the session it had
+ * just been given, and threw the visitor to the dashboard **with the OS sheet still open**.
+ * The attestation then posted from a dying document to the wrong route and was aborted, so
+ * nothing ever reached the server -- and neither did any failure report, which travels the
+ * same connection. Measured locally 2026-08-31: `beginPasskeyEnrollment()` immediately
+ * followed by `GET /`, `GET /weddings`, then `POST /weddings` with ECONNRESET.
+ *
+ * What makes it safe now is that there is no longer a ceremony on this surface to interrupt.
+ * The enrollment offer moved to `components/auth/enrollment-prompt.tsx` on the shell, which
+ * is where `auth-flow.tsx` always said it belonged. **So the rule this file encodes is not
+ * "redirect signed-in visitors" -- it is "this page must own no multi-step ceremony".**
+ * Anything added here that survives a re-render has to move, or this guard has to go again.
+ *
+ * ## A second effect, and it restores a claim elsewhere
+ *
+ * With the guard gone, `beginPasskeySignIn` -- which runs on mount -- started firing for
+ * visitors who already had a session, and Better Auth populates `allowCredentials` with the
+ * session owner's credentials whenever one exists. On a shared laptop that quietly narrowed
+ * the autofill sheet to whoever was signed in last. `PasskeyRequestOptions` in
+ * `packages/core/src/auth/types.ts` argues that field is always absent; that argument was
+ * true before 2026-08-31, false for one day, and is true again from here.
  *
  * ## Why this guard is on the page and not on the `(public)` layout
  *
@@ -45,32 +74,10 @@ export default async function LoginPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
-  /**
-   * **No redirect here, and removing it is what made passkey enrollment work at all.**
-   *
-   * This read `if (await currentSession()) redirect(app.home())` from 2026-08-18 until
-   * 2026-08-31, to stop a signed-in visitor being offered a code they do not need.
-   *
-   * It also made enrollment structurally impossible, and that took eleven days to find. The
-   * offer lives on rung 2, *after* sign-in, so the visitor holds a session. Asking for a
-   * challenge sets a cookie -- Better Auth has nowhere else to put it -- and `nextCookies()`
-   * writes it through `cookies().set()`, which Next 16 documents as re-rendering the current
-   * route. That re-render hit this line, found the session it had just been given, and threw
-   * the visitor to the dashboard **with the OS sheet still open**. The attestation then
-   * posted from a dying document to the wrong route and was aborted, so nothing ever reached
-   * the server -- and neither did any failure report, which travels the same connection.
-   * Measured locally 2026-08-31: `beginPasskeyEnrollment()` immediately followed by `GET /`,
-   * `GET /weddings`, then `POST /weddings` with ECONNRESET.
-   *
-   * What replaces it: nothing, for now. A signed-in visitor who navigates here sees the
-   * sign-in form. That is a worse screen than a redirect and a far better one than a feature
-   * that cannot work -- and the quota argument survives, because `requestCode` needs a
-   * deliberate press, not a page load.
-   *
-   * The durable fix is the one `auth-flow.tsx` already names: the enrollment prompt belongs
-   * to the post-login moment on the *shell*, not to this surface, and M3 moves it. Once it
-   * lives there this page has no flow to protect and the guard can come back.
-   */
+  // Before any render work, and `getAuth().getSession` rather than a helper: the thing worth
+  // pinning is that *this segment* redirects, and an extracted `isSignedIn()` would keep
+  // passing after someone deleted the call. See the docblock for the eleven days this cost.
+  if (await getAuth().getSession(await headers())) redirect(app.home())
 
   const [copy, locale, { reason }] = await Promise.all([getAuthCopy(), getLocale(), searchParams])
   const stage = await getStageContent(copy)

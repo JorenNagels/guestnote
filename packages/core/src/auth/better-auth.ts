@@ -670,6 +670,38 @@ export function createBetterAuthProvider(config: AuthConfig) {
       }
     },
 
+    /**
+     * Whether this session's user already holds a passkey.
+     *
+     * The one question the enrollment offer could never ask while it lived on rung 2 of the
+     * sign-in surface. There, the only thing in reach was "did *this* sign-in use a
+     * passkey", so a planner who signed in with a code on a laptop that already held one
+     * was offered a second, and the OS sheet answered by telling them so. This is the half
+     * of the login brief's state 27 that placement could not cover;
+     * `components/auth/enrollment-prompt.tsx` is the caller.
+     *
+     * **A boolean, not the list.** The caller renders an offer or does not, and the
+     * credential ids, device names and AAGUIDs `listPasskeys` returns are exactly the sort
+     * of thing that starts being passed one layer further "since we already have it". A
+     * settings screen that genuinely needs to enumerate credentials should add its own seam
+     * method returning a plain shape, not widen this one -- see the package rule that no
+     * provider type crosses this boundary.
+     *
+     * `sessionMiddleware`, not `freshSessionMiddleware`: reading is not enrolling. A throw
+     * here means no session or an unreachable database, and both answer the caller's real
+     * question -- "should I offer this" -- with a safe no rather than an unhandled failure
+     * on a dashboard render.
+     */
+    async hasPasskey(headers: Headers): Promise<boolean> {
+      try {
+        const passkeys = await auth.api.listPasskeys({ headers })
+        return passkeys.length > 0
+      } catch (error) {
+        config.report?.('passkey list refused', { reason: reasonOf(error) })
+        return false
+      }
+    },
+
     async signOut(headers: Headers): Promise<void> {
       await auth.api.signOut({ headers })
     },

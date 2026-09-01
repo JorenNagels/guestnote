@@ -97,7 +97,7 @@
     },
     "enroll": {
       "title": "Sign in faster on this device?",
-      "body": "With a passkey you sign in with your face or fingerprint. No more email.",
+      "body": "With a passkey you sign in with your face, your fingerprint, or your password manager. No more email.",
       "confirm": "Create a passkey",
       "dismiss": "Not now"
     },

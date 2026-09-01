@@ -520,7 +520,40 @@ Not built, still: `.impeccable` state 25's placement (rung 2 hosts the enrollmen
 M3 gives it a shell to live in), and passkey management, which §"Not in scope" puts in account
 settings.
 
-**Found while building:** a file in `apps/web/public/` is unreachable on the app host.
+## Amended 2026-09-01 — the enrollment prompt left this surface
+
+State 25's placement is built, and it is no longer on this page. The prompt moved to the
+shell (`components/auth/enrollment-prompt.tsx`), which is what §"Not built, still" above was
+waiting for.
+
+**This surface's rung 2 is now purely a transition again.** It draws the tick, the arrive
+copy and the continue button, and it leaves after `DESCENT_MS` with nothing able to hold it
+open. Its one remaining contribution to enrollment is a `?welcome=passkey` marker on the
+continue href, because it is the only place that knows which rung the visitor came off.
+
+**The first half of state 27 is now covered too.** The shell asks the server whether this
+user holds any passkey — a read the account's own owner performs about themselves, which is
+why the disclosure objection that rejected it in the spec does not apply behind a session. A
+code sign-in on a device that already holds a passkey no longer gets an offer. The
+cross-device over-reach in the second bullet above stands, and stands knowingly.
+
+**And the page redirects a signed-in visitor to the dashboard again.** That guard was removed
+on 2026-08-31 because it made enrollment structurally impossible — a re-render triggered by
+the challenge cookie threw the visitor out with the OS sheet still open. With no ceremony on
+this surface there is nothing left for it to interrupt. The rule the page encodes now is
+"this surface owns no multi-step ceremony", not "signed-in visitors get redirected"; anything
+added here that must survive a re-render has to move, or the guard has to go again.
+
+**Found while building, and fixed 2026-09-01:** `/favicon.ico` was a 500 on every deployed
+page load. It is excluded from proxy.ts's matcher, so nothing rewrote or 404'd it early; it
+fell through to `(marketing)/[locale]`, a ROOT layout, whose `notFound()` has no boundary
+above it and renders a 500. `apps/web/public/favicon.ico` now exists, and returns 200
+`image/x-icon` on all three hosts (measured 2026-09-01). `robots.txt` and `sitemap.xml` are
+excluded by the same matcher and still do not exist — same route, 404 locally, deployed
+behaviour not read back; crawlers only. Recorded in proxy.ts rather than fixed blind, because
+an empty `robots.txt` is a decision about indexing.
+
+**Also found while building:** a file in `apps/web/public/` is unreachable on the app host.
 proxy.ts rewrites every non-`/api` path to `/pro/*` and its matcher excludes only
 `_next/static`, `_next/image`, `favicon.ico`, `robots.txt` and `sitemap.xml`. The mark is
 inlined instead, which is better here anyway; the finding is recorded in proxy.ts beside

@@ -21,27 +21,38 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
  *
  * ## What is mocked
  *
- * The session, the redirect, and the two i18n readers that need a request context. Not
- * `AuthFlow`: it is imported for real, so this also fails if the page stops being able to
- * construct its props at all.
+ * The session, the redirect, `next/headers`, and the two i18n readers that need a request
+ * context. Not `AuthFlow`: it is imported for real, so this also fails if the page stops
+ * being able to construct its props at all.
+ *
+ * **The session mock is on `lib/auth.ts`, which the page actually imports.** It was on
+ * `lib/principal.ts` between 2026-08-31 and 2026-09-01, and `page.tsx` imports no such
+ * module -- so `expect(currentSession).not.toHaveBeenCalled()` was asserting that a mock
+ * attached to nothing had not been called, and passed for that reason rather than for the
+ * one its name claimed. Caught by `test-critic` 2026-09-01. A mock of a module outside the
+ * subject's import graph is not a weak assertion; it is not an assertion.
  */
-const currentSession = vi.fn()
+const getSession = vi.fn()
 const redirect = vi.fn((path: string) => {
   // Next's redirect throws to unwind the render, and code after it is unreachable. A mock
   // that returned normally would let the page carry on and hide a missing `return`.
   throw new Error(`NEXT_REDIRECT:${path}`)
 })
 
-vi.mock('../../../../lib/principal.ts', () => ({
-  currentSession: () => currentSession(),
-}))
-
 vi.mock('next/navigation', () => ({
   redirect: (path: string) => redirect(path),
 }))
 
+vi.mock('next/headers', () => ({
+  headers: async () => new Headers(),
+}))
+
 vi.mock('../../../../lib/auth.ts', () => ({
-  getAuth: () => ({ passkeysAvailable: () => true, googleAvailable: () => true }),
+  getAuth: () => ({
+    getSession: (h: Headers) => getSession(h),
+    passkeysAvailable: () => true,
+    googleAvailable: () => true,
+  }),
 }))
 
 /**
@@ -49,8 +60,10 @@ vi.mock('../../../../lib/auth.ts', () => ({
  *
  * The first version of the ordering test below asserted on a `vi.fn()` that nothing called,
  * so it passed with the guard moved to the bottom of the function -- caught by mutation,
- *2026-08-19. These are the functions the page actually reaches for, which is what makes the
- * assertion able to fail.
+ * 2026-08-19. These are the functions the page actually reaches for, which is what makes the
+ * assertion able to fail, and they are the reason the ordering test earns its place: a guard
+ * that runs after `getAuthCopy()` has already spent a round trip is a guard in the wrong
+ * place, and nothing else in this file can see that.
  */
 const getTranslations = vi.fn(async () =>
   Object.assign((key: string) => key, { raw: (key: string) => key }),
@@ -70,7 +83,7 @@ const render = (search: Record<string, string> = {}) =>
 
 beforeEach(() => {
   vi.clearAllMocks()
-  currentSession.mockResolvedValue(null)
+  getSession.mockResolvedValue(null)
 })
 
 describe('the sign-in page', () => {
@@ -80,43 +93,60 @@ describe('the sign-in page', () => {
   })
 
   /**
-   * These four used to assert the opposite: that a signed-in visitor is redirected to the
-   * dashboard. They were right about the behaviour and the behaviour was removed, because it
-   * made passkey enrollment structurally impossible -- `login/page.tsx` carries the full
-   * argument and the measurement.
+   * ## The eleven days this assertion was inverted
    *
-   * They are replaced rather than deleted, because "no redirect" is now a load-bearing
-   * property with a non-obvious reason, and the failure it prevents is invisible from this
-   * file. Anyone restoring the guard on the old rationale should fail here and be sent to
-   * read why.
+   * These asserted the *opposite* between 2026-08-31 and 2026-09-01 -- that a signed-in
+   * visitor is NOT redirected -- because the guard had been removed to unblock passkey
+   * enrollment, which it made structurally impossible. `page.tsx` carries the measurement.
+   *
+   * The guard is back because the thing it was breaking has moved: the enrollment ceremony
+   * now runs on the shell, in `components/auth/enrollment-prompt.tsx`, so there is nothing
+   * on this surface for a re-render to interrupt. Both directions are recorded rather than
+   * one being quietly overwritten, because the next person to remove this line will have a
+   * reason and it will probably be a good one -- and they need to know it has been removed
+   * before, and what it cost.
    */
-  it('renders the form for a signed-in visitor rather than redirecting', async () => {
-    currentSession.mockResolvedValue({ userId: 'u1', email: 'ilse@studiowit.be' })
+  it('sends a signed-in visitor to the dashboard', async () => {
+    getSession.mockResolvedValue({ userId: 'u1', email: 'ilse@studiowit.be' })
 
-    await expect(render()).resolves.toBeDefined()
-    expect(redirect).not.toHaveBeenCalled()
+    await expect(render()).rejects.toThrow('NEXT_REDIRECT:/')
+    expect(redirect).toHaveBeenCalledWith('/')
   })
 
-  it('does not redirect mid-enrollment, which is the whole reason the guard went', async () => {
-    // The sequence that broke: rung 2 holds a session, `beginPasskeyEnrollment` sets the
-    // challenge cookie, Next re-renders this route on `cookies().set()`, and the old guard
-    // threw the visitor to the dashboard with the OS sheet still open -- so the attestation
-    // posted from a dying document and was aborted. A re-render with a live session must be
-    // an ordinary render.
-    currentSession.mockResolvedValue({ userId: 'u1' })
+  it('redirects even when a session-expired notice was requested', async () => {
+    // The notice is about a session that lapsed. Arriving here with a live one means it did
+    // not, so the dashboard wins over the explanation.
+    getSession.mockResolvedValue({ userId: 'u1' })
 
-    await expect(render({ reason: 'session-expired' })).resolves.toBeDefined()
-    expect(redirect).not.toHaveBeenCalled()
+    await expect(render({ reason: 'session-expired' })).rejects.toThrow('NEXT_REDIRECT:/')
   })
 
-  it('does not read the session at all any more', async () => {
-    // Not merely "does not act on it". The read was the cost the ordering test above used to
-    // defend; with no redirect there is nothing to read it for, and a future reader should
-    // not reintroduce one on the assumption it is already paid for.
-    currentSession.mockResolvedValue({ userId: 'u1' })
+  it('checks the session before doing any rendering work', async () => {
+    // A guard below `getAuthCopy()` still redirects, and still spends the round trip it
+    // exists to save. The spies are the only thing that can tell the two apart.
+    getSession.mockResolvedValue({ userId: 'u1' })
 
-    await render()
+    await expect(render()).rejects.toThrow('NEXT_REDIRECT:/')
 
-    expect(currentSession).not.toHaveBeenCalled()
+    expect(getTranslations).not.toHaveBeenCalled()
+    expect(getFormatter).not.toHaveBeenCalled()
+  })
+
+  /**
+   * The `?reason=session-expired` branch, which nothing asserted between 2026-08-31 and
+   * 2026-09-01: its old test was one of four deleted with the guard, and the replacement
+   * only checked that the page resolved. Deleting the `notice` spread left all four green
+   * -- reported by `test-critic` 2026-09-01.
+   */
+  it('passes the session-expired notice through to the form', async () => {
+    const el = await render({ reason: 'session-expired' })
+
+    expect(el.props.notice).toBe('errors.sessionExpired')
+  })
+
+  it('passes no notice when nothing interrupted them', async () => {
+    const el = await render()
+
+    expect(el.props).not.toHaveProperty('notice')
   })
 })

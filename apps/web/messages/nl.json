@@ -97,7 +97,7 @@
     },
     "enroll": {
       "title": "Sneller aanmelden op dit toestel?",
-      "body": "Met een passkey meld je je aan met je gezicht of vingerafdruk. Geen e-mail meer nodig.",
+      "body": "Met een passkey meld je je aan met je gezicht, je vingerafdruk of je wachtwoordmanager. Geen e-mail meer nodig.",
       "confirm": "Passkey aanmaken",
       "dismiss": "Niet nu"
     },

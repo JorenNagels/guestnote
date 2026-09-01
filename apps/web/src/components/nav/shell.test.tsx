@@ -38,8 +38,12 @@ const setDensity = vi.fn()
 const paletteWeddings = vi.fn()
 const weddingHeader = vi.fn()
 const setLocale = vi.fn()
+const replace = vi.fn()
+const platformAuthenticatorAvailable = vi.fn()
+const createPasskey = vi.fn()
 let pathname = '/weddings'
 let params: Record<string, string> = {}
+let searchParams = ''
 
 vi.mock('../../app/pro/(app)/actions.ts', () => ({
   setNavCollapsed: (...a: unknown[]) => setNavCollapsed(...a),
@@ -53,11 +57,24 @@ vi.mock('../../app/pro/(app)/actions.ts', () => ({
 
 vi.mock('../../components/auth/actions.ts', () => ({
   setLocale: (...a: unknown[]) => setLocale(...a),
+  beginPasskeyEnrollment: vi.fn(),
+  finishPasskeyEnrollment: vi.fn(),
+  reportCeremonyFailure: vi.fn(),
 }))
 
 vi.mock('next/navigation', () => ({
   usePathname: () => pathname,
   useParams: () => params,
+  // `EnrollmentPrompt` reads these. It is rendered for real rather than mocked -- the shell's
+  // job here is to mount it in the right place and hand it the right labels, and a stub
+  // could not fail if it were mounted outside the `inert` column.
+  useSearchParams: () => new URLSearchParams(searchParams),
+  useRouter: () => ({ replace: (...a: unknown[]) => replace(...a) }),
+}))
+
+vi.mock('../auth/passkey.ts', () => ({
+  platformAuthenticatorAvailable: () => platformAuthenticatorAvailable(),
+  createPasskey: (...a: unknown[]) => createPasskey(...a),
 }))
 
 const { Shell } = await import('./shell.tsx')
@@ -92,6 +109,13 @@ const LABELS: ShellLabels = {
     loading: 'Even zoeken…',
     dateUnknown: 'Datum nog niet vastgelegd',
   },
+  enroll: {
+    title: 'ENROLL-TITLE',
+    body: 'ENROLL-BODY',
+    confirm: 'ENROLL-CONFIRM',
+    dismiss: 'ENROLL-DISMISS',
+    busy: 'ENROLL-BUSY',
+  },
 }
 
 const STUDIO_A = { id: 'org-a-id', name: 'Studio A', slug: 'org-a' }
@@ -103,6 +127,7 @@ function shellTree(over: Partial<Parameters<typeof Shell>[0]> = {}) {
       org={STUDIO_A}
       orgs={[STUDIO_A]}
       user={{ name: 'Joren Nagels', email: 'joren@example.test' }}
+      offerPasskey={false}
       initialNav="expanded"
       locale="nl"
       theme="light"
@@ -132,8 +157,10 @@ beforeEach(() => {
   vi.clearAllMocks()
   pathname = '/weddings'
   params = {}
+  searchParams = ''
   paletteWeddings.mockResolvedValue([])
   weddingHeader.mockResolvedValue(null)
+  platformAuthenticatorAvailable.mockResolvedValue(true)
 })
 
 describe('the sidebar', () => {
@@ -345,6 +372,7 @@ describe('the wedding-context section', () => {
           org={STUDIO_A}
           orgs={[STUDIO_A]}
           user={{ name: 'Joren Nagels', email: 'joren@example.test' }}
+          offerPasskey={false}
           initialNav="expanded"
           locale="nl"
           theme="light"
@@ -687,5 +715,52 @@ describe('the account menu writes', () => {
     const button = screen.getByRole('button', { name: 'Afmelden' })
     expect(button).toHaveAttribute('type', 'submit')
     expect(button.closest('form')).not.toBeNull()
+  })
+})
+
+/**
+ * The shell's half of the post-login passkey offer: mount it, in the right place, with the
+ * right labels. The ceremony itself and the two client-side gates belong to
+ * `enrollment-prompt.test.tsx`; what can only be asserted here is the wiring.
+ */
+describe('the passkey enrollment offer', () => {
+  it('is absent when the server says this user already has one', async () => {
+    searchParams = 'welcome=passkey'
+    renderShell({ offerPasskey: false })
+
+    // Waited on rather than asserted immediately: the component's own capability gate
+    // resolves from a promise, so "not there yet" would pass without the server gate.
+    await waitFor(() => expect(platformAuthenticatorAvailable).not.toHaveBeenCalled())
+    expect(screen.queryByText('ENROLL-TITLE')).not.toBeInTheDocument()
+  })
+
+  it('is absent without the just-signed-in marker, even when the user has no passkey', async () => {
+    renderShell({ offerPasskey: true })
+
+    await waitFor(() => expect(platformAuthenticatorAvailable).not.toHaveBeenCalled())
+    expect(screen.queryByText('ENROLL-TITLE')).not.toBeInTheDocument()
+  })
+
+  it('appears when the server gate and the marker agree', async () => {
+    searchParams = 'welcome=passkey'
+    renderShell({ offerPasskey: true })
+
+    expect(await screen.findByText('ENROLL-TITLE')).toBeInTheDocument()
+  })
+
+  /**
+   * The placement rule, and the reason it is asserted here and not in the component's own
+   * file: the prompt has to sit INSIDE the column that carries `inert`, or it stays tabbable
+   * underneath the open drawer. That is the same bug the shell's own comment records about
+   * the phone header having been a sibling of `<main>`.
+   */
+  it('is inside the region the drawer inerts, not beside it', async () => {
+    searchParams = 'welcome=passkey'
+    renderShell({ offerPasskey: true })
+    const prompt = await screen.findByRole('region', { name: 'ENROLL-TITLE' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Menu openen' }))
+
+    expect(prompt.closest('[inert]')).not.toBeNull()
   })
 })

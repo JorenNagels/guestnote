@@ -1,6 +1,7 @@
 # Spec 0002 — Signing in with a passkey
 
-**Date:** 2026-08-30 · **Status:** Built 2026-08-30
+**Date:** 2026-08-30 · **Status:** Built 2026-08-30 – 2026-09-01, amended twice · **Last
+amended:** 2026-09-01
 **Phase:** W3, completing the sign-in ladder · **Bar:** a planner opens the dashboard with a
 face or a fingerprint and no email at all
 
@@ -217,6 +218,46 @@ including "signed in with a code on a device that already has a passkey" — at 
 new seam method, a round-trip on every sign-in, and leaking "this account has a passkey" to
 anyone who reaches rung 2. The uncovered case stays uncovered and is named in `Still open`.
 
+> **Amended 2026-09-01 — the rejected option was taken, and the objection to it dissolved
+> rather than being overruled.**
+>
+> The enrollment offer moved off rung 2 onto the shell (`components/auth/enrollment-prompt.tsx`),
+> which is where `auth-flow.tsx` had said it belonged since it was written, and which is what
+> let `login/page.tsx` have its redirect back — see the amendment below. Once the offer lives
+> behind a session, `hasPasskey()` on the seam is a read the account's own owner performs
+> about themselves, so the disclosure objection does not apply: there is nobody on that side
+> of the wall to leak to. The round trip is real and is paid concurrently with four reads the
+> dashboard layout already makes, and it stops for good the moment the user enrols.
+>
+> So **state 27 is now fully covered in the direction that matters** — a code sign-in on a
+> device that already holds a passkey no longer gets an offer. The cross-device over-reach in
+> `SignedInWith` remains, and remains accepted: a QR sign-in proves a passkey exists on a
+> phone, not on the laptop in front of the visitor, and reading the assertion's
+> `authenticatorAttachment` would mean trusting a client-supplied value to decide what to
+> show. `Still open` item 1 is closed; that residue is now item 1a.
+
+### The enrollment offer lives on the shell, not on rung 2
+
+**Amended 2026-09-01.** This spec built the offer on rung 2 because there was no shell to
+host it. There is one, and the placement was costing more than convenience:
+
+- The login page's `if (session) redirect(home)` guard made enrollment **structurally
+  impossible** — asking for a challenge sets a cookie, `cookies().set()` re-renders the route,
+  and the re-render hit the guard with the OS sheet still open. Eleven days, 2026-08-19 to
+  2026-08-31, with `passkeys` empty on all three Neon branches. The guard was deleted to
+  unblock the feature; with the ceremony off this surface it is back, and the rule the page
+  now encodes is not "redirect signed-in visitors" but **"this page must own no multi-step
+  ceremony"**.
+- `PasskeyRequestOptions`' promise that `allowCredentials` is always absent depended on that
+  redirect and was false for the day it was gone.
+
+The offer is gated on a `?welcome=passkey` marker the sign-in flow puts on `continueHref`,
+**not** on "this user has no passkey" alone. `createPasskeyChallenge` sits behind the
+plugin's `freshSessionMiddleware`, so a standing nag would work on day one and fail silently
+from day two — and every passkey failure here renders as nothing, so nobody would see it.
+The same constraint applies to a future "add a passkey" button in account settings: that call
+site needs a re-authentication step, not a wider middleware.
+
 ## Behaviour
 
 ### Rung 0, conditional path (the intended one)
@@ -310,6 +351,16 @@ thresholds decided — they are still explicitly placeholders
 (`packages/core/src/auth/policy.ts`). Until then the exposure is: staging, invite-only, no
 production deployment.
 
+**`reportCeremonyFailure` is a third path and this note does not cover it** — added
+2026-09-01 after `tenancy-auditor` pointed out that `actions.ts` claimed it did. It is not an
+`auth.api.*` call, so a limiter added to the two paths above would not reach it unless
+someone remembers to include it. **Include it.** It is unauthenticated, takes
+attacker-controlled strings, and every call is one Sentry event against a 5,000/month tier
+metered per event rather than per issue — an unbounded loop disables the observability this
+whole feature was instrumented to provide. Mitigated in the meantime by a per-process cap of
+50 vendor events (`CEREMONY_REPORT_BUDGET`); the CloudWatch sink is deliberately left
+uncapped, because it is the one that still works when Sentry does not.
+
 **One thing this feature changes about the gap, added 2026-08-31 after review.**
 `beginPasskeySignIn` is the first of these Server Functions that runs **without anyone
 pressing anything** — on mount, for every visitor whose browser does conditional mediation.
@@ -343,12 +394,19 @@ expensive per call, because it sends mail — but it does mean the limiter must 
 
 ## Still open
 
-1. **State 27 is only partly covered.** Signing in with a code on a device that already holds
-   a passkey still gets the enrollment offer. Closing it needs the server round-trip this
-   spec rejected.
+1. ~~**State 27 is only partly covered.** Signing in with a code on a device that already
+   holds a passkey still gets the enrollment offer.~~ **Closed 2026-09-01** by taking the
+   round trip this spec had rejected — see the amendment above for why the objection to it
+   stopped applying once the offer moved behind a session.
+1a. **The cross-device residue**, which item 1 did not name. A QR sign-in suppresses the
+   offer on the laptop in front of the visitor even though the credential is on their phone.
+   Accepted knowingly: the only narrower gate reads a client-supplied
+   `authenticatorAttachment`.
 2. **Where a counter regression should actually go.** `console.warn` is a placeholder for a
    sink that can be alerted on.
-3. **The rate-limiter fix**, above — scoped out, not resolved.
+3. **The rate-limiter fix**, above — scoped out, not resolved. It must now cover three call
+   sites, not two: `requestCode`, `submitCode`/`beginPasskeySignIn`, and
+   `reportCeremonyFailure`.
 4. **`AUTH_POLICY`'s thresholds are still placeholders** (`policy.ts`) and block 3.
 5. **No browser E2E exists**, so the one thing nobody can assert here is that a real
    authenticator on a real `Host` header signs in. Playwright's WebAuthn virtual

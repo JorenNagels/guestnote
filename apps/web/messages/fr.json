@@ -97,7 +97,7 @@
     },
     "enroll": {
       "title": "Vous connecter plus vite sur cet appareil ?",
-      "body": "Avec une passkey, vous vous connectez avec votre visage ou votre empreinte. Plus besoin d’e-mail.",
+      "body": "Avec une passkey, vous vous connectez avec votre visage, votre empreinte ou votre gestionnaire de mots de passe. Plus besoin d’e-mail.",
       "confirm": "Créer une passkey",
       "dismiss": "Pas maintenant"
     },

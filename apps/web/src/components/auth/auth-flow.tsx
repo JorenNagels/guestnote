@@ -6,13 +6,11 @@ import { Field } from '@guestnote/ui/field'
 import { InlineError } from '@guestnote/ui/inline-error'
 import { LiveRegion } from '@guestnote/ui/live-region'
 import { LocaleSwitcher } from '@guestnote/ui/locale-switcher'
-import { useEffect, useRef, useState, useTransition } from 'react'
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import type { Locale } from '../../lib/locales.ts'
 import { Wordmark } from '../brand/wordmark.tsx'
 import {
-  beginPasskeyEnrollment,
   beginPasskeySignIn,
-  finishPasskeyEnrollment,
   finishPasskeySignIn,
   reportCeremonyFailure,
   requestCode,
@@ -21,12 +19,14 @@ import {
   submitCode,
 } from './actions.ts'
 import { type AuthCopy, fill, splitAround } from './copy.ts'
+import { WELCOME_PARAM, WELCOME_PASSKEY } from './enrollment-prompt.tsx'
+import { KeyIcon } from './icons.tsx'
 import {
   conditionalMediationAvailable,
-  createPasskey,
   platformAuthenticatorAvailable,
   signInWithPasskey,
 } from './passkey.ts'
+import { reportingCatch } from './reporting.ts'
 import { Stage, type StageContent } from './stage.tsx'
 
 type Props = {
@@ -59,42 +59,33 @@ type Props = {
 type Rung = 0 | 1 | 2
 
 /**
- * Rung 2's own small machine, and **the thing that holds the redirect open.**
+ * How the session on rung 2 was obtained, and the only thing rung 2 still does with it.
  *
- * Before this existed, rung 2 rendered an enrollment offer and then navigated away 380ms
- * later, so the offer was on screen for about a fifth of a second: unreadable, and its two
- * buttons had no handlers to reach anyway. `settled` is the only state that lets the
- * redirect fire, and both buttons reach it -- which is what makes the offer a real fork in
- * the flow rather than a decoration the descent runs over.
+ * Until 2026-09-01 this gated an enrollment offer rendered here. It no longer does: the
+ * offer moved to `components/auth/enrollment-prompt.tsx` on the shell, which is where
+ * `auth-flow.tsx` said it belonged from the day it was written. What survives the move is
+ * this one fact, because the shell cannot derive it -- only this component knows which
+ * rung the visitor came off.
  *
- * `offered` is also where a *browser* failure returns to, so a visitor who dismisses the OS
- * sheet by accident can press the button again. A *server* failure goes to `settled`
- * instead: there is nothing to retry, and holding someone on a screen whose only action
- * cannot work is the dead end the fallback button below exists to prevent.
- */
-type Enrollment = 'offered' | 'working' | 'settled'
-
-/**
- * How the session on rung 2 was obtained, and the reason rung 2 needs to know.
+ * So it now decides one thing: whether `continueHref` carries `?welcome=passkey`. Someone
+ * who just signed in *with* a passkey plainly has one, and offering to create another
+ * produces an OS sheet that says "you already have one", which reads as the product not
+ * knowing what it just did.
  *
- * The surface brief's state 27 is "a passkey for this device exists -> never offer". This
- * answers the half of that we can know for free: someone who just signed in *with* a
- * passkey plainly has one, and offering to create another produces an OS sheet that says
- * "you already have one" -- which reads as the product not knowing what it just did.
+ * The half this cannot answer -- signing in with a code on a device that already holds a
+ * passkey -- is now answered on the server instead, by `hasPasskey()` in
+ * `(app)/layout.tsx`. That was rejected in docs/specs/0002 as "a query on every sign-in
+ * that leaks whether this account has a passkey to anyone who reaches rung 2"; behind the
+ * shell's session it is neither, because the only person who can read the answer is the
+ * account's owner. The spec is amended rather than silently overtaken.
  *
- * It does not cover the other half: signing in with a code on a device that already holds
- * a passkey. That needs a round trip asking whether this user has any credential, which was
- * rejected in docs/specs/0002 -- a query on every sign-in, and it leaks "this account has a
- * passkey" to anyone who reaches rung 2. Named there under "Still open" rather than left to
- * be rediscovered.
- *
- * It also over-reaches in one direction, accepted knowingly: a **cross-device** sign-in --
+ * It still over-reaches in one direction, accepted knowingly: a **cross-device** sign-in --
  * the QR flow `passkey.ts` deliberately does not suppress -- proves a passkey exists on a
- * *phone*, not on the laptop in front of the visitor, which is what state 27 actually keys
- * on. So that planner is never offered one here. Rejected the narrower gate on the
- * assertion's `authenticatorAttachment`, because `PasskeyAssertion` does not carry that
- * field and reading it would mean trusting a client-supplied value to decide what to show.
- * The cost is a missed offer on the rarest of the three paths.
+ * *phone*, not on the laptop in front of the visitor. So that planner gets no marker and no
+ * offer. Rejected the narrower gate on the assertion's `authenticatorAttachment`, because
+ * `PasskeyAssertion` does not carry that field and reading it would mean trusting a
+ * client-supplied value to decide what to show. The cost is a missed offer on the rarest of
+ * the three paths.
  */
 type SignedInWith = 'code' | 'passkey'
 
@@ -109,37 +100,6 @@ function prefersReducedMotion(): boolean {
 }
 
 const LOOKS_LIKE_EMAIL = /^[^@\s]+@[^@\s]+\.[^@\s]+$/
-
-/**
- * A `.catch` that reports before it swallows.
- *
- * **Every unreported `.catch` on this surface has cost a day of debugging**, and this is the
- * fourth one found: `verifyPasskeyRegistration` was blind, then `finishPasskeyEnrollment`'s
- * transport was blind, then `beginPasskeyEnrollment`'s was. Each time the fix was correct and
- * each time the next one along was still silent, because the pattern was written out by hand
- * at every call site and one of them always got missed.
- *
- * So the pattern is a function now. A Server Function that rejects means the POST never
- * reached the server or never came back -- the seam is never entered, so the seam's own
- * report cannot fire, and the browser ceremony never runs so its reporter cannot either. That
- * combination is exactly what leaves a `verifications` row with no passkey row and no log
- * line, which is the shape staging produced on 2026-08-19, 08-30, 08-31 twice, and again
- * after each partial fix.
- *
- * The report is fire-and-forget and its own failure is swallowed: it travels over the same
- * transport that just failed, so it may well not arrive either. CloudWatch gets the line
- * whenever the POST does land, which is what makes an intermittent transport fault visible.
- */
-function reportingCatch<T>(stage: 'enroll' | 'signin', step: string, fallback: T) {
-  return (error: unknown): T => {
-    void reportCeremonyFailure(
-      stage,
-      'ActionTransport',
-      `${step}: ${error instanceof Error ? `${error.name}: ${error.message}` : String(error)}`,
-    ).catch(() => {})
-    return fallback
-  }
-}
 
 /**
  * The whole passkey sign-in ceremony, both paths, as three outcomes.
@@ -185,7 +145,7 @@ async function runPasskeySignIn(init?: {
     },
   })
   // A `SilentPasskeyOutcome` is a string; an assertion is an object. Narrowed on the shape
-  // rather than a flag, the same way `onEnroll` narrows -- it keeps passkey.ts's "every
+  // rather than a flag, the same way `enrollment-prompt.tsx` narrows -- it keeps passkey.ts's "every
   // silent outcome is one outcome" promise from needing a second representation here.
   if (typeof assertion === 'string') return 'silent'
 
@@ -258,11 +218,12 @@ export function AuthFlow({
   // replaced conflated them, and rung 2 offered a passkey to devices with no authenticator
   // to store one in.
   //
-  // Neither is the whole gate any more: `showPasskeyControl` and `offerEnrollment` below
-  // each add their own terms, and those two consts are where the current rules live.
+  // Neither is the whole gate: `showPasskeyControl` below adds its own terms, and that
+  // const is where the current rule lives. `platformAvailable` kept a second reader --
+  // rung 2's enrollment offer -- until that moved to the shell on 2026-09-01 and started
+  // asking the browser itself.
   const [conditionalAvailable, setConditionalAvailable] = useState(false)
   const [platformAvailable, setPlatformAvailable] = useState(false)
-  const [enrollment, setEnrollment] = useState<Enrollment>('offered')
   const [signedInWith, setSignedInWith] = useState<SignedInWith>('code')
   // Not `startTransition`: `onGoogle` ends in a full-page navigation to Google, so the
   // transition would never resolve. A plain flag disables the button while the URL is
@@ -471,7 +432,7 @@ export function AuthFlow({
    * Same ceremony as the effect above with one difference: no `mediation`, so the OS sheet
    * opens immediately rather than waiting inside an autofill list this browser cannot draw.
    *
-   * Not wrapped in `startTransition`, for the reason `onEnroll` gives: the middle hop is a
+   * Not wrapped in `startTransition`, for the reason `enrollment-prompt.tsx` gives: the middle hop is a
    * sheet waiting on a face or a finger, which can sit there for half a minute, and a React
    * transition should not be held open for the length of a human decision. `passkeyPending`
    * is the busy signal instead -- and it doubles as the "we are waiting" state the surface
@@ -528,65 +489,6 @@ export function AuthFlow({
   }
 
   /**
-   * Run the enrollment ceremony. Three hops, two of them across the network.
-   *
-   * Not wrapped in `startTransition`, unlike every other action on this surface, and
-   * deliberately: the middle hop is an OS sheet waiting for a face or a finger, which can
-   * sit there for half a minute. `enrollment` is the busy signal instead, so a React
-   * transition is not held open for the length of a human decision.
-   *
-   * Every failure is silent -- no message, no red -- per `SilentPasskeyOutcome`. What
-   * differs is only where it lands: back on the offer when the browser or the visitor said
-   * no, and straight to `settled` when the server did, because that one has nothing to
-   * retry.
-   */
-  async function onEnroll() {
-    setEnrollment('working')
-
-    const challenge = await beginPasskeyEnrollment().catch(
-      reportingCatch('enroll', 'beginPasskeyEnrollment', { ok: false } as const),
-    )
-    if (!challenge.ok) {
-      setEnrollment('settled')
-      return
-    }
-
-    const created = await createPasskey(challenge.options, (failure) => {
-      void reportCeremonyFailure('enroll', failure.name, failure.message).catch(() => {})
-    })
-    // A `SilentPasskeyOutcome` is a string; an attestation is an object. Narrowing on the
-    // shape rather than a flag keeps the "every silent outcome is one outcome" promise in
-    // passkey.ts from needing a second representation here.
-    if (typeof created === 'string') {
-      setEnrollment('offered')
-      return
-    }
-
-    // Settled either way, and that is not a shrug. A verification failure means the server
-    // rejected an attestation it had itself challenged -- a counter regression, a bad origin,
-    // a cloned authenticator. None of those get better by pressing the button again, and
-    // `SilentPasskeyOutcome` forbids saying which one it was, so the only honest move left is
-    // to let them into the dashboard they are already signed in to.
-    /**
-     * The last blind spot on this path, and the one the instrumentation missed twice.
-     *
-     * This `catch` swallows a *transport* failure -- the Server Function never reaching the
-     * server at all, or answering non-2xx. When that happens the seam is never entered, so
-     * `verifyPasskeyRegistration`'s report never runs, and `createPasskey` succeeded so the
-     * ceremony reporter never runs either. Both instrumented paths sit on the far side of
-     * exactly this line, which is why an enrollment could fail on staging leaving a
-     * challenge row, no passkey row, and no log line anywhere (2026-08-19 to 2026-08-31).
-     *
-     * `ok: false` from the seam is NOT reported here -- that already produced a report
-     * inside the seam, and reporting again would double-count. Only the throw is ours.
-     */
-    await finishPasskeyEnrollment(created).catch(
-      reportingCatch('enroll', 'finishPasskeyEnrollment', { ok: false }),
-    )
-    setEnrollment('settled')
-  }
-
-  /**
    * "Continue with Google": ask the server for the outbound URL, then navigate to it.
    *
    * A real navigation, not a transition -- the OAuth flow leaves the app entirely and comes
@@ -612,80 +514,82 @@ export function AuthFlow({
   }
 
   /**
-   * Whether rung 0 draws an explicit passkey control, and whether rung 2 may offer to
-   * create one. Two questions, one shared capability answer -- see the state above.
+   * Whether rung 0 draws an explicit passkey control.
+   *
+   * `!boundEmail && !blocked`: an invitation must not offer a way to sign in as somebody
+   * else, and a blocked one has no form at all. The `blocked` term is belt to the JSX's
+   * braces -- this control already renders inside the `blocked ? … : …` false branch, so it
+   * is unreachable there either way. Stated here anyway so the rule lives in one place and
+   * matches the conditional effect above, which has no JSX to hide behind and where its
+   * absence was a real bug.
+   *
+   * This used to have a sibling, `canEnroll`, sharing the same capability answer for rung
+   * 2's enrollment offer. That offer moved to the shell on 2026-09-01 and took its gate
+   * with it -- `platformAuthenticatorAvailable()` is now asked again in
+   * `enrollment-prompt.tsx`, on the device that would keep the credential, which is the
+   * only place the answer means anything.
    */
-  // `!boundEmail && !blocked` on the control and not on `canEnroll`: an invitation must not
-  // offer a way to sign in as somebody else, and a blocked one has no form at all -- but
-  // once the invited person HAS signed in, rung 2's enrollment offer is about the device in
-  // their hands and is exactly as welcome as on any other first sign-in.
-  //
-  // The `blocked` term is belt to the JSX's braces: this control already renders inside the
-  // `blocked ? … : …` false branch, so it is unreachable there either way. Stated here
-  // anyway so the rule lives in one place and matches the conditional effect above, which
-  // has no JSX to hide behind and where its absence was a real bug.
   const showPasskeyControl =
     passkeysEnabled && platformAvailable && !conditionalAvailable && !boundEmail && !blocked
-  const canEnroll = passkeysEnabled && platformAvailable
 
   /**
-   * Whether rung 2 offers to create a passkey -- capability, **and** whether one was just
-   * used.
+   * Where rung 2 hands off, with the marker that opens the shell's enrollment offer.
    *
-   * `canEnroll` alone answers "could this device keep a passkey". It cannot answer "should
-   * we ask", and it was the whole gate until this feature landed -- harmless while nobody
-   * could sign in with a passkey at all, and wrong the moment they could: someone who signed
-   * in with their face would have been offered a passkey, and the OS sheet would have told
-   * them they already had one. That is reasoned from the plugin sending `excludeCredentials`
-   * on enrollment, not measured -- nobody ever saw it, because sign-in did not exist. See
-   * `SignedInWith` for the two halves of the brief's state 27 this still does not reach.
+   * The whole of what this component now contributes to enrollment: it knows which rung the
+   * visitor came off and the shell does not. Everything else -- can this device keep a
+   * passkey, does this user already have one, and the ceremony itself -- is decided over
+   * there. See `SignedInWith`.
    *
-   * It gates the redirect timer as well as the card, and it has to: rung 2 holds itself
-   * open only while there is an offer standing on it, so a gate that hid the card without
-   * releasing the timer would leave a blank screen waiting on a button nobody can see.
+   * Parsed rather than string-concatenated, because `continueHref` is a prop and `/invite`
+   * passes its own: a bare `+ '?welcome=passkey'` silently produces a second `?` the day one
+   * of them grows a query. The base is `location.href` -- a relative href resolves against
+   * the current document, which is what a browser would do with it anyway -- and only the
+   * path and query come back out, because `routes.ts` requires a href to be the path the
+   * browser shows.
    */
-  const offerEnrollment = canEnroll && signedInWith !== 'passkey'
+  // `useCallback` so the redirect effect below can depend on it honestly rather than on its
+  // two inputs with a suppression -- a hand-listed dependency array is exactly how the
+  // `copy`-identity retrigger loop above got written in the first place.
+  const arrivalHref = useCallback((): string => {
+    // `passkeysEnabled` as well as the rung: a deployment that cannot verify a passkey has
+    // no offer for the shell to draw, and a URL advertising a feature that does not exist is
+    // a small lie the shell would then have to see through. It is the same answer the
+    // server gate reaches independently -- cheap here, and it keeps the marker meaning
+    // exactly what it says.
+    if (!passkeysEnabled || signedInWith === 'passkey') return continueHref
+    const url = new URL(continueHref, window.location.href)
+    url.searchParams.set(WELCOME_PARAM, WELCOME_PASSKEY)
+    return `${url.pathname}${url.search}`
+  }, [continueHref, passkeysEnabled, signedInWith])
 
   /**
-   * Rung 2 leaves on its own -- **unless there is an enrollment offer standing on it.**
+   * Rung 2 leaves on its own.
    *
    * Signing in ends in the dashboard, not on a screen that congratulates you for signing
    * in. Rung 2 is a transition, not a destination -- long enough for the ground to finish
    * its last step so the descent resolves rather than being cut off, and no longer.
    *
-   * An effect rather than a `setTimeout` inside `onVerify`, which is where this used to
-   * live, because the decision depends on `platformAvailable` and that answer can arrive
-   * after the code was submitted. Reading it once at submit time meant a slow capability
-   * check silently skipped the offer; here a late answer re-runs the effect and the cleanup
-   * cancels the redirect that was already in flight.
+   * **It used to be held open by an enrollment offer standing on it, and nothing holds it
+   * now.** That hold existed because the offer was rendered here and a 380ms redirect ran
+   * straight over it. With the offer on the shell there is nothing on this rung to wait
+   * for, and the rule it enforced -- never navigate away from an outstanding write -- moved
+   * with the ceremony to `enrollment-prompt.tsx`, which is the file that now has a write to
+   * protect.
    *
-   * The button below stays as the fallback either way: if this navigation is blocked or
-   * slow, a dead end is worse than a redundant control.
+   * An effect rather than a `setTimeout` inside `onVerify`: the cleanup cancels a redirect
+   * already in flight if the rung changes underneath it, which a bare timeout could not.
+   *
+   * The button below stays as the fallback: if this navigation is blocked or slow, a dead
+   * end is worse than a redundant control.
    */
   useEffect(() => {
     if (rung !== 2) return
-
-    /**
-     * Hold while a ceremony is outstanding, ahead of the offer check.
-     *
-     * Defence in depth, and stated as such: it is **not** what fixed enrollment. The
-     * navigation that broke it for eleven days was not this timer at all -- it was a server
-     * redirect, see `login/page.tsx`. A mutation removing this line still passes the suite,
-     * because in this component `offerEnrollment` is always true wherever the card is
-     * clickable, so the check below already covers every reachable path.
-     *
-     * Kept anyway because `offerEnrollment` is one term away from not covering it -- it has
-     * already grown two -- and "never navigate away from an outstanding write" is the rule,
-     * while "an offer is drawable" is a proxy for it that happens to coincide today.
-     */
-    if (enrollment === 'working') return
-    if (offerEnrollment && enrollment !== 'settled') return
     const id = window.setTimeout(
-      () => window.location.assign(continueHref),
+      () => window.location.assign(arrivalHref()),
       prefersReducedMotion() ? 0 : DESCENT_MS,
     )
     return () => window.clearTimeout(id)
-  }, [rung, offerEnrollment, enrollment, continueHref])
+  }, [rung, arrivalHref])
 
   const stepLabel =
     rung === 0 ? copy.steps.public : rung === 1 ? copy.steps.verifying : copy.steps.private
@@ -895,52 +799,18 @@ export function AuthFlow({
                 <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
                   {copy.arrive.body}
                 </p>
-                <Button className="mt-1" onClick={() => window.location.assign(continueHref)}>
+                {/* The fallback for a blocked or slow auto-redirect, and it carries the
+                    same href the timer does -- including the `?welcome=passkey` marker.
+                    Two paths off this rung, one destination; `arrivalHref` is where that
+                    is decided so it cannot be decided twice differently. */}
+                <Button className="mt-1" onClick={() => window.location.assign(arrivalHref())}>
                   {copy.arrive.continue}
                 </Button>
 
-                {/* The enrollment prompt belongs to the post-login success moment, which is
-                  the shell's, not this surface's -- prompting mid-sign-in converts worse.
-                  It is rendered here only while there is no shell to host it. M3 moves it.
-
-                  Gated on `offerEnrollment`, which is `canEnroll` plus "they did not just
-                  use a passkey" -- see that const. `canEnroll` itself was already narrower
-                  than `passkeysEnabled`, which is what this used to be: the deployment
-                  being able to verify a passkey says nothing about this device having an
-                  authenticator to keep one in, and offering "use your face or fingerprint"
-                  to a desktop with neither is an offer that can only fail.
-
-                  It disappears once `settled`, so the moment either button resolves the
-                  screen is the plain arrive screen again for the instant before it leaves. */}
-                {offerEnrollment && enrollment !== 'settled' && (
-                  <div className="mt-7 rounded-[var(--radius)] border-input border p-4">
-                    <h2 className="mb-1 text-sm font-semibold">{copy.enroll.title}</h2>
-                    <p className="mb-3.5 text-xs leading-relaxed text-muted-foreground">
-                      {copy.enroll.body}
-                    </p>
-                    <Button
-                      className="h-9"
-                      icon={<KeyIcon />}
-                      busy={enrollment === 'working'}
-                      busyLabel={copy.busy.enrolling}
-                      onClick={() => void onEnroll()}
-                    >
-                      {copy.enroll.confirm}
-                    </Button>
-                    {/* Disabled rather than hidden while the ceremony runs. The OS sheet is
-                      modal over the page anyway, and a control that vanishes mid-request
-                      reads as the tap having failed -- the same argument button.tsx makes
-                      for never collapsing a busy button. */}
-                    <Button
-                      variant="secondary"
-                      className="mt-2 h-8"
-                      disabled={enrollment === 'working'}
-                      onClick={() => setEnrollment('settled')}
-                    >
-                      {copy.enroll.dismiss}
-                    </Button>
-                  </div>
-                )}
+                {/* No enrollment offer here any more. It is the shell's, as this file always
+                    said it should be -- `components/auth/enrollment-prompt.tsx`, reached by
+                    the marker on the href above. Moved 2026-09-01, which is also what let
+                    `login/page.tsx` have its redirect back. */}
               </>
             )}
           </div>
@@ -960,22 +830,6 @@ export function AuthFlow({
 
       <Stage rung={rung} content={stage} />
     </div>
-  )
-}
-
-function KeyIcon() {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.4"
-      aria-hidden="true"
-      className="size-3.5"
-    >
-      <rect x="2.5" y="6.5" width="11" height="7.5" rx="1.6" />
-      <path d="M5.2 6.5V4.4a2.8 2.8 0 015.6 0v2.1" />
-    </svg>
   )
 }
 

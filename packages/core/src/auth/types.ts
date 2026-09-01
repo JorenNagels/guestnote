@@ -204,12 +204,27 @@ export type PasskeyRegistration = {
  *
  * ## What is missing from this type, on purpose
  *
- * There is no user id and no email, and `allowCredentials` will in practice be **absent**
- * on every sign-in this product performs. Better Auth only populates it when a session
- * already exists (measured on the installed @better-auth/passkey 1.7.1), so an
- * unauthenticated assertion is always against a *discoverable* credential -- the
- * authenticator itself decides which account it is offering, and the address typed into
- * the field is never sent anywhere.
+ * There is no user id and no email, and `allowCredentials` is **absent for the
+ * unauthenticated visitor**, which is every sign-in this product performs. Better Auth
+ * populates it only when a session already exists (read off the installed
+ * @better-auth/passkey 1.7.1: it looks the user's passkeys up from
+ * `getSessionFromCtx(ctx)`), so an unauthenticated assertion is always against a
+ * *discoverable* credential -- the authenticator itself decides which account it is
+ * offering, and the address typed into the field is never sent anywhere.
+ *
+ * **That premise depends on a redirect two packages away, and it stopped holding for one
+ * day.** `beginPasskeySignIn` runs on mount of the login page, so "no session exists" is
+ * true only because `login/page.tsx` sends a signed-in visitor to the dashboard. That guard
+ * was removed on 2026-08-31 to unblock enrollment and restored on 2026-09-01, and in between
+ * a signed-in visitor at `/login` got a populated `allowCredentials` -- on a shared laptop,
+ * the autofill sheet quietly narrowed to whoever was signed in last, and anyone else fell
+ * back to an email code with nothing on screen saying why. Nothing leaked: the ids returned
+ * are the session owner's own, and `verifyPasskeyAssertion` mints the session from the
+ * *stored* credential's `userId` and never reads anything the caller sent.
+ *
+ * Found by `tenancy-auditor` 2026-09-01. Recorded rather than fixed in the browser half,
+ * because the fix is the redirect being back -- suppressing the symptom here would mean
+ * reading the session on the login page again, which is the read that page just removed.
  *
  * That is what forces `residentKey: 'required'` on enrollment over in `better-auth.ts`: a
  * non-discoverable credential would enrol perfectly and then be unofferable here, with

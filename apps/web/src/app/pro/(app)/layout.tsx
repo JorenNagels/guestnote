@@ -48,15 +48,33 @@ import { app } from '../../../lib/routes.ts'
  * rejected alternatives.
  */
 export default async function AppShellLayout({ children }: { children: ReactNode }) {
-  const session = await getAuth().getSession(await headers())
+  const requestHeaders = await headers()
+  const session = await getAuth().getSession(requestHeaders)
   if (!session) redirect(app.loginAfterExpiry())
 
-  const [orgId, orgs, store, locale, t] = await Promise.all([
+  const [orgId, orgs, store, locale, t, authT, hasPasskey] = await Promise.all([
     currentOrgId(),
     currentOrgs(),
     cookies(),
     getLocale(),
     getTranslations('app'),
+    getTranslations('auth'),
+    /**
+     * Whether this user already holds a passkey -- the half of the enrollment offer's gate
+     * that only the server can answer, and the one rung 2 of sign-in could never ask.
+     *
+     * In the `Promise.all` and not behind an `if (welcome)`: a layout cannot read search
+     * params at all (Next gives them to pages only), so the marker that decides whether the
+     * prompt is *shown* is read client-side in `enrollment-prompt.tsx`. The cost is one
+     * extra query per dashboard render, paid by everyone who has no passkey yet and
+     * disappearing for good the moment they enrol -- and it is concurrent with four reads
+     * already happening, so it adds a round trip's latency to none of them.
+     *
+     * Rejected: `beginPasskeyEnrollment` failing loudly instead. Every passkey failure on
+     * this path renders as nothing, by design, so "offer it and find out" means offering
+     * something that silently does nothing to the people who least need it.
+     */
+    getAuth().hasPasskey(requestHeaders),
   ])
 
   const current = orgs.find((o) => o.id === orgId)
@@ -67,6 +85,7 @@ export default async function AppShellLayout({ children }: { children: ReactNode
       org={current}
       orgs={orgs}
       user={{ name: session.name, email: session.email }}
+      offerPasskey={getAuth().passkeysAvailable() && !hasPasskey}
       initialNav={parseNavState(store.get(NAV_COOKIE)?.value)}
       // Narrowed through `isLocale`, not cast. `getLocale()` is typed `string`, and
       // next-intl can only ever return a configured locale -- but `as Locale` was a bare
@@ -95,6 +114,16 @@ export default async function AppShellLayout({ children }: { children: ReactNode
           densityComfortable: t('account.densityComfortable'),
           densityCompact: t('account.densityCompact'),
           signOut: t('signOut'),
+        },
+        // Reused verbatim from the sign-in surface rather than duplicated under `app.*`:
+        // it is the same offer in the same words, and the copy correction that widened it
+        // beyond "face or fingerprint" should never have to be made twice.
+        enroll: {
+          title: authT('enroll.title'),
+          body: authT('enroll.body'),
+          confirm: authT('enroll.confirm'),
+          dismiss: authT('enroll.dismiss'),
+          busy: authT('busy.enrolling'),
         },
         palette: {
           open: t('nav.search'),

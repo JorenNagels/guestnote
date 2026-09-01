@@ -2,11 +2,12 @@
 
 import { cx } from '@guestnote/ui/cx'
 import { useParams, usePathname } from 'next/navigation'
-import { type ReactNode, useEffect, useRef, useState, useTransition } from 'react'
+import { type ReactNode, Suspense, useEffect, useRef, useState, useTransition } from 'react'
 import { setNavCollapsed, weddingHeader } from '../../app/pro/(app)/actions.ts'
 import type { Locale } from '../../lib/locales.ts'
 import type { Density, NavState, Theme } from '../../lib/prefs.ts'
 import { app } from '../../lib/routes.ts'
+import { type EnrollmentLabels, EnrollmentPrompt } from '../auth/enrollment-prompt.tsx'
 import { AccountMenu } from './account-menu.tsx'
 import { CloseIcon, CollapseIcon, MenuIcon, OverviewIcon, WeddingsIcon } from './icons.tsx'
 import { NavAction, NavItem } from './nav-item.tsx'
@@ -25,6 +26,7 @@ export type ShellLabels = {
   org: { switch: string; current: string }
   account: Parameters<typeof AccountMenu>[0]['labels']
   palette: PaletteLabels
+  enroll: EnrollmentLabels
 }
 
 export type ShellWedding = { id: string; name: string; date: string | null }
@@ -70,6 +72,7 @@ export function Shell({
   org,
   orgs,
   user,
+  offerPasskey,
   initialNav,
   locale,
   theme,
@@ -80,6 +83,12 @@ export function Shell({
   org: OrgOption
   orgs: OrgOption[]
   user: { name: string | null; email: string }
+  /**
+   * Whether this user could still be offered a passkey: the deployment can verify one and
+   * they hold none yet. Resolved on the server because only the server can ask the second
+   * half -- see `enrollment-prompt.tsx`, which owns the other two gates.
+   */
+  offerPasskey: boolean
   initialNav: NavState
   locale: Locale
   theme: Theme
@@ -290,6 +299,26 @@ export function Shell({
         {/* `inert` while the drawer is open: it takes the whole region out of the tab order
             and out of the accessibility tree in one attribute, which is the focus trap. */}
         <main className="min-w-0 flex-1">{children}</main>
+
+        {/* The post-login passkey offer, and the reason it is a sibling of `<main>` INSIDE
+            this column rather than a sibling of the column: the column is what carries
+            `inert` while the drawer is open, and a prompt outside it would stay tabbable
+            underneath the drawer -- the exact bug the `inert` placement note above records
+            about the phone header.
+
+            `Suspense` because `EnrollmentPrompt` calls `useSearchParams`, which Next
+            client-side-renders up to the closest boundary; without one a production build
+            of any prerendered route above this fails outright. Nothing to show while it
+            resolves -- an empty box where an offer might appear is worse than the offer
+            arriving a beat late -- so the fallback is `null`.
+
+            Gated on `offerPasskey` here so the component is not even mounted for a planner
+            who already has a passkey; its own two gates handle the rest. */}
+        {offerPasskey ? (
+          <Suspense fallback={null}>
+            <EnrollmentPrompt labels={labels.enroll} />
+          </Suspense>
+        ) : null}
       </div>
 
       {drawer ? (
