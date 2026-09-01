@@ -162,7 +162,8 @@ export default $config({
         runtime: 'nodejs22.x',
         architecture: 'arm64',
         memory: '1536 MB',
-
+      },
+      transform: {
         /**
          * JSON logs, so CloudWatch Logs Insights can filter on fields instead of grepping
          * strings.
@@ -174,13 +175,34 @@ export default $config({
          * `json` it is queryable structure, which is the difference between "did enrollment
          * fail" and "how many times, with which reason".
          *
-         * `retention` is stated rather than left implicit, and the value is SST's own
-         * default -- one month is right for a pre-launch app, and writing it down means a
-         * future SST changing its default cannot quietly change ours. Not shortened: the
-         * failure that started this took eleven days to notice, and a two-week window would
-         * have aged out half the evidence.
+         * ## Why this is in `transform` and not in `server`, where it was
+         *
+         * **Because `server.logging` is silently dropped.** `SsrSite` builds the server
+         * `Function` from an explicit allow-list of `args.server` fields -- `runtime`,
+         * `memory`, `architecture`, `install`, `loader`, `layers`, `timeout`, `edge` -- and
+         * `logging` is not among them (read off `.sst/platform/src/components/aws/ssr-site.ts`
+         * in SST 3.19.3, 2026-09-01). It was set there from 2026-08-29, and the deployed
+         * function reported `LogFormat: "Text"` throughout; a commit message claiming JSON
+         * logs were in effect was wrong.
+         *
+         * The `retention` half looked like it had applied, and that was a coincidence rather
+         * than evidence: `Function`'s own default is `{ retention: "1 month", format: "text" }`,
+         * so the value we asked for was the value we would have got anyway. Two settings, one
+         * passed through by accident and one dropped, is exactly the shape that makes a
+         * silent failure read as a working feature.
+         *
+         * `transform.server` reaches the `Function` args directly, where `logging.format`
+         * *is* honoured (`logFormat: "JSON"`). Verify after a deploy, do not assume:
+         * `aws lambda get-function-configuration --function-name <fn> --query LoggingConfig`.
+         *
+         * Retention is stated rather than left implicit even though it matches the default:
+         * a future SST changing its default must not quietly change ours. Not shortened --
+         * the failure that started this took eleven days to notice, and a two-week window
+         * would have aged out half the evidence.
          */
-        logging: { format: 'json', retention: '1 month' },
+        server: (args) => {
+          args.logging = { format: 'json', retention: '1 month' }
+        },
       },
       // Warmer OFF for now. The dashboard is the only warm-path consumer and a ~1 s cold
       // start is acceptable for an invite-only tester audience; keeping it off also keeps

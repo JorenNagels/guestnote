@@ -59,19 +59,34 @@ Babel with it. Two lines in `vitest.config.ts` replace it — and note that the 
 is keyed `oxc`, not `esbuild`, because Vitest 4 builds on Vite 8. `esbuild` still
 typechecks as a config key there and is silently ignored.
 
-The sign-in flow is the most covered surface in the repo, because it is currently the only
-one built. Roughly 190 assertions across six files: the pure helpers (`fill`, `splitAround`,
-`secondsRemaining`, the rolling specimen date), the three Server Functions with the auth
-seam mocked, the passkey capability checks — tested **twice**, once per environment, since
-the `typeof window === 'undefined'` branch is unreachable in jsdom and the browser matrix is
-unreachable in node — and `auth-flow.tsx` itself, all three rungs, rendered against the real
-`Field`, `Button` and `LiveRegion` rather than mocked ones.
+The sign-in flow is still the most covered surface in the repo, though no longer the only
+one built — the planner dashboard shipped 2026-08-21 (`docs/specs/0001`) and the passkey
+ladder finished on 2026-09-01 (`docs/specs/0002`). `npm test` runs **696 assertions across
+31 files** as of 2026-09-01; roughly 350 of them are the auth surface: the pure helpers
+(`fill`, `splitAround`, `secondsRemaining`, the rolling specimen date), the Server Functions
+with the auth seam mocked, the passkey capability checks — tested **twice**, once per
+environment, since the `typeof window === 'undefined'` branch is unreachable in jsdom and the
+browser matrix is unreachable in node — `auth-flow.tsx` itself, all three rungs, rendered
+against the real `Field`, `Button` and `LiveRegion` rather than mocked ones, and
+`enrollment-prompt.tsx`, which is where the passkey enrollment ceremony now lives.
+
+Counts in this file have drifted before. Regenerate rather than adjust: `npm test` prints
+both numbers on the last two lines.
 
 **Assertions are checked by mutation, not by going green.** Every guard in `proxy.ts` was
 deleted in turn to confirm its test fails; two assertions that passed against a broken
 proxy were rewritten, and the cases that *cannot* be isolated are named as such in comments
 where they sit. A test nobody has seen fail is a test nobody has tested. The same sweep ran
 over `auth-flow.tsx`: 9 of 10 mutations caught.
+
+**And the sweep is only as good as where it is pointed.** A second pass on 2026-09-01 —
+after passkey sign-in landed — aimed at the *instrumentation* rather than the flow, and
+caught **0 of 11**: the enrollment ceremony's failure reporter, `createPasskey`'s ceremony
+timeout, `reportCeremonyFailure`'s three input clamps, `reportSilentFailure`'s scrub of the
+vendor payload, and `scrub`'s depth cap could each be deleted with the whole suite green.
+The code built to stop the next eleven-day silence was the least-tested code in the repo,
+because every sweep so far had been aimed at the thing the tests were written for. All
+eleven now have assertions that fail when the code breaks.
 
 Two deliberately-defensive branches are documented as unreachable rather than papered over:
 the marketing `/api/` guard in `proxy.ts` (subsumed by the unknown-locale guard three lines

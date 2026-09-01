@@ -61,9 +61,17 @@ export function reportSilentFailure(message: string, context: Record<string, unk
   const safe = scrub(context)
 
   // `warn`, not `error`: every one of these is a path the product recovers from, and
-  // reserving `error` for genuine faults keeps a CloudWatch metric filter useful later.
-  // JSON log format is set in sst.config.ts so this object stays queryable in Logs Insights
-  // rather than collapsing to a string.
+  // reserving `error` for genuine faults keeps a CloudWatch metric filter useful later. The
+  // `[silent-failure] ` prefix is what such a filter would match on, so it is output and not
+  // decoration -- `observability.test.ts` asserts it.
+  //
+  // JSON log format is set in `sst.config.ts` so this object stays queryable in Logs
+  // Insights rather than collapsing to a string. That sentence was false from 2026-08-29 to
+  // 2026-09-01: it was configured under `server.logging`, which `sst.aws.Nextjs` drops
+  // without a word, and the deployed function logged `Text` the whole time. It is set
+  // through `transform.server` now, which does reach the Lambda. Read the config back after
+  // a deploy rather than trusting this line -- the last reader of it was wrong for eleven
+  // days about the very failure this file exists to make visible.
   console.warn(`[silent-failure] ${message}`, safe)
 
   reporter?.(message, safe)

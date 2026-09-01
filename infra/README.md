@@ -178,10 +178,20 @@ aws iam get-role --role-name GuestnoteDeployRole --profile guestnote \
 Add the repo secret: `gh secret set AWS_ACCOUNT_ID --body 929219061071`.
 
 `GuestnoteDeployRole` carries `AdministratorAccess` (SST's recommendation for a self-hosted
-CI role). The trust policy pins it to this repo (`repository` + `repository_owner`) and the
-two stage environments, so a botched `GitHubSub` edit cannot widen it beyond the repo — but
-any deploy run has admin on the account through it, and for `production` the environment's
-required reviewer is the only gate. Least-privilege scoping is [deferred](#deferred).
+CI role). The trust policy pins it on `aud` and **`sub` only**, to the two stage environments
+of this repo. **`sub` is the whole boundary**, so a botched `GitHubSub` edit is exactly what
+*can* widen it — read it back with the `get-role` command above after every change, and never
+trust `deploy`'s exit code, which is 0 on "No changes".
+
+This paragraph said the opposite until 2026-09-01 — that the policy also pinned `repository`
+and `repository_owner`, and that those made a botched `GitHubSub` harmless. It contradicted
+the ⚠️ callout in §4 above, ADR 0006, and `infra/github-oidc.yaml`'s own comment, all three
+of which already had it right; one file gave two answers about a security control, and this
+was the half that was wrong. Read the callout above before touching the trust policy.
+
+Any deploy run has admin on the account through this role, and for `production` the
+environment's required reviewer is the only gate. Least-privilege scoping is
+[deferred](#deferred).
 
 ### 4b. GitHub Environment protection
 
