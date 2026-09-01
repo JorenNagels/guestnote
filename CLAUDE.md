@@ -21,7 +21,7 @@ warning once let `npm install` write a dependency into `package.json` without in
 | `packages/core/src/auth/` | The auth seam. `better-auth.ts` is the only provider contact. |
 | `packages/ui/` | Presentational primitives, one export path per public file. |
 | `packages/email/` | The mail seam. `ses.ts` is the only AWS SDK contact. |
-| `apps/web/src/proxy.ts` | The only file that reads the request's hostname. (`lib/app-url.ts` composes the app origin for cross-host links.) |
+| `apps/web/src/proxy.ts` | The only file that reads the request's hostname. (`lib/app-url.ts` composes the app origin for cross-host links.) Its matcher's exclusion list is a promise those files exist — see invariant 13. |
 | `apps/web/src/env.ts` | The only file that reads `process.env`. |
 | `docs/adr/` | Decisions that were **measured**. Supersede `research/` where they overlap. |
 | `docs/specs/` | What a feature must do, settled by interrogation **before** it is built. Written by `/feature`. |
@@ -141,7 +141,23 @@ stop and ask. The rest are held by convention alone, which is why they are writt
     mechanism**: it is in neither `biome.json` nor `no-unsafe-imports.test.ts`, which is
     exactly why it is here. `packages/email/README.md` and ADR 0004 have the numbers.
 
-12. **Every write to the apex `TXT` record set must carry all three of its values.** Route 53
+12. **A name excluded from `proxy.ts`'s matcher must exist in `apps/web/public/`.** The
+    exclusions are `_next/static`, `_next/image`, `favicon.ico`, `robots.txt` and
+    `sitemap.xml`. Excluding a name means nothing rewrites it and nothing 404s it early, so a
+    missing file falls through to the router, where `[locale]` is a top-level dynamic segment
+    and matches it — and `(marketing)/[locale]/layout.tsx` is a ROOT layout, whose
+    `notFound()` has no boundary above it and renders a **500, not a 404** -- that layout's
+    own comment records the measurement. `/favicon.ico` was a 500 on every deployed page load
+    from 2026-08-19 to 2026-09-01 for exactly this reason (staging Lambda log, alongside
+    `Page changed from static to dynamic at runtime /favicon.ico, reason: headers`),
+    dismissed three times as log noise. `robots.txt` and `sitemap.xml` are still missing and
+    take the same route; locally they 404, and the deployed behaviour has not been read back.
+    The mirror of this — a file in `public/` that is NOT
+    excluded gets rewritten to `/pro/<file>` and 404s — is why `wordmark.tsx` inlines the
+    mark. **This one has no mechanism**, in either direction; both are recorded in
+    `proxy.ts`'s matcher comment.
+
+13. **Every write to the apex `TXT` record set must carry all three of its values.** Route 53
     replaces a record set on write, so an `UPSERT` naming only the record you want silently
     deletes the others. `guestnote.be` `TXT` holds `google-site-verification=…`,
     `zoho-verification=…` and `v=spf1 include:zohomail.eu ~all` as of 2026-08-19; dropping

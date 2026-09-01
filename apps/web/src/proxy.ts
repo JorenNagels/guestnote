@@ -72,9 +72,27 @@ export const config = {
     //
     // KNOWN CONSEQUENCE, measured 2026-08-18: a file in `public/` is none of the five
     // exclusions below, so on the app host `/logo.svg` is rewritten to `/pro/logo.svg`
-    // and 404s. It has not bitten yet only because this app serves no public assets --
-    // src/components/brand/wordmark.tsx inlines the mark rather than fetching it. The
-    // first asset that genuinely has to be a file needs an entry here.
+    // and 404s. `src/components/brand/wordmark.tsx` inlines the mark rather than fetching
+    // it for exactly this reason. The first asset that genuinely has to be a file needs an
+    // entry here.
+    //
+    // THE MIRROR OF THAT, and a 500 on every deployed page load from 2026-08-19 until
+    // 2026-09-01: excluding a name here without shipping the file is worse than not
+    // excluding it. `/favicon.ico` was excluded and `public/favicon.ico` did not exist, so
+    // nothing rewrote it and nothing 404'd it early -- it fell through to the router, where
+    // `[locale]` is a top-level dynamic segment and matched it. `(marketing)/[locale]`'s
+    // ROOT layout then called `notFound()` on a non-locale, which from a root layout has no
+    // boundary above it and renders a 500. In CloudWatch that was `Page changed from static
+    // to dynamic at runtime /favicon.ico, reason: headers` on every request. Dismissed as
+    // noise three times during the passkey debugging.
+    //
+    // So the three conventional names below are a promise that those files exist.
+    // `favicon.ico` now does. `robots.txt` and `sitemap.xml` still do not, and they take
+    // this same route -- locally they 404 (measured 2026-09-01, same as favicon.ico did),
+    // and the deployed behaviour has not been read back. Only crawlers ask for them.
+    // Recorded rather than fixed blind: Next's `robots.ts` / `sitemap.ts` conventions on
+    // the marketing surface are the right answer, and an empty `robots.txt` is a decision
+    // about indexing rather than a bug fix.
     '/((?!_next/static|_next/image|favicon\\.ico|robots\\.txt|sitemap\\.xml).*)',
   ],
 }
