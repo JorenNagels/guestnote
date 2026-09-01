@@ -116,3 +116,40 @@ describe('toBase64Url', () => {
     expect(fromBase64Url(toBase64Url(all.buffer as ArrayBuffer))).toEqual(all)
   })
 })
+
+/**
+ * The refusal, and why it is worth four assertions on a five-line function.
+ *
+ * `new Uint8Array(undefined)` is an empty array rather than a throw, so before 2026-09-01
+ * a half-formed `response` from a password-manager extension produced `''` -- a
+ * syntactically valid attestation with no meaning, which the server then rejected. The
+ * failure was reported, so this was never silent; it was reported as the wrong thing, which
+ * costs a day when the wrong thing is "verification refused" on a feature whose entire
+ * debugging history is verification refusals.
+ */
+describe('toBase64Url refuses what it cannot encode', () => {
+  it('throws on undefined rather than encoding an empty string', () => {
+    expect(() => toBase64Url(undefined as unknown as ArrayBuffer)).toThrow(TypeError)
+  })
+
+  it('throws on null, which is the other shape a broken response takes', () => {
+    expect(() => toBase64Url(null as unknown as ArrayBuffer)).toThrow(TypeError)
+  })
+
+  it('names the field in the message, so a log line is a diagnosis', () => {
+    expect(() => toBase64Url(undefined as unknown as ArrayBuffer)).toThrow(
+      /missing or not a buffer/,
+    )
+  })
+
+  it('still accepts a typed-array view, which is what a real credential carries', () => {
+    // `attestationObject` and friends are `ArrayBuffer` per spec, but a view is the shape
+    // several extensions hand back and it encodes identically. Refusing it would trade one
+    // wrong rejection for another.
+    expect(toBase64Url(bytes(0xfb, 0xff) as unknown as ArrayBuffer)).toBe('-_8')
+  })
+
+  it('accepts a genuinely empty buffer, which is not the same thing as a missing one', () => {
+    expect(toBase64Url(new ArrayBuffer(0))).toBe('')
+  })
+})

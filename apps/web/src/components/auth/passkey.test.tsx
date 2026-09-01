@@ -170,11 +170,23 @@ function withCredentials(create: unknown): void {
   })
 }
 
-/** The `publicKey` object the browser was actually handed, or a failure that says so. */
-function publicKeyPassedTo(create: Mock): Record<string, unknown> {
+/**
+ * The whole options object the browser was handed -- `publicKey` AND `signal`.
+ *
+ * `publicKeyPassedTo` below reads only the inner half, and that is exactly why
+ * `createPasskey`'s abort went unasserted until 2026-09-01: every test that inspected the
+ * create call looked past the field the timeout works through. `mutation-tester` confirmed
+ * that removing `withCeremonyTimeout` from `createPasskey` left the suite green.
+ */
+function createArgsPassedTo(create: Mock): Record<string, unknown> {
   const call = create.mock.calls[0]
   if (!call) throw new Error('navigator.credentials.create was never called')
-  return (call[0] as { publicKey: Record<string, unknown> }).publicKey
+  return call[0] as Record<string, unknown>
+}
+
+/** The `publicKey` object the browser was actually handed, or a failure that says so. */
+function publicKeyPassedTo(create: Mock): Record<string, unknown> {
+  return createArgsPassedTo(create).publicKey as Record<string, unknown>
 }
 
 /**
@@ -200,6 +212,48 @@ describe('createPasskey', () => {
   it('is unsupported when the API exists but create() does not', async () => {
     withCredentials(undefined)
     await expect(createPasskey(OPTIONS)).resolves.toBe('unsupported')
+  })
+
+  /**
+   * The mirror of `signInWithPasskey`'s two timer tests, and the half that was missing.
+   *
+   * `createPasskey` is the ceremony the eleven-day outage actually broke -- commit b26a13f
+   * built this timeout because an extension that replaces the user agent bypasses WebAuthn's
+   * own `timeout`, and enrollment is where that was seen. It had no test until 2026-09-01.
+   *
+   * Bare `vi.useFakeTimers()` is safe here for the reason the sign-in twin gives: nothing
+   * React renders in this block, and the clock is driven with `advanceTimersByTimeAsync`
+   * rather than a `waitFor` that would poll a clock nothing advances.
+   */
+  it('reports a timeout and gives up when the enrollment ceremony never settles', async () => {
+    vi.useFakeTimers()
+    try {
+      const create = vi.fn().mockReturnValue(new Promise(() => {}))
+      withCredentials(create)
+      const onFailure = vi.fn()
+
+      const pending = createPasskey({ ...OPTIONS, timeout: 1_000 }, onFailure)
+      await vi.advanceTimersByTimeAsync(16_100)
+
+      await expect(pending).resolves.toBe('cancelled')
+      expect(onFailure).toHaveBeenCalledWith(expect.objectContaining({ name: 'CeremonyTimeout' }))
+      // Aborted, not merely abandoned -- that is what closes the OS sheet. This is the
+      // assertion the whole test hangs on: without it, deleting the timeout still passes,
+      // because a promise that never settles and a promise that resolves to 'cancelled'
+      // look the same to a test that only waits.
+      expect((createArgsPassedTo(create).signal as AbortSignal).aborted).toBe(true)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('hands the browser an abort signal at all, which nothing used to check', async () => {
+    const create = vi.fn().mockResolvedValue(fakeCredential())
+    withCredentials(create)
+
+    await createPasskey(OPTIONS)
+
+    expect(createArgsPassedTo(create).signal).toBeInstanceOf(AbortSignal)
   })
 
   it('decodes the challenge and the user id into bytes before calling the browser', async () => {

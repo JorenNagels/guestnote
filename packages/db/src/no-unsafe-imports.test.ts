@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 /**
- * The three import bans, enforced as tests rather than only as lint rules.
+ * The four import bans, enforced as tests rather than only as lint rules.
  *
  * Both exist in biome.json as well. The duplication is deliberate:
  *
@@ -142,6 +142,70 @@ describe('better-auth stays behind the packages/core/auth seam', () => {
       'The scoped-import pattern matched nothing at all, so the assertion above proves ' +
         'nothing. better-auth.ts imports @better-auth/passkey and should be found here.',
     ).toContain('packages/core/src/auth/better-auth.ts')
+  })
+})
+
+describe('the Sentry SDK stays in instrumentation.ts', () => {
+  /**
+   * The third provider, and until 2026-09-01 the one whose rule was asserted in a comment
+   * and held by nothing. `instrumentation.ts` claimed "the same one-file-per-provider rule
+   * invariant 5 states for Better Auth and the AWS SDK" while appearing in neither
+   * `biome.json` nor this file. Raised by `tenancy-auditor`.
+   *
+   * Two concrete costs to getting this wrong, and the first is why the ban is here at all:
+   *
+   *   - The SDK pulls a **webpack bundler plugin** into its module graph, which throws
+   *     `The URL must be of scheme file` the moment Vitest loads it. That is what forced
+   *     `lib/observability.ts` to be rewritten as a `setReporter()` slot: `actions.ts`
+   *     imports it and `login/page.test.tsx` imports that, so one import here reached across
+   *     the whole app's test suite.
+   *   - `components/auth/copy.ts` refuses to ship a message catalogue to the sign-in surface
+   *     because it is the first thing a planner downloads on one bar of signal at a venue.
+   *     Tens of kilobytes of error-reporting SDK on the same screen is the same spend it
+   *     refused, arriving by a different door.
+   *
+   * The comment also named `instrumentation-client.ts` as a second allowed importer. **No
+   * such file exists**, and `env.ts` argues at length that the browser SDK is deliberately
+   * not shipped -- so the comment named a file whose existence would have contradicted its
+   * neighbour. Corrected rather than created.
+   */
+  const ALLOWED = [/^apps\/web\/src\/instrumentation\.ts$/]
+
+  /**
+   * Anchored on the import statement rather than on the module name, and both halves of that
+   * are load-bearing here in a way they are not for the bans above.
+   *
+   * `^\s*import` skips prose: `lib/observability.ts` names the SDK in a comment explaining
+   * why it stopped importing it, and a ban that fired on the explanation for its own
+   * existence would be deleted within the day. The character class is `[a-z-]+` and not
+   * `[^']*` so that this pattern does not match its own source line either -- the same trick
+   * the scoped better-auth ban plays with an unquoted parenthesis, for the same reason.
+   *
+   * The cost, stated: an import split across lines by the formatter would slip past. Biome
+   * at 100 columns does not wrap a single-specifier import this short, and the two bans
+   * above accept the same limit.
+   */
+  const SENTRY_IMPORT = "^\\s*import .*'@sentry/[a-z-]+'"
+
+  it('is imported only by apps/web/src/instrumentation.ts', () => {
+    const offenders = gitGrep(SENTRY_IMPORT).filter((f) => !ALLOWED.some((re) => re.test(f)))
+    expect(
+      offenders,
+      'These files import the Sentry SDK directly. Report through reportSilentFailure() in ' +
+        'apps/web/src/lib/observability.ts, which takes the vendor as a pushed-in callback ' +
+        'precisely so no component can pull it:\n  ' +
+        offenders.join('\n  '),
+    ).toEqual([])
+  })
+
+  it('has a pattern that actually matches the one legitimate importer', () => {
+    // The canary, for the same reason as the two above: a regex that matches nothing passes
+    // forever, which is exactly how this ban managed not to exist while a comment said it did.
+    expect(
+      gitGrep(SENTRY_IMPORT),
+      'The Sentry pattern matched nothing at all, so the assertion above proves nothing. ' +
+        'instrumentation.ts imports @sentry/nextjs and should be found here.',
+    ).toContain('apps/web/src/instrumentation.ts')
   })
 })
 

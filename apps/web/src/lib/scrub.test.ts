@@ -90,9 +90,25 @@ describe('scrub', () => {
   })
 
   it('caps depth rather than walking an unbounded object', () => {
+    // The `not.toThrow()` half is all this asserted until 2026-09-01, and it proved only
+    // that `scrub` terminates on a 20-deep object -- true at any finite cap and true with no
+    // cap at all at that depth. `mutation-tester` confirmed `depth > 12` could be raised to
+    // `depth > 1200` with the suite green.
+    //
+    // A value check will not work here: `otp` is in `REDACT_KEY_PARTS`, so `'bottom'` is
+    // redacted by key at any depth and passes under both caps. The boundary has to be
+    // walked structurally.
     let deep: Record<string, unknown> = { otp: 'bottom' }
     for (let i = 0; i < 20; i++) deep = { nested: deep }
     expect(() => scrub(deep)).not.toThrow()
+
+    // Level 0 is the top object and a value at nesting level d is scrubbed with `depth = d`,
+    // so level 13 is the first redacted one. Indexing to exactly that also kills
+    // `depth > 12` becoming `depth >= 12`, which a looser walk would miss.
+    let walked = scrub(deep) as Record<string, unknown>
+    for (let i = 0; i < 11; i++) walked = walked.nested as Record<string, unknown>
+    expect(walked.nested).not.toBe(REDACTED)
+    expect((walked.nested as Record<string, unknown>).nested).toBe(REDACTED)
   })
 
   it('leaves primitives and null alone', () => {

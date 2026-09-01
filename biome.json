@@ -47,7 +47,8 @@
               "@simplewebauthn/browser": "A phantom dependency -- hoisted by @better-auth/passkey, declared in no package.json, and resolvable from apps/web. Its parseRequestOptionsFromJSON()/toJSON() were rejected on reach (Safari 17.4, Firefox 135), which is why passkey.ts encodes by hand. Importing it lands provider types in the app and undoes that decision silently.",
               "@simplewebauthn/server": "Server half of the same phantom dependency. Verification belongs behind the seam in packages/core/src/auth/better-auth.ts, which is the only file allowed to know a WebAuthn library exists.",
               "@guestnote/db/unsafe": "Bypasses tenant isolation. packages/db/** and the migration runner only. See research/05-architecture.md section 4.",
-              "@aws-sdk/client-sesv2": "Only packages/email/src/ses.ts may import this (and its test, to construct the SDK error classes it maps). Everything else goes through the packages/email seam, so swapping mail provider stays a bounded job -- and so the AWS SDK cannot be pulled into a bundle by a stray import. See research/05-architecture.md section 6."
+              "@aws-sdk/client-sesv2": "Only packages/email/src/ses.ts may import this (and its test, to construct the SDK error classes it maps). Everything else goes through the packages/email seam, so swapping mail provider stays a bounded job -- and so the AWS SDK cannot be pulled into a bundle by a stray import. See research/05-architecture.md section 6.",
+              "@sentry/nextjs": "Only apps/web/src/instrumentation.ts may import this. lib/observability.ts was rewritten to take a reporter callback instead, because the SDK drags a webpack bundler plugin into its module graph and every test that transitively reached it failed with \"The URL must be of scheme file\" -- and because copy.ts refuses to ship a message catalogue to the login surface, so it will not have tens of kilobytes of SDK either. Same one-file-per-provider rule as better-auth and the AWS SDK; it was asserted in a comment and held by nothing until 2026-09-01."
             }
           }
         }
@@ -79,7 +80,8 @@
         "packages/core/src/auth/better-auth.ts",
         "packages/email/src/ses.ts",
         "packages/email/src/ses.test.ts",
-        "packages/db/**"
+        "packages/db/**",
+        "apps/web/src/instrumentation.ts"
       ],
       "linter": {
         "rules": {

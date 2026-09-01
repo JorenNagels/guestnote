@@ -106,7 +106,44 @@ export function fromBase64Url(value: string): Uint8Array {
   return bytes
 }
 
+/**
+ * **It refuses a missing buffer rather than encoding one.**
+ *
+ * The type says `ArrayBuffer` and the callers are typed, but every argument here comes out
+ * of a `PublicKeyCredential` the browser handed us -- and a password-manager extension that
+ * replaces `navigator.credentials` can hand back a half-formed `response`. `new
+ * Uint8Array(undefined)` is an empty array, not a throw, so without this check
+ * `toBase64Url(undefined)` returned `''`: a syntactically valid, entirely meaningless
+ * attestation, posted to a server that could only reject it, reported as a verification
+ * failure rather than as the browser having produced nothing.
+ *
+ * Throwing is the right shape because of where the call sites sit. All four are inside
+ * `createPasskey` / `signInWithPasskey`'s `try`, so this lands in `describe(error)` and
+ * comes back as a named `SilentPasskeyOutcome` with a log line saying which field was
+ * missing -- the local refusal, named, instead of a round trip that cannot succeed.
+ *
+ * Not a validation layer: it checks the one thing that has actually gone wrong and that the
+ * type system cannot, and says nothing about the bytes.
+ *
+ * ## `byteLength` and not `instanceof ArrayBuffer`
+ *
+ * **`instanceof` is realm-sensitive, and the whole point of this check is a buffer from
+ * another realm.** A browser extension that intercepts `navigator.credentials` builds its
+ * result in its own context, so its `ArrayBuffer` is a different constructor and
+ * `instanceof` says no to a perfectly good buffer -- rejecting exactly the callers this was
+ * written to survive. `passkey.test.tsx` already records the same realm trap from the other
+ * direction: jsdom's `TextEncoder` output fails `toEqual` against ours while reporting "no
+ * visual difference". Written with `instanceof` first, and four fixture tests caught it
+ * within the minute, 2026-09-01.
+ *
+ * `byteLength` is what both an `ArrayBuffer` and a view have and what a plain object,
+ * `undefined` and `null` do not. It is duck-typing on the one property the loop below
+ * actually needs.
+ */
 export function toBase64Url(buffer: ArrayBuffer): string {
+  if (typeof (buffer as ArrayBuffer | undefined)?.byteLength !== 'number') {
+    throw new TypeError('WebAuthn response field is missing or not a buffer')
+  }
   let binary = ''
   for (const byte of new Uint8Array(buffer)) binary += String.fromCharCode(byte)
   return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')

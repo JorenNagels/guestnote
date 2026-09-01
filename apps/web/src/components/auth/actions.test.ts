@@ -22,6 +22,7 @@ const startGoogleSignInSeam = vi.fn()
 const createPasskeyRequest = vi.fn()
 const verifyPasskeyAssertion = vi.fn()
 const cookieStore = { set: vi.fn() }
+const reportSilentFailure = vi.fn()
 const requestHeaders = new Headers({ 'user-agent': 'test-agent' })
 
 vi.mock('../../lib/auth.ts', () => ({
@@ -44,9 +45,14 @@ vi.mock('../../lib/app-url.ts', () => ({
   appLoginUrl: () => 'http://app.guestnote.localhost:3000/login',
 }))
 
+vi.mock('../../lib/observability.ts', () => ({
+  reportSilentFailure: (...a: unknown[]) => reportSilentFailure(...a),
+}))
+
 const {
   beginPasskeySignIn,
   finishPasskeySignIn,
+  reportCeremonyFailure,
   requestCode,
   setLocale,
   startGoogleSignIn,
@@ -351,4 +357,84 @@ describe('finishPasskeySignIn', () => {
     const [args] = verifyPasskeyAssertion.mock.calls[0] as [Record<string, unknown>]
     expect(Object.keys(args).sort()).toEqual(['assertion', 'headers'])
   })
+})
+
+/**
+ * `reportCeremonyFailure`'s three clamps, none of which had an assertion until 2026-09-01.
+ * `mutation-tester` confirmed all three could be deleted with the suite green -- on the one
+ * unauthenticated Server Function that takes attacker-controlled strings and writes them to
+ * a log.
+ *
+ * The context field is read out of the call rather than matched loosely, because the length
+ * clamp and the control-character sweep are two separate mutations and a
+ * `not.toContain('\n')` check would kill only one of them.
+ */
+describe('reportCeremonyFailure', () => {
+  const contextOf = () => reportSilentFailure.mock.calls[0]?.[1] as Record<string, unknown>
+
+  it('strips everything outside the WebAuthn name vocabulary', async () => {
+    // The forged-log-line case the source comment names: a crafted `name` must not be able
+    // to introduce a newline and a fake second entry.
+    await reportCeremonyFailure('signin', 'NotAllowed\nERROR fake=1', 'x')
+
+    expect(contextOf().errorName).toBe('NotAllowedERRORfake')
+  })
+
+  it('falls back to Unnamed when nothing survives the strip', async () => {
+    // A separate mutation from the regex: `|| 'Unnamed'` can be deleted on its own, and an
+    // empty `errorName` is a log line that says a failure happened and refuses to say which.
+    await reportCeremonyFailure('signin', '123456', 'x')
+
+    expect(contextOf().errorName).toBe('Unnamed')
+  })
+
+  it('truncates the name, which is not the same clamp as the message', async () => {
+    await reportCeremonyFailure('signin', 'A'.repeat(80), 'x')
+
+    expect(contextOf().errorName).toBe('A'.repeat(48))
+  })
+
+  it('replaces control characters in the message and truncates it', async () => {
+    await reportCeremonyFailure('enroll', 'NotAllowedError', `a\nb\r\n${'x'.repeat(500)}`)
+
+    expect(contextOf().detail).toBe(`a b  ${'x'.repeat(500)}`.slice(0, 200))
+  })
+
+  it('names the ceremony, so an enrollment fault cannot file itself under sign-in', async () => {
+    await reportCeremonyFailure('enroll', 'NotSupportedError', 'no resident key')
+
+    expect(reportSilentFailure).toHaveBeenCalledWith(
+      'passkey enroll ceremony failed in the browser',
+      expect.objectContaining({ ceremony: 'enroll' }),
+    )
+  })
+
+  it('stops sending to the vendor sink once the process budget is spent', async () => {
+    // Unauthenticated and unmetered: the Sentry free tier is 5,000 events a month, metered
+    // per event rather than per issue, so an unbounded loop here disables the observability
+    // this whole series exists to add. See the constant's note for why the cap is 50.
+    //
+    // Re-imported into a fresh module registry, because the counter is module state and the
+    // tests above have already spent some of it. Asserting a delta instead would pass with
+    // the cap deleted, since the delta would simply be the loop length.
+    vi.resetModules()
+    reportSilentFailure.mockClear()
+    const fresh = await import('./actions.ts')
+
+    for (let i = 0; i < 60; i++) await fresh.reportCeremonyFailure('signin', 'NotAllowedError', 'x')
+
+    expect(reportSilentFailure).toHaveBeenCalledTimes(50)
+  })
+
+  /**
+   * The runtime `stage` re-check is NOT verified here, and this note is the honest version
+   * of that rather than a test that pretends.
+   *
+   * Calling it from a test is calling it through TypeScript, which is the one caller that
+   * cannot violate a two-value union. The only thing that can is a hand-rolled POST to the
+   * Server Function endpoint, and there is no browser E2E layer yet -- the same gap
+   * `CLAUDE.md` and both passkey specs name. `mutation-tester` confirmed on 2026-09-01 that
+   * deleting the check leaves this suite green, and it will keep doing so until Playwright
+   * exists. Recorded beside the assertions that cannot discriminate it, per the repo's rule.
+   */
 })

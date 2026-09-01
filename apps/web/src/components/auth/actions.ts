@@ -182,9 +182,18 @@ export async function beginPasskeyEnrollment(): Promise<
  *
  * `registration` arrives from the browser and is therefore attacker-controlled in full.
  * That is safe here and only here: the seam checks the attestation against a challenge the
- * server itself put in a signed cookie, checks the origin and the RP ID, and refuses if the
- * challenge's user is not the session's. There is no argument on this function through which
- * a caller could attach a credential to another account -- which is why it takes no user id.
+ * server itself put in a signed cookie, and checks the origin and the RP ID. There is no
+ * argument on this function through which a caller could attach a credential to another
+ * account -- which is why it takes no user id.
+ *
+ * This used to add "and refuses if the challenge's user is not the session's", which is one
+ * notch stronger than what the library does: the plugin's check is `if (session?.user?.id &&
+ * userData.id !== session.user.id) throw UNAUTHORIZED`, so with no session at verify time it
+ * is skipped and the credential binds to the challenge row's `userData.id`. The conclusion
+ * above survives that -- `generatePasskeyRegistrationOptions` sits behind
+ * `freshSessionMiddleware`, so `userData.id` is always a fresh session holder's, and the
+ * challenge token is in a signed cookie -- but the mechanism sentence was doing work the
+ * mechanism does not do. Corrected after `tenancy-auditor` read the plugin, 2026-09-01.
  */
 export async function finishPasskeyEnrollment(
   registration: PasskeyRegistration,
@@ -282,9 +291,40 @@ export async function finishPasskeySignIn(
  * control characters never survive.
  *
  * It reports nothing a caller could not already discover about their own browser: no email,
- * no user id, no session. The cost is that it is one more unmetered write on the sign-in
- * surface, which docs/specs/0002's rate-limiter note already covers.
+ * no user id, no session.
+ *
+ * ## The vendor sink is capped per process, and that is not the rate limiter
+ *
+ * This used to say the unmetered write "is covered by docs/specs/0002's rate-limiter note".
+ * It was not: that note is about `auth.api.*` calls bypassing Better Auth's own limiter,
+ * which runs in the library's router. This function is not an auth call and no limiter added
+ * there would reach it. Raised by `tenancy-auditor` 2026-09-01.
+ *
+ * The consequence is specific and it disables the safety net this whole eight-commit series
+ * exists to build: anyone can POST this Server Function in a loop, unauthenticated, and each
+ * request is one Sentry event. The free tier is 5,000 events a month and Sentry meters
+ * events rather than issues, so grouping does not help -- the budget can be exhausted in
+ * under a minute, and the next genuine enrollment failure then reports nothing.
+ *
+ * So the *vendor* sink is capped and the CloudWatch one is not. That split is the whole
+ * design: CloudWatch is per-request-priced, has retention, and is the sink that still works
+ * when the DSN is unset -- losing it to a flood would be losing the thing the cap protects.
+ * A Lambda process is short-lived and concurrent, so this is a rough ceiling per instance
+ * rather than a global quota; it is enough to turn "exhausted in a minute" into "needs a
+ * sustained distributed effort", which is the right amount of engineering before there is
+ * a real limiter and `advanced.ipAddress.trustedProxies` is set (both still owed, both
+ * still blocked, both named in docs/specs/0002).
  */
+/**
+ * How many ceremony reports this process will send to the vendor sink before it stops.
+ *
+ * Sized off what a real fault looks like rather than off the quota: a genuinely broken
+ * enrollment produced three failures in eleven days. Fifty from one Lambda instance is
+ * already far past "something is wrong" and nowhere near a month's budget.
+ */
+const CEREMONY_REPORT_BUDGET = 50
+let ceremonyReportsSent = 0
+
 export async function reportCeremonyFailure(
   stage: 'enroll' | 'signin',
   name: string,
@@ -294,6 +334,19 @@ export async function reportCeremonyFailure(
 
   const safeName = name.replace(/[^A-Za-z]/g, '').slice(0, 48) || 'Unnamed'
   const safeMessage = message.replace(/[^\x20-\x7E]/g, ' ').slice(0, 200)
+
+  // Counted before the branch, so the CloudWatch line that announces the cap being reached
+  // is written exactly once rather than on every request after it.
+  ceremonyReportsSent += 1
+  if (ceremonyReportsSent > CEREMONY_REPORT_BUDGET) {
+    if (ceremonyReportsSent === CEREMONY_REPORT_BUDGET + 1) {
+      console.warn(
+        `[silent-failure] passkey ceremony reports capped at ${CEREMONY_REPORT_BUDGET} for this process`,
+        { ceremony: stage },
+      )
+    }
+    return
+  }
 
   reportSilentFailure(`passkey ${stage} ceremony failed in the browser`, {
     ceremony: stage,

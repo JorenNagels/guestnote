@@ -6,11 +6,20 @@ import { scrubEvent } from './lib/scrub.ts'
 /**
  * Server-side error reporting. Next calls `register()` once per runtime, before any request.
  *
- * **This file and `instrumentation-client.ts` are the only two places `@sentry/nextjs` is
- * imported**, plus `lib/observability.ts` which wraps `captureException`. That is the same
+ * **This is the only file in the repo that imports `@sentry/nextjs`**, which is the same
  * one-file-per-provider rule invariant 5 states for Better Auth and the AWS SDK, applied to
- * a third provider -- except the SDK's own architecture forces the entry points to live at
- * fixed paths, so the rule here is "these three files" rather than "this one".
+ * a third provider. `lib/observability.ts` does not import it: the vendor is pushed in
+ * through `setReporter()` below, precisely so nothing a component can reach ever pulls the
+ * SDK into its module graph.
+ *
+ * That sentence used to read "this file and `instrumentation-client.ts`", **and no such file
+ * exists** -- `env.ts` argues deliberately that the browser SDK is not shipped, so the
+ * comment named a file whose existence would have contradicted its neighbour. It also
+ * claimed `observability.ts` wrapped `captureException`, which stopped being true when that
+ * file was rewritten around the reporter slot. Corrected 2026-09-01 after `tenancy-auditor`
+ * pointed out that the rule was asserted here and enforced nowhere: it is in `biome.json`
+ * and `packages/db/src/no-unsafe-imports.test.ts` now, both, for the reason that file gives
+ * -- a lint rule can be silenced inline and a test cannot.
  *
  * ## Off by default, everywhere
  *
