@@ -1,0 +1,19 @@
+{
+  "shape": "package",
+  "pkg": "@guestnote/ui",
+  "globalName": "GuestnoteUI",
+  "srcDir": "src",
+  "tsconfig": "tsconfig.json",
+  "cssEntry": "./.ds-preview.css",
+  "componentSrcMap": {
+    "SLOT_DOCS": null
+  },
+  "dtsPropsFor": {
+    "Button": "/** `primary` is the one thing the visitor is here to do -- at most one per screen. */\n  variant?: 'primary' | 'secondary';\n  /** Renders the label as the busy state without changing the button's width. */\n  busy?: boolean;\n  busyLabel?: string;\n  icon?: React.ReactNode;\n  children?: React.ReactNode;\n  disabled?: boolean;\n  type?: 'button' | 'submit' | 'reset';\n  onClick?: React.MouseEventHandler<HTMLButtonElement>;\n  className?: string;\n  'aria-label'?: string;",
+    "LinkButton": "/** A text-weight action for the things beside the main one. Underlined, not coloured. */\n  children?: React.ReactNode;\n  disabled?: boolean;\n  type?: 'button' | 'submit' | 'reset';\n  onClick?: React.MouseEventHandler<HTMLButtonElement>;\n  className?: string;",
+    "Field": "label: React.ReactNode;\n  id?: string;\n  /** React 19 hands `ref` to function components as an ordinary prop. */\n  ref?: React.Ref<HTMLInputElement>;\n  /** Wires `aria-describedby`; render the text with InlineError. */\n  errorId?: string;\n  invalid?: boolean;\n  /** Tabular, letter-spaced, centred. For the six-digit code and nothing else so far. */\n  numeric?: boolean;\n  type?: string;\n  name?: string;\n  value?: string | number;\n  defaultValue?: string | number;\n  placeholder?: string;\n  required?: boolean;\n  readOnly?: boolean;\n  disabled?: boolean;\n  autoComplete?: string;\n  inputMode?: 'text' | 'numeric' | 'tel' | 'email' | 'url' | 'search' | 'decimal' | 'none';\n  onChange?: React.ChangeEventHandler<HTMLInputElement>;",
+    "InlineError": "id?: string;\n  children: React.ReactNode;",
+    "LiveRegion": "/** The region is in the DOM from first paint and only its TEXT changes. */\n  message: string;",
+    "LocaleSwitcher": "locales: readonly string[];\n  current: string;\n  label: string;\n  /** Marketing surfaces pass this: there the locale IS the URL. */\n  hrefFor?: (locale: string) => string;\n  /** The dashboard passes this instead -- the choice is a cookie, not a navigation. */\n  onSelect?: (locale: string) => void;\n  disabled?: boolean;"
+  }
+}

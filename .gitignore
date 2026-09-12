@@ -75,3 +75,17 @@ coming-soon/og.png
 # per-session: the question server's transcripts, and live-mode's injection targets.
 .impeccable/questions/
 .impeccable/live/
+
+# design-sync: staged converter scripts, its deps, and the regenerated bundle.
+# The durable inputs (.design-sync/config.json, NOTES.md, conventions.md, previews/)
+# ARE committed -- they are what makes a later sync fast; everything below is derived.
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules
+# Compiled from tokens.css + a Tailwind pass over packages/ui. One command to rebuild
+# (.design-sync/build-css.mjs), and 19 KB of generated CSS in every diff otherwise.
+packages/ui/.ds-preview.css
+# Rendered artboards: 8 MB of PNG plus the PDF, all reproducible from export.mjs.
+design-system/planner-canvas/_export/
