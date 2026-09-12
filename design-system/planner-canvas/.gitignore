@@ -1,0 +1,5 @@
+# The seeded canvas: ~2.5 MB of editor payload with the artboards embedded in it.
+# It is generated from the files beside it and republished to the same Artifact URL,
+# so committing it would put a megabyte-scale binary-ish blob in every diff for no
+# information the sources do not already carry. Regenerate with the command in README.
+guestnote-planner-app.html

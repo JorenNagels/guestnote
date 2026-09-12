@@ -1,0 +1,197 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+  <style>
+:root{
+  --background:#F7F6F5; --foreground:#474441;
+  --card:#FFFFFF; --card-foreground:#474441;
+  --popover:#FFFFFF;
+  --muted:#EEECEA; --muted-foreground:#5C5854;
+  --secondary:#EEECEA; --secondary-foreground:#5C5854;
+  --primary:#206560; --primary-foreground:#FFFFFF;
+  --accent:#F7ECD4; --accent-foreground:#554111;
+  --destructive:#A94F4A; --destructive-foreground:#FFFFFF;
+  --border:#DEDBD7; --input:#8A8580; --ring:#3E9790;
+
+  --st-attending-bg:#DEF4E1; --st-attending-fg:#32663F; --st-attending-dot:#417E50;
+  --st-declined-bg:#EEECEA;  --st-declined-fg:#5C5854;  --st-declined-dot:#726E69;
+  --st-awaiting-bg:#FFE7D5;  --st-awaiting-fg:#7E4A1D;  --st-awaiting-dot:#9C5D28;
+  --st-partial-bg:#DCEFFF;   --st-partial-fg:#2F5C85;   --st-partial-dot:#3D73A4;
+  --st-plusone-bg:#F7ECD4;   --st-plusone-fg:#6E5416;   --st-plusone-dot:#886A20;
+  --st-alert-bg:#FFE3DF;     --st-alert-fg:#893E3A;     --st-alert-dot:#A94F4A;
+
+  --series-1:#00968C; --series-2:#A37000; --series-3:#005FB7;
+  --series-grid:#DEDBD7; --series-axis:#5C5854;
+
+  --row-h:44px; --cell-x:0.8rem; --control-h:36px;
+  --radius:0.5rem; --ring-width:2px; --ring-offset:2px;
+}
+.dark{
+  --background:#181715; --foreground:#EEECEA;
+  --card:#2C2A27; --card-foreground:#EEECEA;
+  --popover:#2C2A27;
+  --muted:#474441; --muted-foreground:#BAB5B0;
+  --secondary:#5C5854; --secondary-foreground:#EEECEA;
+  --primary:#9AD8D2; --primary-foreground:#0A312E;
+  --accent:#554111; --accent-foreground:#EDD9B0;
+  --destructive:#F9978F;
+  --border:#5C5854; --input:#A39D98; --ring:#78C6BF;
+  --st-attending-bg:#264F30; --st-attending-fg:#C1E7C8; --st-attending-dot:#88C895;
+  --st-declined-bg:#474441;  --st-declined-fg:#DEDBD7;  --st-declined-dot:#BAB5B0;
+  --st-awaiting-bg:#623916;  --st-awaiting-fg:#FCD2B3;  --st-awaiting-dot:#E9A570;
+  --st-partial-bg:#244768;   --st-partial-fg:#BEE0FF;   --st-partial-dot:#83BBF1;
+  --st-plusone-bg:#554111;   --st-plusone-fg:#EDD9B0;   --st-plusone-dot:#D2B16B;
+  --st-alert-bg:#6B302C;     --st-alert-fg:#FFCAC4;     --st-alert-dot:#F9978F;
+}
+*{box-sizing:border-box;border-color:var(--border);}
+body{margin:0;background:var(--background);color:var(--foreground);
+  font-family:"Inter","Inter Variable",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;}
+a{color:var(--primary);text-decoration:none;}
+a:hover{color:#2C7D77;}
+.num{text-align:right;font-variant-numeric:tabular-nums;}
+.mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;}
+/* text-[0.6875rem] + tracking-[0.08em] + uppercase + semibold -- the section-label
+   recipe used by MenuLabel, the wedding section head and the palette groups. */
+.eyebrow{font-size:0.6875rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;
+  color:var(--muted-foreground);}
+.trunc{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}</style>
+</helmet>
+<div style="width:1440px;min-height:940px;background:var(--background);display:flex;">
+<aside class="" style="width:240px;flex:0 0 240px;border-right:1px solid var(--border);background:transparent;color:var(--foreground);">
+    <div style="display:flex;flex-direction:column;gap:4px;height:100%;padding:10px;">
+      <div style="display:flex;align-items:center;gap:10px;height:44px;padding:0 10px;">
+      <span style="display:grid;place-items:center;flex:0 0 auto;width:28px;height:28px;border-radius:6px;font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;background:var(--st-attending-bg);color:var(--st-attending-fg);">SV</span>
+      <span class="trunc" style="flex:1 1 auto;font-size:14px;font-weight:600;">Studio Vero</span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="opacity:.6;flex:0 0 auto;"><path d="m6 9 6 6 6-6"/></svg>
+    </div><div style="display:flex;flex-direction:column;gap:2px;margin-top:4px;">
+      <div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span class="trunc" style="flex:1 1 auto;">Zoeken</span><kbd style="flex:0 0 auto;border:1px solid var(--border);border-radius:4px;padding:0 4px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:11px;color:var(--muted-foreground);">⌘K</kbd></div>
+    </div><div style="display:flex;flex-direction:column;gap:2px;margin-top:16px;min-width:0;">
+        <div style="padding:0 10px 4px;">
+               <p class="eyebrow trunc" style="margin:0;">Deze bruiloft</p>
+               <p class="trunc" style="margin:2px 0 0;font-size:14px;font-weight:500;">Onze bruiloft</p>
+               <p class="trunc" style="margin:2px 0 0;font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">12 juni 2027</p>
+             </div>
+        <div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;background:var(--muted);color:var(--foreground);font-weight:500;"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v5"/></svg><span class="trunc" style="flex:1 1 auto;">Overzicht</span></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h2l1.5 1.5L11 5"/><path d="M4 17h2l1.5 1.5L11 15"/><path d="M14 7h6M14 17h6"/></svg><span class="trunc" style="flex:1 1 auto;">Onze taken</span><span style="flex:0 0 auto;font-size:11px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">5</span></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h16M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M15 13.5h2"/></svg><span class="trunc" style="flex:1 1 auto;">Budget</span></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="8" height="7" rx="1"/><rect x="13" y="4" width="8" height="11" rx="1"/><rect x="3" y="13" width="8" height="7" rx="1"/><rect x="13" y="17" width="8" height="3" rx="1"/></svg><span class="trunc" style="flex:1 1 auto;">Moodboard</span></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7a2 2 0 0 1 2-2h3l2 2.5h7a2 2 0 0 1 2 2V18a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1Z"/></svg><span class="trunc" style="flex:1 1 auto;">Bestanden</span></div>
+      </div><div style="flex:1 1 auto;"></div>
+    <div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/><path d="M4 5v14"/></svg><span class="trunc" style="flex:1 1 auto;">Zijbalk inklappen</span></div>
+    <hr style="border:0;border-top:1px solid var(--border);margin:2px 0;">
+    <div style="display:flex;align-items:center;gap:10px;height:44px;padding:0 10px;">
+      <span style="display:grid;place-items:center;flex:0 0 auto;width:28px;height:28px;border-radius:999px;font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;background:var(--st-attending-bg);color:var(--st-attending-fg);">LP</span>
+      <span class="trunc" style="flex:1 1 auto;font-size:14px;">Lotte Peeters</span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="opacity:.6;flex:0 0 auto;"><path d="m6 9 6 6 6-6"/></svg>
+    </div>
+    </div>
+  </aside><main style="flex:1 1 auto;min-width:0;"><div style="max-width:1024px;margin:0 auto;padding:32px 24px;">
+  <header style="display:flex;align-items:flex-end;justify-content:space-between;gap:24px;">
+    <div style="min-width:0;">
+      <p class="eyebrow" style="margin:0 0 4px;">Onze bruiloft</p>
+      <h1 style="margin:0;font-size:24px;line-height:1.25;font-weight:600;letter-spacing:-0.02em;">Lotte &amp; Bram</h1>
+      <p style="margin:6px 0 0;font-size:14px;color:var(--muted-foreground);">zaterdag 12 juni 2027 · Kasteel van Brasschaat · nog 273 dagen</p>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex:0 0 auto;"><button type="button" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;height:36px;padding:0 12px;border-radius:var(--radius);font-size:14px;font-family:inherit;cursor:pointer;white-space:nowrap;background:transparent;color:var(--foreground);border:1px solid var(--input);font-weight:500;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 12S6 6 12 6s9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/></svg>Onze site bekijken</button></div>
+  </header>
+
+  <div style="margin-top:24px;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:20px;align-items:start;">
+    <div>
+      <div style="display:flex;align-items:baseline;gap:10px;padding:0 var(--cell-x) 8px;">
+        <h2 style="margin:0;font-size:14px;font-weight:600;">Wat wij moeten doen</h2>
+        <span style="font-size:13px;color:var(--muted-foreground);">5 · 1 te laat</span>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;"><div>
+        <div style="display:grid;grid-template-columns:26px minmax(0,1fr) 150px 108px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
+    <span aria-hidden="true" style="display:grid;place-items:center;width:17px;height:17px;border-radius:5px;border:1px solid var(--input);background:transparent;color:var(--primary-foreground);"></span>
+    <span class="trunc" style="font-size:14px;">Definitieve gastenlijst doorgeven</span>
+    <span style="display:flex;align-items:center;gap:7px;min-width:0;"><span style="display:grid;place-items:center;flex:0 0 auto;width:20px;height:20px;border-radius:999px;font-size:9px;font-weight:600;font-variant-numeric:tabular-nums;background:var(--st-attending-bg);color:var(--st-attending-fg);">LP</span><span class="trunc" style="font-size:13px;color:var(--muted-foreground);">Lotte Peeters</span></span>
+    <span class="num" style="font-size:13px;color:var(--st-alert-fg);font-weight:500;">vr 5 sep</span>
+  </div>
+        <div style="display:grid;grid-template-columns:26px minmax(0,1fr) 150px 108px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
+    <span aria-hidden="true" style="display:grid;place-items:center;width:17px;height:17px;border-radius:5px;border:1px solid var(--input);background:transparent;color:var(--primary-foreground);"></span>
+    <span class="trunc" style="font-size:14px;">Muziekwensen doorgeven</span>
+    <span style="display:flex;align-items:center;gap:7px;min-width:0;"><span style="display:grid;place-items:center;flex:0 0 auto;width:20px;height:20px;border-radius:999px;font-size:9px;font-weight:600;font-variant-numeric:tabular-nums;background:var(--st-attending-bg);color:var(--st-attending-fg);">LP</span><span class="trunc" style="font-size:13px;color:var(--muted-foreground);">Lotte Peeters</span></span>
+    <span class="num" style="font-size:13px;color:var(--muted-foreground);">vr 18 sep</span>
+  </div>
+        <div style="display:grid;grid-template-columns:26px minmax(0,1fr) 150px 108px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
+    <span aria-hidden="true" style="display:grid;place-items:center;width:17px;height:17px;border-radius:5px;border:1px solid var(--input);background:transparent;color:var(--primary-foreground);"></span>
+    <span class="trunc" style="font-size:14px;">Uitnodigingen nakijken vóór de druk</span>
+    <span style="display:flex;align-items:center;gap:7px;min-width:0;"><span style="display:grid;place-items:center;flex:0 0 auto;width:20px;height:20px;border-radius:999px;font-size:9px;font-weight:600;font-variant-numeric:tabular-nums;background:var(--st-plusone-bg);color:var(--st-plusone-fg);">BW</span><span class="trunc" style="font-size:13px;color:var(--muted-foreground);">Bram Willems</span></span>
+    <span class="num" style="font-size:13px;color:var(--muted-foreground);">ma 14 dec</span>
+  </div>
+        <div style="display:grid;grid-template-columns:26px minmax(0,1fr) 150px 108px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
+    <span aria-hidden="true" style="display:grid;place-items:center;width:17px;height:17px;border-radius:5px;border:1px solid var(--input);background:transparent;color:var(--primary-foreground);"></span>
+    <span class="trunc" style="font-size:14px;">Tafelschikking afronden</span>
+    <span style="display:flex;align-items:center;gap:7px;min-width:0;"><span style="display:grid;place-items:center;flex:0 0 auto;width:20px;height:20px;border-radius:999px;font-size:9px;font-weight:600;font-variant-numeric:tabular-nums;background:var(--st-attending-bg);color:var(--st-attending-fg);">LP</span><span class="trunc" style="font-size:13px;color:var(--muted-foreground);">Lotte Peeters</span></span>
+    <span class="num" style="font-size:13px;color:var(--muted-foreground);">wo 12 mei</span>
+  </div>
+        <div style="display:grid;grid-template-columns:26px minmax(0,1fr) 150px 108px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
+    <span aria-hidden="true" style="display:grid;place-items:center;width:17px;height:17px;border-radius:5px;border:1px solid var(--input);background:transparent;color:var(--primary-foreground);"></span>
+    <span class="trunc" style="font-size:14px;">Ringen ophalen</span>
+    <span style="display:flex;align-items:center;gap:7px;min-width:0;"><span style="display:grid;place-items:center;flex:0 0 auto;width:20px;height:20px;border-radius:999px;font-size:9px;font-weight:600;font-variant-numeric:tabular-nums;background:var(--st-plusone-bg);color:var(--st-plusone-fg);">BW</span><span class="trunc" style="font-size:13px;color:var(--muted-foreground);">Bram Willems</span></span>
+    <span class="num" style="font-size:13px;color:var(--muted-foreground);">do 3 jun</span>
+  </div>
+      </div></div>
+
+      <div style="margin-top:24px;">
+        <div style="display:flex;align-items:baseline;gap:10px;padding:0 var(--cell-x) 8px;">
+          <h2 style="margin:0;font-size:14px;font-weight:600;">Waar Joren mee bezig is</h2>
+          <span style="font-size:13px;color:var(--muted-foreground);">7</span>
+        </div>
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;"><div>
+          <div style="display:grid;grid-template-columns:26px minmax(0,1fr) 150px 108px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
+    <span aria-hidden="true" style="display:grid;place-items:center;width:17px;height:17px;border-radius:5px;border:1px solid var(--input);background:transparent;color:var(--primary-foreground);"></span>
+    <span class="trunc" style="font-size:14px;">Proefdiner inplannen bij de traiteur</span>
+    <span style="display:flex;align-items:center;gap:7px;min-width:0;"><span style="display:grid;place-items:center;flex:0 0 auto;width:20px;height:20px;border-radius:999px;font-size:9px;font-weight:600;font-variant-numeric:tabular-nums;background:var(--st-attending-bg);color:var(--st-attending-fg);">JN</span><span class="trunc" style="font-size:13px;color:var(--muted-foreground);">Joren Nagels</span></span>
+    <span class="num" style="font-size:13px;color:var(--muted-foreground);">zo 13 sep</span>
+  </div>
+          <div style="display:grid;grid-template-columns:26px minmax(0,1fr) 150px 108px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
+    <span aria-hidden="true" style="display:grid;place-items:center;width:17px;height:17px;border-radius:5px;border:1px solid var(--input);background:transparent;color:var(--primary-foreground);"></span>
+    <span class="trunc" style="font-size:14px;">Bloemist tweede offerte opvragen</span>
+    <span style="display:flex;align-items:center;gap:7px;min-width:0;"><span style="display:grid;place-items:center;flex:0 0 auto;width:20px;height:20px;border-radius:999px;font-size:9px;font-weight:600;font-variant-numeric:tabular-nums;background:var(--st-attending-bg);color:var(--st-attending-fg);">JN</span><span class="trunc" style="font-size:13px;color:var(--muted-foreground);">Joren Nagels</span></span>
+    <span class="num" style="font-size:13px;color:var(--muted-foreground);">wo 16 sep</span>
+  </div>
+          <div style="display:grid;grid-template-columns:26px minmax(0,1fr) 150px 108px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
+    <span aria-hidden="true" style="display:grid;place-items:center;width:17px;height:17px;border-radius:5px;border:1px solid var(--input);background:transparent;color:var(--primary-foreground);"></span>
+    <span class="trunc" style="font-size:14px;">Zaalindeling doorgeven aan het kasteel</span>
+    <span style="display:flex;align-items:center;gap:7px;min-width:0;"><span style="display:grid;place-items:center;flex:0 0 auto;width:20px;height:20px;border-radius:999px;font-size:9px;font-weight:600;font-variant-numeric:tabular-nums;background:var(--st-attending-bg);color:var(--st-attending-fg);">JN</span><span class="trunc" style="font-size:13px;color:var(--muted-foreground);">Joren Nagels</span></span>
+    <span class="num" style="font-size:13px;color:var(--muted-foreground);">ma 21 sep</span>
+  </div>
+        </div>
+        <div style="border-top:1px solid var(--border);padding:10px var(--cell-x);">
+          <span style="font-size:13px;color:var(--muted-foreground);">Nog 4 taken</span>
+        </div></div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:20px;">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;"><div style="padding:14px 16px;">
+        <p class="eyebrow" style="margin:0;">Budget</p>
+        <p style="margin:8px 0 0;font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;">€ 24.850</p>
+        <p style="margin:4px 0 0;font-size:13px;color:var(--muted-foreground);">vastgelegd van € 28.000</p>
+        <span style="display:block;margin-top:12px;height:6px;border-radius:999px;background:var(--muted);overflow:hidden;">
+          <span style="display:block;width:89%;height:100%;background:var(--primary);"></span></span>
+        <p style="margin:12px 0 0;font-size:13px;line-height:1.55;color:var(--muted-foreground);">
+          Jullie zien exact hetzelfde budget als Joren. Er is geen tweede versie.</p>
+      </div></div>
+
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;"><div style="padding:14px 16px;">
+        <p class="eyebrow" style="margin:0;">Jullie planner</p>
+        <div style="margin-top:10px;display:flex;align-items:center;gap:10px;">
+          <span style="display:grid;place-items:center;flex:0 0 auto;width:28px;height:28px;border-radius:6px;font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;background:var(--st-attending-bg);color:var(--st-attending-fg);">SV</span>
+          <span><span style="display:block;font-size:13px;font-weight:500;">Studio Vero</span>
+          <span style="display:block;font-size:12px;color:var(--muted-foreground);">Joren Nagels · Sofie Claes</span></span>
+        </div>
+        <div style="margin-top:12px;"><button type="button" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;height:36px;padding:0 12px;border-radius:var(--radius);font-size:14px;font-family:inherit;cursor:pointer;white-space:nowrap;background:transparent;color:var(--foreground);border:1px solid var(--input);font-weight:500;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h13A1.5 1.5 0 0 1 20 5.5v9a1.5 1.5 0 0 1-1.5 1.5H9l-5 4Z"/></svg>Bericht sturen</button></div>
+      </div></div>
+    </div>
+  </div></div></main>
+</div>
+</x-dc>
+</body>
+</html>
