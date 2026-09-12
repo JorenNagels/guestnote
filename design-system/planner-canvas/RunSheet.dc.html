@@ -1,7 +1,8 @@
 <!doctype html>
-<html>
+<html lang="nl">
 <head>
   <meta charset="utf-8">
+  <title>Guestnote</title>
   <script src="./support.js"></script>
 </head>
 <body>
@@ -12,6 +13,13 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
   <style>
 :root{
+  /* Primitives, section 1 of tokens.css. Only the handful the boards genuinely
+     reach for: a mid-teal and a mid-neutral for the budget bar's segments (no
+     semantic token means "the same thing, one step lighter"), a neutral for the
+     outline pill's dot, and teal-700 for a:hover. */
+  --teal-400:#78C6BF; --teal-700:#2C7D77;
+  --neutral-300:#CDC9C5; --neutral-500:#A39D98; --neutral-1000:#181715;
+
   --background:#F7F6F5; --foreground:#474441;
   --card:#FFFFFF; --card-foreground:#474441;
   --popover:#FFFFFF;
@@ -57,7 +65,7 @@ body{margin:0;background:var(--background);color:var(--foreground);
   font-family:"Inter","Inter Variable",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;}
 a{color:var(--primary);text-decoration:none;}
-a:hover{color:#2C7D77;}
+a:hover{color:var(--teal-700);}
 .num{text-align:right;font-variant-numeric:tabular-nums;}
 .mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;}
 /* text-[0.6875rem] + tracking-[0.08em] + uppercase + semibold -- the section-label
@@ -73,7 +81,7 @@ a:hover{color:#2C7D77;}
       <span style="display:grid;place-items:center;flex:0 0 auto;width:28px;height:28px;border-radius:6px;font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;background:var(--st-attending-bg);color:var(--st-attending-fg);">SV</span>
       <span class="trunc" style="flex:1 1 auto;font-size:14px;font-weight:600;">Studio Vero</span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="opacity:.6;flex:0 0 auto;"><path d="m6 9 6 6 6-6"/></svg>
     </div><div style="display:flex;flex-direction:column;gap:2px;margin-top:4px;">
-      <div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span class="trunc" style="flex:1 1 auto;">Zoeken</span><kbd style="flex:0 0 auto;border:1px solid var(--border);border-radius:4px;padding:0 4px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:11px;color:var(--muted-foreground);">⌘K</kbd></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4.5l3 1.8"/></svg><span class="trunc" style="flex:1 1 auto;">Vandaag</span><span style="flex:0 0 auto;font-size:11px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">4</span></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="14" r="6"/><circle cx="15" cy="14" r="6"/></svg><span class="trunc" style="flex:1 1 auto;">Bruiloften</span></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg><span class="trunc" style="flex:1 1 auto;">Sjablonen</span></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 19v-1a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v1"/><path d="M16 5.5a3 3 0 0 1 0 5.8M17 14h.6a4 4 0 0 1 4 4v1"/></svg><span class="trunc" style="flex:1 1 auto;">Team</span></div>
+      <div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span class="trunc" style="flex:1 1 auto;">Zoeken</span><kbd style="flex:0 0 auto;border:1px solid var(--border);border-radius:4px;padding:0 4px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:11px;color:var(--muted-foreground);">⌘K</kbd></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4.5l3 1.8"/></svg><span class="trunc" style="flex:1 1 auto;">Vandaag</span><span style="flex:0 0 auto;font-size:11px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">5</span></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="14" r="6"/><circle cx="15" cy="14" r="6"/></svg><span class="trunc" style="flex:1 1 auto;">Bruiloften</span></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg><span class="trunc" style="flex:1 1 auto;">Sjablonen</span></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 19v-1a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v1"/><path d="M16 5.5a3 3 0 0 1 0 5.8M17 14h.6a4 4 0 0 1 4 4v1"/></svg><span class="trunc" style="flex:1 1 auto;">Team</span></div>
     </div><div style="display:flex;flex-direction:column;gap:2px;margin-top:16px;min-width:0;">
         <div style="padding:0 10px 4px;">
                <p class="eyebrow trunc" style="margin:0;">Deze bruiloft</p>
@@ -112,7 +120,7 @@ a:hover{color:#2C7D77;}
     <span style="display:inline-flex;align-items:center;height:30px;padding:0 10px;border-radius:6px;font-size:13px;background:var(--muted);color:var(--foreground);font-weight:500;">Hele dag</span><span style="display:inline-flex;align-items:center;height:30px;padding:0 10px;border-radius:6px;font-size:13px;color:var(--muted-foreground);">Alleen mijn rijen</span><span style="display:inline-flex;align-items:center;height:30px;padding:0 10px;border-radius:6px;font-size:13px;color:var(--muted-foreground);">Per leverancier</span>
   </div>
     <p style="margin:0;font-size:13px;color:var(--muted-foreground);">
-      08:00 → 03:00 · 24 rijen · 5 leveranciers hebben rijen</p>
+      08:00 → 04:00 · 19 rijen · 6 leveranciers hebben rijen</p>
   </div>
 
   <div style="margin-top:20px;">
@@ -222,6 +230,14 @@ a:hover{color:#2C7D77;}
     <span style="color:var(--muted-foreground);display:flex;justify-content:flex-end;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></span>
   </div>
       <div style="display:grid;grid-template-columns:70px 56px minmax(0,1fr) 210px 40px;align-items:center;gap:0 12px;min-height:var(--row-h);padding:6px var(--cell-x);border-top:1px solid var(--border);">
+    <span style="font-size:14px;font-weight:500;font-variant-numeric:tabular-nums;">19:00</span>
+    <span style="font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">60 min</span>
+    <span style="min-width:0;"><span class="trunc" style="display:block;font-size:14px;">Opbouw booth en geluid in de spiegelzaal</span>
+      <span class="trunc" style="display:block;margin-top:2px;font-size:12px;color:var(--muted-foreground);">Stroom: 2 × 16A aan de noordmuur, achter het gordijn. Laden via de zijingang.</span></span>
+    <span class="trunc" style="font-size:13px;color:var(--muted-foreground);">DJ Ravage</span>
+    <span style="color:var(--muted-foreground);display:flex;justify-content:flex-end;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></span>
+  </div>
+      <div style="display:grid;grid-template-columns:70px 56px minmax(0,1fr) 210px 40px;align-items:center;gap:0 12px;min-height:var(--row-h);padding:6px var(--cell-x);border-top:1px solid var(--border);">
     <span style="font-size:14px;font-weight:500;font-variant-numeric:tabular-nums;">21:00</span>
     <span style="font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">20 min</span>
     <span style="min-width:0;"><span class="trunc" style="display:block;font-size:14px;">Taart aansnijden</span>
@@ -231,13 +247,21 @@ a:hover{color:#2C7D77;}
   </div>
       <div style="display:grid;grid-template-columns:70px 56px minmax(0,1fr) 210px 40px;align-items:center;gap:0 12px;height:34px;padding:0 var(--cell-x);border-top:1px solid var(--border);background:var(--muted);">
     <span style="font-size:13px;font-weight:600;grid-column:span 2;">Feest</span>
-    <span style="font-size:12px;color:var(--muted-foreground);grid-column:span 3;">21:30 → 03:00</span>
+    <span style="font-size:12px;color:var(--muted-foreground);grid-column:span 3;">21:30 → 04:00</span>
   </div>
       <div style="display:grid;grid-template-columns:70px 56px minmax(0,1fr) 210px 40px;align-items:center;gap:0 12px;min-height:var(--row-h);padding:6px var(--cell-x);border-top:1px solid var(--border);">
     <span style="font-size:14px;font-weight:500;font-variant-numeric:tabular-nums;">21:30</span>
     <span style="font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">10 min</span>
     <span style="min-width:0;"><span class="trunc" style="display:block;font-size:14px;">Openingsdans</span>
       <span class="trunc" style="display:block;margin-top:2px;font-size:12px;color:var(--muted-foreground);">Nummer wordt uiterlijk 1 juni doorgegeven</span></span>
+    <span class="trunc" style="font-size:13px;color:var(--muted-foreground);">DJ Ravage</span>
+    <span style="color:var(--muted-foreground);display:flex;justify-content:flex-end;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></span>
+  </div>
+      <div style="display:grid;grid-template-columns:70px 56px minmax(0,1fr) 210px 40px;align-items:center;gap:0 12px;min-height:var(--row-h);padding:6px var(--cell-x);border-top:1px solid var(--border);">
+    <span style="font-size:14px;font-weight:500;font-variant-numeric:tabular-nums;">21:40</span>
+    <span style="font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">5u20</span>
+    <span style="min-width:0;"><span class="trunc" style="display:block;font-size:14px;">Feest tot 03:00</span>
+      <span class="trunc" style="display:block;margin-top:2px;font-size:12px;color:var(--muted-foreground);">Geluidsnorm kasteel: 95 dB(A). Na 01:00 ramen dicht.</span></span>
     <span class="trunc" style="font-size:13px;color:var(--muted-foreground);">DJ Ravage</span>
     <span style="color:var(--muted-foreground);display:flex;justify-content:flex-end;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></span>
   </div>
@@ -259,6 +283,14 @@ a:hover{color:#2C7D77;}
   </div>
       <div style="display:grid;grid-template-columns:70px 56px minmax(0,1fr) 210px 40px;align-items:center;gap:0 12px;min-height:var(--row-h);padding:6px var(--cell-x);border-top:1px solid var(--border);">
     <span style="font-size:14px;font-weight:500;font-variant-numeric:tabular-nums;">03:00</span>
+    <span style="font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">45 min</span>
+    <span style="min-width:0;"><span class="trunc" style="display:block;font-size:14px;">Afbouw booth en geluid</span>
+      </span>
+    <span class="trunc" style="font-size:13px;color:var(--muted-foreground);">DJ Ravage</span>
+    <span style="color:var(--muted-foreground);display:flex;justify-content:flex-end;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></span>
+  </div>
+      <div style="display:grid;grid-template-columns:70px 56px minmax(0,1fr) 210px 40px;align-items:center;gap:0 12px;min-height:var(--row-h);padding:6px var(--cell-x);border-top:1px solid var(--border);">
+    <span style="font-size:14px;font-weight:500;font-variant-numeric:tabular-nums;">04:00</span>
     <span style="font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">—</span>
     <span style="min-width:0;"><span class="trunc" style="display:block;font-size:14px;">Zaal leeg, sleutel terug bij de conciërge</span>
       </span>

@@ -1,7 +1,8 @@
 <!doctype html>
-<html>
+<html lang="nl">
 <head>
   <meta charset="utf-8">
+  <title>Guestnote</title>
   <script src="./support.js"></script>
 </head>
 <body>
@@ -12,6 +13,13 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
   <style>
 :root{
+  /* Primitives, section 1 of tokens.css. Only the handful the boards genuinely
+     reach for: a mid-teal and a mid-neutral for the budget bar's segments (no
+     semantic token means "the same thing, one step lighter"), a neutral for the
+     outline pill's dot, and teal-700 for a:hover. */
+  --teal-400:#78C6BF; --teal-700:#2C7D77;
+  --neutral-300:#CDC9C5; --neutral-500:#A39D98; --neutral-1000:#181715;
+
   --background:#F7F6F5; --foreground:#474441;
   --card:#FFFFFF; --card-foreground:#474441;
   --popover:#FFFFFF;
@@ -57,7 +65,7 @@ body{margin:0;background:var(--background);color:var(--foreground);
   font-family:"Inter","Inter Variable",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;}
 a{color:var(--primary);text-decoration:none;}
-a:hover{color:#2C7D77;}
+a:hover{color:var(--teal-700);}
 .num{text-align:right;font-variant-numeric:tabular-nums;}
 .mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;}
 /* text-[0.6875rem] + tracking-[0.08em] + uppercase + semibold -- the section-label
@@ -73,7 +81,7 @@ a:hover{color:#2C7D77;}
       <span style="display:grid;place-items:center;flex:0 0 auto;width:28px;height:28px;border-radius:6px;font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;background:var(--st-attending-bg);color:var(--st-attending-fg);">SV</span>
       <span class="trunc" style="flex:1 1 auto;font-size:14px;font-weight:600;">Studio Vero</span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="opacity:.6;flex:0 0 auto;"><path d="m6 9 6 6 6-6"/></svg>
     </div><div style="display:flex;flex-direction:column;gap:2px;margin-top:4px;">
-      <div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span class="trunc" style="flex:1 1 auto;">Zoeken</span><kbd style="flex:0 0 auto;border:1px solid var(--border);border-radius:4px;padding:0 4px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:11px;color:var(--muted-foreground);">⌘K</kbd></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4.5l3 1.8"/></svg><span class="trunc" style="flex:1 1 auto;">Vandaag</span><span style="flex:0 0 auto;font-size:11px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">4</span></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="14" r="6"/><circle cx="15" cy="14" r="6"/></svg><span class="trunc" style="flex:1 1 auto;">Bruiloften</span></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg><span class="trunc" style="flex:1 1 auto;">Sjablonen</span></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 19v-1a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v1"/><path d="M16 5.5a3 3 0 0 1 0 5.8M17 14h.6a4 4 0 0 1 4 4v1"/></svg><span class="trunc" style="flex:1 1 auto;">Team</span></div>
+      <div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span class="trunc" style="flex:1 1 auto;">Zoeken</span><kbd style="flex:0 0 auto;border:1px solid var(--border);border-radius:4px;padding:0 4px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:11px;color:var(--muted-foreground);">⌘K</kbd></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4.5l3 1.8"/></svg><span class="trunc" style="flex:1 1 auto;">Vandaag</span><span style="flex:0 0 auto;font-size:11px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">5</span></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="14" r="6"/><circle cx="15" cy="14" r="6"/></svg><span class="trunc" style="flex:1 1 auto;">Bruiloften</span></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg><span class="trunc" style="flex:1 1 auto;">Sjablonen</span></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 19v-1a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v1"/><path d="M16 5.5a3 3 0 0 1 0 5.8M17 14h.6a4 4 0 0 1 4 4v1"/></svg><span class="trunc" style="flex:1 1 auto;">Team</span></div>
     </div><div style="display:flex;flex-direction:column;gap:2px;margin-top:16px;min-width:0;">
         <div style="padding:0 10px 4px;">
                <p class="eyebrow trunc" style="margin:0;">Deze bruiloft</p>
@@ -94,7 +102,7 @@ a:hover{color:#2C7D77;}
     <div style="min-width:0;">
       <p class="eyebrow" style="margin:0 0 4px;">Lotte &amp; Bram · 12 juni 2027</p>
       <h1 style="margin:0;font-size:24px;line-height:1.25;font-weight:600;letter-spacing:-0.02em;">Bestanden</h1>
-      <p style="margin:6px 0 0;font-size:14px;color:var(--muted-foreground);">14 bestanden · 8 gedeeld met het koppel · 128 MB</p>
+      <p style="margin:6px 0 0;font-size:14px;color:var(--muted-foreground);">12 bestanden · 9 gedeeld met het koppel · 10,2 MB</p>
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex:0 0 auto;"><button type="button" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;height:36px;padding:0 12px;border-radius:var(--radius);font-size:14px;font-family:inherit;cursor:pointer;white-space:nowrap;background:var(--primary);color:var(--primary-foreground);border:1px solid transparent;font-weight:600;"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Uploaden</button></div>
   </header>
@@ -174,8 +182,8 @@ a:hover{color:#2C7D77;}
   </div>
       <div style="display:grid;grid-template-columns:minmax(0,1fr) 96px 150px 110px 150px;align-items:center;gap:0 12px;height:52px;padding:0 var(--cell-x);border-top:1px solid var(--border);">
     <span style="display:flex;align-items:center;gap:10px;min-width:0;">
-      <span style="flex:0 0 auto;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h8l4 4v14H6Z"/><path d="M14 3v4h4"/><path d="M9 13h1.5a1.2 1.2 0 0 1 0 2.4H9V13Zm0 5v-2.6"/></svg></span>
-      <span class="trunc" style="font-size:14px;">Rozentuin — opstelling ceremonie.pdf</span>
+      <span style="flex:0 0 auto;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="m4 17 5-4.5 4 3.5 3-2.5 4 3.5"/></svg></span>
+      <span class="trunc" style="font-size:14px;">Rozentuin — opstelling ceremonie.jpg</span>
     </span>
     <span class="num" style="font-size:13px;color:var(--muted-foreground);">1,8 MB</span>
     <span class="trunc" style="font-size:13px;color:var(--muted-foreground);">Ann Peeters</span>
@@ -215,12 +223,32 @@ a:hover{color:#2C7D77;}
     <span class="num" style="font-size:13px;color:var(--muted-foreground);">15 aug</span>
     <span style="display:flex;justify-content:flex-end;"><span style="display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 8px;font-size:12px;line-height:1.5;white-space:nowrap;background:var(--st-attending-bg);color:var(--st-attending-fg);"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 12S6 6 12 6s9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/></svg>Gedeeld</span></span>
   </div>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 96px 150px 110px 150px;align-items:center;gap:0 12px;height:52px;padding:0 var(--cell-x);border-top:1px solid var(--border);">
+    <span style="display:flex;align-items:center;gap:10px;min-width:0;">
+      <span style="flex:0 0 auto;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h8l4 4v14H6Z"/><path d="M14 3v4h4"/><path d="M9 13h1.5a1.2 1.2 0 0 1 0 2.4H9V13Zm0 5v-2.6"/></svg></span>
+      <span class="trunc" style="font-size:14px;">Traiteur Vermeulen — offerte 2, na onderhandeling.pdf</span>
+    </span>
+    <span class="num" style="font-size:13px;color:var(--muted-foreground);">420 kB</span>
+    <span class="trunc" style="font-size:13px;color:var(--muted-foreground);">Joren Nagels</span>
+    <span class="num" style="font-size:13px;color:var(--muted-foreground);">2 apr</span>
+    <span style="display:flex;justify-content:flex-end;"><span style="display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 8px;font-size:12px;line-height:1.5;white-space:nowrap;background:var(--st-attending-bg);color:var(--st-attending-fg);"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 12S6 6 12 6s9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/></svg>Gedeeld</span></span>
+  </div>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 96px 150px 110px 150px;align-items:center;gap:0 12px;height:52px;padding:0 var(--cell-x);border-top:1px solid var(--border);">
+    <span style="display:flex;align-items:center;gap:10px;min-width:0;">
+      <span style="flex:0 0 auto;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h8l4 4v14H6Z"/><path d="M14 3v4h4"/><path d="M9 13h1.5a1.2 1.2 0 0 1 0 2.4H9V13Zm0 5v-2.6"/></svg></span>
+      <span class="trunc" style="font-size:14px;">Kasteel van Brasschaat — offerte zaalhuur.pdf</span>
+    </span>
+    <span class="num" style="font-size:13px;color:var(--muted-foreground);">600 kB</span>
+    <span class="trunc" style="font-size:13px;color:var(--muted-foreground);">Joren Nagels</span>
+    <span class="num" style="font-size:13px;color:var(--muted-foreground);">4 mrt</span>
+    <span style="display:flex;justify-content:flex-end;"><span style="display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 8px;font-size:12px;line-height:1.5;white-space:nowrap;background:var(--st-plusone-bg);color:var(--st-plusone-fg);"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7.5a4 4 0 0 1 8 0V10"/></svg>Intern</span></span>
+  </div>
     </div>
     <div style="border-top:1px dashed var(--input);padding:22px var(--cell-x);text-align:center;">
       <p style="margin:0;font-size:13px;color:var(--muted-foreground);">Sleep bestanden hierheen, of klik om te uploaden</p>
       <p style="margin:5px 0 0;font-size:12px;color:var(--muted-foreground);">
         Nieuwe bestanden staan standaard op <strong style="color:var(--foreground);font-weight:500;">intern</strong>.
-        Delen is een keuze, geen vergetelheid.</p>
+        Delen is dan een keuze, geen vergissing.</p>
     </div></div>
   </div></div></main>
 </div>

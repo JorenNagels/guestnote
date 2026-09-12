@@ -1,6 +1,6 @@
 import {
-  avatar, btn, card, chip, icon, monogram, outlinePill, page,
-  pageHead, segmented, shell, sidebar,
+  avatar, btn, card, chip, icon, isLate, longNL, monogram, offsetOf, outlinePill,
+  page, pageHead, segmented, shell, shortNL, shortYearNL, sidebar,
 } from './lib.mjs'
 import { LOTTE } from './boards-layout.mjs'
 
@@ -19,7 +19,8 @@ function box(done = false) {
   return `<span aria-hidden="true" style="display:grid;place-items:center;width:17px;height:17px;border-radius:5px;border:1px solid ${done ? 'var(--primary)' : 'var(--input)'};background:${done ? 'var(--primary)' : 'transparent'};color:var(--primary-foreground);">${done ? icon('check', 12, { stroke: 2.5 }) : ''}</span>`
 }
 
-function taskRow({ title, who, due, internal = false, done = false, comments = 0, late = false, selected = false }) {
+function taskRow({ title, who, due, internal = false, done = false, comments = 0, selected = false }) {
+  const late = due && !done && isLate(due)
   return `<div style="${T_GRID}height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);${internal ? 'background:var(--muted);' : ''}${selected ? 'box-shadow:inset 2px 0 0 var(--primary);' : ''}">
     ${box(done)}
     <span style="display:flex;align-items:center;gap:8px;min-width:0;">
@@ -28,7 +29,7 @@ function taskRow({ title, who, due, internal = false, done = false, comments = 0
     </span>
     <span style="display:flex;align-items:center;gap:7px;min-width:0;">${avatar(who, 20)}<span class="trunc" style="font-size:13px;color:var(--muted-foreground);">${who}</span></span>
     <span style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted-foreground);font-variant-numeric:tabular-nums;">${comments ? icon('comment', 14) + comments : ''}</span>
-    <span class="num" style="font-size:13px;${late ? 'color:var(--st-alert-fg);font-weight:500;' : 'color:var(--muted-foreground);'}">${due}</span>
+    <span class="num" style="font-size:13px;${late ? 'color:var(--st-alert-fg);font-weight:500;' : 'color:var(--muted-foreground);'}">${shortNL(due)}</span>
   </div>`
 }
 
@@ -56,32 +57,31 @@ export function Checklist() {
       ${btn('Intern tonen', { icon: 'eye' })}
     </div>
     <p style="margin:0;font-size:13px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">
-      12 open · 3 te laat · 8 afgerond · 4 intern</p>
+      12 open · 1 te laat · 8 afgerond · 2 intern</p>
   </div>
 
-  ${phase('Nu', 'due_offset_days −273 … −265', 'sep 2026', [
-    { title: 'Definitieve gastenlijst opvragen', who: 'Lotte Peeters', due: 'vr 5 sep', late: true, comments: 3 },
-    { title: 'Proefdiner inplannen bij de traiteur', who: 'Joren Nagels', due: 'zo 13 sep' },
-    { title: 'Marge nakijken op offerte bloemist', who: 'Joren Nagels', due: 'ma 14 sep', internal: true, comments: 1 },
-    { title: 'Bloemist tweede offerte opvragen', who: 'Joren Nagels', due: 'wo 16 sep', selected: true, comments: 2 },
-    { title: 'Muziekwensen doorgeven', who: 'Lotte Peeters', due: 'vr 18 sep' },
+  ${phase('Nu', 'due_offset_days −280 … −267', 'september 2026', [
+    { title: 'Gastenlijst van Brams kant compleet maken', who: 'Bram Willems', due: '2026-09-05', comments: 3 },
+    { title: 'Proefdiner inplannen bij de traiteur', who: 'Joren Nagels', due: '2026-09-13' },
+    { title: 'Marge nakijken op offerte bloemist', who: 'Joren Nagels', due: '2026-09-14', internal: true, comments: 1 },
+    { title: 'Bloemist tweede offerte opvragen', who: 'Joren Nagels', due: '2026-09-16', selected: true, comments: 2 },
+    { title: 'Muziekwensen doorgeven', who: 'Lotte Peeters', due: '2026-09-18' },
   ])}
 
-  ${phase('Negen maanden voor', 'due_offset_days −270', 'sep 2026 · uit sjabloon', [
-    { title: 'Zaalindeling doorgeven aan het kasteel', who: 'Joren Nagels', due: 'ma 21 sep' },
-    { title: 'Hotelblok reserveren voor gasten van ver', who: 'Sofie Claes', due: 'wo 23 sep' },
-    { title: 'Aanbetaling kasteel op de rekening zetten', who: 'Joren Nagels', due: 'vr 25 sep', internal: true },
+  ${phase('Eind september', 'due_offset_days −264 … −260', 'uit sjabloon', [
+    { title: 'Zaalindeling doorgeven aan het kasteel', who: 'Joren Nagels', due: '2026-09-21' },
+    { title: 'Hotelblok reserveren voor gasten van ver', who: 'Sofie Claes', due: '2026-09-23' },
+    { title: 'Aanbetaling kasteel op de rekening zetten', who: 'Joren Nagels', due: '2026-09-25', internal: true },
   ])}
 
-  ${phase('Zes maanden voor', 'due_offset_days −180', 'dec 2026 · uit sjabloon', [
-    { title: 'Uitnodigingen laten drukken', who: 'Lotte Peeters', due: 'ma 14 dec' },
-    { title: 'Menu vastleggen met de traiteur', who: 'Joren Nagels', due: 'do 17 dec' },
-    { title: 'Ceremoniemeester briefen', who: 'Sofie Claes', due: 'ma 21 dec' },
+  ${phase('Zes maanden voor', 'due_offset_days −180 … −177', 'december 2026 · uit sjabloon', [
+    { title: 'Uitnodigingen laten drukken', who: 'Lotte Peeters', due: '2026-12-14' },
+    { title: 'Menu vastleggen met de traiteur', who: 'Joren Nagels', due: '2026-12-17' },
   ])}
 
-  ${phase('Week van de dag', 'due_offset_days −7 … 0', 'juni 2027 · uit sjabloon', [
-    { title: 'Draaiboek naar alle leveranciers sturen', who: 'Joren Nagels', due: 'ma 7 jun' },
-    { title: 'Definitieve aantallen naar de traiteur', who: 'Joren Nagels', due: 'di 8 jun' },
+  ${phase('Week van de dag', 'due_offset_days −7 … −4', 'juni 2027 · uit sjabloon', [
+    { title: 'Draaiboek naar alle leveranciers sturen', who: 'Joren Nagels', due: '2027-06-05' },
+    { title: 'Definitieve aantallen naar de traiteur', who: 'Joren Nagels', due: '2027-06-08' },
   ])}
 
   <section style="margin-top:20px;">
@@ -90,8 +90,8 @@ export function Checklist() {
       <span style="font-size:13px;">8</span>
     </div>
     ${card(`<div>
-      ${taskRow({ title: 'Locatie bevestigen en voorschot betalen', who: 'Joren Nagels', due: '12 mrt', done: true })}
-      ${taskRow({ title: 'Fotograaf vastleggen', who: 'Joren Nagels', due: '3 apr', done: true })}
+      ${taskRow({ title: 'Locatie bevestigen en voorschot betalen', who: 'Joren Nagels', due: '2026-03-12', done: true })}
+      ${taskRow({ title: 'Fotograaf vastleggen', who: 'Joren Nagels', due: '2026-04-03', done: true })}
     </div>
     <div style="border-top:1px solid var(--border);padding:10px var(--cell-x);">
       <span style="font-size:13px;color:var(--muted-foreground);">Nog 6 afgeronde taken</span>
@@ -152,7 +152,7 @@ export function TaskDetail() {
 
       <div style="margin-top:16px;">
         ${metaRow('Toegewezen aan', `${avatar('Joren Nagels', 22)}Joren Nagels ${chip('Planner', 'declined')}`, { control: true })}
-        ${metaRow('Vervalt', `<span style="font-variant-numeric:tabular-nums;">woensdag 16 september 2026</span><code class="mono" style="font-size:11px;color:var(--muted-foreground);">T−270</code>`, { control: true })}
+        ${metaRow('Vervalt', `<span style="font-variant-numeric:tabular-nums;">${longNL('2026-09-16')}</span><code class="mono" style="font-size:11px;color:var(--muted-foreground);">T${offsetOf('2026-09-16')}</code>`, { control: true })}
         ${metaRow('Status', chip('Open', 'awaiting'), { control: true })}
         ${metaRow('Zichtbaarheid', `${chip('Gedeeld met het koppel', 'attending', { icon: 'eye' })}`, { control: true })}
       </div>
@@ -216,8 +216,12 @@ function tplRow(name, tasks, used, active = false) {
   </div>`
 }
 
-function tplTask(offset, label, who, resolved, internal = false) {
-  return `<div style="display:grid;grid-template-columns:96px minmax(0,1fr) 150px 116px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);${internal ? 'background:var(--muted);' : ''}">
+function tplTask(offset, label, who, internal = false) {
+  // The point of this column: one template applies to any wedding and the dates
+  // compute themselves against weddings.wedding_date. Typing them by hand here
+  // would be the board contradicting its own subject -- and did, four times.
+  const resolved = isLate(offset) ? 'reeds voorbij' : shortYearNL(offset)
+  return `<div style="display:grid;grid-template-columns:96px minmax(0,1fr) 150px 132px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);${internal ? 'background:var(--muted);' : ''}">
     <code class="mono" style="font-size:12px;color:var(--muted-foreground);">${offset}</code>
     <span style="display:flex;align-items:center;gap:8px;min-width:0;">
       <span class="trunc" style="font-size:14px;">${label}</span>
@@ -270,26 +274,26 @@ export function Templates() {
           ${btn('Toepassen', { variant: 'primary' })}
         </div>
         <p style="margin:10px 0 0;font-size:12px;line-height:1.55;color:var(--muted-foreground);">
-          Bestaande taken met dezelfde titel worden overgeslagen, niet gedupliceerd. Data die in het verleden
+          Bestaande taken met dezelfde titel worden overgeslagen, niet gedupliceerd. Datums die in het verleden
           vallen &mdash; deze bruiloft is al geboekt &mdash; komen op vandaag te staan en worden gemarkeerd.</p>
       </div>
 
       <div style="margin-top:18px;">
-        <div style="display:grid;grid-template-columns:96px minmax(0,1fr) 150px 116px;gap:0 12px;padding:0 var(--cell-x) 8px;">
+        <div style="display:grid;grid-template-columns:96px minmax(0,1fr) 150px 132px;gap:0 12px;padding:0 var(--cell-x) 8px;">
           <span class="eyebrow">Offset</span><span class="eyebrow">Taak</span>
           <span class="eyebrow">Standaard aan</span><span class="eyebrow num">Wordt</span>
         </div>
         ${card(`<div>
-          ${tplTask('−420', 'Locatie bezichtigen en optie nemen', 'Planner', 'reeds voorbij')}
-          ${tplTask('−390', 'Voorschot kasteel betalen', 'Planner', 'reeds voorbij')}
-          ${tplTask('−300', 'Traiteur kiezen na proeverij', 'Planner', 'do 16 jul 2026')}
-          ${tplTask('−270', 'Zaalindeling doorgeven', 'Planner', 'ma 21 sep 2026')}
-          ${tplTask('−270', 'Marge nakijken op offertes', 'Planner', 'ma 21 sep 2026', true)}
-          ${tplTask('−180', 'Uitnodigingen laten drukken', 'Koppel', 'ma 14 dec 2026')}
-          ${tplTask('−120', 'Menu definitief vastleggen', 'Planner', 'ma 12 feb 2027')}
-          ${tplTask('−30', 'Tafelschikking afronden', 'Koppel', 'wo 12 mei 2027')}
-          ${tplTask('−7', 'Draaiboek naar leveranciers', 'Planner', 'za 5 jun 2027')}
-          ${tplTask('0', 'Sleutel kasteel ophalen om 8u', 'Planner', 'za 12 jun 2027')}
+          ${tplTask(-420, 'Locatie bezichtigen en optie nemen', 'Planner')}
+          ${tplTask(-390, 'Voorschot kasteel betalen', 'Planner')}
+          ${tplTask(-300, 'Traiteur kiezen na proeverij', 'Planner')}
+          ${tplTask(-270, 'Zaalindeling doorgeven', 'Planner')}
+          ${tplTask(-270, 'Marge nakijken op offertes', 'Planner', true)}
+          ${tplTask(-180, 'Uitnodigingen laten drukken', 'Koppel')}
+          ${tplTask(-120, 'Menu definitief vastleggen', 'Planner')}
+          ${tplTask(-30, 'Tafelschikking afronden', 'Koppel')}
+          ${tplTask(-7, 'Draaiboek naar leveranciers', 'Planner')}
+          ${tplTask(0, 'Sleutel kasteel ophalen om 8u', 'Planner')}
         </div>
         <div style="border-top:1px solid var(--border);padding:10px var(--cell-x);">
           <span style="font-size:13px;color:var(--muted-foreground);">Nog 32 taken</span>
@@ -315,18 +319,18 @@ export function Templates() {
 const COUPLE_NAV = [['Zoeken', 'search', 'search']]
 const COUPLE_SECTIONS = [
   ['Overzicht', 'overview', null],
-  ['Onze taken', 'tasks', '5'],
+  ['Onze taken', 'tasks', '3'],
   ['Budget', 'budget', null],
   ['Moodboard', 'moodboard', null],
   ['Bestanden', 'files', null],
 ]
 
 export function CouplePortal() {
-  const ourTask = (title, who, due, late = false) => `<div style="display:grid;grid-template-columns:26px minmax(0,1fr) 150px 108px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
+  const ourTask = (title, who, due) => `<div style="display:grid;grid-template-columns:26px minmax(0,1fr) 150px 108px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
     ${box(false)}
     <span class="trunc" style="font-size:14px;">${title}</span>
     <span style="display:flex;align-items:center;gap:7px;min-width:0;">${avatar(who, 20)}<span class="trunc" style="font-size:13px;color:var(--muted-foreground);">${who}</span></span>
-    <span class="num" style="font-size:13px;${late ? 'color:var(--st-alert-fg);font-weight:500;' : 'color:var(--muted-foreground);'}">${due}</span>
+    <span class="num" style="font-size:13px;${isLate(due) ? 'color:var(--st-alert-fg);font-weight:500;' : 'color:var(--muted-foreground);'}">${shortNL(due)}</span>
   </div>`
 
   const body = `
@@ -340,25 +344,23 @@ export function CouplePortal() {
     <div>
       <div style="display:flex;align-items:baseline;gap:10px;padding:0 var(--cell-x) 8px;">
         <h2 style="margin:0;font-size:14px;font-weight:600;">Wat wij moeten doen</h2>
-        <span style="font-size:13px;color:var(--muted-foreground);">5 · 1 te laat</span>
+        <span style="font-size:13px;color:var(--muted-foreground);">3 · 1 te laat</span>
       </div>
       ${card(`<div>
-        ${ourTask('Definitieve gastenlijst doorgeven', 'Lotte Peeters', 'vr 5 sep', true)}
-        ${ourTask('Muziekwensen doorgeven', 'Lotte Peeters', 'vr 18 sep')}
-        ${ourTask('Uitnodigingen nakijken vóór de druk', 'Bram Willems', 'ma 14 dec')}
-        ${ourTask('Tafelschikking afronden', 'Lotte Peeters', 'wo 12 mei')}
-        ${ourTask('Ringen ophalen', 'Bram Willems', 'do 3 jun')}
+        ${ourTask('Gastenlijst van Brams kant compleet maken', 'Bram Willems', '2026-09-05')}
+        ${ourTask('Muziekwensen doorgeven', 'Lotte Peeters', '2026-09-18')}
+        ${ourTask('Uitnodigingen laten drukken', 'Lotte Peeters', '2026-12-14')}
       </div>`)}
 
       <div style="margin-top:24px;">
         <div style="display:flex;align-items:baseline;gap:10px;padding:0 var(--cell-x) 8px;">
-          <h2 style="margin:0;font-size:14px;font-weight:600;">Waar Joren mee bezig is</h2>
+          <h2 style="margin:0;font-size:14px;font-weight:600;">Waar Joren en Sofie mee bezig zijn</h2>
           <span style="font-size:13px;color:var(--muted-foreground);">7</span>
         </div>
         ${card(`<div>
-          ${ourTask('Proefdiner inplannen bij de traiteur', 'Joren Nagels', 'zo 13 sep')}
-          ${ourTask('Bloemist tweede offerte opvragen', 'Joren Nagels', 'wo 16 sep')}
-          ${ourTask('Zaalindeling doorgeven aan het kasteel', 'Joren Nagels', 'ma 21 sep')}
+          ${ourTask('Proefdiner inplannen bij de traiteur', 'Joren Nagels', '2026-09-13')}
+          ${ourTask('Bloemist tweede offerte opvragen', 'Joren Nagels', '2026-09-16')}
+          ${ourTask('Hotelblok reserveren voor gasten van ver', 'Sofie Claes', '2026-09-23')}
         </div>
         <div style="border-top:1px solid var(--border);padding:10px var(--cell-x);">
           <span style="font-size:13px;color:var(--muted-foreground);">Nog 4 taken</span>

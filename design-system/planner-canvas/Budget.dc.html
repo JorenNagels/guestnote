@@ -1,7 +1,8 @@
 <!doctype html>
-<html>
+<html lang="nl">
 <head>
   <meta charset="utf-8">
+  <title>Guestnote</title>
   <script src="./support.js"></script>
 </head>
 <body>
@@ -12,6 +13,13 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
   <style>
 :root{
+  /* Primitives, section 1 of tokens.css. Only the handful the boards genuinely
+     reach for: a mid-teal and a mid-neutral for the budget bar's segments (no
+     semantic token means "the same thing, one step lighter"), a neutral for the
+     outline pill's dot, and teal-700 for a:hover. */
+  --teal-400:#78C6BF; --teal-700:#2C7D77;
+  --neutral-300:#CDC9C5; --neutral-500:#A39D98; --neutral-1000:#181715;
+
   --background:#F7F6F5; --foreground:#474441;
   --card:#FFFFFF; --card-foreground:#474441;
   --popover:#FFFFFF;
@@ -57,7 +65,7 @@ body{margin:0;background:var(--background);color:var(--foreground);
   font-family:"Inter","Inter Variable",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;}
 a{color:var(--primary);text-decoration:none;}
-a:hover{color:#2C7D77;}
+a:hover{color:var(--teal-700);}
 .num{text-align:right;font-variant-numeric:tabular-nums;}
 .mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;}
 /* text-[0.6875rem] + tracking-[0.08em] + uppercase + semibold -- the section-label
@@ -73,7 +81,7 @@ a:hover{color:#2C7D77;}
       <span style="display:grid;place-items:center;flex:0 0 auto;width:28px;height:28px;border-radius:6px;font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;background:var(--st-attending-bg);color:var(--st-attending-fg);">SV</span>
       <span class="trunc" style="flex:1 1 auto;font-size:14px;font-weight:600;">Studio Vero</span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="opacity:.6;flex:0 0 auto;"><path d="m6 9 6 6 6-6"/></svg>
     </div><div style="display:flex;flex-direction:column;gap:2px;margin-top:4px;">
-      <div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span class="trunc" style="flex:1 1 auto;">Zoeken</span><kbd style="flex:0 0 auto;border:1px solid var(--border);border-radius:4px;padding:0 4px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:11px;color:var(--muted-foreground);">⌘K</kbd></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4.5l3 1.8"/></svg><span class="trunc" style="flex:1 1 auto;">Vandaag</span><span style="flex:0 0 auto;font-size:11px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">4</span></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="14" r="6"/><circle cx="15" cy="14" r="6"/></svg><span class="trunc" style="flex:1 1 auto;">Bruiloften</span></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg><span class="trunc" style="flex:1 1 auto;">Sjablonen</span></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 19v-1a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v1"/><path d="M16 5.5a3 3 0 0 1 0 5.8M17 14h.6a4 4 0 0 1 4 4v1"/></svg><span class="trunc" style="flex:1 1 auto;">Team</span></div>
+      <div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span class="trunc" style="flex:1 1 auto;">Zoeken</span><kbd style="flex:0 0 auto;border:1px solid var(--border);border-radius:4px;padding:0 4px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:11px;color:var(--muted-foreground);">⌘K</kbd></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4.5l3 1.8"/></svg><span class="trunc" style="flex:1 1 auto;">Vandaag</span><span style="flex:0 0 auto;font-size:11px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">5</span></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="14" r="6"/><circle cx="15" cy="14" r="6"/></svg><span class="trunc" style="flex:1 1 auto;">Bruiloften</span></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg><span class="trunc" style="flex:1 1 auto;">Sjablonen</span></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 19v-1a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v1"/><path d="M16 5.5a3 3 0 0 1 0 5.8M17 14h.6a4 4 0 0 1 4 4v1"/></svg><span class="trunc" style="flex:1 1 auto;">Team</span></div>
     </div><div style="display:flex;flex-direction:column;gap:2px;margin-top:16px;min-width:0;">
         <div style="padding:0 10px 4px;">
                <p class="eyebrow trunc" style="margin:0;">Deze bruiloft</p>
@@ -106,60 +114,64 @@ a:hover{color:#2C7D77;}
         <p style="margin:5px 0 0;font-size:13px;color:var(--muted-foreground);">door het koppel opgegeven</p>
       </div></div><div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;"><div style="padding:14px 16px;">
         <p class="eyebrow" style="margin:0;">Vastgelegd</p>
-        <p style="margin:8px 0 0;font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;">€&nbsp;24.850</p>
-        <p style="margin:5px 0 0;font-size:13px;color:var(--muted-foreground);">7 van 9 leveranciers</p>
+        <p style="margin:8px 0 0;font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;">€&nbsp;25.200</p>
+        <p style="margin:5px 0 0;font-size:13px;color:var(--muted-foreground);">2 lijnen nog zonder bedrag</p>
       </div></div><div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;"><div style="padding:14px 16px;">
         <p class="eyebrow" style="margin:0;">Betaald</p>
-        <p style="margin:8px 0 0;font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;">€&nbsp;9.190</p>
-        <p style="margin:5px 0 0;font-size:13px;color:var(--muted-foreground);">37% van het vastgelegde</p>
+        <p style="margin:8px 0 0;font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;">€&nbsp;9.540</p>
+        <p style="margin:5px 0 0;font-size:13px;color:var(--muted-foreground);">38% van het vastgelegde</p>
       </div></div><div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;"><div style="padding:14px 16px;">
         <p class="eyebrow" style="margin:0;">Openstaand</p>
         <p style="margin:8px 0 0;font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--st-awaiting-fg);">€&nbsp;15.660</p>
-        <p style="margin:5px 0 0;font-size:13px;color:var(--muted-foreground);">over 7 schijven</p>
+        <p style="margin:5px 0 0;font-size:13px;color:var(--muted-foreground);">over 8 schijven</p>
       </div></div>
   </div>
 
   <div style="margin-top:14px;padding:14px 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:9px;">
+      <p style="margin:0;font-size:13px;">Verwachte uitgave <strong style="font-weight:600;font-variant-numeric:tabular-nums;">€&nbsp;27.400</strong></p>
+      <p style="margin:0;font-size:13px;color:var(--muted-foreground);">€&nbsp;600 onder de raming van €&nbsp;28.000</p>
+    </div>
     <div style="display:flex;height:10px;border-radius:999px;overflow:hidden;background:var(--muted);">
-      <span style="width:32.8%;background:var(--primary);"></span>
-      <span style="width:55.9%;background:#78C6BF;"></span>
-      <span style="width:7.9%;background:#CDC9C5;"></span>
+      <span style="width:34.8%;background:var(--primary);"></span>
+      <span style="width:57.2%;background:var(--teal-400);"></span>
+      <span style="width:8.0%;background:var(--neutral-300);"></span>
     </div>
     <div style="margin-top:10px;display:flex;gap:20px;flex-wrap:wrap;font-size:12px;color:var(--muted-foreground);">
-      <span style="display:flex;align-items:center;gap:7px;"><span style="width:9px;height:9px;border-radius:2px;background:var(--primary);"></span>Betaald €&nbsp;9.190</span>
-      <span style="display:flex;align-items:center;gap:7px;"><span style="width:9px;height:9px;border-radius:2px;background:#78C6BF;"></span>Vastgelegd, nog te betalen €&nbsp;15.660</span>
-      <span style="display:flex;align-items:center;gap:7px;"><span style="width:9px;height:9px;border-radius:2px;background:#CDC9C5;"></span>Nog te boeken €&nbsp;2.200</span>
+      <span style="display:flex;align-items:center;gap:7px;"><span style="width:9px;height:9px;border-radius:2px;background:var(--primary);"></span>Betaald €&nbsp;9.540</span>
+      <span style="display:flex;align-items:center;gap:7px;"><span style="width:9px;height:9px;border-radius:2px;background:var(--teal-400);"></span>Vastgelegd, nog te betalen €&nbsp;15.660</span>
+      <span style="display:flex;align-items:center;gap:7px;"><span style="width:9px;height:9px;border-radius:2px;background:var(--neutral-300);"></span>Nog te boeken, geraamd €&nbsp;2.200</span>
     </div>
   </div>
 
   <div style="margin-top:24px;">
-    <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 108px 108px 108px 112px;align-items:center;gap:0 12px;padding:0 var(--cell-x) 8px;">
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) 148px 104px 104px 104px 136px;align-items:center;gap:0 12px;padding:0 var(--cell-x) 8px;">
       <span class="eyebrow">Budgetlijn</span><span class="eyebrow">Leverancier</span>
       <span class="eyebrow num">Geraamd</span><span class="eyebrow num">Vastgelegd</span>
       <span class="eyebrow num">Betaald</span><span class="eyebrow" style="text-align:right;">Status</span>
     </div>
     <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;"><div>
-      <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 108px 108px 108px 112px;align-items:center;gap:0 12px;height:34px;padding:0 var(--cell-x);border-top:1px solid var(--border);background:var(--muted);">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 148px 104px 104px 104px 136px;align-items:center;gap:0 12px;height:34px;padding:0 var(--cell-x);border-top:1px solid var(--border);background:var(--muted);">
     <span style="font-size:13px;font-weight:600;">Locatie</span><span></span>
-    <span class="num" style="font-size:12px;color:var(--muted-foreground);">€&nbsp;6.500</span>
+    <span class="num" style="font-size:12px;color:var(--muted-foreground);">€&nbsp;6.150</span>
     <span class="num" style="font-size:12px;font-weight:500;">€&nbsp;6.800</span>
     <span></span><span></span>
   </div>
-      <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 108px 108px 108px 112px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 148px 104px 104px 104px 136px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
     <span class="trunc" style="font-size:14px;">Zaalhuur + terras</span>
     <span class="trunc" style="font-size:13px;color:var(--muted-foreground);">Kasteel van Brasschaat</span>
-    <span class="num" style="font-size:13px;color:var(--muted-foreground);">€&nbsp;6.500</span>
+    <span class="num" style="font-size:13px;color:var(--muted-foreground);">€&nbsp;6.150</span>
     <span class="num" style="font-size:13px;">€&nbsp;6.800</span>
     <span class="num" style="font-size:13px;color:var(--muted-foreground);">€&nbsp;2.000</span>
     <span style="display:flex;justify-content:flex-end;"><span style="display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 8px;font-size:12px;line-height:1.5;white-space:nowrap;background:var(--st-partial-bg);color:var(--st-partial-fg);"><span aria-hidden="true" style="width:6px;height:6px;border-radius:999px;flex:0 0 auto;background:var(--st-partial-dot);"></span>Deels betaald</span></span>
   </div>
-      <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 108px 108px 108px 112px;align-items:center;gap:0 12px;height:34px;padding:0 var(--cell-x);border-top:1px solid var(--border);background:var(--muted);">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 148px 104px 104px 104px 136px;align-items:center;gap:0 12px;height:34px;padding:0 var(--cell-x);border-top:1px solid var(--border);background:var(--muted);">
     <span style="font-size:13px;font-weight:600;">Eten &amp; drank</span><span></span>
     <span class="num" style="font-size:12px;color:var(--muted-foreground);">€&nbsp;9.400</span>
     <span class="num" style="font-size:12px;font-weight:500;">€&nbsp;8.360</span>
     <span></span><span></span>
   </div>
-      <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 108px 108px 108px 112px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 148px 104px 104px 104px 136px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
     <span class="trunc" style="font-size:14px;">Diner, 4 gangen · 120 couverts</span>
     <span class="trunc" style="font-size:13px;color:var(--muted-foreground);">Traiteur Vermeulen</span>
     <span class="num" style="font-size:13px;color:var(--muted-foreground);">€&nbsp;7.000</span>
@@ -167,7 +179,7 @@ a:hover{color:#2C7D77;}
     <span class="num" style="font-size:13px;color:var(--muted-foreground);">€&nbsp;1.500</span>
     <span style="display:flex;justify-content:flex-end;"><span style="display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 8px;font-size:12px;line-height:1.5;white-space:nowrap;background:var(--st-partial-bg);color:var(--st-partial-fg);"><span aria-hidden="true" style="width:6px;height:6px;border-radius:999px;flex:0 0 auto;background:var(--st-partial-dot);"></span>Deels betaald</span></span>
   </div>
-      <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 108px 108px 108px 112px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 148px 104px 104px 104px 136px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
     <span class="trunc" style="font-size:14px;">Dranken en receptie</span>
     <span class="trunc" style="font-size:13px;color:var(--muted-foreground);">Traiteur Vermeulen</span>
     <span class="num" style="font-size:13px;color:var(--muted-foreground);">€&nbsp;2.400</span>
@@ -175,13 +187,13 @@ a:hover{color:#2C7D77;}
     <span class="num" style="font-size:13px;color:var(--muted-foreground);">—</span>
     <span style="display:flex;justify-content:flex-end;"><span style="display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 8px;font-size:12px;line-height:1.5;white-space:nowrap;background:var(--st-awaiting-bg);color:var(--st-awaiting-fg);"><span aria-hidden="true" style="width:6px;height:6px;border-radius:999px;flex:0 0 auto;background:var(--st-awaiting-dot);"></span>Openstaand</span></span>
   </div>
-      <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 108px 108px 108px 112px;align-items:center;gap:0 12px;height:34px;padding:0 var(--cell-x);border-top:1px solid var(--border);background:var(--muted);">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 148px 104px 104px 104px 136px;align-items:center;gap:0 12px;height:34px;padding:0 var(--cell-x);border-top:1px solid var(--border);background:var(--muted);">
     <span style="font-size:13px;font-weight:600;">Beeld &amp; muziek</span><span></span>
     <span class="num" style="font-size:12px;color:var(--muted-foreground);">€&nbsp;3.600</span>
     <span class="num" style="font-size:12px;font-weight:500;">€&nbsp;3.600</span>
     <span></span><span></span>
   </div>
-      <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 108px 108px 108px 112px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 148px 104px 104px 104px 136px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
     <span class="trunc" style="font-size:14px;">Fotografie, hele dag</span>
     <span class="trunc" style="font-size:13px;color:var(--muted-foreground);">Studio Lens</span>
     <span class="num" style="font-size:13px;color:var(--muted-foreground);">€&nbsp;2.200</span>
@@ -189,7 +201,7 @@ a:hover{color:#2C7D77;}
     <span class="num" style="font-size:13px;color:var(--muted-foreground);">€&nbsp;1.100</span>
     <span style="display:flex;justify-content:flex-end;"><span style="display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 8px;font-size:12px;line-height:1.5;white-space:nowrap;background:var(--st-partial-bg);color:var(--st-partial-fg);"><span aria-hidden="true" style="width:6px;height:6px;border-radius:999px;flex:0 0 auto;background:var(--st-partial-dot);"></span>Deels betaald</span></span>
   </div>
-      <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 108px 108px 108px 112px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 148px 104px 104px 104px 136px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
     <span class="trunc" style="font-size:14px;">DJ tot 3u</span>
     <span class="trunc" style="font-size:13px;color:var(--muted-foreground);">DJ Ravage</span>
     <span class="num" style="font-size:13px;color:var(--muted-foreground);">€&nbsp;1.400</span>
@@ -197,13 +209,13 @@ a:hover{color:#2C7D77;}
     <span class="num" style="font-size:13px;color:var(--muted-foreground);">—</span>
     <span style="display:flex;justify-content:flex-end;"><span style="display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 8px;font-size:12px;line-height:1.5;white-space:nowrap;background:var(--st-awaiting-bg);color:var(--st-awaiting-fg);"><span aria-hidden="true" style="width:6px;height:6px;border-radius:999px;flex:0 0 auto;background:var(--st-awaiting-dot);"></span>Openstaand</span></span>
   </div>
-      <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 108px 108px 108px 112px;align-items:center;gap:0 12px;height:34px;padding:0 var(--cell-x);border-top:1px solid var(--border);background:var(--muted);">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 148px 104px 104px 104px 136px;align-items:center;gap:0 12px;height:34px;padding:0 var(--cell-x);border-top:1px solid var(--border);background:var(--muted);">
     <span style="font-size:13px;font-weight:600;">Bloemen</span><span></span>
     <span class="num" style="font-size:12px;color:var(--muted-foreground);">€&nbsp;1.800</span>
     <span class="num" style="font-size:12px;font-weight:500;">€&nbsp;0</span>
     <span></span><span></span>
   </div>
-      <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 108px 108px 108px 112px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 148px 104px 104px 104px 136px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
     <span class="trunc" style="font-size:14px;">Ceremonie, tafels, boeket</span>
     <span class="trunc" style="font-size:13px;color:var(--muted-foreground);">Bloemhuis Dupont</span>
     <span class="num" style="font-size:13px;color:var(--muted-foreground);">€&nbsp;1.800</span>
@@ -211,13 +223,13 @@ a:hover{color:#2C7D77;}
     <span class="num" style="font-size:13px;color:var(--muted-foreground);">—</span>
     <span style="display:flex;justify-content:flex-end;"><span style="display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 8px;font-size:12px;line-height:1.5;white-space:nowrap;background:var(--st-declined-bg);color:var(--st-declined-fg);"><span aria-hidden="true" style="width:6px;height:6px;border-radius:999px;flex:0 0 auto;background:var(--st-declined-dot);"></span>Offerte gevraagd</span></span>
   </div>
-      <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 108px 108px 108px 112px;align-items:center;gap:0 12px;height:34px;padding:0 var(--cell-x);border-top:1px solid var(--border);background:var(--muted);">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 148px 104px 104px 104px 136px;align-items:center;gap:0 12px;height:34px;padding:0 var(--cell-x);border-top:1px solid var(--border);background:var(--muted);">
     <span style="font-size:13px;font-weight:600;">Kleding, haar &amp; drukwerk</span><span></span>
     <span class="num" style="font-size:12px;color:var(--muted-foreground);">€&nbsp;3.300</span>
     <span class="num" style="font-size:12px;font-weight:500;">€&nbsp;3.090</span>
     <span></span><span></span>
   </div>
-      <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 108px 108px 108px 112px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 148px 104px 104px 104px 136px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
     <span class="trunc" style="font-size:14px;">Jurk, pak, haar en make-up</span>
     <span class="trunc" style="font-size:13px;color:var(--muted-foreground);">—</span>
     <span class="num" style="font-size:13px;color:var(--muted-foreground);">€&nbsp;2.600</span>
@@ -225,7 +237,7 @@ a:hover{color:#2C7D77;}
     <span class="num" style="font-size:13px;color:var(--muted-foreground);">€&nbsp;2.450</span>
     <span style="display:flex;justify-content:flex-end;"><span style="display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 8px;font-size:12px;line-height:1.5;white-space:nowrap;background:var(--st-attending-bg);color:var(--st-attending-fg);"><span aria-hidden="true" style="width:6px;height:6px;border-radius:999px;flex:0 0 auto;background:var(--st-attending-dot);"></span>Betaald</span></span>
   </div>
-      <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 108px 108px 108px 112px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 148px 104px 104px 104px 136px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
     <span class="trunc" style="font-size:14px;">Uitnodigingen en menukaarten</span>
     <span class="trunc" style="font-size:13px;color:var(--muted-foreground);">Drukkerij Vanhee</span>
     <span class="num" style="font-size:13px;color:var(--muted-foreground);">€&nbsp;700</span>
@@ -233,13 +245,13 @@ a:hover{color:#2C7D77;}
     <span class="num" style="font-size:13px;color:var(--muted-foreground);">€&nbsp;640</span>
     <span style="display:flex;justify-content:flex-end;"><span style="display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 8px;font-size:12px;line-height:1.5;white-space:nowrap;background:var(--st-attending-bg);color:var(--st-attending-fg);"><span aria-hidden="true" style="width:6px;height:6px;border-radius:999px;flex:0 0 auto;background:var(--st-attending-dot);"></span>Betaald</span></span>
   </div>
-      <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 108px 108px 108px 112px;align-items:center;gap:0 12px;height:34px;padding:0 var(--cell-x);border-top:1px solid var(--border);background:var(--muted);">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 148px 104px 104px 104px 136px;align-items:center;gap:0 12px;height:34px;padding:0 var(--cell-x);border-top:1px solid var(--border);background:var(--muted);">
     <span style="font-size:13px;font-weight:600;">Vervoer</span><span></span>
     <span class="num" style="font-size:12px;color:var(--muted-foreground);">€&nbsp;400</span>
     <span class="num" style="font-size:12px;font-weight:500;">€&nbsp;0</span>
     <span></span><span></span>
   </div>
-      <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 108px 108px 108px 112px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 148px 104px 104px 104px 136px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
     <span class="trunc" style="font-size:14px;">Pendeldienst station → kasteel</span>
     <span class="trunc" style="font-size:13px;color:var(--muted-foreground);">—</span>
     <span class="num" style="font-size:13px;color:var(--muted-foreground);">€&nbsp;400</span>
@@ -247,13 +259,13 @@ a:hover{color:#2C7D77;}
     <span class="num" style="font-size:13px;color:var(--muted-foreground);">—</span>
     <span style="display:flex;justify-content:flex-end;"><span style="display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 8px;font-size:12px;line-height:1.5;white-space:nowrap;background:var(--st-declined-bg);color:var(--st-declined-fg);"><span aria-hidden="true" style="width:6px;height:6px;border-radius:999px;flex:0 0 auto;background:var(--st-declined-dot);"></span>Nog te boeken</span></span>
   </div>
-      <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 108px 108px 108px 112px;align-items:center;gap:0 12px;height:34px;padding:0 var(--cell-x);border-top:1px solid var(--border);background:var(--muted);">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 148px 104px 104px 104px 136px;align-items:center;gap:0 12px;height:34px;padding:0 var(--cell-x);border-top:1px solid var(--border);background:var(--muted);">
     <span style="font-size:13px;font-weight:600;">Begeleiding</span><span></span>
-    <span class="num" style="font-size:12px;color:var(--muted-foreground);">€&nbsp;3.000</span>
-    <span class="num" style="font-size:12px;font-weight:500;">€&nbsp;3.000</span>
+    <span class="num" style="font-size:12px;color:var(--muted-foreground);">€&nbsp;3.350</span>
+    <span class="num" style="font-size:12px;font-weight:500;">€&nbsp;3.350</span>
     <span></span><span></span>
   </div>
-      <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 108px 108px 108px 112px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 148px 104px 104px 104px 136px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
     <span class="trunc" style="font-size:14px;">Honorarium wedding planner</span>
     <span class="trunc" style="font-size:13px;color:var(--muted-foreground);">Studio Vero</span>
     <span class="num" style="font-size:13px;color:var(--muted-foreground);">€&nbsp;3.000</span>
@@ -261,11 +273,19 @@ a:hover{color:#2C7D77;}
     <span class="num" style="font-size:13px;color:var(--muted-foreground);">€&nbsp;1.500</span>
     <span style="display:flex;justify-content:flex-end;"><span style="display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 8px;font-size:12px;line-height:1.5;white-space:nowrap;background:var(--st-partial-bg);color:var(--st-partial-fg);"><span aria-hidden="true" style="width:6px;height:6px;border-radius:999px;flex:0 0 auto;background:var(--st-partial-dot);"></span>Deels betaald</span></span>
   </div>
-      <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 108px 108px 108px 112px;align-items:center;gap:0 12px;height:48px;padding:0 var(--cell-x);border-top:1px solid var(--foreground);">
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 148px 104px 104px 104px 136px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
+    <span class="trunc" style="font-size:14px;">Ceremoniebegeleiding</span>
+    <span class="trunc" style="font-size:13px;color:var(--muted-foreground);">Ceremoniemeester Jo</span>
+    <span class="num" style="font-size:13px;color:var(--muted-foreground);">€&nbsp;350</span>
+    <span class="num" style="font-size:13px;">€&nbsp;350</span>
+    <span class="num" style="font-size:13px;color:var(--muted-foreground);">€&nbsp;350</span>
+    <span style="display:flex;justify-content:flex-end;"><span style="display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 8px;font-size:12px;line-height:1.5;white-space:nowrap;background:var(--st-attending-bg);color:var(--st-attending-fg);"><span aria-hidden="true" style="width:6px;height:6px;border-radius:999px;flex:0 0 auto;background:var(--st-attending-dot);"></span>Betaald</span></span>
+  </div>
+      <div style="display:grid;grid-template-columns:minmax(0,1fr) 148px 104px 104px 104px 136px;align-items:center;gap:0 12px;height:48px;padding:0 var(--cell-x);border-top:1px solid var(--foreground);">
         <span style="font-size:14px;font-weight:600;">Totaal</span><span></span>
         <span class="num" style="font-size:14px;font-weight:600;">€&nbsp;28.000</span>
-        <span class="num" style="font-size:14px;font-weight:600;">€&nbsp;24.850</span>
-        <span class="num" style="font-size:14px;font-weight:600;">€&nbsp;9.190</span>
+        <span class="num" style="font-size:14px;font-weight:600;">€&nbsp;25.200</span>
+        <span class="num" style="font-size:14px;font-weight:600;">€&nbsp;9.540</span>
         <span></span>
       </div>
     </div></div>

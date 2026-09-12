@@ -1,5 +1,5 @@
 import {
-  avatar, btn, card, chip, icon, monogram, page, pageHead, segmented, shell,
+  avatar, btn, card, chip, icon, monogram, page, pageHead, segmented, shell, shortNL,
 } from './lib.mjs'
 import { LOTTE } from './boards-layout.mjs'
 
@@ -59,7 +59,7 @@ export function Moodboard() {
   const body = `
   ${pageHead('Moodboard', {
     eyebrow: 'Lotte &amp; Bram · 12 juni 2027',
-    sub: '24 beelden · 11 reacties · gedeeld met Lotte en Bram',
+    sub: '9 beelden · 11 reacties · gedeeld met Lotte en Bram',
     right: `${btn('Delen', { icon: 'eye' })}${btn('Beelden toevoegen', { icon: 'plus', variant: 'primary' })}`,
   })}
 
@@ -146,7 +146,7 @@ export function VendorSlice() {
         ${row('19:00', '60 min', 'Opbouw booth en geluid in de spiegelzaal', 'Stroom: 2 × 16A aan de noordmuur, achter het gordijn. Laden via de zijingang.')}
         ${row('21:30', '10 min', 'Openingsdans', 'Nummer wordt uiterlijk 1 juni doorgegeven door het koppel.')}
         ${row('21:40', '5u20', 'Feest tot 03:00', 'Geluidsnorm kasteel: 95 dB(A). Na 01:00 ramen dicht.')}
-        ${row('03:00', '45 min', 'Afbouw', 'Zaal moet om 04:00 leeg zijn.')}
+        ${row('03:00', '45 min', 'Afbouw booth en geluid', 'De zaal moet om 04:00 leeg zijn.')}
       </div>`)}
 
       <h2 style="margin:28px 0 10px;font-size:15px;font-weight:600;">Wat we van jou nodig hebben · 2</h2>
@@ -154,12 +154,12 @@ export function VendorSlice() {
         <div style="display:flex;align-items:center;gap:12px;height:var(--row-h);padding:0 var(--cell-x);">
           <span style="flex:1 1 auto;font-size:14px;">Ondertekend contract terugsturen</span>
           ${chip('Te laat', 'alert')}
-          <span class="num" style="flex:0 0 90px;font-size:13px;color:var(--st-alert-fg);font-weight:500;">vr 25 sep</span>
+          <span class="num" style="flex:0 0 90px;font-size:13px;color:var(--st-alert-fg);font-weight:500;">${shortNL('2026-09-04')}</span>
         </div>
         <div style="display:flex;align-items:center;gap:12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
           <span style="flex:1 1 auto;font-size:14px;">Technische fiche geluid bezorgen</span>
           ${chip('Open', 'awaiting')}
-          <span class="num" style="flex:0 0 90px;font-size:13px;color:var(--muted-foreground);">vr 1 mei</span>
+          <span class="num" style="flex:0 0 90px;font-size:13px;color:var(--muted-foreground);">${shortNL('2027-05-01')}</span>
         </div>
       </div>`)}
 
@@ -196,7 +196,7 @@ function memberRow(name, email, role, tone, weddings, note = '') {
     </span>
     <span>${chip(role, tone)}</span>
     <span style="font-size:13px;color:var(--muted-foreground);">${weddings}</span>
-    <span style="font-size:12px;text-align:right;color:var(--muted-foreground);">${note}</span>
+    <span class="trunc" style="font-size:12px;text-align:right;color:var(--muted-foreground);">${note}</span>
   </div>`
 }
 
@@ -214,7 +214,7 @@ function matrixRow(wedding, date, cells, couple) {
 export function Team() {
   const body = `
   ${pageHead('Team', {
-    sub: 'Studio Vero · Studio-abonnement, onbeperkte bruiloften en teamzitjes',
+    sub: 'Studio Vero · Studio-abonnement, onbeperkte bruiloften en extra teamleden',
     right: btn('Iemand uitnodigen', { icon: 'plus', variant: 'primary' }),
   })}
 
@@ -222,7 +222,7 @@ export function Team() {
     <div style="display:flex;align-items:baseline;gap:10px;padding:0 var(--cell-x) 8px;">
       <h2 style="margin:0;font-size:14px;font-weight:600;">Organisatie</h2>
       <code class="mono" style="font-size:11px;color:var(--muted-foreground);">org_members</code>
-      <span style="font-size:13px;color:var(--muted-foreground);">· ziet alle bruiloften van de organisatie, tenzij toegewezen</span>
+      <span style="font-size:13px;color:var(--muted-foreground);">· eigenaar en beheerder zien alle bruiloften, een medewerker alleen de toegewezen</span>
     </div>
     ${card(`<div>
       <div style="display:grid;grid-template-columns:minmax(0,1fr) 150px 130px 130px;gap:0 12px;padding:8px var(--cell-x);">
@@ -230,13 +230,13 @@ export function Team() {
         <span class="eyebrow">Bruiloften</span><span class="eyebrow" style="text-align:right;">Laatst actief</span>
       </div>
       ${memberRow('Joren Nagels', 'joren@studiovero.be', 'Eigenaar', 'declined', 'alle 12', 'nu')}
-      ${memberRow('Sofie Claes', 'sofie@studiovero.be', 'Medewerker', 'declined', '4 toegewezen', '2 uur geleden')}
-      ${memberRow('An De Wilde', 'an@studiovero.be', 'Beheerder', 'awaiting', '—', 'uitnodiging 3 sep')}
+      ${memberRow('Sofie Claes', 'sofie@studiovero.be', 'Medewerker', 'declined', '3 toegewezen', '2 uur geleden')}
+      ${memberRow('An De Wilde', 'an@studiovero.be', 'Uitgenodigd', 'awaiting', '—', 'nog niet aangemeld')}
     </div>`)}
     <p style="margin:10px 2px 0;font-size:13px;line-height:1.6;color:var(--muted-foreground);max-width:80ch;">
       Een <strong style="color:var(--foreground);font-weight:500;">medewerker</strong> heeft geen organisatiebrede blik:
-      zij ziet precies de bruiloften waarop ze staat. Dat is geen instelling maar de vorm van het principaal zelf &mdash;
-      er bestaat voor haar geen zoekopdracht die de rest teruggeeft.</p>
+      die ziet precies de bruiloften waarop ze staat. Dat is geen instelling die aan of uit kan, maar de vorm van de
+      afscherming zelf &mdash; er bestaat voor haar geen zoekopdracht die de rest teruggeeft.</p>
   </section>
 
   <section style="margin-top:30px;">
@@ -267,10 +267,10 @@ export function Team() {
     ${card(`<div>
       ${memberRow('Lotte Peeters', 'lotte@…', 'Koppel', 'partial', 'Lotte &amp; Bram', 'gisteren')}
       ${memberRow('Bram Willems', 'bram@…', 'Koppel', 'partial', 'Lotte &amp; Bram', '4 dagen geleden')}
-      ${memberRow('Kevin Maes · DJ Ravage', 'kevin@…', 'Leverancier', 'plusone', 'Lotte &amp; Bram', 'via link, geen account')}
+      ${memberRow('Kevin Maes · DJ Ravage', 'kevin@…', 'Leverancier', 'plusone', 'Lotte &amp; Bram', 'nog niet aangemeld')}
     </div>`)}
     <p style="margin:10px 2px 0;font-size:13px;line-height:1.6;color:var(--muted-foreground);max-width:80ch;">
-      Een principaal zonder organisatierol <em>moet</em> een bruiloft dragen. Zonder dat valt de afscherming
+      Wie geen rol in de organisatie heeft, <em>moet</em> aan één bruiloft hangen. Zonder dat valt de afscherming
       terug op organisatiebreed en leest een koppel het volledige boek van de planner &mdash; het is de reden dat
       dit twee tabellen zijn en niet één met een kolom erbij.</p>
   </section>`

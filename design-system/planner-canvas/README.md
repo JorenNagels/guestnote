@@ -37,6 +37,12 @@ No new tokens. The sidebar is still `--card` / `--muted` / `--border` / `--foreg
 because the `--sidebar-*` group ADR 0003 anticipates needs a contrast pass this work does
 not do.
 
+**Dates are computed, never typed.** `lib.mjs` resolves every due date from
+`due_offset_days` against the wedding date, in UTC, and derives the weekday and the
+overdue styling from it. That is not tidiness: the boards state an offset and the date it
+resolves to side by side, which *is* item P8, so a typed date that disagrees with its own
+offset would be the canvas contradicting its own subject. Four of them did.
+
 All names, weddings and amounts are sample data. The moodboard tiles are placeholders:
 there is no imagery in this repo, and a stock photo would assert a visual direction
 nobody has chosen.
@@ -57,7 +63,9 @@ node build.mjs --measure    # ...and re-measure every artboard in headless Chrom
 `--measure` exists because a canvas frame **clips rather than scales**: an artboard one
 row taller than its frame loses the row with no error anywhere. The heights in
 `canvas.json` are read off a real layout and cached in `heights.json`; run it after any
-change that adds rows. It needs the Chromium at the path named in `build.mjs` (the
+change that adds rows. It also measures the sidebar on its own (`_sidebar`), because the
+sticky note on page 1 quotes that number and a quoted measurement has to come from the
+pass that measured it &mdash; the hand sum it replaced was 125px out. It needs the Chromium at the path named in `build.mjs` (the
 Playwright browser that ships in the agent container) &mdash; on a laptop, point `CHROME`
 at any Chrome build.
 

@@ -1,8 +1,13 @@
 /**
  * Shared chrome for the planner-app design canvas.
  *
- * Values here are LIFTED, not invented: every colour is a semantic token from
- * design-system/tokens.css resolved to its light-mode primitive, and every
+ * Values here are LIFTED, not invented: every colour is a token from
+ * design-system/tokens.css -- a semantic one resolved to its light-mode primitive
+ * where one exists, and otherwise a named primitive from section 1 (the Budget
+ * bar's two tints, the outline pill's dot, the link hover). Those five are
+ * declared below rather than pasted as hex, because tokens.css calls primitives
+ * "never referenced in a component" and a raw hex in the markup is how that rule
+ * gets broken quietly. Every
  * measurement comes from the component that already ships it --
  * apps/web/src/components/nav/{shell,nav-item,org-head,monogram,account-menu}.tsx.
  * Where a number looks arbitrary (38px rows, 28px monogram, 6px inner radius) it is
@@ -15,6 +20,13 @@
 
 export const TOKENS = `
 :root{
+  /* Primitives, section 1 of tokens.css. Only the handful the boards genuinely
+     reach for: a mid-teal and a mid-neutral for the budget bar's segments (no
+     semantic token means "the same thing, one step lighter"), a neutral for the
+     outline pill's dot, and teal-700 for a:hover. */
+  --teal-400:#78C6BF; --teal-700:#2C7D77;
+  --neutral-300:#CDC9C5; --neutral-500:#A39D98; --neutral-1000:#181715;
+
   --background:#F7F6F5; --foreground:#474441;
   --card:#FFFFFF; --card-foreground:#474441;
   --popover:#FFFFFF;
@@ -62,7 +74,7 @@ body{margin:0;background:var(--background);color:var(--foreground);
   font-family:"Inter","Inter Variable",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;}
 a{color:var(--primary);text-decoration:none;}
-a:hover{color:#2C7D77;}
+a:hover{color:var(--teal-700);}
 .num{text-align:right;font-variant-numeric:tabular-nums;}
 .mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;}
 /* text-[0.6875rem] + tracking-[0.08em] + uppercase + semibold -- the section-label
@@ -70,6 +82,41 @@ a:hover{color:#2C7D77;}
 .eyebrow{font-size:0.6875rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;
   color:var(--muted-foreground);}
 .trunc{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}`
+
+/* ---------- dates ---------------------------------------------------------- *
+ * The boards state a T-minus offset and the date it resolves to, side by side --
+ * that pairing IS item P8, so a typed date that disagrees with its own offset is
+ * the one error this canvas cannot afford. Six of them were typed and four were
+ * wrong. They are computed now.
+ *
+ * UTC throughout, for the reason weddings/page.tsx already gives: a wedding date
+ * is a local civil date, and formatting it in a zone west of Greenwich renders
+ * the day before.
+ * ---------------------------------------------------------------------------- */
+
+const DAY = 86400000
+export const WEDDING_ISO = '2027-06-12'
+export const TODAY_ISO = '2026-09-12'
+
+const at = (isoDate) => new Date(`${isoDate}T00:00:00Z`)
+
+/** A date from a due_offset_days value: -270 is 270 days before the wedding. */
+export const fromOffset = (n) => new Date(at(WEDDING_ISO).getTime() + n * DAY)
+
+const asDate = (x) => (typeof x === 'number' ? fromOffset(x) : at(x))
+
+const fmt = (opts, d) => new Intl.DateTimeFormat('nl-BE', { ...opts, timeZone: 'UTC' }).format(d)
+
+/** "za 5 sep" -- takes an ISO date or an offset. */
+export const shortNL = (x) => fmt({ weekday: 'short', day: 'numeric', month: 'short' }, asDate(x))
+/** "za 5 sep 2026" */
+export const shortYearNL = (x) => fmt({ weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }, asDate(x))
+/** "zaterdag 5 september 2026" */
+export const longNL = (x) => fmt({ weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }, asDate(x))
+/** Overdue against the canvas's fixed "today". */
+export const isLate = (x) => asDate(x).getTime() < at(TODAY_ISO).getTime()
+/** The offset a date sits at, so a board can state one it did not start from. */
+export const offsetOf = (isoDate) => Math.round((at(isoDate) - at(WEDDING_ISO)) / DAY)
 
 /** Stroke-1.5 24-grid glyphs, the exact geometry of components/nav/icons.tsx where one exists. */
 const PATHS = {
@@ -146,11 +193,11 @@ export function chip(label, tone = 'declined', { icon: ic = null } = {}) {
 
 /** The bordered neutral pill weddings/page.tsx already ships for draft/live. */
 export function outlinePill(label, strong = false) {
-  return `<span style="display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:999px;padding:2px 8px;font-size:12px;white-space:nowrap;color:var(--${strong ? 'foreground' : 'muted-foreground'});"><span aria-hidden="true" style="width:6px;height:6px;border-radius:999px;background:${strong ? 'var(--foreground)' : '#A39D98'};"></span>${label}</span>`
+  return `<span style="display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);border-radius:999px;padding:2px 8px;font-size:12px;white-space:nowrap;color:var(--${strong ? 'foreground' : 'muted-foreground'});"><span aria-hidden="true" style="width:6px;height:6px;border-radius:999px;background:${strong ? 'var(--foreground)' : 'var(--neutral-500)'};"></span>${label}</span>`
 }
 
 /**
- * packages/ui/src/button.tsx is h-44 and full-width because it was written for the
+ * packages/ui/src/button.tsx is h-11 (44px) and full-width because it was written for the
  * sign-in card. Inside the dashboard the same shape at var(--control-h) is what the
  * density token is for, so these are that button at 36px with its own padding.
  */
@@ -178,7 +225,12 @@ export function navRow(label, ic, { active = false, badge = null, hint = null, c
     ? 'background:var(--muted);color:var(--foreground);font-weight:500;'
     : 'color:var(--muted-foreground);'
   if (collapsed) {
-    return `<div style="display:flex;align-items:center;justify-content:center;height:${ROW_H}px;border-radius:var(--radius);${skin}">${icon(ic, 16)}</div>`
+    // A button, not a div: on the rail the label is not rendered, so the name has
+    // to live on the control -- which is what nav-item.tsx does, and what the
+    // caption beside this on the Anatomy board claims. A div with an aria-label
+    // is ignored by assistive tech (org-head.tsx's comment records the same trap),
+    // so the caption would have been describing something that was not there.
+    return `<button type="button" aria-label="${label}" title="${label}" style="display:flex;width:100%;align-items:center;justify-content:center;height:${ROW_H}px;padding:0;border:0;background:none;font:inherit;color:inherit;cursor:pointer;border-radius:var(--radius);${skin}">${icon(ic, 16)}</button>`
   }
   const right = badge
     ? `<span style="flex:0 0 auto;font-size:11px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">${badge}</span>`
@@ -223,7 +275,7 @@ export function sidebar({
 
   const rows = nav ?? [
     ['Zoeken', 'search', 'search'],
-    ['Vandaag', 'today', 'today', '4'],
+    ['Vandaag', 'today', 'today', '5'],
     ['Bruiloften', 'weddings', 'weddings'],
     ['Sjablonen', 'archive', 'templates'],
     ['Team', 'team', 'team'],
@@ -294,11 +346,14 @@ export function segmented(options, activeIndex = 0) {
   </div>`
 }
 
-export function page({ title, body, w = 1440, h = 900, css = '' }) {
+export function page({ title = 'Guestnote', body, w = 1440, h = 900, css = '' }) {
+  // lang="nl" and a real <title>: every board is Dutch prose, and an untitled
+  // document with no language is what a screen reader has to guess its way through.
   return `<!doctype html>
-<html>
+<html lang="nl">
 <head>
   <meta charset="utf-8">
+  <title>${title}</title>
   <script src="./support.js"></script>
 </head>
 <body>
@@ -319,7 +374,7 @@ ${body}
 }
 
 /** Full dashboard frame: sidebar + scrolling content column. */
-export function shell(sidebarOpts, content, { w = 1440, h = 900, max = 1024, title = '', css = '' } = {}) {
+export function shell(sidebarOpts, content, { w = 1440, h = 900, max = 1024, title = 'Guestnote', css = '' } = {}) {
   return page({
     title,
     w,

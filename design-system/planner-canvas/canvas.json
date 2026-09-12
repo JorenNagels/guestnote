@@ -14,7 +14,7 @@
       "x": 1560,
       "y": 0,
       "w": 1440,
-      "h": 1004,
+      "h": 1091,
       "page": "page-1",
       "title": "Vandaag · P16"
     },
@@ -68,7 +68,7 @@
       "x": 0,
       "y": 0,
       "w": 1440,
-      "h": 1184,
+      "h": 1247,
       "page": "page-3",
       "title": "Budget · P11"
     },
@@ -95,7 +95,7 @@
       "x": 4680,
       "y": 0,
       "w": 1440,
-      "h": 1204,
+      "h": 1262,
       "page": "page-3",
       "title": "Draaiboek · P14"
     },
@@ -113,7 +113,7 @@
       "x": 6750,
       "y": 0,
       "w": 1440,
-      "h": 1004,
+      "h": 1024,
       "page": "page-3",
       "title": "Bestanden · P15"
     },
@@ -152,7 +152,7 @@
       "x": 0,
       "y": -230,
       "w": 420,
-      "text": "Wat hier NIEUW is tegenover shell.tsx vandaag:\n\n· Vandaag (P16) staat in de navigatie, en / stopt met doorverwijzen naar /weddings\n· de bruiloftsectie heeft acht rijen in plaats van één\n· Sjablonen en Team staan globaal, niet per bruiloft\n\nWat NIET verandert: geen --sidebar-* tokengroep. De zijbalk blijft gebouwd uit --card, --muted, --border en --foreground, precies zoals spec 0001 besloot — die groep vraagt een contrastpas die dit werk niet doet."
+      "text": "Wat hier NIEUW is tegenover shell.tsx vandaag:\n\n· Vandaag (P16) staat in de navigatie, en / stopt met doorverwijzen naar /weddings\n· de bruiloftsectie heeft acht rijen in plaats van één\n· Sjablonen en Team staan globaal, niet per bruiloft\n\nWat NIET verandert: geen --sidebar-* tokengroep. De zijbalk blijft staan op --background met --border ernaast, --muted voor de actieve rij en --foreground voor de tekst — precies zoals spec 0001 besloot — die groep vraagt een contrastpas die dit werk niet doet."
     },
     {
       "id": "note-height",
@@ -160,7 +160,7 @@
       "x": 460,
       "y": -230,
       "w": 400,
-      "text": "Gemeten, niet geschat: 775px voor de zijbalk met acht bruiloftsecties (12 september 2026, headless Chromium).\n\nDat past op 900px en niet op de ~740px van een 13-inch laptop. Er is geen scrollgebied in de zijbalk, dus wat wegvalt is het account en de inklapknop — de twee dingen die altijd bereikbaar horen te zijn. Kop en account vastzetten, middenstuk laten scrollen."
+      "text": "Gemeten, niet geschat: 775px voor de zijbalk met acht bruiloftsecties (build.mjs --measure, headless Chromium, Inter geladen).\n\nDat past op 900px en niet op de ~740px van een 13-inch laptop. Er is geen scrollgebied in de zijbalk, dus wat wegvalt is het account en de inklapknop — de twee dingen die altijd bereikbaar horen te zijn. Kop en account vastzetten, middenstuk laten scrollen."
     },
     {
       "id": "note-badge",
@@ -192,7 +192,7 @@
       "x": 4680,
       "y": -250,
       "w": 420,
-      "text": "Het draaiboek is ontworpen om een zwart-witte A4 te overleven: de wie-kolom is een naam plus een rolwoord, de blokken zijn toon en geen kleur, en elk bedrag is rechts uitgelijnd met tabular-nums (td.num is een baselaagregel in tokens.css, geen keuze per scherm).\n\nOp de telefoon: geen nagemaakte statusbalk, alle raakvlakken ≥44px. Dit is het enige scherm dat offline moet werken."
+      "text": "Het draaiboek is ontworpen om een zwart-witte A4 te overleven: de wie-kolom is een naam plus een rolwoord, de blokken zijn toon en geen kleur, en elk bedrag is rechts uitgelijnd met tabular-nums (td.num is een baselaagregel in tokens.css, geen keuze per scherm).\n\nOp de telefoon: geen nagemaakte statusbalk, elk tikdoel ≥44px. Dit is het enige scherm dat offline moet werken."
     },
     {
       "id": "note-mood",
@@ -210,7 +210,7 @@
     },
     {
       "id": "page-2",
-      "name": "PH1 — de omslag"
+      "name": "Taken, sjablonen, koppel"
     },
     {
       "id": "page-3",

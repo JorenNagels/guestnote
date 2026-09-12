@@ -1,7 +1,8 @@
 <!doctype html>
-<html>
+<html lang="nl">
 <head>
   <meta charset="utf-8">
+  <title>Guestnote</title>
   <script src="./support.js"></script>
 </head>
 <body>
@@ -12,6 +13,13 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
   <style>
 :root{
+  /* Primitives, section 1 of tokens.css. Only the handful the boards genuinely
+     reach for: a mid-teal and a mid-neutral for the budget bar's segments (no
+     semantic token means "the same thing, one step lighter"), a neutral for the
+     outline pill's dot, and teal-700 for a:hover. */
+  --teal-400:#78C6BF; --teal-700:#2C7D77;
+  --neutral-300:#CDC9C5; --neutral-500:#A39D98; --neutral-1000:#181715;
+
   --background:#F7F6F5; --foreground:#474441;
   --card:#FFFFFF; --card-foreground:#474441;
   --popover:#FFFFFF;
@@ -57,7 +65,7 @@ body{margin:0;background:var(--background);color:var(--foreground);
   font-family:"Inter","Inter Variable",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased;}
 a{color:var(--primary);text-decoration:none;}
-a:hover{color:#2C7D77;}
+a:hover{color:var(--teal-700);}
 .num{text-align:right;font-variant-numeric:tabular-nums;}
 .mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;}
 /* text-[0.6875rem] + tracking-[0.08em] + uppercase + semibold -- the section-label
@@ -73,7 +81,7 @@ a:hover{color:#2C7D77;}
       <span style="display:grid;place-items:center;flex:0 0 auto;width:28px;height:28px;border-radius:6px;font-size:11px;font-weight:600;font-variant-numeric:tabular-nums;background:var(--st-attending-bg);color:var(--st-attending-fg);">SV</span>
       <span class="trunc" style="flex:1 1 auto;font-size:14px;font-weight:600;">Studio Vero</span><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="opacity:.6;flex:0 0 auto;"><path d="m6 9 6 6 6-6"/></svg>
     </div><div style="display:flex;flex-direction:column;gap:2px;margin-top:4px;">
-      <div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span class="trunc" style="flex:1 1 auto;">Zoeken</span><kbd style="flex:0 0 auto;border:1px solid var(--border);border-radius:4px;padding:0 4px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:11px;color:var(--muted-foreground);">⌘K</kbd></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4.5l3 1.8"/></svg><span class="trunc" style="flex:1 1 auto;">Vandaag</span><span style="flex:0 0 auto;font-size:11px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">4</span></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="14" r="6"/><circle cx="15" cy="14" r="6"/></svg><span class="trunc" style="flex:1 1 auto;">Bruiloften</span></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;background:var(--muted);color:var(--foreground);font-weight:500;"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg><span class="trunc" style="flex:1 1 auto;">Sjablonen</span></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 19v-1a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v1"/><path d="M16 5.5a3 3 0 0 1 0 5.8M17 14h.6a4 4 0 0 1 4 4v1"/></svg><span class="trunc" style="flex:1 1 auto;">Team</span></div>
+      <div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span class="trunc" style="flex:1 1 auto;">Zoeken</span><kbd style="flex:0 0 auto;border:1px solid var(--border);border-radius:4px;padding:0 4px;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:11px;color:var(--muted-foreground);">⌘K</kbd></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8v4.5l3 1.8"/></svg><span class="trunc" style="flex:1 1 auto;">Vandaag</span><span style="flex:0 0 auto;font-size:11px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">5</span></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="14" r="6"/><circle cx="15" cy="14" r="6"/></svg><span class="trunc" style="flex:1 1 auto;">Bruiloften</span></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;background:var(--muted);color:var(--foreground);font-weight:500;"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><path d="M10 12h4"/></svg><span class="trunc" style="flex:1 1 auto;">Sjablonen</span></div><div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 19v-1a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v1"/><path d="M16 5.5a3 3 0 0 1 0 5.8M17 14h.6a4 4 0 0 1 4 4v1"/></svg><span class="trunc" style="flex:1 1 auto;">Team</span></div>
     </div><div style="flex:1 1 auto;"></div>
     <div style="display:flex;align-items:center;gap:10px;height:38px;padding:0 10px;border-radius:var(--radius);font-size:14px;color:var(--muted-foreground);"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/><path d="M4 5v14"/></svg><span class="trunc" style="flex:1 1 auto;">Zijbalk inklappen</span></div>
     <hr style="border:0;border-top:1px solid var(--border);margin:2px 0;">
@@ -157,18 +165,18 @@ a:hover{color:#2C7D77;}
           <button type="button" style="display:inline-flex;align-items:center;justify-content:center;gap:8px;height:36px;padding:0 12px;border-radius:var(--radius);font-size:14px;font-family:inherit;cursor:pointer;white-space:nowrap;background:var(--primary);color:var(--primary-foreground);border:1px solid transparent;font-weight:600;">Toepassen</button>
         </div>
         <p style="margin:10px 0 0;font-size:12px;line-height:1.55;color:var(--muted-foreground);">
-          Bestaande taken met dezelfde titel worden overgeslagen, niet gedupliceerd. Data die in het verleden
+          Bestaande taken met dezelfde titel worden overgeslagen, niet gedupliceerd. Datums die in het verleden
           vallen &mdash; deze bruiloft is al geboekt &mdash; komen op vandaag te staan en worden gemarkeerd.</p>
       </div>
 
       <div style="margin-top:18px;">
-        <div style="display:grid;grid-template-columns:96px minmax(0,1fr) 150px 116px;gap:0 12px;padding:0 var(--cell-x) 8px;">
+        <div style="display:grid;grid-template-columns:96px minmax(0,1fr) 150px 132px;gap:0 12px;padding:0 var(--cell-x) 8px;">
           <span class="eyebrow">Offset</span><span class="eyebrow">Taak</span>
           <span class="eyebrow">Standaard aan</span><span class="eyebrow num">Wordt</span>
         </div>
         <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;"><div>
-          <div style="display:grid;grid-template-columns:96px minmax(0,1fr) 150px 116px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
-    <code class="mono" style="font-size:12px;color:var(--muted-foreground);">−420</code>
+          <div style="display:grid;grid-template-columns:96px minmax(0,1fr) 150px 132px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
+    <code class="mono" style="font-size:12px;color:var(--muted-foreground);">-420</code>
     <span style="display:flex;align-items:center;gap:8px;min-width:0;">
       <span class="trunc" style="font-size:14px;">Locatie bezichtigen en optie nemen</span>
       
@@ -176,8 +184,8 @@ a:hover{color:#2C7D77;}
     <span style="font-size:13px;color:var(--muted-foreground);">Planner</span>
     <span class="num" style="font-size:13px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">reeds voorbij</span>
   </div>
-          <div style="display:grid;grid-template-columns:96px minmax(0,1fr) 150px 116px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
-    <code class="mono" style="font-size:12px;color:var(--muted-foreground);">−390</code>
+          <div style="display:grid;grid-template-columns:96px minmax(0,1fr) 150px 132px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
+    <code class="mono" style="font-size:12px;color:var(--muted-foreground);">-390</code>
     <span style="display:flex;align-items:center;gap:8px;min-width:0;">
       <span class="trunc" style="font-size:14px;">Voorschot kasteel betalen</span>
       
@@ -185,35 +193,35 @@ a:hover{color:#2C7D77;}
     <span style="font-size:13px;color:var(--muted-foreground);">Planner</span>
     <span class="num" style="font-size:13px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">reeds voorbij</span>
   </div>
-          <div style="display:grid;grid-template-columns:96px minmax(0,1fr) 150px 116px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
-    <code class="mono" style="font-size:12px;color:var(--muted-foreground);">−300</code>
+          <div style="display:grid;grid-template-columns:96px minmax(0,1fr) 150px 132px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
+    <code class="mono" style="font-size:12px;color:var(--muted-foreground);">-300</code>
     <span style="display:flex;align-items:center;gap:8px;min-width:0;">
       <span class="trunc" style="font-size:14px;">Traiteur kiezen na proeverij</span>
       
     </span>
     <span style="font-size:13px;color:var(--muted-foreground);">Planner</span>
-    <span class="num" style="font-size:13px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">do 16 jul 2026</span>
+    <span class="num" style="font-size:13px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">reeds voorbij</span>
   </div>
-          <div style="display:grid;grid-template-columns:96px minmax(0,1fr) 150px 116px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
-    <code class="mono" style="font-size:12px;color:var(--muted-foreground);">−270</code>
+          <div style="display:grid;grid-template-columns:96px minmax(0,1fr) 150px 132px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
+    <code class="mono" style="font-size:12px;color:var(--muted-foreground);">-270</code>
     <span style="display:flex;align-items:center;gap:8px;min-width:0;">
       <span class="trunc" style="font-size:14px;">Zaalindeling doorgeven</span>
       
     </span>
     <span style="font-size:13px;color:var(--muted-foreground);">Planner</span>
-    <span class="num" style="font-size:13px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">ma 21 sep 2026</span>
+    <span class="num" style="font-size:13px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">di 15 sep 2026</span>
   </div>
-          <div style="display:grid;grid-template-columns:96px minmax(0,1fr) 150px 116px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);background:var(--muted);">
-    <code class="mono" style="font-size:12px;color:var(--muted-foreground);">−270</code>
+          <div style="display:grid;grid-template-columns:96px minmax(0,1fr) 150px 132px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);background:var(--muted);">
+    <code class="mono" style="font-size:12px;color:var(--muted-foreground);">-270</code>
     <span style="display:flex;align-items:center;gap:8px;min-width:0;">
       <span class="trunc" style="font-size:14px;">Marge nakijken op offertes</span>
       <span style="display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 8px;font-size:12px;line-height:1.5;white-space:nowrap;background:var(--st-plusone-bg);color:var(--st-plusone-fg);"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7.5a4 4 0 0 1 8 0V10"/></svg>Intern</span>
     </span>
     <span style="font-size:13px;color:var(--muted-foreground);">Planner</span>
-    <span class="num" style="font-size:13px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">ma 21 sep 2026</span>
+    <span class="num" style="font-size:13px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">di 15 sep 2026</span>
   </div>
-          <div style="display:grid;grid-template-columns:96px minmax(0,1fr) 150px 116px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
-    <code class="mono" style="font-size:12px;color:var(--muted-foreground);">−180</code>
+          <div style="display:grid;grid-template-columns:96px minmax(0,1fr) 150px 132px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
+    <code class="mono" style="font-size:12px;color:var(--muted-foreground);">-180</code>
     <span style="display:flex;align-items:center;gap:8px;min-width:0;">
       <span class="trunc" style="font-size:14px;">Uitnodigingen laten drukken</span>
       
@@ -221,26 +229,26 @@ a:hover{color:#2C7D77;}
     <span style="font-size:13px;color:var(--muted-foreground);">Koppel</span>
     <span class="num" style="font-size:13px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">ma 14 dec 2026</span>
   </div>
-          <div style="display:grid;grid-template-columns:96px minmax(0,1fr) 150px 116px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
-    <code class="mono" style="font-size:12px;color:var(--muted-foreground);">−120</code>
+          <div style="display:grid;grid-template-columns:96px minmax(0,1fr) 150px 132px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
+    <code class="mono" style="font-size:12px;color:var(--muted-foreground);">-120</code>
     <span style="display:flex;align-items:center;gap:8px;min-width:0;">
       <span class="trunc" style="font-size:14px;">Menu definitief vastleggen</span>
       
     </span>
     <span style="font-size:13px;color:var(--muted-foreground);">Planner</span>
-    <span class="num" style="font-size:13px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">ma 12 feb 2027</span>
+    <span class="num" style="font-size:13px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">vr 12 feb 2027</span>
   </div>
-          <div style="display:grid;grid-template-columns:96px minmax(0,1fr) 150px 116px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
-    <code class="mono" style="font-size:12px;color:var(--muted-foreground);">−30</code>
+          <div style="display:grid;grid-template-columns:96px minmax(0,1fr) 150px 132px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
+    <code class="mono" style="font-size:12px;color:var(--muted-foreground);">-30</code>
     <span style="display:flex;align-items:center;gap:8px;min-width:0;">
       <span class="trunc" style="font-size:14px;">Tafelschikking afronden</span>
       
     </span>
     <span style="font-size:13px;color:var(--muted-foreground);">Koppel</span>
-    <span class="num" style="font-size:13px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">wo 12 mei 2027</span>
+    <span class="num" style="font-size:13px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">do 13 mei 2027</span>
   </div>
-          <div style="display:grid;grid-template-columns:96px minmax(0,1fr) 150px 116px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
-    <code class="mono" style="font-size:12px;color:var(--muted-foreground);">−7</code>
+          <div style="display:grid;grid-template-columns:96px minmax(0,1fr) 150px 132px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
+    <code class="mono" style="font-size:12px;color:var(--muted-foreground);">-7</code>
     <span style="display:flex;align-items:center;gap:8px;min-width:0;">
       <span class="trunc" style="font-size:14px;">Draaiboek naar leveranciers</span>
       
@@ -248,7 +256,7 @@ a:hover{color:#2C7D77;}
     <span style="font-size:13px;color:var(--muted-foreground);">Planner</span>
     <span class="num" style="font-size:13px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">za 5 jun 2027</span>
   </div>
-          <div style="display:grid;grid-template-columns:96px minmax(0,1fr) 150px 116px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
+          <div style="display:grid;grid-template-columns:96px minmax(0,1fr) 150px 132px;align-items:center;gap:0 12px;height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
     <code class="mono" style="font-size:12px;color:var(--muted-foreground);">0</code>
     <span style="display:flex;align-items:center;gap:8px;min-width:0;">
       <span class="trunc" style="font-size:14px;">Sleutel kasteel ophalen om 8u</span>

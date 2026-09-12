@@ -1,6 +1,6 @@
 import {
-  avatar, btn, card, chip, column, icon, kbd, monogram, outlinePill, page,
-  pageHead, segmented, shell, sidebar, WEDDING_SECTIONS,
+  avatar, btn, card, chip, column, icon, isLate, kbd, monogram, outlinePill, page,
+  pageHead, segmented, shell, shortNL, sidebar, WEDDING_SECTIONS,
 } from './lib.mjs'
 
 export const LOTTE = { name: 'Lotte & Bram', date: '12 juni 2027' }
@@ -8,7 +8,7 @@ export const LOTTE = { name: 'Lotte & Bram', date: '12 juni 2027' }
 /* ========================================================================== *
  * Main.dc.html -- "Vandaag", item P16.
  *
- * The one screen research/09 calls "the single most valuable in the app" and the
+ * The one screen research/09 calls "the single most valuable screen in the app" and the
  * reason a planner opens it daily rather than weekly. It is also the screen
  * docs/specs/0001 deliberately did NOT put in the nav yet: "putting a Vandaag item
  * in the nav before it exists would be a nav item that highlights the wrong thing."
@@ -17,23 +17,26 @@ export const LOTTE = { name: 'Lotte & Bram', date: '12 juni 2027' }
 
 const TODAY_ROWS = {
   laat: [
-    ['Definitieve gastenlijst opvragen', 'Marie & Tom', 'Koppel', 'vr 5 sep', 7],
-    ['Traiteur: menukeuze doorgeven', 'Marie & Tom', 'Joren Nagels', 'di 8 sep', 4],
-    ['Saldo fotograaf overmaken', 'Hanne & Seppe', 'Joren Nagels', 'do 10 sep', 2],
-    ['Vervoer gasten naar feestzaal bevestigen', 'Marie & Tom', 'Sofie Claes', 'vr 11 sep', 1],
+    ['Definitieve gastenlijst opvragen', 'Marie & Tom', 'Koppel', '2026-09-05'],
+    ['Gastenlijst van Brams kant compleet maken', 'Lotte & Bram', 'Bram Willems', '2026-09-05'],
+    ['Traiteur: menukeuze doorgeven', 'Marie & Tom', 'Joren Nagels', '2026-09-08'],
+    ['Saldo fotograaf overmaken', 'Hanne & Seppe', 'Joren Nagels', '2026-09-10'],
+    ['Vervoer gasten naar feestzaal bevestigen', 'Marie & Tom', 'Sofie Claes', '2026-09-11'],
   ],
   week: [
-    ['Proefdiner inplannen bij de traiteur', 'Lotte & Bram', 'Joren Nagels', 'zo 13 sep', 0],
-    ['Marge nakijken op offerte bloemist', 'Lotte & Bram', 'Joren Nagels', 'ma 14 sep', 0, true],
-    ['Save-the-date versturen', 'Fien & Wout', 'Koppel', 'di 15 sep', 0],
-    ['Ceremoniemeester briefen', 'Marie & Tom', 'Sofie Claes', 'wo 16 sep', 0],
-    ['Openstaande factuur DJ opvolgen', 'Hanne & Seppe', 'Joren Nagels', 'do 17 sep', 0, true],
-    ['Kapper proefsessie bevestigen', 'Amina & Youssef', 'Koppel', 'vr 18 sep', 0],
+    ['Proefdiner inplannen bij de traiteur', 'Lotte & Bram', 'Joren Nagels', '2026-09-13'],
+    ['Marge nakijken op offerte bloemist', 'Lotte & Bram', 'Joren Nagels', '2026-09-14', true],
+    ['Save-the-date versturen', 'Fien & Wout', 'Koppel', '2026-09-15'],
+    ['Bloemist tweede offerte opvragen', 'Lotte & Bram', 'Joren Nagels', '2026-09-16'],
+    ['Ceremoniemeester briefen', 'Marie & Tom', 'Sofie Claes', '2026-09-16'],
+    ['Openstaande factuur DJ opvolgen', 'Hanne & Seppe', 'Joren Nagels', '2026-09-17', true],
+    ['Muziekwensen doorgeven', 'Lotte & Bram', 'Lotte Peeters', '2026-09-18'],
+    ['Kappersproef bevestigen', 'Amina & Youssef', 'Koppel', '2026-09-18'],
   ],
   volgende: [
-    ['Zaalindeling doorgeven aan Kasteel van Brasschaat', 'Lotte & Bram', 'Joren Nagels', 'ma 21 sep', 0],
-    ['Aantal nachten hotelblok vastleggen', 'Fien & Wout', 'Sofie Claes', 'wo 23 sep', 0],
-    ['Contract DJ ondertekend terugvragen', 'Amina & Youssef', 'Joren Nagels', 'vr 25 sep', 0],
+    ['Zaalindeling doorgeven aan Kasteel van Brasschaat', 'Lotte & Bram', 'Joren Nagels', '2026-09-21'],
+    ['Aantal nachten hotelblok vastleggen', 'Fien & Wout', 'Sofie Claes', '2026-09-23'],
+    ['Contract DJ ondertekend terugvragen', 'Amina & Youssef', 'Joren Nagels', '2026-09-25'],
   ],
 }
 
@@ -43,16 +46,17 @@ function checkbox(done = false) {
   return `<span aria-hidden="true" style="display:grid;place-items:center;width:17px;height:17px;border-radius:5px;border:1px solid ${done ? 'var(--primary)' : 'var(--input)'};background:${done ? 'var(--primary)' : 'transparent'};color:var(--primary-foreground);">${done ? icon('check', 12, { stroke: 2.5 }) : ''}</span>`
 }
 
-function todayRow([title, wedding, who, due, lateDays, internal = false]) {
+function todayRow([title, wedding, who, due, internal = false]) {
+  const late = isLate(due)
   return `<div style="${GRID}height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);${internal ? 'background:var(--muted);' : ''}">
     ${checkbox()}
     <span style="display:flex;align-items:center;gap:8px;min-width:0;">
       <span class="trunc" style="font-size:14px;">${title}</span>
       ${internal ? chip('Intern', 'plusone', { icon: 'lock' }) : ''}
     </span>
-    <a class="trunc" style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--muted-foreground);">${icon('weddings', 14)}<span class="trunc">${wedding}</span></a>
+    <span class="trunc" style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--muted-foreground);">${icon('weddings', 14)}<span class="trunc">${wedding}</span></span>
     <span style="display:flex;align-items:center;gap:7px;min-width:0;">${avatar(who, 20)}<span class="trunc" style="font-size:13px;color:var(--muted-foreground);">${who}</span></span>
-    <span class="num" style="font-size:13px;${lateDays ? 'color:var(--st-alert-fg);font-weight:500;' : 'color:var(--muted-foreground);'}">${due}</span>
+    <span class="num" style="font-size:13px;${late ? 'color:var(--st-alert-fg);font-weight:500;' : 'color:var(--muted-foreground);'}">${shortNL(due)}</span>
   </div>`
 }
 
@@ -75,24 +79,24 @@ export function Main() {
 
   const body = `
   ${pageHead('Vandaag', {
-    sub: 'zaterdag 12 september · 5 actieve bruiloften · 22 openstaande taken',
+    sub: 'zaterdag 12 september · 5 actieve bruiloften · 5 taken te laat',
     right: `${segmented(['Alles', 'Aan mij', 'Aan het koppel'], 0)}${btn('Intern tonen', { icon: 'eye' })}`,
   })}
 
   <div style="margin-top:28px;display:flex;flex-direction:column;gap:24px;">
     <section>
-      ${groupHead('Te laat', '4', '· oudste staat 7 dagen open')}
+      ${groupHead('Te laat', '5', '· de oudste staat 7 dagen open')}
       ${card(`<div>${head}${TODAY_ROWS.laat.map(todayRow).join('')}</div>`)}
     </section>
 
     <section>
-      ${groupHead('Deze week', '6')}
+      ${groupHead('Deze week', '8')}
       ${card(`<div>${TODAY_ROWS.week.map(todayRow).join('')}</div>`)}
     </section>
 
     <section>
       ${groupHead('Volgende week', '7')}
-      ${card(`<div>${TODAY_ROWS.volgende.map(todayRow).join('')}
+      ${card(`<div>${TODAY_ROWS.volgende.map(todayRow).join('')}</div>
         <div style="border-top:1px solid var(--border);padding:10px var(--cell-x);">
           <span style="font-size:13px;color:var(--muted-foreground);">Nog 4 taken volgende week</span>
         </div>`)}
@@ -146,26 +150,26 @@ export function WeddingOverview() {
   <div style="margin-top:22px;display:flex;align-items:center;gap:12px;">
     <span style="font-size:13px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">Nog 273 dagen</span>
     <span style="flex:1 1 auto;height:4px;border-radius:999px;background:var(--muted);overflow:hidden;">
-      <span style="display:block;width:26%;height:100%;background:var(--primary);"></span>
+      <span style="display:block;width:40%;height:100%;background:var(--primary);"></span>
     </span>
     <span style="font-size:13px;color:var(--muted-foreground);">Geboekt in maart 2026</span>
   </div>
 
   <div style="margin-top:20px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;">
-    ${statCard('Taken', '12 open', '3 te laat · 2 wachten op het koppel', 'alert')}
-    ${statCard('Budget', '€ 24.850', 'vastgelegd van € 28.000 geraamd')}
+    ${statCard('Taken', '12 open', '1 te laat · 3 liggen bij het koppel', 'alert')}
+    ${statCard('Budget', '€ 25.200', 'vastgelegd van € 28.000 geraamd')}
     ${statCard('Betalingen', '€ 2.400', 'volgende schijf op 15 oktober')}
-    ${statCard('Leveranciers', '7 van 9', 'bloemist en DJ nog niet bevestigd')}
+    ${statCard('Leveranciers', '6 van 9', 'bloemist, DJ en vervoer nog niet rond')}
   </div>
 
   <div style="margin-top:24px;display:grid;grid-template-columns:minmax(0,1fr) 312px;gap:20px;align-items:start;">
     <section>
       ${groupHead('Deze week op deze bruiloft', '4')}
       ${card(`<div>
-        ${miniRow('Proefdiner inplannen bij de traiteur', 'Joren Nagels', 'zo 13 sep')}
-        ${miniRow('Marge nakijken op offerte bloemist', 'Joren Nagels', 'ma 14 sep', { internal: true })}
-        ${miniRow('Bloemist tweede offerte opvragen', 'Joren Nagels', 'wo 16 sep')}
-        ${miniRow('Muziekwensen doorgeven', 'Lotte Peeters', 'vr 18 sep')}
+        ${miniRow('Proefdiner inplannen bij de traiteur', 'Joren Nagels', shortNL('2026-09-13'))}
+        ${miniRow('Marge nakijken op offerte bloemist', 'Joren Nagels', shortNL('2026-09-14'), { internal: true })}
+        ${miniRow('Bloemist tweede offerte opvragen', 'Joren Nagels', shortNL('2026-09-16'))}
+        ${miniRow('Muziekwensen doorgeven', 'Lotte Peeters', shortNL('2026-09-18'))}
       </div>`)}
 
       <div style="margin-top:24px;">
@@ -173,7 +177,7 @@ export function WeddingOverview() {
         ${card(`<div style="padding:24px 16px;text-align:center;">
           <p style="margin:0;font-size:14px;font-weight:500;">Nog geen draaiboek voor deze dag</p>
           <p style="margin:6px auto 0;max-width:44ch;font-size:13px;line-height:1.55;color:var(--muted-foreground);">
-            Een draaiboek bouwt zich rond de ceremonie: geef het uur en Guestnote zet de blokken ervoor en erna klaar.</p>
+            Een draaiboek bouwt zich op rond de ceremonie: geef het uur en Guestnote zet de blokken ervoor en erna klaar.</p>
           <div style="margin-top:14px;display:flex;justify-content:center;gap:8px;">${btn('Draaiboek starten', { variant: 'primary' })}${btn('Uit sjabloon')}</div>
         </div>`)}
       </div>
@@ -196,7 +200,7 @@ export function WeddingOverview() {
           <div style="display:flex;align-items:flex-start;gap:10px;">
             <span style="color:var(--st-plusone-fg);flex:0 0 auto;margin-top:1px;">${icon('lock', 16)}</span>
             <p style="margin:0;font-size:13px;line-height:1.55;color:var(--muted-foreground);">
-              <strong style="color:var(--foreground);font-weight:500;">4 interne taken</strong> en 1 interne notitie
+              <strong style="color:var(--foreground);font-weight:500;">2 interne taken</strong> en 1 intern bestand
               op deze bruiloft. Lotte en Bram zien die niet, ook niet in de weekmail.</p>
           </div>
         </div>`)}
@@ -273,7 +277,7 @@ export function Anatomy() {
   const body = `<div style="width:1440px;padding:36px 40px 44px;">
     <header style="max-width:70ch;">
       <p class="eyebrow" style="margin:0 0 6px;">app.guestnote.be</p>
-      <h1 style="margin:0;font-size:28px;line-height:1.2;font-weight:600;letter-spacing:-0.02em;">Het app-layout, uit elkaar gehaald</h1>
+      <h1 style="margin:0;font-size:28px;line-height:1.2;font-weight:600;letter-spacing:-0.02em;">De layout, uit elkaar gehaald</h1>
       <p style="margin:10px 0 0;font-size:14px;line-height:1.6;color:var(--muted-foreground);">
         De zijbalk zoals <code class="mono" style="font-size:12px;">components/nav/shell.tsx</code> hem vandaag rendert,
         met de secties die PH1&ndash;PH3 eraan toevoegen. Geen nieuwe tokens: alles hieronder komt uit
@@ -282,8 +286,8 @@ export function Anatomy() {
 
     <div style="margin-top:32px;display:flex;gap:28px;align-items:flex-start;">
       ${frame('Uitgeklapt · 240px', 'De organisatie bovenaan, het account onderaan. Onze eigen merknaam staat hier nergens.', `<div style="height:800px;display:flex;">${sidebar({ wedding: LOTTE, weddingActive: 'Taken', active: null })}</div>`, 242)}
-      ${frame('Rail · 56px', 'Labels verhuizen naar het tooltip én naar de toegankelijke naam op de knop zelf.', `<div style="height:800px;display:flex;">${sidebar({ wedding: LOTTE, weddingActive: 'Taken', collapsed: true })}</div>`, 58)}
-      ${frame('Telefoon · lade', 'Onder md verlaat de zijbalk de flow. De kolom eronder krijgt inert, niet alleen main.', phoneDrawer, 390)}
+      ${frame('Rail · 56px', 'Labels verhuizen naar de tooltip én naar de toegankelijke naam op de knop zelf.', `<div style="height:800px;display:flex;">${sidebar({ wedding: LOTTE, weddingActive: 'Taken', collapsed: true })}</div>`, 58)}
+      ${frame('Telefoon · lade', 'Onder md verlaat de zijbalk de flow. De kolom eronder krijgt inert, niet alleen main. Menu- en sluitknop staan op 40 en 36px, overgenomen uit shell.tsx.', phoneDrawer, 390)}
       ${frame('Donker', 'Zelfde tokens, andere laag. De .dark-klasse, nooit prefers-color-scheme.', `<div class="dark" style="height:800px;display:flex;background:#181715;">${sidebar({ wedding: LOTTE, weddingActive: 'Taken', dark: true })}</div>`, 242)}
     </div>
 
@@ -331,7 +335,7 @@ export function Anatomy() {
       </section>
 
       <section>
-        <h2 style="margin:0 0 12px;font-size:15px;font-weight:600;">Dichtheid schakelt de tabel én de navigatie</h2>
+        <h2 style="margin:0 0 12px;font-size:15px;font-weight:600;">Dichtheid schakelt de tabel én de navigatie om</h2>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
           <div>
             <p style="margin:0 0 8px;font-size:12px;color:var(--muted-foreground);">Ruim &middot; --row-h 44px</p>
@@ -344,7 +348,7 @@ export function Anatomy() {
         </div>
         <p style="margin:12px 0 0;font-size:13px;line-height:1.55;color:var(--muted-foreground);">
           Een gastenlijst van 300 en een dozijn bruiloften is het normale geval, niet het uitzonderlijke.
-          Compact verzet rijhoogte, celpadding én knophoogte samen &mdash; het is dezelfde leessessie.</p>
+          Compact verandert rijhoogte, celpadding én knophoogte tegelijk &mdash; het is dezelfde leessessie.</p>
 
         <h2 style="margin:28px 0 12px;font-size:15px;font-weight:600;">Organisatie-monogram</h2>
         ${card(`<div style="padding:16px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">

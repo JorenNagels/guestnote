@@ -1,5 +1,6 @@
 import {
-  avatar, btn, card, chip, icon, monogram, page, pageHead, segmented, shell,
+  avatar, btn, card, chip, icon, isLate, monogram, page, pageHead, segmented,
+  shell, shortNL,
 } from './lib.mjs'
 import { LOTTE } from './boards-layout.mjs'
 
@@ -13,11 +14,14 @@ const EUR = (n) => '€&nbsp;' + n.toLocaleString('nl-BE')
  * dual-visibility model to build. The fee is therefore drawn as a line, not as a
  * footnote -- if it were hidden here the whole "no second version" claim is untrue.
  *
- * Every money column is td.num: right-aligned, tabular-nums. That is a base-layer
- * rule in tokens.css, not a decision this screen gets to make.
+ * Every money column is right-aligned with tabular-nums, which tokens.css states as
+ * a base-layer rule on `td.num, th.num`. These boards are CSS grids of spans rather
+ * than tables, so that selector cannot reach them -- lib.mjs restates it as a `.num`
+ * class. The rule is inherited, not applied; when this becomes real markup it should
+ * be a table and the selector should do the work.
  * ========================================================================== */
 
-const B_GRID = 'display:grid;grid-template-columns:minmax(0,1fr) 150px 108px 108px 108px 112px;align-items:center;gap:0 12px;'
+const B_GRID = 'display:grid;grid-template-columns:minmax(0,1fr) 148px 104px 104px 104px 136px;align-items:center;gap:0 12px;'
 
 function budgetRow(label, vendor, geraamd, vastgelegd, betaald, status, tone) {
   const open = vastgelegd - betaald
@@ -48,7 +52,7 @@ export function Budget() {
   })}
 
   <div style="margin-top:20px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;">
-    ${[['Geraamd', 28000, 'door het koppel opgegeven'], ['Vastgelegd', 24850, '7 van 9 leveranciers'], ['Betaald', 9190, '37% van het vastgelegde'], ['Openstaand', 15660, 'over 7 schijven']]
+    ${[['Geraamd', 28000, 'door het koppel opgegeven'], ['Vastgelegd', 25200, '2 lijnen nog zonder bedrag'], ['Betaald', 9540, '38% van het vastgelegde'], ['Openstaand', 15660, 'over 8 schijven']]
       .map(([l, v, s], i) => card(`<div style="padding:14px 16px;">
         <p class="eyebrow" style="margin:0;">${l}</p>
         <p style="margin:8px 0 0;font-size:20px;font-weight:600;font-variant-numeric:tabular-nums;${i === 3 ? 'color:var(--st-awaiting-fg);' : ''}">${EUR(v)}</p>
@@ -57,15 +61,19 @@ export function Budget() {
   </div>
 
   <div style="margin-top:14px;padding:14px 16px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:9px;">
+      <p style="margin:0;font-size:13px;">Verwachte uitgave <strong style="font-weight:600;font-variant-numeric:tabular-nums;">${EUR(27400)}</strong></p>
+      <p style="margin:0;font-size:13px;color:var(--muted-foreground);">${EUR(600)} onder de raming van ${EUR(28000)}</p>
+    </div>
     <div style="display:flex;height:10px;border-radius:999px;overflow:hidden;background:var(--muted);">
-      <span style="width:32.8%;background:var(--primary);"></span>
-      <span style="width:55.9%;background:#78C6BF;"></span>
-      <span style="width:7.9%;background:#CDC9C5;"></span>
+      <span style="width:34.8%;background:var(--primary);"></span>
+      <span style="width:57.2%;background:var(--teal-400);"></span>
+      <span style="width:8.0%;background:var(--neutral-300);"></span>
     </div>
     <div style="margin-top:10px;display:flex;gap:20px;flex-wrap:wrap;font-size:12px;color:var(--muted-foreground);">
-      <span style="display:flex;align-items:center;gap:7px;"><span style="width:9px;height:9px;border-radius:2px;background:var(--primary);"></span>Betaald ${EUR(9190)}</span>
-      <span style="display:flex;align-items:center;gap:7px;"><span style="width:9px;height:9px;border-radius:2px;background:#78C6BF;"></span>Vastgelegd, nog te betalen ${EUR(15660)}</span>
-      <span style="display:flex;align-items:center;gap:7px;"><span style="width:9px;height:9px;border-radius:2px;background:#CDC9C5;"></span>Nog te boeken ${EUR(2200)}</span>
+      <span style="display:flex;align-items:center;gap:7px;"><span style="width:9px;height:9px;border-radius:2px;background:var(--primary);"></span>Betaald ${EUR(9540)}</span>
+      <span style="display:flex;align-items:center;gap:7px;"><span style="width:9px;height:9px;border-radius:2px;background:var(--teal-400);"></span>Vastgelegd, nog te betalen ${EUR(15660)}</span>
+      <span style="display:flex;align-items:center;gap:7px;"><span style="width:9px;height:9px;border-radius:2px;background:var(--neutral-300);"></span>Nog te boeken, geraamd ${EUR(2200)}</span>
     </div>
   </div>
 
@@ -76,8 +84,8 @@ export function Budget() {
       <span class="eyebrow num">Betaald</span><span class="eyebrow" style="text-align:right;">Status</span>
     </div>
     ${card(`<div>
-      ${catHead('Locatie', 6500, 6800)}
-      ${budgetRow('Zaalhuur + terras', 'Kasteel van Brasschaat', 6500, 6800, 2000, 'Deels betaald', 'partial')}
+      ${catHead('Locatie', 6150, 6800)}
+      ${budgetRow('Zaalhuur + terras', 'Kasteel van Brasschaat', 6150, 6800, 2000, 'Deels betaald', 'partial')}
       ${catHead('Eten &amp; drank', 9400, 8360)}
       ${budgetRow('Diner, 4 gangen · 120 couverts', 'Traiteur Vermeulen', 7000, 6360, 1500, 'Deels betaald', 'partial')}
       ${budgetRow('Dranken en receptie', 'Traiteur Vermeulen', 2400, 2000, 0, 'Openstaand', 'awaiting')}
@@ -91,13 +99,14 @@ export function Budget() {
       ${budgetRow('Uitnodigingen en menukaarten', 'Drukkerij Vanhee', 700, 640, 640, 'Betaald', 'attending')}
       ${catHead('Vervoer', 400, 0)}
       ${budgetRow('Pendeldienst station → kasteel', '—', 400, 0, 0, 'Nog te boeken', 'declined')}
-      ${catHead('Begeleiding', 3000, 3000)}
+      ${catHead('Begeleiding', 3350, 3350)}
       ${budgetRow('Honorarium wedding planner', 'Studio Vero', 3000, 3000, 1500, 'Deels betaald', 'partial')}
+      ${budgetRow('Ceremoniebegeleiding', 'Ceremoniemeester Jo', 350, 350, 350, 'Betaald', 'attending')}
       <div style="${B_GRID}height:48px;padding:0 var(--cell-x);border-top:1px solid var(--foreground);">
         <span style="font-size:14px;font-weight:600;">Totaal</span><span></span>
         <span class="num" style="font-size:14px;font-weight:600;">${EUR(28000)}</span>
-        <span class="num" style="font-size:14px;font-weight:600;">${EUR(24850)}</span>
-        <span class="num" style="font-size:14px;font-weight:600;">${EUR(9190)}</span>
+        <span class="num" style="font-size:14px;font-weight:600;">${EUR(25200)}</span>
+        <span class="num" style="font-size:14px;font-weight:600;">${EUR(9540)}</span>
         <span></span>
       </div>
     </div>`)}
@@ -115,9 +124,9 @@ export function Budget() {
 
 const P_GRID = 'display:grid;grid-template-columns:104px minmax(0,1fr) 170px 120px 128px;align-items:center;gap:0 12px;'
 
-function payRow(date, what, vendor, amount, status, tone, { done = false } = {}) {
+function payRow(due, what, vendor, amount, status, tone, { done = false } = {}) {
   return `<div style="${P_GRID}height:var(--row-h);padding:0 var(--cell-x);border-top:1px solid var(--border);">
-    <span style="font-size:13px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">${date}</span>
+    <span style="font-size:13px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">${shortNL(due)}</span>
     <span class="trunc" style="font-size:14px;${done ? 'color:var(--muted-foreground);' : ''}">${what}</span>
     <span class="trunc" style="font-size:13px;color:var(--muted-foreground);">${vendor}</span>
     <span class="num" style="font-size:14px;font-weight:${done ? 400 : 500};">${EUR(amount)}</span>
@@ -142,7 +151,7 @@ export function Payments() {
   <div style="margin-top:18px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
     ${segmented(['Alles', 'Openstaand', 'Betaald'], 0)}
     <p style="margin:0;font-size:13px;font-variant-numeric:tabular-nums;color:var(--muted-foreground);">
-      Volgende schijf ${EUR(2400)} op 15 oktober · ${EUR(15660)} openstaand over 7 schijven</p>
+      Volgende schijf ${EUR(2400)} op 15 oktober · ${EUR(15660)} openstaand over 8 schijven</p>
   </div>
 
   <div style="margin-top:20px;">
@@ -153,33 +162,33 @@ export function Payments() {
     </div>
     ${card(`<div>
       ${payMonth('Oktober 2026', 2400)}
-      ${payRow('do 15 okt', 'Tweede schijf zaalhuur', 'Kasteel van Brasschaat', 2400, 'Openstaand', 'awaiting')}
+      ${payRow('2026-10-15', 'Tweede schijf zaalhuur', 'Kasteel van Brasschaat', 2400, 'Openstaand', 'awaiting')}
       ${payMonth('November 2026', 1000)}
-      ${payRow('zo 1 nov', 'Honorarium, tweede van drie', 'Studio Vero', 1000, 'Openstaand', 'awaiting')}
+      ${payRow('2026-11-01', 'Honorarium, tweede van drie', 'Studio Vero', 1000, 'Openstaand', 'awaiting')}
       ${payMonth('December 2026', 1100)}
-      ${payRow('di 15 dec', 'Saldo fotografie', 'Studio Lens', 1100, 'Openstaand', 'awaiting')}
+      ${payRow('2026-12-15', 'Saldo fotografie', 'Studio Lens', 1100, 'Openstaand', 'awaiting')}
       ${payMonth('Maart 2027', 2500)}
-      ${payRow('ma 1 mrt', 'Voorschot traiteur', 'Traiteur Vermeulen', 2500, 'Openstaand', 'awaiting')}
+      ${payRow('2027-03-01', 'Voorschot traiteur', 'Traiteur Vermeulen', 2500, 'Openstaand', 'awaiting')}
       ${payMonth('Mei 2027', 3800)}
-      ${payRow('za 1 mei', 'Saldo zaalhuur', 'Kasteel van Brasschaat', 2400, 'Openstaand', 'awaiting')}
-      ${payRow('za 29 mei', 'DJ, volledig bedrag', 'DJ Ravage', 1400, 'Openstaand', 'awaiting')}
+      ${payRow('2027-05-01', 'Saldo zaalhuur', 'Kasteel van Brasschaat', 2400, 'Openstaand', 'awaiting')}
+      ${payRow('2027-05-29', 'DJ, volledig bedrag', 'DJ Ravage', 1400, 'Openstaand', 'awaiting')}
       ${payMonth('Juni 2027', 4860)}
-      ${payRow('di 1 jun', 'Honorarium, laatste schijf', 'Studio Vero', 500, 'Openstaand', 'awaiting')}
-      ${payRow('za 5 jun', 'Saldo traiteur, na definitieve aantallen', 'Traiteur Vermeulen', 4360, 'Openstaand', 'awaiting')}
+      ${payRow('2027-06-01', 'Honorarium, laatste schijf', 'Studio Vero', 500, 'Openstaand', 'awaiting')}
+      ${payRow('2027-06-05', 'Saldo traiteur, na definitieve aantallen', 'Traiteur Vermeulen', 4360, 'Openstaand', 'awaiting')}
     </div>`)}
 
     <div style="margin-top:22px;">
       <div style="display:flex;align-items:center;gap:8px;padding:0 var(--cell-x) 8px;color:var(--muted-foreground);">
         ${icon('chevronRight', 14)}<h2 style="margin:0;font-size:14px;font-weight:600;color:var(--foreground);">Reeds betaald</h2>
-        <span style="font-size:13px;font-variant-numeric:tabular-nums;">${EUR(9190)} · 5 schijven</span>
+        <span style="font-size:13px;font-variant-numeric:tabular-nums;">${EUR(9540)} · 7 schijven</span>
       </div>
       ${card(`<div>
-        ${payRow('do 12 mrt', 'Voorschot zaalhuur bij boeking', 'Kasteel van Brasschaat', 2000, 'Betaald', 'attending', { done: true })}
-        ${payRow('vr 3 apr', 'Voorschot fotografie', 'Studio Lens', 1100, 'Betaald', 'attending', { done: true })}
-        ${payRow('ma 1 jun', 'Honorarium, eerste van drie', 'Studio Vero', 1500, 'Betaald', 'attending', { done: true })}
+        ${payRow('2026-03-12', 'Voorschot zaalhuur bij boeking', 'Kasteel van Brasschaat', 2000, 'Betaald', 'attending', { done: true })}
+        ${payRow('2026-04-03', 'Voorschot fotografie', 'Studio Lens', 1100, 'Betaald', 'attending', { done: true })}
+        ${payRow('2026-06-01', 'Honorarium, eerste van drie', 'Studio Vero', 1500, 'Betaald', 'attending', { done: true })}
       </div>
       <div style="border-top:1px solid var(--border);padding:10px var(--cell-x);">
-        <span style="font-size:13px;color:var(--muted-foreground);">Nog 2 betalingen</span>
+        <span style="font-size:13px;color:var(--muted-foreground);">Nog 4 betalingen</span>
       </div>`)}
     </div>
   </div>`
@@ -212,7 +221,7 @@ export function Vendors() {
   const body = `
   ${pageHead('Leveranciers', {
     eyebrow: 'Lotte &amp; Bram · 12 juni 2027',
-    sub: '7 van 9 bevestigd · 1 offerte open · 1 nog te kiezen',
+    sub: '6 van 9 bevestigd · 1 in optie · 1 offerte open · 1 nog te kiezen',
     right: `${btn('Uit mijn adresboek', { icon: 'archive' })}${btn('Leverancier', { icon: 'plus', variant: 'primary' })}`,
   })}
 
@@ -248,7 +257,7 @@ export function Vendors() {
     ${card(`<div style="padding:16px;">
       <p class="eyebrow" style="margin:0 0 8px;">Draaiboek</p>
       <p style="margin:0;font-size:13px;line-height:1.6;color:var(--muted-foreground);">
-        Vijf van deze leveranciers hebben rijen in het draaiboek. Zij krijgen straks een link naar
+        Zes van deze leveranciers hebben rijen in het draaiboek. Zij krijgen straks een link naar
         <strong style="color:var(--foreground);font-weight:500;">alleen hun eigen rijen</strong> &mdash; niet het budget,
         niet de gastenlijst.</p>
     </div>`)}
@@ -305,7 +314,7 @@ export function RunSheet() {
   <div style="margin-top:18px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
     ${segmented(['Hele dag', 'Alleen mijn rijen', 'Per leverancier'], 0)}
     <p style="margin:0;font-size:13px;color:var(--muted-foreground);">
-      08:00 → 03:00 · 24 rijen · 5 leveranciers hebben rijen</p>
+      08:00 → 04:00 · 19 rijen · 6 leveranciers hebben rijen</p>
   </div>
 
   <div style="margin-top:20px;">
@@ -328,12 +337,15 @@ export function RunSheet() {
       ${rsRow('17:45', '15 min', 'Speech vader van de bruid', 'Ceremoniemeester Jo')}
       ${rsRow('18:00', '30 min', 'Gasten begeleiden naar de zaal', 'Joren Nagels · planner')}
       ${rsRow('18:30', '2u30', 'Diner, vier gangen · 120 couverts', 'Traiteur Vermeulen')}
+      ${rsRow('19:00', '60 min', 'Opbouw booth en geluid in de spiegelzaal', 'DJ Ravage', 'Stroom: 2 × 16A aan de noordmuur, achter het gordijn. Laden via de zijingang.')}
       ${rsRow('21:00', '20 min', 'Taart aansnijden', 'Traiteur Vermeulen')}
-      ${rsBlock('Feest', '21:30 → 03:00')}
+      ${rsBlock('Feest', '21:30 → 04:00')}
       ${rsRow('21:30', '10 min', 'Openingsdans', 'DJ Ravage', 'Nummer wordt uiterlijk 1 juni doorgegeven')}
+      ${rsRow('21:40', '5u20', 'Feest tot 03:00', 'DJ Ravage', 'Geluidsnorm kasteel: 95 dB(A). Na 01:00 ramen dicht.')}
       ${rsRow('23:00', '45 min', 'Middernachtsnack', 'Traiteur Vermeulen')}
       ${rsRow('02:00', '60 min', 'Afbouw bar en keuken', 'Traiteur Vermeulen')}
-      ${rsRow('03:00', '—', 'Zaal leeg, sleutel terug bij de conciërge', 'Joren Nagels · planner')}
+      ${rsRow('03:00', '45 min', 'Afbouw booth en geluid', 'DJ Ravage')}
+      ${rsRow('04:00', '—', 'Zaal leeg, sleutel terug bij de conciërge', 'Joren Nagels · planner')}
     </div>`)}
   </div>`
 
@@ -407,7 +419,7 @@ export function RunSheetPhone() {
 function fileRow(name, kind, size, who, when, shared) {
   return `<div style="display:grid;grid-template-columns:minmax(0,1fr) 96px 150px 110px 150px;align-items:center;gap:0 12px;height:52px;padding:0 var(--cell-x);border-top:1px solid var(--border);">
     <span style="display:flex;align-items:center;gap:10px;min-width:0;">
-      <span style="flex:0 0 auto;color:var(--muted-foreground);">${icon(kind === 'Afbeelding' ? 'image' : 'pdf', 18)}</span>
+      <span style="flex:0 0 auto;color:var(--muted-foreground);">${icon(kind === 'image' ? 'image' : 'pdf', 18)}</span>
       <span class="trunc" style="font-size:14px;">${name}</span>
     </span>
     <span class="num" style="font-size:13px;color:var(--muted-foreground);">${size}</span>
@@ -427,7 +439,7 @@ export function Files() {
   const body = `
   ${pageHead('Bestanden', {
     eyebrow: 'Lotte &amp; Bram · 12 juni 2027',
-    sub: '14 bestanden · 8 gedeeld met het koppel · 128 MB',
+    sub: '12 bestanden · 9 gedeeld met het koppel · 10,2 MB',
     right: btn('Uploaden', { icon: 'plus', variant: 'primary' }),
   })}
 
@@ -446,17 +458,19 @@ export function Files() {
       ${fileRow('Marge-overzicht Q2.pdf', 'PDF', '96 kB', 'Joren Nagels', '14 aug', false)}
       ${fileGroup('Plattegronden', 3)}
       ${fileRow('Spiegelzaal — tafelplan v3.pdf', 'PDF', '2,4 MB', 'Joren Nagels', '1 sep', true)}
-      ${fileRow('Rozentuin — opstelling ceremonie.pdf', 'PDF', '1,8 MB', 'Ann Peeters', '28 aug', true)}
+      ${fileRow('Rozentuin — opstelling ceremonie.jpg', 'image', '1,8 MB', 'Ann Peeters', '28 aug', true)}
       ${fileRow('Regenscenario — spiegelzaal.pdf', 'PDF', '1,6 MB', 'Joren Nagels', '28 aug', true)}
       ${fileGroup('Offertes', 4)}
       ${fileRow('Bloemhuis Dupont — offerte 1.pdf', 'PDF', '204 kB', 'Joren Nagels', '20 aug', false)}
       ${fileRow('DJ Ravage — offerte.pdf', 'PDF', '188 kB', 'Joren Nagels', '15 aug', true)}
+      ${fileRow('Traiteur Vermeulen — offerte 2, na onderhandeling.pdf', 'PDF', '420 kB', 'Joren Nagels', '2 apr', true)}
+      ${fileRow('Kasteel van Brasschaat — offerte zaalhuur.pdf', 'PDF', '600 kB', 'Joren Nagels', '4 mrt', false)}
     </div>
     <div style="border-top:1px dashed var(--input);padding:22px var(--cell-x);text-align:center;">
       <p style="margin:0;font-size:13px;color:var(--muted-foreground);">Sleep bestanden hierheen, of klik om te uploaden</p>
       <p style="margin:5px 0 0;font-size:12px;color:var(--muted-foreground);">
         Nieuwe bestanden staan standaard op <strong style="color:var(--foreground);font-weight:500;">intern</strong>.
-        Delen is een keuze, geen vergetelheid.</p>
+        Delen is dan een keuze, geen vergissing.</p>
     </div>`)}
   </div>`
 
