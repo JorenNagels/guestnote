@@ -1,0 +1,17 @@
+/* Compiles packages/ui's Tailwind utility classes against design-system/tokens.css,
+   for /design-sync's cfg.cssEntry only -- NOT the app's Tailwind entry (that's
+   apps/web/src/app/globals.css, which has its own @source set). packages/ui ships no
+   built CSS of its own (no build step at all), so the design system's real look only
+   exists once Tailwind compiles its utility classes against the token layer -- this
+   file is that compile, scoped to just this package's source.
+
+   Re-run before every /design-sync build (cfg.buildCmd):
+     .ds-sync/node_modules/.bin/tailwindcss -i .design-sync/ui-tailwind-entry.css \
+       -o packages/ui/.ds-compiled.css --cwd .
+   Output is gitignored and regenerated -- cfg.cssEntry must resolve inside the package
+   dir (packages/ui/), so the entry lives here in .design-sync/ but the compiled output
+   has to sit inside packages/ui/. */
+@import "tailwindcss" source(none);
+@import "../design-system/tokens.css";
+
+@source "../packages/ui/src/**/*.{ts,tsx}";
