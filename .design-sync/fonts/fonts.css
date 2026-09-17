@@ -8,23 +8,23 @@
    fonts into apps/web itself (that gap is real and separate -- see .design-sync/NOTES.md
    Re-sync risks). */
 @font-face {
-  font-family: 'Inter Variable';
+  font-family: "Inter Variable";
   font-style: normal;
   font-weight: 100 900;
   font-display: swap;
-  src: url('./inter-variable-latin.woff2') format('woff2');
+  src: url("./inter-variable-latin.woff2") format("woff2");
 }
 @font-face {
-  font-family: 'Inter';
+  font-family: "Inter";
   font-style: normal;
   font-weight: 100 900;
   font-display: swap;
-  src: url('./inter-variable-latin.woff2') format('woff2');
+  src: url("./inter-variable-latin.woff2") format("woff2");
 }
 @font-face {
-  font-family: 'JetBrains Mono';
+  font-family: "JetBrains Mono";
   font-style: normal;
   font-weight: 100 900;
   font-display: swap;
-  src: url('./jetbrains-mono-variable-latin.woff2') format('woff2');
+  src: url("./jetbrains-mono-variable-latin.woff2") format("woff2");
 }

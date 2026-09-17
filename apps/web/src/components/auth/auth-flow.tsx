@@ -1,11 +1,13 @@
 'use client'
 
 import { AUTH_POLICY } from '@guestnote/core/auth'
+import { ArrivalBadge } from '@guestnote/ui/arrival-badge'
 import { Button, LinkButton } from '@guestnote/ui/button'
 import { Field } from '@guestnote/ui/field'
 import { InlineError } from '@guestnote/ui/inline-error'
 import { LiveRegion } from '@guestnote/ui/live-region'
 import { LocaleSwitcher } from '@guestnote/ui/locale-switcher'
+import { StepIndicator } from '@guestnote/ui/step-indicator'
 import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import type { Locale } from '../../lib/locales.ts'
 import { Wordmark } from '../brand/wordmark.tsx'
@@ -591,8 +593,6 @@ export function AuthFlow({
     return () => window.clearTimeout(id)
   }, [rung, arrivalHref])
 
-  const stepLabel =
-    rung === 0 ? copy.steps.public : rung === 1 ? copy.steps.verifying : copy.steps.private
   const [sentBefore, sentAfter] = splitAround(copy.verify.sentTo, 'email')
 
   return (
@@ -622,19 +622,11 @@ export function AuthFlow({
             {/* Depth is never the only signal: the rung is named in words, because the one
               screen in this product with no status chip on it still has to say where
               you are. */}
-            <div className="mb-6 flex items-center gap-2 text-xs">
-              <div className="flex gap-1" aria-hidden="true">
-                {([0, 1, 2] as const).map((i) => (
-                  <span
-                    key={i}
-                    className={`h-0.5 w-5 rounded-full bg-current transition-opacity duration-300 ${
-                      i <= rung ? 'opacity-100' : 'opacity-25'
-                    }`}
-                  />
-                ))}
-              </div>
-              <span className="font-semibold">{stepLabel}</span>
-            </div>
+            <StepIndicator
+              className="mb-6"
+              steps={[copy.steps.public, copy.steps.verifying, copy.steps.private]}
+              current={rung}
+            />
 
             {rung === 0 && (
               <>
@@ -790,9 +782,7 @@ export function AuthFlow({
 
             {rung === 2 && (
               <>
-                <div className="mb-4 inline-flex size-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                  <TickIcon />
-                </div>
+                <ArrivalBadge className="mb-4" />
                 <h1 className="mb-1.5 text-2xl leading-tight font-semibold tracking-tight">
                   {copy.arrive.title}
                 </h1>
@@ -830,21 +820,6 @@ export function AuthFlow({
 
       <Stage rung={rung} content={stage} />
     </div>
-  )
-}
-
-function TickIcon() {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      aria-hidden="true"
-      className="size-4"
-    >
-      <path d="M3.5 8.5l3 3 6-6.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
   )
 }
 

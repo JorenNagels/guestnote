@@ -46,7 +46,18 @@
 - `.design-sync/fonts/fonts.css` is a `/design-sync`-only artifact; it does not wire
   fonts into the actual app. If `apps/web` starts loading these fonts itself (e.g. via
   `next/font`), reconcile rather than maintaining two separate copies.
-- Only 6 components exist in `packages/ui` today (Button, LinkButton, Field,
-  InlineError, LiveRegion, LocaleSwitcher) — all small, all authored with 2-4 stories
-  each. As the library grows, re-confirm preview scope with the user rather than
-  assuming "author everything" still holds.
+- 8 components exist in `packages/ui` today (Button, LinkButton, Field, InlineError,
+  LiveRegion, LocaleSwitcher, StepIndicator, ArrivalBadge) — all small, all authored
+  with 1-4 stories each. As the library grows, re-confirm preview scope with the user
+  rather than assuming "author everything" still holds.
+
+## 2026-09-17: StepIndicator + ArrivalBadge added
+
+Promoted out of `apps/web/src/components/auth/auth-flow.tsx` (the real, shipped
+sign-in flow) rather than invented for the design canvas — both were inline markup
+duplicated nowhere else, and both are pure presentational primitives with no context
+dependency. `auth-flow.tsx` was refactored to import and use them, so the DS bundle
+and the real app now render the exact same code (`npm run check` green after the
+change, 702 tests). If either component's real-world usage in `auth-flow.tsx` changes
+shape, update the previews here to match — they're currently a direct copy of that
+usage (3-step rung indicator; default checkmark badge).

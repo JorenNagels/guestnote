@@ -1,5 +1,5 @@
-import { useState } from 'react'
 import { LocaleSwitcher } from '@guestnote/ui/locale-switcher'
+import { useState } from 'react'
 
 const LOCALES = ['nl', 'en', 'fr'] as const
 

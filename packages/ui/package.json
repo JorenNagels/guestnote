@@ -5,11 +5,13 @@
   "type": "module",
   "exports": {
     "./cx": "./src/cx.ts",
+    "./arrival-badge": "./src/arrival-badge.tsx",
     "./button": "./src/button.tsx",
     "./field": "./src/field.tsx",
     "./inline-error": "./src/inline-error.tsx",
     "./live-region": "./src/live-region.tsx",
-    "./locale-switcher": "./src/locale-switcher.tsx"
+    "./locale-switcher": "./src/locale-switcher.tsx",
+    "./step-indicator": "./src/step-indicator.tsx"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

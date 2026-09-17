@@ -6,8 +6,6 @@ export function Default() {
 
 export function LongMessage() {
   return (
-    <InlineError>
-      We couldn't verify this code — check the six digits and try again.
-    </InlineError>
+    <InlineError>We couldn't verify this code — check the six digits and try again.</InlineError>
   )
 }
