@@ -2,7 +2,7 @@
 # Create (or recreate) one database in the local Postgres container and apply every
 # migration to it -- the tier-1 loop from packages/db/README.md, made repeatable.
 #
-#   packages/db/scripts/local-db.sh gn_s4
+#   packages/db/scripts/local-db.sh gn_s4       (the name must match ^gn_[a-z0-9_]+$)
 #   export TEST_DATABASE_URL=postgres://app_user:verify@localhost:55433/gn_s4
 #   export SEED_DATABASE_URL=postgres://postgres:verify@localhost:55433/gn_s4
 #   npm run test:db
@@ -12,14 +12,14 @@
 # `test:db` TRUNCATES the fixture tables (test/harness.ts `reseed()`), so two agents or two
 # worktrees sharing one database corrupt each other's runs. Postgres databases in one
 # container are cheap and fully isolated, so each caller gets its own and the container is
-# shared. `guestnote` (no arg needed) is what the harness assumes when no URL is exported.
+# shared. `guestnote` is what the harness assumes when no URL is exported, so this script
+# refuses it: pass a `gn_` name and export the URLs it prints.
 #
 # ## It DROPS the database if it exists
 #
 # On purpose. A migration that half-applied last time, or a schema from before you rebased,
 # is the failure this exists to remove, and a "create if missing" would leave it there. The
-# only thing lost is a local throwaway. Name a database after your work, never `guestnote`
-# if you have data in it you want.
+# only thing lost is a local throwaway. That is why the name is restricted to `gn_*`.
 #
 # ## Tier 1 only
 #
@@ -34,9 +34,12 @@ IMAGE="postgres:17-alpine"
 DB="${1:-}"
 
 # The name goes into `create database "..."` below, so it is validated rather than quoted
-# and hoped for. Also refuses the three names that are not ours to drop.
-if [[ ! "$DB" =~ ^[a-z][a-z0-9_]{0,40}$ ]] || [[ "$DB" == "postgres" || "$DB" == template* ]]; then
-  echo "usage: $0 <dbname>   (lowercase letters, digits, underscore; not postgres/template*)" >&2
+# and hoped for. It must be `gn_` plus lowercase letters, digits and underscores, which by
+# construction excludes `postgres`, `template*` and the harness's default `guestnote`. Those
+# two are named anyway: this script DROPS the database it is given, `guestnote` is where the
+# harness points when no URL is exported, and the pattern is one edit away from admitting it.
+if [[ ! "$DB" =~ ^gn_[a-z0-9_]+$ ]] || [[ "$DB" == "guestnote" || "$DB" == "postgres" ]]; then
+  echo "usage: $0 gn_<name>   (must match ^gn_[a-z0-9_]+\$; never guestnote or postgres)" >&2
   exit 2
 fi
 

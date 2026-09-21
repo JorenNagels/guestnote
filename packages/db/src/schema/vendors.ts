@@ -54,11 +54,14 @@ export const WEDDING_VENDOR_STATUSES = [
  * leaves the wedding's history readable.
  *
  * `org_id` and `wedding_id` are denormalised as on every wedding-scoped table, and nothing
- * here forces `vendor_id`'s org to equal `org_id` -- a foreign key check runs without RLS,
- * so it can see a row the caller cannot. The consequence is bounded: a guessed UUIDv7 of
- * another org's vendor is accepted or refused, which is an existence oracle on an
- * unguessable id, and reads of the joined row still go through the policy. A composite key
- * `(vendor_id, org_id)` would close it; not done here, so as not to give the first
+ * here forces `vendor_id`'s org to equal `org_id`. Foreign keys are plain, and referential-
+ * integrity checks always bypass RLS (a documented Postgres rule, even under FORCE) -- so the
+ * key is satisfied by a parent the caller cannot read: another org's vendor, or (for
+ * `payments.budget_line_id`, `budget_lines.wedding_vendor_id`) a sibling wedding's row.
+ * `planner-isolation.test.ts` records that as today's behaviour. RLS is not the guard here;
+ * the guard is that a slice action reads the parent under `withTenant` before inserting the
+ * child, so a parent the principal cannot see is refused there. A composite key
+ * `(vendor_id, org_id)` would close it in the schema; not done, so as not to give the first
  * wedding-scoped table a shape none of the others has. Same limit on every FK in 0006.
  */
 export const weddingVendors = pgTable(

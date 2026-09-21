@@ -227,7 +227,7 @@ export const F = {
   taskA1Internal: '11111111-0000-0000-0000-000000000002',
   taskA2Shared: '22222222-0000-0000-0000-000000000001',
   taskB1Shared: '33333333-0000-0000-0000-000000000001',
-  // ---- spec 0003 planner tables (migration 0006/0007). One digit-run prefix per table so a
+  // ---- spec 0003 planner tables (migration 0006). One digit-run prefix per table so a
   // failing assertion names its table from the id alone; the last group is the row.
   eventA1: '44444444-0000-0000-0000-0000000000a1',
   eventA2: '44444444-0000-0000-0000-0000000000a2',

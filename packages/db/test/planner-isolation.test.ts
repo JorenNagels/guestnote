@@ -2,7 +2,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { AS, asPrincipal, connect, countOf, F, type Gucs, type Harness, reseed } from './harness.ts'
 
 /**
- * Isolation for the ten tables spec 0003 added (migrations 0006 and 0007).
+ * Isolation for the ten tables spec 0003 added (migration 0006).
  *
  * `isolation.test.ts` already proves the generic properties over every bucket -- no GUCs
  * means no rows, org A sees none of org B -- because these tables joined the bucket lists.
@@ -12,7 +12,8 @@ import { AS, asPrincipal, connect, countOf, F, type Gucs, type Harness, reseed }
  *      spec 0003 makes of every new policy, and the tenant keys alone cannot enforce it: a
  *      couple's GUCs match the planner's, so only the role clause tells them apart.
  *   2. A pinned `member` sees their wedding and not its sibling, on the seven wedding-scoped
- *      tables, and sees the whole org's directory on the three org-scoped ones.
+ *      tables, and sees the whole org's directory on the three org-scoped ones -- reading
+ *      it, not writing it: owner and admin write those (spec 0003 permissions table).
  *   3. `vendor_links` is closed to a member, reads included.
  *   4. The CHECKs and foreign keys behave as 0006 says.
  *
@@ -348,12 +349,39 @@ describe.each(ORG_TABLES)('$table (org-scoped)', (spec) => {
     expect(await run(AS.staffA, `${sqlText} returning id`, values)).toHaveLength(1)
   })
 
-  it('an assigned member CAN write here: gating writes by role is the action, not the policy', async () => {
-    // A deliberate non-goal of 0007, stated in its header. If this starts failing, the
-    // policy has grown a write rule and the header, the spec's permissions table and every
-    // Server Function that checks the role need to agree with it.
+  it('an assigned member cannot insert, update or delete: they read, owner and admin write', async () => {
+    // spec 0003: "Manage vendors, templates: member read". This was a deliberate non-goal
+    // of the policy until the 2026-09-21 tenancy audit, when a write rule that lived only in
+    // each Server Function was judged one forgotten check from a member editing the
+    // directory. Delete is asserted separately because WITH CHECK does not apply to it: a
+    // single FOR ALL policy with a wider USING and a narrower WITH CHECK refuses the insert
+    // and the update and lets the delete through. Reverting to the old policy fails all three.
     const [sqlText, values] = spec.insert(F.orgA)
-    expect(await run(AS.memberOnA1, `${sqlText} returning id`, values)).toHaveLength(1)
+    await expect(run(AS.memberOnA1, sqlText, values)).rejects.toThrow(RLS_ERROR)
+    expect(
+      await run(
+        AS.memberOnA1,
+        `update "${table}" set updated_at = now() where org_id = $1 returning 1`,
+        [F.orgA],
+      ),
+    ).toEqual([])
+    expect(
+      await run(AS.memberOnA1, `delete from "${table}" where org_id = $1 returning 1`, [F.orgA]),
+    ).toEqual([])
+    // Non-vacuity: the rows are still there for the member to read.
+    expect(await countOf(h, AS.memberOnA1, table)).toBe(spec.orgA)
+  })
+
+  it('an org-wide admin can write here', async () => {
+    const [sqlText, values] = spec.insert(F.orgA)
+    expect(await run(AS.adminA, `${sqlText} returning id`, values)).toHaveLength(1)
+    expect(
+      await run(
+        AS.adminA,
+        `update "${table}" set updated_at = now() where org_id = $1 returning 1`,
+        [F.orgA],
+      ),
+    ).not.toEqual([])
   })
 })
 
@@ -560,5 +588,61 @@ describe('0006 constraints', () => {
     expect(await owner(`select 1 from template_items where org_id = $1`, [F.orgA])).toEqual([])
     await owner(`delete from wedding_events where id = $1`, [F.eventA1])
     expect(await owner(`select 1 from run_sheet_items where id = $1`, [F.runItemA1])).toEqual([])
+  })
+})
+
+describe('foreign keys are plain: a child can point at a parent the caller cannot see', () => {
+  /**
+   * This documents TODAY's behaviour; it does not endorse it. Referential-integrity checks
+   * run without row level security, so a foreign key is satisfied by a parent in another
+   * wedding of the same org -- or another org -- that the writing principal cannot read.
+   * The policies constrain the CHILD row's own org and wedding, and nothing else.
+   *
+   * The guard is therefore not in the database: a slice action reads the parent under
+   * `withTenant` before it inserts the child, and that read is what refuses a parent the
+   * principal cannot see. Composite foreign keys `(parent_id, wedding_id)` would move the
+   * guard into the schema and were not added, so as not to give these tables a shape the
+   * older ones lack (see schema/vendors.ts).
+   *
+   * If a composite key is ever added these assertions start failing, and that is the signal
+   * to flip them, not to delete them. There is no mutation for them: they assert the
+   * absence of a constraint, so the "break it and watch it fail" step is adding the key.
+   */
+  it('a pinned member links a payment to a budget line of a sibling wedding', async () => {
+    // Non-vacuity: the member really cannot see the parent they are about to reference.
+    expect(
+      await run(AS.memberOnA1, `select 1 from budget_lines where id = $1`, [F.budgetLineA2]),
+    ).toEqual([])
+    const rows = await run(
+      AS.memberOnA1,
+      `insert into payments (id, org_id, wedding_id, budget_line_id, due_on, amount_cents)
+         values (gen_random_uuid(), $1, $2, $3, '2027-07-01', 10000) returning id`,
+      [F.orgA, F.weddingA1, F.budgetLineA2],
+    )
+    expect(rows).toHaveLength(1)
+  })
+
+  it('a pinned member points a budget line at a wedding vendor of a sibling wedding', async () => {
+    expect(
+      await run(AS.memberOnA1, `select 1 from wedding_vendors where id = $1`, [F.wedVendorA2]),
+    ).toEqual([])
+    const rows = await run(
+      AS.memberOnA1,
+      `update budget_lines set wedding_vendor_id = $1 where id = $2 returning id`,
+      [F.wedVendorA2, F.budgetLineA1],
+    )
+    expect(rows).toHaveLength(1)
+  })
+
+  it('an org A owner links one of their wedding vendors to a directory vendor of org B', async () => {
+    // The existence oracle schema/vendors.ts describes: the id is unguessable, so this is
+    // bounded, but the insert is accepted where a policy-aware check would refuse it.
+    const rows = await run(
+      AS.staffA,
+      `insert into wedding_vendors (id, org_id, wedding_id, vendor_id)
+         values (gen_random_uuid(), $1, $2, $3) returning id`,
+      [F.orgA, F.weddingA1, F.vendorB],
+    )
+    expect(rows).toHaveLength(1)
   })
 })

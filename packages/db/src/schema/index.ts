@@ -32,8 +32,8 @@ export const TENANT_SCOPED_TABLES = [
   'tasks',
   'task_comments',
   'audit_log',
-  // Spec 0003, migration 0006/0007. Every one is closed to a `couple` principal by the role
-  // clause in its policy, not only by the tenant keys -- see 0007_planner_rls.sql.
+  // Spec 0003, migration 0006. Every one is closed to a `couple` principal by the role
+  // clause in its policy, not only by the tenant keys -- see the tail of 0006.
   'wedding_events',
   'budget_lines',
   'payments',

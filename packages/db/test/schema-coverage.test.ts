@@ -293,6 +293,92 @@ describe('RLS is enabled AND forced', () => {
   })
 })
 
+describe('wedding-scoped policies pin the wedding and carry the role clause', () => {
+  /**
+   * The two things `tenant_isolation`'s org_id check cannot say, and that the isolation
+   * suite would only notice if a fixture happened to exercise them:
+   *
+   *   - `app.wedding_id`: without it a principal pinned to one wedding (an assigned
+   *     `member`, a couple) reads the whole org, because `app.org_id` alone matches every
+   *     wedding in it. Asserted on EVERY wedding-scoped table.
+   *   - `app.wedding_role`: without it a couple's GUCs, which are identical to a planner's,
+   *     read the row (research/07 section 3). Asserted on every table added by spec 0003
+   *     and after -- that is, everything except the older tables named below, which predate
+   *     the rule and are held by other means (`tasks` by its visibility clause, the rest by
+   *     what is in them). A NEW wedding-scoped table therefore has to carry the role clause
+   *     or be added to that list in a diff a reviewer sees.
+   *
+   * Substring checks, so the limit is the one every assertion in this file has: they prove
+   * the GUC is named, not that the predicate is right. What proves the predicate is
+   * planner-isolation.test.ts. These exist so that dropping the clause from one policy of
+   * ten fails here, by name, before any fixture has to notice.
+   */
+  const PREDATES_ROLE_CLAUSE = new Set([
+    'invitations',
+    'wedding_domains',
+    'tasks',
+    'task_comments',
+    'audit_log',
+  ])
+  const carriesRoleClause = (t: string) => !PREDATES_ROLE_CLAUSE.has(t)
+
+  const policies = async (table: string) =>
+    (await catalog(
+      `select policyname, cmd, qual, with_check from pg_policies where tablename = $1`,
+      [table],
+    )) as { policyname: string; cmd: string; qual: string | null; with_check: string | null }[]
+
+  it.each(TENANT_SCOPED_TABLES)('%s: every policy names app.wedding_id', async (table) => {
+    for (const p of await policies(table)) {
+      expect(p.qual ?? '', `${table}.${p.policyname} USING does not pin the wedding`).toContain(
+        'app.wedding_id',
+      )
+      // FOR SELECT has no WITH CHECK, and a cmd = 'ALL' one without it is already failed by
+      // 'policies apply to writes too'.
+      if (p.cmd !== 'SELECT') {
+        expect(
+          p.with_check ?? '',
+          `${table}.${p.policyname} WITH CHECK does not pin the wedding`,
+        ).toContain('app.wedding_id')
+      }
+    }
+  })
+
+  it.each(TENANT_SCOPED_TABLES.filter(carriesRoleClause))(
+    '%s: every policy carries the role clause',
+    async (table) => {
+      for (const p of await policies(table)) {
+        expect(
+          p.qual ?? '',
+          `${table}.${p.policyname} USING does not test app.wedding_role, so a couple reads it`,
+        ).toContain('app.wedding_role')
+        if (p.cmd !== 'SELECT') {
+          expect(
+            p.with_check ?? '',
+            `${table}.${p.policyname} WITH CHECK does not test app.wedding_role, so a couple writes it`,
+          ).toContain('app.wedding_role')
+        }
+      }
+    },
+  )
+
+  it.each(ORG_SCOPED_TABLES)('%s: every policy carries the role clause', async (table) => {
+    // No wedding key to pin, but the role clause is what keeps a couple out all the same.
+    for (const p of await policies(table)) {
+      expect(
+        p.qual ?? '',
+        `${table}.${p.policyname} USING does not test app.wedding_role`,
+      ).toContain('app.wedding_role')
+      if (p.cmd !== 'SELECT') {
+        expect(
+          p.with_check ?? '',
+          `${table}.${p.policyname} WITH CHECK does not test app.wedding_role`,
+        ).toContain('app.wedding_role')
+      }
+    }
+  })
+})
+
 describe('the visibility dimension is wired where it is needed', () => {
   it.each(VISIBILITY_SCOPED_TABLES)('%s has a visibility column', async (table) => {
     const rows = await catalog(
