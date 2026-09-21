@@ -73,6 +73,16 @@ export function appHomeUrl(): string {
 }
 
 /**
+ * `https://app.guestnote.be/invite/<token>` -- the link inside an invitation email.
+ *
+ * Absolute because the recipient opens it from a mail client, not from the dashboard. The
+ * token is a path segment and never a query, for the reason `app.invite` gives.
+ */
+export function appInviteUrl(token: string): string {
+  return `${appOrigin()}${app.invite(token)}`
+}
+
+/**
  * `https://app.guestnote.be/api/session-hint` -- what the apex asks, since it cannot know.
  *
  * The session cookie is `__Host-` prefixed and therefore pinned to the app host, so the

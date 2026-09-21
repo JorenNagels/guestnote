@@ -144,6 +144,19 @@
       "expiry": "De code verloopt over {minutes, plural, one {# minuut} other {# minuten}}.",
       "ignore": "Heb je dit niet aangevraagd? Dan kun je deze e-mail negeren.",
       "footer": "Guestnote · automatisch bericht. Antwoorden op dit adres komen niet aan."
+    },
+    "staffInvite": {
+      "subject": "{inviter} nodigde je uit voor {org} op Guestnote",
+      "preheader": "Maak je account aan om samen bruiloften te plannen.",
+      "heading": "Je bent uitgenodigd",
+      "intro": "{inviter} nodigde je uit om als {role} deel te nemen aan {org} op Guestnote.",
+      "roleAdmin": "beheerder",
+      "roleMember": "teamlid",
+      "cta": "Uitnodiging bekijken",
+      "linkFallback": "Werkt de knop niet? Kopieer dan deze link in je browser:",
+      "expiry": "De uitnodiging is {days, plural, one {# dag} other {# dagen}} geldig.",
+      "ignore": "Ken je {inviter} niet, of verwachtte je dit niet? Dan kun je deze e-mail negeren.",
+      "footer": "Guestnote · automatisch bericht. Antwoorden op dit adres komen niet aan."
     }
   }
 }

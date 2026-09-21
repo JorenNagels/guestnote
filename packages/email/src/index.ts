@@ -1,6 +1,7 @@
 import { createElement } from 'react'
 import { renderEmail } from './render.ts'
 import { SignInCode, type SignInCodeCopy } from './templates/sign-in-code.tsx'
+import { StaffInvite, type StaffInviteCopy } from './templates/staff-invite.tsx'
 import type { DeliveryRecord, EmailMessage, MailTransport, SendResult } from './types.ts'
 
 export { type ConsoleTransportConfig, createConsoleTransport } from './console.ts'
@@ -9,6 +10,7 @@ export { type ConsoleTransportConfig, createConsoleTransport } from './console.t
 // src/ses.ts exists to keep off it.
 export { createSesTransport } from './ses.ts'
 export type { SignInCodeCopy } from './templates/sign-in-code.tsx'
+export type { StaffInviteCopy } from './templates/staff-invite.tsx'
 export type {
   DeliveryRecord,
   EmailMessage,
@@ -60,8 +62,40 @@ export type SignInCodeInput = {
   readonly copy: SignInCodeCopy
 }
 
+export type StaffInviteInput = {
+  readonly to: string
+  readonly locale: string
+  /** Absolute, on the app host. The token in it is the whole credential. */
+  readonly url: string
+  readonly copy: StaffInviteCopy
+}
+
 export function createMailer(config: MailerConfig) {
   return {
+    async sendStaffInvite(input: StaffInviteInput): Promise<SendResult> {
+      const rendered = await renderEmail(
+        createElement(StaffInvite, { url: input.url, locale: input.locale, copy: input.copy }),
+      )
+      const result = await config.transport.send({
+        to: input.to,
+        subject: input.copy.subject,
+        html: rendered.html,
+        text: rendered.text,
+        tags: { template: TEMPLATE_STAFF_INVITE },
+      })
+      // The URL is deliberately not recorded: `mail_deliveries` is a diagnostic table and the
+      // token in it is a credential.
+      await record(config, {
+        toEmail: input.to,
+        template: TEMPLATE_STAFF_INVITE,
+        locale: input.locale,
+        providerMessageId: result.ok ? result.messageId : null,
+        status: result.ok ? 'sent' : 'failed',
+        error: result.ok ? null : result.detail,
+      })
+      return result
+    },
+
     async sendSignInCode(input: SignInCodeInput): Promise<SendResult> {
       /**
        * `createElement` rather than JSX because this file is `.ts`.
@@ -116,6 +150,7 @@ export type Mailer = ReturnType<typeof createMailer>
 
 /** Also the `mail_deliveries.template` value, so the column and the tag cannot disagree. */
 const TEMPLATE_SIGN_IN_CODE = 'sign-in-code'
+const TEMPLATE_STAFF_INVITE = 'staff-invite'
 
 async function record(config: MailerConfig, entry: DeliveryRecord): Promise<void> {
   if (config.record === undefined) return

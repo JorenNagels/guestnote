@@ -1,1 +1,61 @@
-{}
+{
+  "title": "Équipe",
+  "subtitle": "Qui travaille chez {org}, et qui a encore une invitation en attente.",
+  "table": {
+    "caption": "Membres de l’équipe",
+    "member": "Membre",
+    "role": "Rôle",
+    "seat": "Place",
+    "weddings": "Mariages assignés",
+    "you": "vous",
+    "allWeddings": "Tous les mariages",
+    "noWeddings": "Aucun mariage assigné pour l’instant"
+  },
+  "seat": "Place {n}",
+  "roles": {
+    "owner": "Propriétaire",
+    "admin": "Administrateur",
+    "member": "Membre de l’équipe"
+  },
+  "invite": {
+    "title": "Inviter quelqu’un",
+    "hint": "Un collègue reçoit un e-mail avec un lien pour créer un compte.",
+    "email": "Adresse e-mail",
+    "emailPlaceholder": "collegue@studiowit.be",
+    "role": "Rôle",
+    "roleAdminHint": "Administrateur : voit tous les mariages et gère l’équipe.",
+    "roleMemberHint": "Membre de l’équipe : ne voit que les mariages qui lui sont assignés.",
+    "send": "Envoyer l’invitation",
+    "sending": "Envoi en cours…",
+    "sent": "Invitation envoyée à {email}.",
+    "errors": {
+      "invalidEmail": "Cela ne ressemble pas à une adresse e-mail valide.",
+      "invalidRole": "Choisissez un rôle pour l’invitation.",
+      "duplicate": "Cette adresse a déjà une invitation en attente. Révoquez-la d’abord pour en envoyer une nouvelle.",
+      "alreadyMember": "Cette adresse fait déjà partie de l’équipe.",
+      "forbidden": "Seuls les propriétaires et les administrateurs peuvent inviter.",
+      "mailFailed": "L’e-mail n’a pas pu être envoyé. Rien n’a été enregistré, réessayez dans un instant."
+    }
+  },
+  "pending": {
+    "title": "Invitations en attente",
+    "caption": "Invitations en attente",
+    "empty": "Aucune invitation en attente.",
+    "email": "Adresse e-mail",
+    "role": "Rôle",
+    "status": "Statut",
+    "sentToday": "Envoyée aujourd’hui",
+    "sentAgo": "Envoyée il y a {days, plural, one {# jour} other {# jours}}",
+    "expiresToday": "expire aujourd’hui",
+    "expiresIn": "expire dans {days, plural, one {# jour} other {# jours}}",
+    "expired": "Expirée",
+    "revoke": "Révoquer",
+    "revoking": "En cours…",
+    "revokeLabel": "Révoquer l’invitation pour {email}",
+    "revokeFailed": "La révocation a échoué. Actualisez la page et réessayez."
+  },
+  "notAllowed": {
+    "title": "Réservé aux propriétaires et aux administrateurs",
+    "body": "L’équipe de {org} est gérée par son propriétaire et ses administrateurs. Demandez à l’un d’eux d’inviter un collègue."
+  }
+}

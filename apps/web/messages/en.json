@@ -144,6 +144,19 @@
       "expiry": "The code expires in {minutes, plural, one {# minute} other {# minutes}}.",
       "ignore": "Didn't request this? You can safely ignore this email.",
       "footer": "Guestnote · automated message. Replies to this address are not delivered."
+    },
+    "staffInvite": {
+      "subject": "{inviter} invited you to {org} on Guestnote",
+      "preheader": "Create your account to plan weddings together.",
+      "heading": "You have been invited",
+      "intro": "{inviter} invited you to join {org} on Guestnote as {role}.",
+      "roleAdmin": "an admin",
+      "roleMember": "a team member",
+      "cta": "View the invitation",
+      "linkFallback": "The button not working? Copy this link into your browser:",
+      "expiry": "The invitation is valid for {days, plural, one {# day} other {# days}}.",
+      "ignore": "Do not know {inviter}, or not expecting this? You can safely ignore this email.",
+      "footer": "Guestnote · automated message. Replies to this address are not delivered."
     }
   }
 }

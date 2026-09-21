@@ -1,1 +1,61 @@
-{}
+{
+  "title": "Team",
+  "subtitle": "Wie er bij {org} meewerkt en wie nog een uitnodiging open heeft staan.",
+  "table": {
+    "caption": "Teamleden",
+    "member": "Teamlid",
+    "role": "Rol",
+    "seat": "Plaats",
+    "weddings": "Toegewezen bruiloften",
+    "you": "jij",
+    "allWeddings": "Alle bruiloften",
+    "noWeddings": "Nog geen bruiloft toegewezen"
+  },
+  "seat": "Plaats {n}",
+  "roles": {
+    "owner": "Eigenaar",
+    "admin": "Beheerder",
+    "member": "Teamlid"
+  },
+  "invite": {
+    "title": "Iemand uitnodigen",
+    "hint": "Een collega krijgt een e-mail met een link om een account aan te maken.",
+    "email": "E-mailadres",
+    "emailPlaceholder": "collega@studiowit.be",
+    "role": "Rol",
+    "roleAdminHint": "Beheerder: ziet alle bruiloften en beheert het team.",
+    "roleMemberHint": "Teamlid: ziet alleen de bruiloften waaraan hij of zij is toegewezen.",
+    "send": "Uitnodiging versturen",
+    "sending": "Bezig met versturen…",
+    "sent": "Uitnodiging verstuurd naar {email}.",
+    "errors": {
+      "invalidEmail": "Dit lijkt geen geldig e-mailadres.",
+      "invalidRole": "Kies een rol voor de uitnodiging.",
+      "duplicate": "Dit adres heeft al een openstaande uitnodiging. Trek die eerst in als je een nieuwe wilt sturen.",
+      "alreadyMember": "Dit adres is al lid van het team.",
+      "forbidden": "Alleen eigenaars en beheerders kunnen uitnodigen.",
+      "mailFailed": "De e-mail kon niet worden verstuurd. Er is niets opgeslagen, probeer het zo opnieuw."
+    }
+  },
+  "pending": {
+    "title": "Openstaande uitnodigingen",
+    "caption": "Openstaande uitnodigingen",
+    "empty": "Geen openstaande uitnodigingen.",
+    "email": "E-mailadres",
+    "role": "Rol",
+    "status": "Status",
+    "sentToday": "Vandaag verstuurd",
+    "sentAgo": "Verstuurd {days, plural, one {# dag} other {# dagen}} geleden",
+    "expiresToday": "verloopt vandaag",
+    "expiresIn": "verloopt over {days, plural, one {# dag} other {# dagen}}",
+    "expired": "Verlopen",
+    "revoke": "Intrekken",
+    "revoking": "Bezig…",
+    "revokeLabel": "Uitnodiging voor {email} intrekken",
+    "revokeFailed": "Intrekken is niet gelukt. Vernieuw de pagina en probeer opnieuw."
+  },
+  "notAllowed": {
+    "title": "Alleen voor eigenaars en beheerders",
+    "body": "Het team van {org} wordt beheerd door de eigenaar en de beheerders. Vraag hen om een collega uit te nodigen."
+  }
+}
