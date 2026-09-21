@@ -1,6 +1,6 @@
 'use server'
 
-import { getWedding, listWeddings, type WeddingSummary } from '@guestnote/db'
+import { listWeddings, type WeddingSummary } from '@guestnote/db'
 import { revalidatePath } from 'next/cache'
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
@@ -28,17 +28,20 @@ import { app } from '../../../lib/routes.ts'
  * Worth stating because the file lives inside that route group and it looks like it should
  * be. CLAUDE.md invariant 7 gives the reason: **a Server Function is a POST to its own
  * route**, so the layout's `getSession()` redirect never runs for one. Anybody who can
- * reach the origin can invoke all four.
+ * reach the origin can invoke any of them.
  *
  * That is acceptable, and only because of what each one does. The three preference writers
  * touch nothing but the CALLER's own cookies -- there is no id, no row and no other user
  * reachable through them, so an unauthenticated POST achieves exactly what clearing your own
- * browser storage achieves. `switchOrg`, `paletteWeddings` and `weddingHeader` each read
- * tenant rows, and each resolves memberships itself rather than trusting the layout to have
- * done it -- their own doc comments say so where the work happens.
+ * browser storage achieves. `switchOrg` and `paletteWeddings` each read tenant rows, and each
+ * resolves memberships itself rather than trusting the layout to have done it -- their own doc
+ * comments say so where the work happens. `signOut` acts on the caller's own session and
+ * nothing else.
  *
- * The count in this paragraph has been wrong once already; if you add an export, say which
- * of the two kinds it is.
+ * The count in this paragraph has been wrong twice now, so it names the functions and does not
+ * count them. There was a third reader of tenant rows here, `weddingHeader`, until spec 0003
+ * moved the wedding list into the layout and made it a second read of a row already in hand;
+ * if you add an export, say which kind it is.
  *
  * The rule that follows for anything added to this file: it does its own authorization, or
  * it does not belong here. Do not read the route group as a guard.
@@ -171,41 +174,4 @@ export async function paletteWeddings(): Promise<WeddingSummary[]> {
   const [memberships, orgId] = await Promise.all([currentMemberships(), currentOrgId()])
   if (!memberships || !orgId) return []
   return listWeddings(getDb(), memberships, orgId)
-}
-
-/**
- * The name and date of one wedding, for the sidebar's wedding-context section.
- *
- * ## Why the sidebar cannot just be handed this
- *
- * `(app)/layout.tsx` renders the sidebar, and it sits ABOVE `weddings/[id]`. A layout
- * receives params for its own segment and the ones above it, never below -- so the layout
- * genuinely cannot know which wedding you are looking at. Three ways out were considered:
- *
- *   * Pass the whole wedding list down from the layout and let the client pick by id. Zero
- *     extra round trips, but it reinstates exactly the cost `paletteWeddings` exists to
- *     avoid: a `member`'s list is one transaction per assigned wedding, so every dashboard
- *     page would pay N of them to label one heading.
- *   * Move the section out of the sidebar and onto the page, where the data already is.
- *     Cheapest of all, and rejected because `docs/specs/0001` settled that the wedding
- *     section is part of the nav -- it is what makes the sidebar know where you are.
- *   * This: one primary-key lookup, only on wedding routes, driven by `useParams`.
- *
- * The cost is one indexed round trip per wedding navigation, which `getWedding` was already
- * written for in 75cd541 -- this is that function's second caller and the reason its
- * owner-vs-member branch matters twice over.
- *
- * Authorizes itself, like everything else here: `getWedding` returns `null` for a wedding
- * the principal cannot see, and `null` is a 404 and never a 403.
- */
-export async function weddingHeader(
-  weddingId: string,
-): Promise<{ id: string; name: string; date: string | null } | null> {
-  const [memberships, orgId] = await Promise.all([currentMemberships(), currentOrgId()])
-  if (!memberships || !orgId) return null
-
-  const wedding = await getWedding(getDb(), memberships, orgId, weddingId)
-  return wedding
-    ? { id: wedding.id, name: wedding.coupleDisplayName, date: wedding.weddingDate }
-    : null
 }

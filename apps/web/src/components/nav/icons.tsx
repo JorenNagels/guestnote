@@ -118,3 +118,112 @@ export function CollapseIcon({ className }: IconProps) {
     </Glyph>
   )
 }
+
+/*
+ * The planner-app sections. Drawn to the same rules as the icons above -- 24 box, 1.5 stroke,
+ * decorative -- and kept in this file for the reason it opens with: an icon file in `public/`
+ * would need a matcher exclusion first.
+ */
+
+/** A calendar with a tick. Not `OverviewIcon`, which is the same frame without one. */
+export function TodayIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <rect x="3" y="4" width="18" height="17" rx="2" />
+      <path d="M3 9.5h18M8 2v4M16 2v4" />
+      <path d="m9 15 2 2 4-4" />
+    </Glyph>
+  )
+}
+
+/** Two sheets, one behind the other: a template is a copy waiting to be made. */
+export function TemplatesIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <rect x="8" y="8" width="12" height="12" rx="2" />
+      <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+    </Glyph>
+  )
+}
+
+export function VendorsIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <rect x="3" y="7" width="18" height="13" rx="2" />
+      <path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 13h18" />
+    </Glyph>
+  )
+}
+
+export function TeamIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <circle cx="9" cy="8" r="3.5" />
+      <path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6" />
+      <path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18 14.4c2.2.7 3.5 2.6 3.5 5.6" />
+    </Glyph>
+  )
+}
+
+export function PlusIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M12 5v14M5 12h14" />
+    </Glyph>
+  )
+}
+
+export function ChecklistIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="m4 6 1.5 1.5L8 5M4 12l1.5 1.5L8 11M4 18l1.5 1.5L8 17" />
+      <path d="M12 6.5h8M12 12.5h8M12 18.5h8" />
+    </Glyph>
+  )
+}
+
+export function BudgetIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M17 7.5A6 6 0 1 0 17 16.5" />
+      <path d="M5 10h9M5 14h9" />
+    </Glyph>
+  )
+}
+
+export function PaymentsIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M3 10h18M7 15h3" />
+    </Glyph>
+  )
+}
+
+export function RunSheetIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </Glyph>
+  )
+}
+
+export function FilesIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+      <path d="M14 3v5h5" />
+    </Glyph>
+  )
+}
+
+export function MoodboardIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <rect x="3" y="4" width="18" height="16" rx="2" />
+      <circle cx="9" cy="10" r="1.6" />
+      <path d="m21 16-5-5-8 8" />
+    </Glyph>
+  )
+}

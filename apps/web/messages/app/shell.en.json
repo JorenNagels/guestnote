@@ -1,0 +1,31 @@
+{
+  "nav": {
+    "today": "Today",
+    "templates": "Templates",
+    "vendors": "Vendors",
+    "team": "Team",
+    "weddingsSection": "Your weddings",
+    "newWedding": "New wedding",
+    "noDate": "No date yet",
+    "checklist": "Checklist",
+    "budget": "Budget",
+    "payments": "Payments",
+    "runSheet": "Run sheet",
+    "files": "Files",
+    "moodboard": "Moodboard",
+    "settings": "Settings",
+    "task": "Task",
+    "template": "Template"
+  },
+  "countdown": {
+    "untilOne": "{days} day to go",
+    "untilOther": "{days} days to go",
+    "today": "The day itself",
+    "sinceOne": "{days} day ago",
+    "sinceOther": "{days} days ago"
+  },
+  "comingSoon": {
+    "title": "Coming soon",
+    "body": "This screen is still being built."
+  }
+}

@@ -15,13 +15,17 @@ import type { ReactNode } from 'react'
  *
  * ## `aria-current="page"`, and which item gets it
  *
- * `exact` on both call sites today, and the prefix branch therefore has no caller. It stays
- * because it is what the prop MEANS -- and the interesting case is why nothing uses it:
- * inside a wedding, prefix matching would light `Bruiloften` as well as `Overzicht`, and
- * marking both says two places are one place. `docs/specs/0001` settles that the wedding
- * section is where you are. When a section grows sub-pages, that section's own item wants
- * the prefix branch; until then no test can discriminate it, which is why this paragraph
- * exists rather than an assertion.
+ * `exact` marks a page that has children living under its own path, and it is the difference
+ * between two items being lit at once and one. `Bruiloften` (`/weddings`) and `Overzicht`
+ * (`/weddings/<id>`) are `exact`: every wedding screen sits beneath them, and marking the list
+ * as well as the wedding you are in says two places are one place. Every other item is a prefix
+ * match, so a task open at `/weddings/<id>/tasks/<taskId>` still marks `Checklist` -- the case
+ * that gave this branch its first caller. It had none from `docs/specs/0001` until spec 0003,
+ * and that paragraph used to explain why no test could discriminate it; `shell.test.tsx` now
+ * does.
+ *
+ * The prefix is matched with a trailing slash, never as a bare `startsWith(href)`: `/team`
+ * would otherwise mark for `/teams-old`, and `/vendors` for `/vendors-export`.
  */
 export function NavItem({
   href,
