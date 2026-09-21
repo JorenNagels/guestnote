@@ -5,7 +5,7 @@ fallback written into `infra/README.md`".
 
 | File | What it is |
 |---|---|
-| `../sst.config.ts` | The hosting stack — `sst.aws.Nextjs` per stage. The whole app deploy. |
+| `../sst.config.ts` | The hosting stack — `sst.aws.Nextjs` per stage, plus the private `Files` bucket (presigned PUT/GET only, CORS for the `app.` origin; `packages/storage`). Not yet deployed to any stage. |
 | `github-oidc.yaml` | CloudFormation: GitHub OIDC provider + `GuestnoteDeployRole`. Bootstrap for CI. |
 | `budgets.yaml` | CloudFormation: AWS Budgets alerts at €25 / €50 / €100. |
 | `mail-events.yaml` | CloudFormation: SES bounce/complaint → SNS. Predates this and is unchanged. |
