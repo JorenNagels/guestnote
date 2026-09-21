@@ -50,6 +50,7 @@ In `packages/db/src/schema/index.ts`, add the table to **exactly one** of:
 | Bucket | Meaning |
 |---|---|
 | `TENANT_SCOPED_TABLES` | carries `org_id` + `wedding_id`, gets the standard tenant policy |
+| `ORG_SCOPED_TABLES` | carries `org_id` and **no** `wedding_id`: reused across the org's weddings (`vendors`) |
 | `SELF_SCOPED_TABLES` | its own primary key *is* the scope (`organizations`, `weddings`) |
 | `USER_SCOPED_TABLES` | read *before* the tenant is known, so scoped on `app.user_id` |
 | `UNSCOPED_TABLES` | genuinely not tenant-owned, and needs a stated reason |

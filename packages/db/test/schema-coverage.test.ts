@@ -2,6 +2,7 @@ import { getTableName, isTable } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import * as schemaModule from '../src/schema/index.ts'
 import {
+  ORG_SCOPED_TABLES,
   SELF_SCOPED_TABLES,
   TENANT_SCOPED_TABLES,
   UNSCOPED_TABLES,
@@ -41,6 +42,7 @@ const declaredTables: string[] = Object.values(schemaModule)
 
 const classified = [
   ...TENANT_SCOPED_TABLES,
+  ...ORG_SCOPED_TABLES,
   ...SELF_SCOPED_TABLES,
   ...USER_SCOPED_TABLES,
   ...UNSCOPED_TABLES,
@@ -48,6 +50,7 @@ const classified = [
 
 const rlsTables = [
   ...TENANT_SCOPED_TABLES,
+  ...ORG_SCOPED_TABLES,
   ...SELF_SCOPED_TABLES,
   ...USER_SCOPED_TABLES,
 ] as readonly string[]
@@ -71,7 +74,8 @@ describe('every table is classified exactly once', () => {
     expect(
       hits,
       `${table} is in ${hits} buckets. Add it to exactly one of TENANT_SCOPED_TABLES, ` +
-        'SELF_SCOPED_TABLES, USER_SCOPED_TABLES or UNSCOPED_TABLES in src/schema/index.ts, ' +
+        'ORG_SCOPED_TABLES, SELF_SCOPED_TABLES, USER_SCOPED_TABLES or UNSCOPED_TABLES in ' +
+        'src/schema/index.ts, ' +
         'and give it a policy in a new migration if it holds tenant data.',
     ).toBe(1)
   })
@@ -94,6 +98,22 @@ describe('tenant-scoped tables carry their tenant keys', () => {
     // every policy is a single-column check with no joins.
     expect(cols, `${table} is missing org_id`).toContain('org_id')
     expect(cols, `${table} is missing wedding_id`).toContain('wedding_id')
+  })
+
+  it.each(ORG_SCOPED_TABLES)('%s has org_id and NO wedding_id', async (table) => {
+    const rows = await catalog(
+      `select column_name from information_schema.columns
+        where table_schema = 'public' and table_name = $1`,
+      [table],
+    )
+    const cols = rows.map((r) => r.column_name as string)
+    expect(cols, `${table} is missing org_id`).toContain('org_id')
+    // The bucket's whole claim. A table that has grown a wedding key is wedding-scoped and
+    // its policy has to say so; leaving it here would let it be read org-wide by a pinned
+    // member. Moving it to TENANT_SCOPED_TABLES is the fix, not deleting this line.
+    expect(cols, `${table} has a wedding_id, so it belongs in TENANT_SCOPED_TABLES`).not.toContain(
+      'wedding_id',
+    )
   })
 
   it.each(SELF_SCOPED_TABLES)('%s has org_id (its own id is the wedding scope)', async (table) => {
@@ -270,6 +290,92 @@ describe('RLS is enabled AND forced', () => {
       offenders,
       `these USING predicates do not scope by tenant:\n  ${offenders.join('\n  ')}`,
     ).toEqual([])
+  })
+})
+
+describe('wedding-scoped policies pin the wedding and carry the role clause', () => {
+  /**
+   * The two things `tenant_isolation`'s org_id check cannot say, and that the isolation
+   * suite would only notice if a fixture happened to exercise them:
+   *
+   *   - `app.wedding_id`: without it a principal pinned to one wedding (an assigned
+   *     `member`, a couple) reads the whole org, because `app.org_id` alone matches every
+   *     wedding in it. Asserted on EVERY wedding-scoped table.
+   *   - `app.wedding_role`: without it a couple's GUCs, which are identical to a planner's,
+   *     read the row (research/07 section 3). Asserted on every table added by spec 0003
+   *     and after -- that is, everything except the older tables named below, which predate
+   *     the rule and are held by other means (`tasks` by its visibility clause, the rest by
+   *     what is in them). A NEW wedding-scoped table therefore has to carry the role clause
+   *     or be added to that list in a diff a reviewer sees.
+   *
+   * Substring checks, so the limit is the one every assertion in this file has: they prove
+   * the GUC is named, not that the predicate is right. What proves the predicate is
+   * planner-isolation.test.ts. These exist so that dropping the clause from one policy of
+   * ten fails here, by name, before any fixture has to notice.
+   */
+  const PREDATES_ROLE_CLAUSE = new Set([
+    'invitations',
+    'wedding_domains',
+    'tasks',
+    'task_comments',
+    'audit_log',
+  ])
+  const carriesRoleClause = (t: string) => !PREDATES_ROLE_CLAUSE.has(t)
+
+  const policies = async (table: string) =>
+    (await catalog(
+      `select policyname, cmd, qual, with_check from pg_policies where tablename = $1`,
+      [table],
+    )) as { policyname: string; cmd: string; qual: string | null; with_check: string | null }[]
+
+  it.each(TENANT_SCOPED_TABLES)('%s: every policy names app.wedding_id', async (table) => {
+    for (const p of await policies(table)) {
+      expect(p.qual ?? '', `${table}.${p.policyname} USING does not pin the wedding`).toContain(
+        'app.wedding_id',
+      )
+      // FOR SELECT has no WITH CHECK, and a cmd = 'ALL' one without it is already failed by
+      // 'policies apply to writes too'.
+      if (p.cmd !== 'SELECT') {
+        expect(
+          p.with_check ?? '',
+          `${table}.${p.policyname} WITH CHECK does not pin the wedding`,
+        ).toContain('app.wedding_id')
+      }
+    }
+  })
+
+  it.each(TENANT_SCOPED_TABLES.filter(carriesRoleClause))(
+    '%s: every policy carries the role clause',
+    async (table) => {
+      for (const p of await policies(table)) {
+        expect(
+          p.qual ?? '',
+          `${table}.${p.policyname} USING does not test app.wedding_role, so a couple reads it`,
+        ).toContain('app.wedding_role')
+        if (p.cmd !== 'SELECT') {
+          expect(
+            p.with_check ?? '',
+            `${table}.${p.policyname} WITH CHECK does not test app.wedding_role, so a couple writes it`,
+          ).toContain('app.wedding_role')
+        }
+      }
+    },
+  )
+
+  it.each(ORG_SCOPED_TABLES)('%s: every policy carries the role clause', async (table) => {
+    // No wedding key to pin, but the role clause is what keeps a couple out all the same.
+    for (const p of await policies(table)) {
+      expect(
+        p.qual ?? '',
+        `${table}.${p.policyname} USING does not test app.wedding_role`,
+      ).toContain('app.wedding_role')
+      if (p.cmd !== 'SELECT') {
+        expect(
+          p.with_check ?? '',
+          `${table}.${p.policyname} WITH CHECK does not test app.wedding_role`,
+        ).toContain('app.wedding_role')
+      }
+    }
   })
 })
 
