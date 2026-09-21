@@ -1,1 +1,110 @@
-{}
+{
+  "title": "Checklist",
+  "newTask": "New task",
+  "filtersLabel": "Filter",
+  "filters": {
+    "all": "All",
+    "open": "Open",
+    "overdue": "Overdue",
+    "internal": "Internal",
+    "shared": "Shared"
+  },
+  "buckets": {
+    "overdue": "Overdue",
+    "soon": "Next 14 days",
+    "later": "Later",
+    "undated": "No date",
+    "done": "Done"
+  },
+  "empty": {
+    "title": "No tasks yet",
+    "body": "Add the first task, or apply a template later."
+  },
+  "filterEmpty": {
+    "title": "No tasks for this filter",
+    "back": "Show all"
+  },
+  "row": {
+    "complete": "Mark as done: {title}",
+    "reopen": "Reopen: {title}",
+    "inProgress": "In progress",
+    "noWeddingDate": "No wedding date",
+    "noDue": "No date",
+    "couple": "Couple",
+    "planner": "Planner"
+  },
+  "due": {
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "overdueDays": "{days, plural, one {# day overdue} other {# days overdue}}",
+    "inDays": "In {days} days"
+  },
+  "rule": {
+    "before": "{days, plural, one {# day before the wedding} other {# days before the wedding}}",
+    "after": "{days, plural, one {# day after the wedding} other {# days after the wedding}}",
+    "onDay": "On the wedding day",
+    "fixed": "Fixed date"
+  },
+  "visibility": {
+    "shared": "Shared with couple",
+    "internal": "Internal only"
+  },
+  "form": {
+    "newHeading": "New task",
+    "editHeading": "Edit task",
+    "title": "Task",
+    "titlePlaceholder": "What needs doing?",
+    "notes": "Notes",
+    "owner": "Owner",
+    "visibility": "Visibility",
+    "dueHeading": "Due",
+    "dueNone": "No date",
+    "dueOffset": "Counts from the wedding day",
+    "dueDate": "A fixed date",
+    "date": "Date",
+    "offsetDays": "Number of days",
+    "before": "Before the wedding",
+    "after": "After the wedding",
+    "fixedHint": "Stays put if the wedding moves.",
+    "offsetHint": "Moves with the wedding.",
+    "previewDate": "Falls on {date}",
+    "previewNoWeddingDate": "No wedding date: the date appears once you set one.",
+    "save": "Save task",
+    "saving": "Saving…",
+    "cancel": "Cancel"
+  },
+  "errors": {
+    "title": "Give the task a title of at most 200 characters.",
+    "notes": "The notes are too long (4000 characters at most).",
+    "offset": "Enter a number of days, a whole number up to 3650.",
+    "date": "Pick a valid date.",
+    "comment": "Write a comment of at most 4000 characters.",
+    "notFound": "This task no longer exists.",
+    "failed": "That did not work. Try again."
+  },
+  "detail": {
+    "back": "Back to the checklist",
+    "edit": "Edit",
+    "due": "Due",
+    "rule": "Rule",
+    "assignedTo": "Assigned to",
+    "visibility": "Visibility",
+    "unassigned": "Nobody",
+    "notes": "Notes",
+    "makeInternal": "Make internal",
+    "makeShared": "Share with couple",
+    "completedAt": "Done on {date}"
+  },
+  "comments": {
+    "heading": "Comments",
+    "empty": "No comments yet.",
+    "label": "Write a comment",
+    "placeholder": "Write a comment…",
+    "internalNote": "This task is internal: the couple cannot see its comments.",
+    "sharedNote": "This task is shared: the couple can see its comments.",
+    "add": "Post comment",
+    "adding": "Posting…",
+    "unknownAuthor": "Unknown",
+    "utc": "{date} UTC"
+  }
+}
