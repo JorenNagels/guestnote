@@ -154,6 +154,11 @@ Wave 2 may start a slice as soon as its own dependencies are done, not the whole
 - Reuse `packages/ui` before writing markup. A pattern used twice moves into `packages/ui`.
 - One repo file per slice in `packages/db/src/repos/`; one `actions.ts` per route folder.
 - Each action checks membership itself. A Server Function is a POST to its own route.
+- Foreign keys between new tables are plain, not composite (measured in the F1 audit, 2026-09-21).
+  So before inserting a child row that names a parent (`payments.budget_line_id`,
+  `budget_lines.wedding_vendor_id`, `run_sheet_items.event_id`, `wedding_vendors.vendor_id`), the action
+  reads the parent under `withTenant` and fails if it is not found. RLS alone does not stop a row
+  pointing at another wedding's parent.
 - Strings live in `apps/web/messages/app/<slice>.{nl,en,fr}.json`, merged under `app.<slice>`
   by `i18n/request.ts` (F3). One file set per slice, so slices never edit the same JSON. No hard-coded copy.
 - Comments say why, in `--` style, and only where the reason is not obvious.

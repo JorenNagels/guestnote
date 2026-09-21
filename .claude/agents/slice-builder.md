@@ -38,6 +38,9 @@ Sign in at `app.<domain>:<port>/login` with your email; the code is in `apps/web
 Check empty, one, many, error, and compact density. Use `take_snapshot` (text), not screenshots.
 Take one screenshot per screen to a file with a path, never inline. Open your own page with `new_page`
 and pass its page id on every call; the browser is shared. Close the page and stop the server at the end.
+If the shared chrome-devtools MCP will not attach (profile locked), start your own headless Chrome
+instead: `--headless=new --remote-debugging-port=<9300+n> --user-data-dir=<scratchpad>/chrome-<id>`, and
+drive it over CDP with a small Node script (Node 24 has a global `WebSocket`). Kill it when done.
 Prefix any data you create with your slice id. Never delete other slices' rows.
 
 ## 7. Stop rules
