@@ -1,0 +1,31 @@
+{
+  "nav": {
+    "today": "Aujourd'hui",
+    "templates": "Modèles",
+    "vendors": "Prestataires",
+    "team": "Équipe",
+    "weddingsSection": "Vos mariages",
+    "newWedding": "Nouveau mariage",
+    "noDate": "Pas encore de date",
+    "checklist": "Checklist",
+    "budget": "Budget",
+    "payments": "Paiements",
+    "runSheet": "Déroulé",
+    "files": "Fichiers",
+    "moodboard": "Moodboard",
+    "settings": "Paramètres",
+    "task": "Tâche",
+    "template": "Modèle"
+  },
+  "countdown": {
+    "untilOne": "Encore {days} jour",
+    "untilOther": "Encore {days} jours",
+    "today": "C'est le grand jour",
+    "sinceOne": "Il y a {days} jour",
+    "sinceOther": "Il y a {days} jours"
+  },
+  "comingSoon": {
+    "title": "Bientôt disponible",
+    "body": "Cet écran est encore en construction."
+  }
+}

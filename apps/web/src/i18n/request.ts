@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers'
 import { getRequestConfig } from 'next-intl/server'
 import { DEFAULT_LOCALE, isLocale, LOCALE_COOKIE, type Locale } from '../lib/locales.ts'
+import { loadMessages } from './catalogue.ts'
 
 /**
  * One config, two modes -- which is the thing the plan flagged as unverified, and it is
@@ -48,7 +49,9 @@ export default getRequestConfig(async ({ requestLocale }) => {
 async function config(locale: Locale) {
   return {
     locale,
-    messages: (await import(`../../messages/${locale}.json`)).default,
+    // Base file plus one file per planner-app slice, merged under `app.<slice>` -- see
+    // `catalogue.ts` for why the slices are not appended to the base file.
+    messages: await loadMessages(locale),
     // Belgium. Fixes date, number and currency formatting for every consumer of
     // `useFormatter`, so a wedding date is never rendered in the server's timezone.
     timeZone: 'Europe/Brussels',

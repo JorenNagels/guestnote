@@ -358,6 +358,18 @@ contract, not the loser of an argument it never heard.
 | States → Error: a failed membership resolve throws to an error boundary | Falls through to the no-org page | **Still wrong, and marked in the code.** `(app)/layout.tsx` says so at the branch: root layout B has no error boundary above it, so a throw has nowhere to go. A planner who has an org but whose name is unreadable is told they have none. |
 | `/weddings/[id]` is "name, date, status" | Also an untranslated `Slug` row | Deliberate for now — the slug is the subdomain and is the thing a planner needs when a guest site misbehaves. It is not translated because it is not a word. |
 
+### 2026-09-21, by spec 0003 (F3 Shell)
+
+| Spec said | Now | Why |
+|---|---|---|
+| No count badge; the layout must not list weddings | The layout lists them, for a row per wedding with T-minus and a colour dot | Spec 0003 asks for the row. The cost is the one this spec refused a badge over -- N transactions for a `member`, once per hard load or `revalidatePath`, not per client navigation -- and it is accepted for the list. Unread counts stay refused: they would be N more per wedding. |
+| Wedding section client-fetched via `weddingHeader` | Removed. The section hangs off the current wedding's row, from the list the layout already has | A second round trip for a row in hand. A wedding not in the list gets no section, the same 404-not-403 answer `weddingHeader` gave. |
+| Wedding section holds Overzicht only | Holds eight sections: Overzicht, Checklist, Budget, Betalingen, Leveranciers, Draaiboek, Bestanden, Moodboard | Every one is a real route now; slices that have not landed answer with `ComingSoon`. This reverses "omit rather than disable" for the reason that the alternative is a nav that grows a row per merge. |
+| `nav.weddingSection` heading over the section | Not rendered in the sidebar; the key stays for the wedding page's eyebrow | The wedding's own row is the heading. |
+
+Nav labels for the new items live in `apps/web/messages/app/shell.{nl,en,fr}.json`, merged at
+`app.shell` by `i18n/catalogue.ts`.
+
 Dead keys removed rather than left: `app.palette.close` (threaded through the layout and
 rendered nowhere) and `app.wedding.notFound` (authored for a message `notFound()` must never
 show, because naming the reason is the leak the 404 exists to prevent).
