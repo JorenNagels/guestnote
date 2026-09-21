@@ -1,1 +1,110 @@
-{}
+{
+  "title": "Checklist",
+  "newTask": "Nieuwe taak",
+  "filtersLabel": "Filter",
+  "filters": {
+    "all": "Alles",
+    "open": "Open",
+    "overdue": "Te laat",
+    "internal": "Intern",
+    "shared": "Gedeeld"
+  },
+  "buckets": {
+    "overdue": "Te laat",
+    "soon": "Komende 14 dagen",
+    "later": "Later",
+    "undated": "Zonder datum",
+    "done": "Afgerond"
+  },
+  "empty": {
+    "title": "Nog geen taken",
+    "body": "Voeg de eerste taak toe, of pas later een sjabloon toe."
+  },
+  "filterEmpty": {
+    "title": "Geen taken voor dit filter",
+    "back": "Toon alles"
+  },
+  "row": {
+    "complete": "Markeer als afgerond: {title}",
+    "reopen": "Heropen: {title}",
+    "inProgress": "Bezig",
+    "noWeddingDate": "Geen huwelijksdatum",
+    "noDue": "Geen datum",
+    "couple": "Koppel",
+    "planner": "Planner"
+  },
+  "due": {
+    "today": "Vandaag",
+    "tomorrow": "Morgen",
+    "overdueDays": "{days, plural, one {# dag te laat} other {# dagen te laat}}",
+    "inDays": "Over {days} dagen"
+  },
+  "rule": {
+    "before": "{days, plural, one {# dag voor de trouwdag} other {# dagen voor de trouwdag}}",
+    "after": "{days, plural, one {# dag na de trouwdag} other {# dagen na de trouwdag}}",
+    "onDay": "Op de trouwdag",
+    "fixed": "Vaste datum"
+  },
+  "visibility": {
+    "shared": "Gedeeld met koppel",
+    "internal": "Alleen intern"
+  },
+  "form": {
+    "newHeading": "Nieuwe taak",
+    "editHeading": "Taak bewerken",
+    "title": "Taak",
+    "titlePlaceholder": "Wat moet er gebeuren?",
+    "notes": "Notities",
+    "owner": "Eigenaar",
+    "visibility": "Zichtbaarheid",
+    "dueHeading": "Deadline",
+    "dueNone": "Geen datum",
+    "dueOffset": "Telt af van de trouwdag",
+    "dueDate": "Vaste datum",
+    "date": "Datum",
+    "offsetDays": "Aantal dagen",
+    "before": "Voor de trouwdag",
+    "after": "Na de trouwdag",
+    "fixedHint": "Blijft staan als de bruiloft verschuift.",
+    "offsetHint": "Schuift mee als de bruiloft verschuift.",
+    "previewDate": "Valt op {date}",
+    "previewNoWeddingDate": "Geen huwelijksdatum: de datum verschijnt zodra je er een instelt.",
+    "save": "Taak bewaren",
+    "saving": "Bewaren…",
+    "cancel": "Annuleren"
+  },
+  "errors": {
+    "title": "Geef de taak een titel van hoogstens 200 tekens.",
+    "notes": "De notities zijn te lang (maximaal 4000 tekens).",
+    "offset": "Vul een aantal dagen in, een geheel getal tot 3650.",
+    "date": "Kies een geldige datum.",
+    "comment": "Schrijf een reactie van hoogstens 4000 tekens.",
+    "notFound": "Deze taak bestaat niet meer.",
+    "failed": "Dat is niet gelukt. Probeer het opnieuw."
+  },
+  "detail": {
+    "back": "Terug naar de checklist",
+    "edit": "Bewerken",
+    "due": "Deadline",
+    "rule": "Regel",
+    "assignedTo": "Toegewezen aan",
+    "visibility": "Zichtbaarheid",
+    "unassigned": "Niemand",
+    "notes": "Notities",
+    "makeInternal": "Maak intern",
+    "makeShared": "Deel met koppel",
+    "completedAt": "Afgerond op {date}"
+  },
+  "comments": {
+    "heading": "Reacties",
+    "empty": "Nog geen reacties.",
+    "label": "Schrijf een reactie",
+    "placeholder": "Schrijf een reactie…",
+    "internalNote": "Deze taak is intern: het koppel ziet de reacties niet.",
+    "sharedNote": "Deze taak is gedeeld: het koppel ziet de reacties.",
+    "add": "Plaats reactie",
+    "adding": "Plaatsen…",
+    "unknownAuthor": "Onbekend",
+    "utc": "{date} UTC"
+  }
+}

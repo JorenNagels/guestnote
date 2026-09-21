@@ -35,6 +35,7 @@ export {
 } from './memberships.ts'
 export * from './payments.ts'
 export * from './run-sheet.ts'
+export * from './tasks.ts'
 export * from './templates.ts'
 export * from './vendor-links.ts'
 export * from './vendors.ts'
