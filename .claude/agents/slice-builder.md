@@ -40,7 +40,8 @@ Take one screenshot per screen to a file with a path, never inline. Open your ow
 and pass its page id on every call; the browser is shared. Close the page and stop the server at the end.
 If the shared chrome-devtools MCP will not attach (profile locked), start your own headless Chrome
 instead: `--headless=new --remote-debugging-port=<9300+n> --user-data-dir=<scratchpad>/chrome-<id>`, and
-drive it over CDP with a small Node script (Node 24 has a global `WebSocket`). Kill it when done.
+drive it over CDP with a small Node script (Node 24 has a global `WebSocket`). Kill it when done. Keep your helper scripts and screenshots in your own subfolder of the scratchpad (`scratchpad/<id>/`); a shared file gets overwritten by other agents.
+Wedding pages: guard the `[id]` param with `isUuid` (a malformed id is a 404, not a 500), render `WeddingHeader` and `WeddingTabs` from `components/wedding/`, and mount the next-intl provider the way S4's `MoneyIntl` does if a client component needs `useTranslations`.
 Prefix any data you create with your slice id. Never delete other slices' rows.
 
 ## 7. Stop rules
