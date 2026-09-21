@@ -1,6 +1,6 @@
 # Slice S2: Tasks
 
-**Date:** 2026-09-21 · **Status:** Specified, being built · **Parent:** `docs/specs/0003-planner-app-screens.md`
+**Date:** 2026-09-21 · **Status:** Built 2026-09-21 · **Parent:** `docs/specs/0003-planner-app-screens.md`
 
 Checklist, task detail and comments for one wedding. Owner, admin and assigned `member` only;
 `editor` and `couple` reach none of it (spec 0003, Permissions). Prototype: `Guestnote Planner.dc.html`
@@ -61,11 +61,11 @@ lines 692 to 941. Routes: `/weddings/<id>/tasks` and `/weddings/<id>/tasks/<task
 
 ## Done
 
-- [ ] Repo `packages/db/src/repos/tasks.ts` with tests (unit for the resolver, db tier 1 for the rest)
-- [ ] Actions check membership themselves and are tested
-- [ ] Component tests for the form and the row
-- [ ] typecheck and biome clean on my paths
-- [ ] Checked in Chrome: empty, one, many, error, compact density; one screenshot per screen
+- [x] Repo `packages/db/src/repos/tasks.ts` with tests (unit for the resolver, db tier 1 for the rest)
+- [x] Actions check membership themselves and are tested
+- [x] Component tests for the form and the row
+- [x] typecheck and biome clean on my paths
+- [x] Checked in Chrome: empty, one, many, error, compact density; one screenshot per screen
 
 ## Progress
 
@@ -78,5 +78,15 @@ lines 692 to 941. Routes: `/weddings/<id>/tasks` and `/weddings/<id>/tasks/<task
 - [x] Checklist page and components (typecheck + biome clean)
 - [x] Task detail page, edit, comments
 - [x] Gate paths clean (typecheck, biome, vitest on my files)
-- [ ] Browser check and screenshots
-- [ ] Commit
+- [x] Browser check and screenshots (headless Chrome over CDP: empty, one, many, overdue, filter-empty, error, offset preview, edit, comments, mobile 390px; compact only eyeballed via `data-density`)
+- [x] Commit
+
+## Notes from the build
+
+- Author and assignee names fall back to the user's email when `users.name` is null, so an invited
+  planner who never typed a name is not "Onbekend" in a thread.
+- A `weddingMember` (couple, outside editor) is refused by every repo function here on purpose;
+  the couple's own reader belongs to the couple-portal spec.
+- Two-line rows are taller than compact `--row-h` (32px), so compact density only trims padding.
+- Open issue (also above): `due_at` on an offset task goes stale if S1 changes `wedding_date`;
+  reads ignore it, S8's `(org_id, due_at)` index does not.

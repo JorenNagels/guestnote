@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull, ne } from 'drizzle-orm'
+import { and, asc, eq, isNull, ne, sql } from 'drizzle-orm'
 import type { Db, TenantDb } from '../client.ts'
 import { newId } from '../id.ts'
 import { users } from '../schema/auth.ts'
@@ -51,7 +51,7 @@ export type TaskRow = {
   readonly status: TaskStatus
   readonly visibility: TaskVisibility
   readonly assigneeUserId: string | null
-  /** `users.name`, or null for an unassigned task or a user who never gave one. */
+  /** The assignee's name, else their address; null only for an unassigned task. */
   readonly assigneeName: string | null
   readonly assigneeRole: TaskAssigneeRole | null
   /** T-minus in days, negative is before the wedding. Wins over `dueAt` when both are set. */
@@ -191,6 +191,13 @@ function staffPrincipal(m: Memberships, orgId: string, weddingId: string): Princ
   return p && p.kind !== 'weddingMember' ? p : null
 }
 
+/**
+ * A person's display name. `users.name` is nullable on purpose (an invited staff member has no
+ * name until they type one, see `schema/auth.ts`), and "Unknown" beside a comment from a
+ * teammate the planner can see in the team list is worse than their address.
+ */
+const personName = sql<string | null>`coalesce(nullif(${users.name}, ''), ${users.email})`
+
 const TASK_SELECT = {
   id: tasks.id,
   weddingId: tasks.weddingId,
@@ -199,7 +206,7 @@ const TASK_SELECT = {
   status: tasks.status,
   visibility: tasks.visibility,
   assigneeUserId: tasks.assigneeUserId,
-  assigneeName: users.name,
+  assigneeName: personName,
   assigneeRole: tasks.assigneeRole,
   dueOffsetDays: tasks.dueOffsetDays,
   dueAt: tasks.dueAt,
@@ -508,7 +515,7 @@ const COMMENT_SELECT = {
   taskId: taskComments.taskId,
   visibility: taskComments.visibility,
   authorUserId: taskComments.authorUserId,
-  authorName: users.name,
+  authorName: personName,
   body: taskComments.body,
   createdAt: taskComments.createdAt,
 }

@@ -203,6 +203,8 @@ describe('comments', () => {
   it('adds a comment with its author and lists the thread oldest first', async () => {
     const c = await addTaskComment(h.db, owner, F.orgA, F.weddingA1, F.taskA1Shared, ' Hello ')
     expect(c).toMatchObject({ body: 'Hello', authorUserId: F.staffA, visibility: 'shared' })
+    // The harness users have no `name`, so the address is what a planner sees, not "Unknown".
+    expect(c?.authorName).toBe('staff@a.test')
     const thread = await listTaskComments(h.db, owner, F.orgA, F.weddingA1, F.taskA1Shared)
     expect(thread.map((t) => t.body)).toEqual(['Which DJ did you mean?', 'Hello'])
   })
