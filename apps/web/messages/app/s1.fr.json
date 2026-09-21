@@ -1,1 +1,104 @@
-{}
+{
+  "header": {
+    "noDate": "Pas encore de date",
+    "noVenue": "Pas encore de lieu"
+  },
+  "tabs": {
+    "label": "Sections de ce mariage"
+  },
+  "overview": {
+    "stats": {
+      "daysToGo": "Jours restants",
+      "daysSince": "Jours écoulés",
+      "openTasks": "Tâches ouvertes",
+      "done": "Terminé",
+      "guests": "Invités",
+      "today": "Aujourd'hui",
+      "noDate": "Pas encore de date",
+      "donePercent": "{percent} % terminé",
+      "noTasks": "Pas encore de tâches",
+      "guestsUnknown": "Pas encore renseigné",
+      "guestsKnown": "Selon le planner",
+      "lateNone": "Rien en retard",
+      "lateSome": "{count} en retard"
+    },
+    "events": {
+      "title": "Prochains moments",
+      "empty": "Aucun moment prévu pour l'instant. Ajoutez-les dans les paramètres.",
+      "manage": "Gérer les moments",
+      "more": "+ {count} de plus",
+      "noTime": "Heure encore ouverte"
+    },
+    "notes": {
+      "title": "Notes internes",
+      "hint": "Le couple ne voit jamais ceci."
+    }
+  },
+  "form": {
+    "sectionWedding": "Le mariage",
+    "couple": "Couple",
+    "couplePlaceholder": "Marie & Thomas",
+    "date": "Jour principal",
+    "dateHint": "Chaque tâche compte à partir de ce jour. Le laisser vide est permis : un mariage sans date en reçoit une plus tard.",
+    "venue": "Lieu",
+    "venuePlaceholder": "Pas encore réservé",
+    "guests": "Invités",
+    "stage": "Phase",
+    "notes": "Notes internes",
+    "notesHint": "Pour l'équipe seulement. Le couple ne voit jamais ceci.",
+    "notesPlaceholder": "Comment le couple a décrit la journée, le brief, tout ce que l'équipe doit lire avant un appel.",
+    "sectionColour": "Couleur",
+    "colourHint": "Pour reconnaître ce mariage dans une barre latérale bien remplie. Modifiable plus tard.",
+    "colourGroup": "Couleur du mariage",
+    "colourCustom": "Choisir une autre couleur",
+    "colourNone": "Aucune couleur",
+    "colours": {
+      "#206560": "Sarcelle",
+      "#886A20": "Or",
+      "#A94F4A": "Argile",
+      "#2F5C85": "Ciel",
+      "#417E50": "Mousse",
+      "#6C4A72": "Prune"
+    },
+    "create": "Créer le mariage",
+    "save": "Enregistrer",
+    "saving": "En cours...",
+    "saved": "Enregistré.",
+    "cancel": "Annuler"
+  },
+  "events": {
+    "title": "Moments",
+    "hint": "Le jour principal ci-dessus est celui à partir duquel la checklist compte. Les moments sont les jours en plus : le mariage civil de la semaine passée, le brunch du lendemain matin.",
+    "label": "Nom",
+    "labelPlaceholder": "Réception",
+    "date": "Date",
+    "time": "Heure",
+    "venue": "Lieu",
+    "save": "Enregistrer",
+    "add": "Ajouter un moment",
+    "remove": "Supprimer",
+    "saved": "Moment enregistré.",
+    "empty": "Pas encore de moments."
+  },
+  "new": {
+    "eyebrow": "Nouveau mariage",
+    "title": "Créer un mariage",
+    "intro": "Quelques éléments maintenant, le reste plus tard.",
+    "forbidden": "Seul un propriétaire ou un administrateur de l'organisation peut créer un mariage. Demandez à la personne qui vous a invité."
+  },
+  "settings": {
+    "eyebrow": "Paramètres",
+    "intro": "Tout ce que le reste de l'application lit ici."
+  },
+  "errors": {
+    "required": "Remplissez ceci.",
+    "tooLong": "Ceci est trop long.",
+    "invalidDate": "Saisissez une vraie date.",
+    "invalidNumber": "Saisissez un nombre entier entre 0 et 100000.",
+    "invalidTime": "Saisissez une heure comme 15:30.",
+    "invalidColor": "Choisissez une couleur dans la liste ou le sélecteur.",
+    "invalidStatus": "Choisissez l'une des trois phases.",
+    "forbidden": "Vous ne pouvez pas faire cela dans cette organisation.",
+    "failed": "L'enregistrement a échoué. Réessayez."
+  }
+}

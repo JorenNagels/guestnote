@@ -1,8 +1,11 @@
-import { and, asc, eq, isNull } from 'drizzle-orm'
+import { and, asc, eq, isNull, sql } from 'drizzle-orm'
 import type { Db } from '../client.ts'
-import { weddings } from '../schema/weddings.ts'
+import { newId } from '../id.ts'
+import { tasks } from '../schema/tasks.ts'
+import { type WEDDING_STATUSES, weddings } from '../schema/weddings.ts'
 import { withTenant } from '../tenant.ts'
 import { type Memberships, principalForOrg, principalForWedding } from './memberships.ts'
+import { staffPrincipal } from './staff-principal.ts'
 
 /**
  * The wedding list, which is the first read in this application to go through
@@ -22,6 +25,8 @@ export type WeddingSummary = {
   readonly coupleDisplayName: string
   /** `date`, not `timestamptz`. Drizzle hands it back as `YYYY-MM-DD` or null. */
   readonly weddingDate: string | null
+  /** `#RRGGBB` upper-case, or null. The sidebar's dot; never text (spec 0003). */
+  readonly color: string | null
 }
 
 const SUMMARY = {
@@ -30,6 +35,7 @@ const SUMMARY = {
   status: weddings.status,
   coupleDisplayName: weddings.coupleDisplayName,
   weddingDate: weddings.weddingDate,
+  color: weddings.color,
 }
 
 /**
@@ -160,4 +166,200 @@ export async function getWedding(
       .where(and(eq(weddings.id, weddingId), isNull(weddings.deletedAt))),
   )
   return rows[0] ?? null
+}
+
+/**
+ * What the planner edits, as one object. Both create and update take the whole thing: the form
+ * posts every field, so a partial patch would only add a way to forget one.
+ *
+ * `color` is `#RRGGBB` or null; the repo upper-cases it because the CHECK refuses a lower-case
+ * value with an error nobody wants to read, and the action has already validated the shape.
+ */
+export type WeddingInput = {
+  readonly coupleDisplayName: string
+  /** `YYYY-MM-DD` or null. A wedding with no date yet is allowed. */
+  readonly weddingDate: string | null
+  readonly venue: string | null
+  readonly headcount: number | null
+  readonly notes: string | null
+  readonly color: string | null
+  readonly status: (typeof WEDDING_STATUSES)[number]
+}
+
+/**
+ * The summary plus what only staff may read. `notes` is the planner's own; see the column's
+ * comment for why a `couple` can read the row at all and why this type is a separate read.
+ */
+export type WeddingDetail = WeddingSummary & {
+  readonly venue: string | null
+  readonly headcount: number | null
+  readonly notes: string | null
+}
+
+const DETAIL = {
+  ...SUMMARY,
+  venue: weddings.venue,
+  headcount: weddings.headcount,
+  notes: weddings.notes,
+}
+
+/**
+ * One wedding with its notes, for staff. `null` for no such wedding, another organisation's,
+ * an unassigned member's -- and for a `couple` or outside `editor`, who can read the row under
+ * RLS and must not read the notes (`staffPrincipal` says why). Same 404 for all of them.
+ */
+export async function getWeddingDetail(
+  db: Db,
+  m: Memberships,
+  orgId: string,
+  weddingId: string,
+): Promise<WeddingDetail | null> {
+  const principal = staffPrincipal(m, orgId, weddingId)
+  if (!principal) return null
+
+  const rows = await withTenant(db, principal, async (tx) =>
+    tx
+      .select(DETAIL)
+      .from(weddings)
+      .where(and(eq(weddings.id, weddingId), isNull(weddings.deletedAt))),
+  )
+  return rows[0] ?? null
+}
+
+/** How many candidate slugs to try before giving up. Five is far past any real collision. */
+const SLUG_ATTEMPTS = 5
+
+/**
+ * Creates a wedding. **Owner and admin only** -- `null` for anyone else.
+ *
+ * That is `principalForOrg` and nothing subtler: it returns `null` for a `member`, and an
+ * `assignedStaff` principal must be pinned to a wedding that does not exist yet, so there is
+ * no principal a member could create one as.
+ *
+ * ## The slug
+ *
+ * It becomes a subdomain, so it is unique across all organisations, and this transaction can
+ * see only its own -- a `select` to check would miss every other org's. So it inserts with
+ * `on conflict do nothing` and looks at whether a row came back. `do nothing` raises no error,
+ * which matters: a unique violation would abort the transaction and end the loop. The caller
+ * hands in `slugBase` already cleaned (reserved words, minimum length); the suffix is the last
+ * five characters of a UUIDv7, which are random, and the retry is per candidate, not per call.
+ * Rejected: a pre-check `select` (blind to other orgs) and catching error 23505 (aborts the tx).
+ *
+ * Returns `null` too if every candidate was taken, which needs five collisions in a row.
+ */
+export async function createWedding(
+  db: Db,
+  m: Memberships,
+  orgId: string,
+  input: WeddingInput & { readonly slugBase: string },
+): Promise<WeddingSummary | null> {
+  const principal = principalForOrg(m, orgId)
+  if (!principal) return null
+
+  return withTenant(db, principal, async (tx) => {
+    for (let attempt = 0; attempt < SLUG_ATTEMPTS; attempt++) {
+      const id = newId()
+      const slug =
+        attempt === 0 ? input.slugBase : `${input.slugBase}-${id.replaceAll('-', '').slice(-5)}`
+      const rows = await tx
+        .insert(weddings)
+        .values({
+          id,
+          orgId,
+          slug,
+          status: input.status,
+          coupleDisplayName: input.coupleDisplayName,
+          weddingDate: input.weddingDate,
+          venue: input.venue,
+          headcount: input.headcount,
+          notes: input.notes,
+          color: input.color === null ? null : input.color.toUpperCase(),
+        })
+        .onConflictDoNothing()
+        .returning(SUMMARY)
+      if (rows[0]) return rows[0]
+    }
+    return null
+  })
+}
+
+/**
+ * Saves the editable fields of one wedding. `null` when it is not there or the caller may not
+ * write it -- owner, admin, and a member assigned to it; never a couple or outside editor.
+ *
+ * The slug is not editable here: it is the guest site's address, and changing it is a decision
+ * with consequences outside the planner app.
+ */
+export async function updateWedding(
+  db: Db,
+  m: Memberships,
+  orgId: string,
+  weddingId: string,
+  input: WeddingInput,
+): Promise<WeddingDetail | null> {
+  const principal = staffPrincipal(m, orgId, weddingId)
+  if (!principal) return null
+
+  const rows = await withTenant(db, principal, async (tx) =>
+    tx
+      .update(weddings)
+      .set({
+        status: input.status,
+        coupleDisplayName: input.coupleDisplayName,
+        weddingDate: input.weddingDate,
+        venue: input.venue,
+        headcount: input.headcount,
+        notes: input.notes,
+        color: input.color === null ? null : input.color.toUpperCase(),
+        updatedAt: new Date(),
+      })
+      // The `id` predicate is what narrows an org-wide principal to one wedding; a pinned
+      // member is narrowed by RLS as well, and this is the same belt `getWedding` describes.
+      .where(and(eq(weddings.id, weddingId), isNull(weddings.deletedAt)))
+      .returning(DETAIL),
+  )
+  return rows[0] ?? null
+}
+
+export type WeddingTaskCounts = {
+  readonly total: number
+  readonly open: number
+  readonly done: number
+  /** Open with a `due_at` in the past. A template task with only an offset has no instant yet. */
+  readonly overdue: number
+}
+
+/**
+ * Task figures for the overview. Zeros, not an error, when the caller has no standing: the page
+ * has already 404ed on the wedding read, and a figure of nothing is what an empty wedding shows.
+ *
+ * The count is over every task the principal can see, and staff see `internal` ones too -- so
+ * this is a planner figure and must never be handed to a couple screen as it stands.
+ * Counting in SQL, not by fetching rows: a wedding has hundreds of tasks and the overview
+ * wants four numbers.
+ */
+export async function getWeddingTaskCounts(
+  db: Db,
+  m: Memberships,
+  orgId: string,
+  weddingId: string,
+): Promise<WeddingTaskCounts> {
+  const principal = staffPrincipal(m, orgId, weddingId)
+  if (!principal) return { total: 0, open: 0, done: 0, overdue: 0 }
+
+  const rows = await withTenant(db, principal, async (tx) =>
+    tx
+      .select({
+        total: sql<number>`count(*)::int`,
+        done: sql<number>`(count(*) filter (where ${tasks.status} = 'done'))::int`,
+        overdue: sql<number>`(count(*) filter (where ${tasks.status} <> 'done' and ${tasks.dueAt} < now()))::int`,
+      })
+      .from(tasks)
+      .where(and(eq(tasks.weddingId, weddingId), isNull(tasks.deletedAt))),
+  )
+  const row = rows[0]
+  const total = row?.total ?? 0
+  const done = row?.done ?? 0
+  return { total, done, open: total - done, overdue: row?.overdue ?? 0 }
 }
