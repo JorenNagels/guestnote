@@ -1,6 +1,6 @@
 # S3 Vendors — the directory and the wedding's vendor list
 
-**Date:** 2026-09-21 · **Status:** Specified, being built · **Parent:** `docs/specs/0003-planner-app-screens.md`, row S3
+**Date:** 2026-09-21 · **Status:** Built · **Parent:** `docs/specs/0003-planner-app-screens.md`, row S3
 
 Nothing here contradicts spec 0003. Two routes over two tables: the org directory (`vendors`) and the
 per-wedding link (`wedding_vendors`).
@@ -51,11 +51,11 @@ per-wedding link (`wedding_vendors`).
 
 ## Done
 
-- [ ] `packages/db/src/repos/vendors.ts` with access helpers and both tables' operations
-- [ ] Both `page.tsx`, both `actions.ts`, `loading.tsx`, client components
-- [ ] Message files in three languages, `messages.test.ts` green
-- [ ] Tests: repo access logic, input validation, both actions, status list matches the schema
-- [ ] Browser: empty, one, many, error, read-only member, compact density
+- [x] `packages/db/src/repos/vendors.ts` with access helpers and both tables' operations
+- [x] Both `page.tsx`, both `actions.ts`, `loading.tsx`, client components
+- [x] Message files in three languages, `messages.test.ts` green
+- [x] Tests: repo access logic, input validation, both actions, status list matches the schema
+- [x] Browser: empty, one, many, error, read-only member, compact density
 
 ## Progress
 
@@ -67,5 +67,5 @@ per-wedding link (`wedding_vendors`).
 - [x] Components and pages
 - [x] Messages
 - [x] Tests, typecheck, biome (mutation-checked: member write flag, weddingMember refusal)
-- [ ] Browser check
-- [ ] Commit
+- [x] Browser check (empty picker, many, search, add/edit, error, member read-only, 404 on unassigned wedding, compact)
+- [x] Commit
