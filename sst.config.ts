@@ -190,8 +190,8 @@ export default $config({
         // proxy.ts resolves which surface answers from the Host header, against these two.
         GUESTNOTE_ROOT_DOMAIN: rootDomain,
         GUESTNOTE_APP_SUBDOMAIN: appSubdomain,
-        // Name only, not a secret. apps/web/src/env.ts does not read it yet -- the Files slice
-        // (S5) adds it there and composes `createS3Transport` in `lib/storage.ts`.
+        // Name only, not a secret. apps/web/src/env.ts reads it and `lib/storage.ts` composes
+        // `createS3Transport` from it; unset there is an error outside development.
         GUESTNOTE_FILES_BUCKET: files.name,
         DATABASE_URL: secret('DATABASE_URL'),
         BETTER_AUTH_SECRET: secret('BETTER_AUTH_SECRET'),
