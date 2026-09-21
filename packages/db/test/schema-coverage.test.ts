@@ -2,6 +2,7 @@ import { getTableName, isTable } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import * as schemaModule from '../src/schema/index.ts'
 import {
+  ORG_SCOPED_TABLES,
   SELF_SCOPED_TABLES,
   TENANT_SCOPED_TABLES,
   UNSCOPED_TABLES,
@@ -41,6 +42,7 @@ const declaredTables: string[] = Object.values(schemaModule)
 
 const classified = [
   ...TENANT_SCOPED_TABLES,
+  ...ORG_SCOPED_TABLES,
   ...SELF_SCOPED_TABLES,
   ...USER_SCOPED_TABLES,
   ...UNSCOPED_TABLES,
@@ -48,6 +50,7 @@ const classified = [
 
 const rlsTables = [
   ...TENANT_SCOPED_TABLES,
+  ...ORG_SCOPED_TABLES,
   ...SELF_SCOPED_TABLES,
   ...USER_SCOPED_TABLES,
 ] as readonly string[]
@@ -71,7 +74,8 @@ describe('every table is classified exactly once', () => {
     expect(
       hits,
       `${table} is in ${hits} buckets. Add it to exactly one of TENANT_SCOPED_TABLES, ` +
-        'SELF_SCOPED_TABLES, USER_SCOPED_TABLES or UNSCOPED_TABLES in src/schema/index.ts, ' +
+        'ORG_SCOPED_TABLES, SELF_SCOPED_TABLES, USER_SCOPED_TABLES or UNSCOPED_TABLES in ' +
+        'src/schema/index.ts, ' +
         'and give it a policy in a new migration if it holds tenant data.',
     ).toBe(1)
   })
@@ -94,6 +98,22 @@ describe('tenant-scoped tables carry their tenant keys', () => {
     // every policy is a single-column check with no joins.
     expect(cols, `${table} is missing org_id`).toContain('org_id')
     expect(cols, `${table} is missing wedding_id`).toContain('wedding_id')
+  })
+
+  it.each(ORG_SCOPED_TABLES)('%s has org_id and NO wedding_id', async (table) => {
+    const rows = await catalog(
+      `select column_name from information_schema.columns
+        where table_schema = 'public' and table_name = $1`,
+      [table],
+    )
+    const cols = rows.map((r) => r.column_name as string)
+    expect(cols, `${table} is missing org_id`).toContain('org_id')
+    // The bucket's whole claim. A table that has grown a wedding key is wedding-scoped and
+    // its policy has to say so; leaving it here would let it be read org-wide by a pinned
+    // member. Moving it to TENANT_SCOPED_TABLES is the fix, not deleting this line.
+    expect(cols, `${table} has a wedding_id, so it belongs in TENANT_SCOPED_TABLES`).not.toContain(
+      'wedding_id',
+    )
   })
 
   it.each(SELF_SCOPED_TABLES)('%s has org_id (its own id is the wedding scope)', async (table) => {

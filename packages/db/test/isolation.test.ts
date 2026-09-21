@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
+  ORG_SCOPED_TABLES,
   SELF_SCOPED_TABLES,
   TENANT_SCOPED_TABLES,
   USER_SCOPED_TABLES,
@@ -26,6 +27,7 @@ afterAll(async () => {
 
 const ALL_RLS_TABLES = [
   ...TENANT_SCOPED_TABLES,
+  ...ORG_SCOPED_TABLES,
   ...SELF_SCOPED_TABLES,
   ...USER_SCOPED_TABLES,
 ] as const
@@ -78,24 +80,28 @@ describe('1. fails closed', () => {
 })
 
 describe('2. cross-organisation isolation', () => {
-  it.each(TENANT_SCOPED_TABLES)('%s: org A sees none of org B', async (table) => {
-    const leaked = n(
-      await asPrincipal(
-        h,
-        AS.staffA,
-        `select count(*)::int as n from "${table}" where org_id = $1`,
-        [F.orgB],
-      ),
-    )
-    expect(leaked, `${table} leaked rows belonging to org B`).toBe(0)
+  it.each([...TENANT_SCOPED_TABLES, ...ORG_SCOPED_TABLES])(
+    '%s: org A sees none of org B',
+    async (table) => {
+      const leaked = n(
+        await asPrincipal(
+          h,
+          AS.staffA,
+          `select count(*)::int as n from "${table}" where org_id = $1`,
+          [F.orgB],
+        ),
+      )
+      expect(leaked, `${table} leaked rows belonging to org B`).toBe(0)
 
-    // Guard against a vacuous pass: an empty table isolates perfectly. The fixture
-    // must actually have put rows here, or this assertion proves nothing.
-    const visible = await countOf(h, AS.staffA, table)
-    expect(visible, `${table} fixture is empty, so the assertion above is vacuous`).toBeGreaterThan(
-      0,
-    )
-  })
+      // Guard against a vacuous pass: an empty table isolates perfectly. The fixture
+      // must actually have put rows here, or this assertion proves nothing.
+      const visible = await countOf(h, AS.staffA, table)
+      expect(
+        visible,
+        `${table} fixture is empty, so the assertion above is vacuous`,
+      ).toBeGreaterThan(0)
+    },
+  )
 
   it('org A and org B see disjoint, non-empty wedding sets', async () => {
     expect(await countOf(h, AS.staffA, 'weddings')).toBe(2)

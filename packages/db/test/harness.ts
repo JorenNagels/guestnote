@@ -227,6 +227,39 @@ export const F = {
   taskA1Internal: '11111111-0000-0000-0000-000000000002',
   taskA2Shared: '22222222-0000-0000-0000-000000000001',
   taskB1Shared: '33333333-0000-0000-0000-000000000001',
+  // ---- spec 0003 planner tables (migration 0006/0007). One digit-run prefix per table so a
+  // failing assertion names its table from the id alone; the last group is the row.
+  eventA1: '44444444-0000-0000-0000-0000000000a1',
+  eventA2: '44444444-0000-0000-0000-0000000000a2',
+  eventB1: '44444444-0000-0000-0000-0000000000b1',
+  vendorA: '55555555-0000-0000-0000-0000000000a1',
+  /** A second org-A vendor, linked to no wedding, so a test can add it to one without a clash. */
+  vendorA2: '55555555-0000-0000-0000-0000000000a2',
+  vendorB: '55555555-0000-0000-0000-0000000000b1',
+  wedVendorA1: '66666666-0000-0000-0000-0000000000a1',
+  wedVendorA2: '66666666-0000-0000-0000-0000000000a2',
+  wedVendorB1: '66666666-0000-0000-0000-0000000000b1',
+  budgetLineA1: '77777777-0000-0000-0000-0000000000a1',
+  budgetLineA2: '77777777-0000-0000-0000-0000000000a2',
+  budgetLineB1: '77777777-0000-0000-0000-0000000000b1',
+  paymentA1: '88888888-0000-0000-0000-0000000000a1',
+  paymentA2: '88888888-0000-0000-0000-0000000000a2',
+  paymentB1: '88888888-0000-0000-0000-0000000000b1',
+  runItemA1: '99999999-0000-0000-0000-0000000000a1',
+  runItemA2: '99999999-0000-0000-0000-0000000000a2',
+  runItemB1: '99999999-0000-0000-0000-0000000000b1',
+  fileA1Shared: '12121212-0000-0000-0000-0000000000a1',
+  fileA1Internal: '12121212-0000-0000-0000-0000000000a2',
+  fileA2Shared: '12121212-0000-0000-0000-0000000000a3',
+  fileB1Shared: '12121212-0000-0000-0000-0000000000b1',
+  linkA1: '13131313-0000-0000-0000-0000000000a1',
+  linkA2: '13131313-0000-0000-0000-0000000000a2',
+  linkB1: '13131313-0000-0000-0000-0000000000b1',
+  templateA: '14141414-0000-0000-0000-0000000000a1',
+  templateB: '14141414-0000-0000-0000-0000000000b1',
+  itemAShared: '15151515-0000-0000-0000-0000000000a1',
+  itemAInternal: '15151515-0000-0000-0000-0000000000a2',
+  itemBShared: '15151515-0000-0000-0000-0000000000b1',
 } as const
 
 /** Principals the tests reuse, as GUC bundles. */
@@ -249,6 +282,29 @@ export const AS = {
     orgId: F.orgA,
     weddingId: F.weddingA1,
     weddingRole: 'owner',
+  } as Gucs,
+  /**
+   * An assigned staff `member`, pinned to A1 -- the shape `withTenant` builds for
+   * `assignedStaff`. The principal the planner-app tables must let in for A1 and keep out of
+   * A2, and (for `vendor_links`) keep out entirely.
+   */
+  memberOnA1: {
+    userId: F.memberA,
+    orgId: F.orgA,
+    weddingId: F.weddingA1,
+    weddingRole: 'member',
+  } as Gucs,
+  /** An org-wide `admin` of org A: `staffDual` is admin of A and owner of C. */
+  adminA: { userId: F.staffDual, orgId: F.orgA, weddingRole: 'admin' } as Gucs,
+  /**
+   * An outside collaborator pinned to A1 (`weddingMember` with role `editor`). Spec 0003
+   * gives `editor` none of the planner screens "in this build", and the policies enforce it.
+   */
+  editorOnA1: {
+    userId: F.memberA,
+    orgId: F.orgA,
+    weddingId: F.weddingA1,
+    weddingRole: 'editor',
   } as Gucs,
   /** The couple on A1, correctly scoped. */
   coupleA1: {
@@ -347,11 +403,157 @@ export async function seedExec(sqlText: string, values: unknown[] = []): Promise
   }
 }
 
+/**
+ * Spec 0003's ten tables. Every one has rows for org A (both weddings, where wedding-scoped)
+ * AND org B, and the shapes are chosen so each policy clause has something to exclude:
+ * `files` and `template_items` have an `internal` row, `vendor_links` has rows on both A
+ * weddings, the org-scoped tables have a row in a second org.
+ *
+ * Written through the seed role, as everything in `reseed()` is: the fixture has to be ground
+ * truth, independent of the policies it is used to check.
+ */
+async function seedPlannerTables(pool: NodePool): Promise<void> {
+  await pool.query(
+    `insert into wedding_events (id, org_id, wedding_id, label, starts_on, starts_at) values
+       ($1,$4,$6,'Ceremony','2027-07-31','15:30'),
+       ($2,$4,$7,'Party','2027-08-14','19:00'),
+       ($3,$5,$8,'Ceremony','2027-09-04','14:00')`,
+    [F.eventA1, F.eventA2, F.eventB1, F.orgA, F.orgB, F.weddingA1, F.weddingA2, F.weddingB1],
+  )
+  await pool.query(
+    `insert into vendors (id, org_id, name, category) values
+       ($1,$4,'Traiteur A','Catering'), ($2,$5,'Traiteur B','Catering'),
+       ($3,$4,'Bloemen A','Flowers')`,
+    [F.vendorA, F.vendorB, F.vendorA2, F.orgA, F.orgB],
+  )
+  await pool.query(
+    `insert into wedding_vendors (id, org_id, wedding_id, vendor_id, status) values
+       ($1,$4,$6,$8,'booked'), ($2,$4,$7,$8,'quoted'), ($3,$5,$9,$10,'booked')`,
+    [
+      F.wedVendorA1,
+      F.wedVendorA2,
+      F.wedVendorB1,
+      F.orgA,
+      F.orgB,
+      F.weddingA1,
+      F.weddingA2,
+      F.vendorA,
+      F.weddingB1,
+      F.vendorB,
+    ],
+  )
+  await pool.query(
+    `insert into budget_lines (id, org_id, wedding_id, category, label, estimate_cents) values
+       ($1,$4,$6,'Catering','Dinner',1176000),
+       ($2,$4,$7,'Catering','Dinner',900000),
+       ($3,$5,$8,'Catering','Dinner',500000)`,
+    [
+      F.budgetLineA1,
+      F.budgetLineA2,
+      F.budgetLineB1,
+      F.orgA,
+      F.orgB,
+      F.weddingA1,
+      F.weddingA2,
+      F.weddingB1,
+    ],
+  )
+  await pool.query(
+    `insert into payments (id, org_id, wedding_id, budget_line_id, due_on, amount_cents) values
+       ($1,$7,$9,$4,'2027-07-24',504000),
+       ($2,$7,$10,$5,'2027-08-07',400000),
+       ($3,$8,$11,$6,'2027-08-28',200000)`,
+    [
+      F.paymentA1,
+      F.paymentA2,
+      F.paymentB1,
+      F.budgetLineA1,
+      F.budgetLineA2,
+      F.budgetLineB1,
+      F.orgA,
+      F.orgB,
+      F.weddingA1,
+      F.weddingA2,
+      F.weddingB1,
+    ],
+  )
+  await pool.query(
+    `insert into run_sheet_items (id, org_id, wedding_id, event_id, starts_at, duration_min, title) values
+       ($1,$7,$9,$4,'15:30',40,'Ceremony'),
+       ($2,$7,$10,$5,'21:00',10,'First dance'),
+       ($3,$8,$11,$6,'14:00',30,'Ceremony')`,
+    [
+      F.runItemA1,
+      F.runItemA2,
+      F.runItemB1,
+      F.eventA1,
+      F.eventA2,
+      F.eventB1,
+      F.orgA,
+      F.orgB,
+      F.weddingA1,
+      F.weddingA2,
+      F.weddingB1,
+    ],
+  )
+  await pool.query(
+    `insert into files (id, org_id, wedding_id, kind, name, storage_key, size_bytes, mime, visibility) values
+       ($1,$5,$7,'file','Venue contract.pdf','a/a1/contract',412000,'application/pdf','shared'),
+       ($2,$5,$7,'file','Rentals quote comparison.xlsx','a/a1/quotes',62000,'application/vnd.ms-excel','internal'),
+       ($3,$5,$8,'image','Chapel aisle.jpg','a/a2/aisle',900000,'image/jpeg','shared'),
+       ($4,$6,$9,'file','Contract.pdf','b/b1/contract',100000,'application/pdf','shared')`,
+    [
+      F.fileA1Shared,
+      F.fileA1Internal,
+      F.fileA2Shared,
+      F.fileB1Shared,
+      F.orgA,
+      F.orgB,
+      F.weddingA1,
+      F.weddingA2,
+      F.weddingB1,
+    ],
+  )
+  await pool.query(
+    `insert into vendor_links (id, org_id, wedding_id, wedding_vendor_id, token_hash, expires_at) values
+       ($1,$7,$9,$4,'hash-link-a1', now() + interval '7 days'),
+       ($2,$7,$10,$5,'hash-link-a2', now() + interval '7 days'),
+       ($3,$8,$11,$6,'hash-link-b1', now() + interval '7 days')`,
+    [
+      F.linkA1,
+      F.linkA2,
+      F.linkB1,
+      F.wedVendorA1,
+      F.wedVendorA2,
+      F.wedVendorB1,
+      F.orgA,
+      F.orgB,
+      F.weddingA1,
+      F.weddingA2,
+      F.weddingB1,
+    ],
+  )
+  await pool.query(
+    `insert into task_templates (id, org_id, name) values
+       ($1,$3,'Full planning'), ($2,$4,'Day-of coordination')`,
+    [F.templateA, F.templateB, F.orgA, F.orgB],
+  )
+  await pool.query(
+    `insert into template_items (id, org_id, template_id, title, due_offset_days, visibility) values
+       ($1,$4,$5,'Sign the venue contract',-300,'shared'),
+       ($2,$4,$5,'Agree the planning fee schedule',-240,'internal'),
+       ($3,$6,$7,'Confirm arrival times',-7,'shared')`,
+    [F.itemAShared, F.itemAInternal, F.itemBShared, F.orgA, F.templateA, F.orgB, F.templateB],
+  )
+}
+
 export async function reseed(): Promise<void> {
   await assertSeedRoleUsable()
   const pool = new NodePool({ connectionString: SEED_URL, max: 1 })
   try {
     await pool.query(`truncate table
+      vendor_links, run_sheet_items, payments, budget_lines, files, wedding_events,
+      wedding_vendors, vendors, template_items, task_templates,
       task_comments, tasks, audit_log, invitations, wedding_domains,
       wedding_members, org_members, weddings, organizations, users cascade`)
     await pool.query(
@@ -430,6 +632,7 @@ export async function reseed(): Promise<void> {
          (gen_random_uuid(), $1, $2, $4, 'Third reminder sent.')`,
       [F.orgA, F.weddingA1, F.taskA1Shared, F.taskA1Internal],
     )
+    await seedPlannerTables(pool)
   } finally {
     await pool.end()
   }

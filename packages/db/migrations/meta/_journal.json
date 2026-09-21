@@ -43,6 +43,20 @@
       "when": 1787230887000,
       "tag": "0005_org_read_for_members",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790003542018,
+      "tag": "0006_planner_tables",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790003600000,
+      "tag": "0007_planner_rls",
+      "breakpoints": true
     }
   ]
 }
