@@ -35,7 +35,10 @@ const nextConfig: NextConfig = {
    * matches a single segment and the auth handler lives at `/api/auth/[...all]`.
    */
   outputFileTracingExcludes: {
-    '**/*': ['./.mail/**/*'],
+    // `.files/` is the same shape of problem: the development stand-in for the files bucket
+    // (`lib/dev-files.ts`) writes uploads there, and file tracing would ship a planner's
+    // documents in the deploy bundle for the same reason it would ship the sign-in codes.
+    '**/*': ['./.mail/**/*', './.files/**/*'],
   },
 
   /**
@@ -55,7 +58,13 @@ const nextConfig: NextConfig = {
    * declaring them keeps `next build --webpack` -- the documented escape hatch --
    * working identically, and documents the intent.
    */
-  transpilePackages: ['@guestnote/core', '@guestnote/db', '@guestnote/email', '@guestnote/ui'],
+  transpilePackages: [
+    '@guestnote/core',
+    '@guestnote/db',
+    '@guestnote/email',
+    '@guestnote/storage',
+    '@guestnote/ui',
+  ],
 
   /**
    * research/05-architecture.md section 6 is explicit: do NOT use next/image plus the

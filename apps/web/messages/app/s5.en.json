@@ -1,1 +1,69 @@
-{}
+{
+  "files": {
+    "title": "Files",
+    "tableCaption": "Files for this wedding",
+    "columnName": "Name",
+    "columnActions": "Actions",
+    "emptyTitle": "No files yet",
+    "emptyBody": "Add a contract, quote or floor plan: drop it here or choose a file.",
+    "internalOnly": "Internal only",
+    "internalNext": "Internal only",
+    "by": "by",
+    "upload": {
+      "button": "Add files",
+      "hint": "Drop files here. PDF, Word, Excel, PowerPoint, text and images up to 25 MB."
+    },
+    "actions": {
+      "download": "Download",
+      "rename": "Rename",
+      "makeInternal": "Make internal",
+      "makeShared": "Share",
+      "remove": "Remove",
+      "removeConfirm": "Remove “{name}”?",
+      "removeYes": "Yes, remove",
+      "save": "Save",
+      "cancel": "Cancel",
+      "renameField": "New name"
+    },
+    "aria": {
+      "download": "Download {name}",
+      "rename": "Rename {name}",
+      "makeInternal": "Make {name} internal",
+      "makeShared": "Share {name}",
+      "remove": "Remove {name}"
+    }
+  },
+  "moodboard": {
+    "title": "Moodboard",
+    "emptyTitle": "No images yet",
+    "emptyBody": "Add photos of flowers, tables, dresses or venues. Click a caption to change it.",
+    "upload": {
+      "button": "Add images",
+      "hint": "Drop images here. JPEG, PNG, WebP, GIF, HEIC or AVIF up to 25 MB."
+    },
+    "tileRemove": "Remove",
+    "tileRemoveConfirm": "Remove?",
+    "tileRemoveYes": "Yes",
+    "tileCancel": "Cancel",
+    "aria": {
+      "remove": "Remove {name}",
+      "caption": "Edit the caption of {name}"
+    },
+    "captionField": "Caption",
+    "captionSave": "Save",
+    "imageUnavailable": "Image not available"
+  },
+  "uploading": "Uploading…",
+  "dismiss": "Dismiss",
+  "errors": {
+    "not_found": "Not found. It may already have been removed.",
+    "invalid_name": "Enter a name of up to 200 characters.",
+    "invalid_size": "This file is empty or its size is wrong.",
+    "too_large": "This file is larger than 25 MB.",
+    "type_not_allowed": "This type of file cannot be uploaded.",
+    "unavailable": "Saving is not possible right now. Try again shortly.",
+    "network": "No connection. Try again.",
+    "upload_failed": "The upload failed. Try again.",
+    "unknown": "Something went wrong. Try again."
+  }
+}

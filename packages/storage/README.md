@@ -10,8 +10,10 @@ arguments, and everything returned is plain data.
 ## The seam
 
 `createStorage({ transport, maxBytes? })`. Nothing it returns names an AWS type.
-`apps/web/src/lib/storage.ts` will be the only composition point (it does not exist yet -- the
-Files slice writes it), and the only place that knows a bucket name or a region.
+`apps/web/src/lib/storage.ts` is the only composition point and the only place that knows a bucket
+name or a region. It builds a real S3 transport when `GUESTNOTE_FILES_BUCKET` is set, and in
+development only, when it is not, a local-directory transport (`lib/dev-files.ts`, files under
+`apps/web/.files/`, served by `app/api/dev-files`). Outside development an unset bucket throws.
 
 ```
 Server Function (checks membership itself)
@@ -100,8 +102,26 @@ deduplicates the shared packages. A caret let it resolve `client-s3` to 3.1136 a
 packages in the lockfile with it (measured: a 124-line lockfile deletion), which would have been a change to the *mail* path made by
 an unrelated feature. Move all three together.
 
-**The size still needs a real check** once the Files slice imports this package: build, then
-`du -sh apps/web/.next/standalone` before and after. This section is the estimate, not that.
+**The real check, 2026-09-21** (Files slice, S5), now that `apps/web` imports the package: `npm run
+build -w @guestnote/web`, then `du -sk apps/web/.next/standalone`, once as shipped and once with
+`src/s3.ts` temporarily replaced by a stub that imports no SDK (restored afterwards; the second
+build is the "before"):
+
+| | `.next/standalone` |
+|---|---|
+| Without the S3 SDK | 56,464 KB |
+| As shipped | 58,152 KB |
+| **Added** | **+1,688 KB (+3.0%)** |
+
+That is above the 0.35 MB estimate, and the reason is worth knowing: without S3 there is **no**
+`node_modules/@aws-sdk` in the standalone output at all (SES is bundled into the server chunks),
+and with it Next externalises the whole `@aws-sdk` family into `node_modules` -- 804 KB of
+`@aws-sdk/*` and 616 KB of `@smithy/*`, 16 and 5 packages. So the delta is not "S3 on top of SES
+sharing everything"; it is the SDK moving from chunks to traced files, and the estimate above
+measured the wrong thing. It is still small against 58 MB and against the ~80 MB `react-email`
+mistake in CLAUDE.md invariant 11, so nothing changes; the number is here so a later jump is
+noticed. `next build` succeeds with `GUESTNOTE_FILES_BUCKET` unset, because `lib/storage.ts`
+builds lazily.
 
 ## Tests
 

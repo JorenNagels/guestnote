@@ -66,6 +66,7 @@ coverage/
 # Contains live sign-in codes, so it must never be committed. The transport refuses to
 # run outside development, which is the other half of keeping that true.
 apps/web/.mail/
+apps/web/.files/
 
 # Generated share image for the holding page; deploy.sh re-renders it from og.html.
 coming-soon/og.png

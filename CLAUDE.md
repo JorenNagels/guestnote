@@ -105,9 +105,10 @@ stop and ask. The rest are held by convention alone, which is why they are writt
 
 6. **`apps/web/src/env.ts` is the only reader of *configuration*,** and `packages/*` reads no
    environment at all — config arrives as arguments. The single exception is `NODE_ENV`, in
-   exactly two places, each guarding a dev-only refusal: `lib/auth.ts`'s `DEV_SECRET` and
-   `lib/mailer.ts`'s console transport. `packages/email/src/console.ts` explains why the check
-   lives in the app and not in the package. Values a `next build` must not require
+   exactly three places, each guarding a dev-only refusal: `lib/auth.ts`'s `DEV_SECRET`,
+   `lib/mailer.ts`'s console transport and `lib/storage.ts`'s local-directory fallback for the
+   files bucket. `packages/email/src/console.ts` explains why the check lives in the app and
+   not in the package. Values a `next build` must not require
    (`DATABASE_URL`, `BETTER_AUTH_SECRET`) are optional in `env.ts` and validated lazily at the
    point of use. Deployed secrets come from SSM at `/guestnote/<env>/*`.
    Where a variable selects behaviour rather than supplying a value, **the value you get by

@@ -1,1 +1,69 @@
-{}
+{
+  "files": {
+    "title": "Bestanden",
+    "tableCaption": "Bestanden van deze bruiloft",
+    "columnName": "Naam",
+    "columnActions": "Acties",
+    "emptyTitle": "Nog geen bestanden",
+    "emptyBody": "Voeg een contract, offerte of grondplan toe: sleep het hierheen of kies een bestand.",
+    "internalOnly": "Alleen intern",
+    "internalNext": "Alleen intern",
+    "by": "door",
+    "upload": {
+      "button": "Bestanden toevoegen",
+      "hint": "Sleep bestanden hierheen. PDF, Word, Excel, PowerPoint, tekst en afbeeldingen tot 25 MB."
+    },
+    "actions": {
+      "download": "Downloaden",
+      "rename": "Hernoemen",
+      "makeInternal": "Intern maken",
+      "makeShared": "Delen",
+      "remove": "Verwijderen",
+      "removeConfirm": "“{name}” verwijderen?",
+      "removeYes": "Ja, verwijderen",
+      "save": "Opslaan",
+      "cancel": "Annuleren",
+      "renameField": "Nieuwe naam"
+    },
+    "aria": {
+      "download": "{name} downloaden",
+      "rename": "{name} hernoemen",
+      "makeInternal": "{name} intern maken",
+      "makeShared": "{name} delen",
+      "remove": "{name} verwijderen"
+    }
+  },
+  "moodboard": {
+    "title": "Moodboard",
+    "emptyTitle": "Nog geen afbeeldingen",
+    "emptyBody": "Voeg foto’s toe van bloemen, tafels, jurken of locaties. Klik op een bijschrift om het aan te passen.",
+    "upload": {
+      "button": "Afbeeldingen toevoegen",
+      "hint": "Sleep afbeeldingen hierheen. JPEG, PNG, WebP, GIF, HEIC of AVIF tot 25 MB."
+    },
+    "tileRemove": "Verwijderen",
+    "tileRemoveConfirm": "Verwijderen?",
+    "tileRemoveYes": "Ja",
+    "tileCancel": "Annuleren",
+    "aria": {
+      "remove": "{name} verwijderen",
+      "caption": "Bijschrift van {name} aanpassen"
+    },
+    "captionField": "Bijschrift",
+    "captionSave": "Opslaan",
+    "imageUnavailable": "Afbeelding niet beschikbaar"
+  },
+  "uploading": "Bezig met uploaden…",
+  "dismiss": "Sluiten",
+  "errors": {
+    "not_found": "Niet gevonden. Misschien is het al verwijderd.",
+    "invalid_name": "Geef een naam op van maximaal 200 tekens.",
+    "invalid_size": "Dit bestand is leeg of de grootte klopt niet.",
+    "too_large": "Dit bestand is groter dan 25 MB.",
+    "type_not_allowed": "Dit bestandstype kan niet worden geüpload.",
+    "unavailable": "Opslaan is nu niet mogelijk. Probeer het zo opnieuw.",
+    "network": "Geen verbinding. Probeer het opnieuw.",
+    "upload_failed": "Het uploaden is mislukt. Probeer het opnieuw.",
+    "unknown": "Er ging iets mis. Probeer het opnieuw."
+  }
+}
