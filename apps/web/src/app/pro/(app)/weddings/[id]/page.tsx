@@ -2,6 +2,7 @@ import { getWeddingDetail, getWeddingTaskCounts, listWeddingEvents } from '@gues
 import { Card } from '@guestnote/ui/card'
 import { notFound } from 'next/navigation'
 import { getLocale, getTranslations } from 'next-intl/server'
+import { isUuid } from '../../../../../components/wedding/form-state.ts'
 import {
   formatCivilDate,
   WeddingHeader,
@@ -40,7 +41,9 @@ export default async function WeddingPage({ params }: { params: Promise<{ id: st
     getLocale(),
   ])
 
-  if (!memberships || !orgId) notFound()
+  // A malformed id is a 404 like any other unknown one: Postgres would raise on the uuid cast
+  // and the planner would get a 500 for a mistyped URL.
+  if (!memberships || !orgId || !isUuid(id)) notFound()
 
   const db = getDb()
   const wedding = await getWeddingDetail(db, memberships, orgId, id)
@@ -63,7 +66,7 @@ export default async function WeddingPage({ params }: { params: Promise<{ id: st
 
       <div className="mt-6 flex flex-wrap items-start gap-6">
         <div className="min-w-[min(100%,520px)] flex-[1_1_520px]">
-          <dl className="mb-6 grid grid-cols-[repeat(auto-fit,minmax(11rem,1fr))] gap-2.5">
+          <dl className="mb-6 grid grid-cols-[repeat(auto-fit,minmax(8.5rem,1fr))] gap-2.5">
             <Stat
               label={days !== null && days < 0 ? t('stats.daysSince') : t('stats.daysToGo')}
               value={days === null ? '–' : days === 0 ? t('stats.today') : String(Math.abs(days))}
@@ -120,7 +123,7 @@ export default async function WeddingPage({ params }: { params: Promise<{ id: st
                       key={e.id}
                       className="flex flex-wrap items-baseline gap-x-4 gap-y-0.5 px-3.5 py-2.5"
                     >
-                      <span className="min-w-0 flex-1 text-sm">
+                      <span className="min-w-[10rem] flex-1 text-sm">
                         <span className="font-medium">{e.label}</span>
                         {e.venue ? (
                           <span className="text-muted-foreground"> · {e.venue}</span>

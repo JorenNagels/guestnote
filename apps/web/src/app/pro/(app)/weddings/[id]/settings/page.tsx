@@ -2,6 +2,7 @@ import { getWeddingDetail, listWeddingEvents } from '@guestnote/db'
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { EventsEditor } from '../../../../../../components/wedding/events-editor.tsx'
+import { isUuid } from '../../../../../../components/wedding/form-state.ts'
 import { eventsLabels, weddingFormLabels } from '../../../../../../components/wedding/labels.ts'
 import { asStatus } from '../../../../../../components/wedding/parse.ts'
 import { WeddingForm } from '../../../../../../components/wedding/wedding-form.tsx'
@@ -27,7 +28,9 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
     getTranslations('app.weddings.status'),
     getTranslations('app.shell.nav'),
   ])
-  if (!memberships || !orgId) notFound()
+  // A malformed id is a 404 like any other unknown one: Postgres would raise on the uuid cast
+  // and the planner would get a 500 for a mistyped URL.
+  if (!memberships || !orgId || !isUuid(id)) notFound()
 
   const db = getDb()
   const wedding = await getWeddingDetail(db, memberships, orgId, id)

@@ -110,6 +110,7 @@ const WEDDING = {
   headcount: null,
   notes: null,
 }
+const WID = '0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b'
 const COUNTS = { total: 0, open: 0, done: 0, overdue: 0 }
 
 beforeEach(() => {
@@ -125,7 +126,7 @@ beforeEach(() => {
 })
 afterEach(() => vi.useRealTimers())
 
-const renderPage = async (id = 'w1') =>
+const renderPage = async (id = WID) =>
   render(await WeddingPage({ params: Promise.resolve({ id }) }))
 
 describe('a wedding the principal can see', () => {
@@ -268,6 +269,11 @@ describe('a wedding the principal cannot see', () => {
     getWeddingDetail.mockResolvedValue(null)
     await expect(renderPage('secret-wedding-id')).rejects.toThrow()
     expect(document.body.textContent).not.toContain('secret-wedding-id')
+  })
+
+  it('is a 404 for an id that is not a uuid, without asking the database', async () => {
+    await expect(renderPage('not-a-uuid')).rejects.toThrow('NEXT_NOT_FOUND')
+    expect(getWeddingDetail).not.toHaveBeenCalled()
   })
 
   /**

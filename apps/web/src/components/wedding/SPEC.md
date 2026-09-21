@@ -1,6 +1,6 @@
 # S1 Weddings — overview, new wedding, settings, events, colour
 
-**Date:** 2026-09-21 · **Status:** Specified, being built · **Parent:** `docs/specs/0003-planner-app-screens.md`, row S1
+**Date:** 2026-09-21 · **Status:** Built 2026-09-21 · **Parent:** `docs/specs/0003-planner-app-screens.md`, row S1
 
 Nothing here contradicts spec 0003. Prototype ranges: overview 626-691, settings 320-447, new
 wedding 448-545 of `design-system/planner-prototype/Guestnote Planner.dc.html`.
@@ -79,24 +79,29 @@ NL first, in `apps/web/messages/app/s1.{nl,en,fr}.json` under `app.s1`. Errors a
 (`required`, `tooLong`, `invalidDate`, `invalidNumber`, `invalidTime`, `invalidColor`, `forbidden`,
 `failed`) that the client maps to sentences, so a Server Function never returns prose.
 
+## Built, and where it differs
+
+- Create is owner/admin only, confirmed in code: `canCreateWedding` (page and action) plus
+  `createWedding`'s own `principalForOrg`. A member sees a sentence, not a form.
+- The link strip is `wedding-tabs.tsx` (`WeddingTabs`, async, reads labels; `WeddingTabsView`, pure).
+  Under it every later slice renders `<WeddingTabs weddingId={id} current="budget" />`, with
+  `<WeddingHeader wedding={...} eyebrow?>` above. Uses `next/link`, checked in Chrome: client
+  navigation between Overzicht and Instellingen works through the proxy rewrite.
+- A malformed wedding id in the URL is a 404 (`isUuid`), not the 500 Postgres' uuid cast gave.
+  The F3 pages of other slices that call `getWedding` with the raw id still have that shape.
+- "Geen kleur" is a link that appears only once a colour is set; a saved wedding can go back to none.
+- Event rows: one form each, so saving one never touches another. The blank row remounts after an
+  add; typing into it before the add has finished is lost.
+- Not built: the prototype's Sections cards (the strip replaces them), People, Sharing, After the day.
+
 ## Done
 
-- [ ] Repo: `createWedding`, `updateWedding`, `getWeddingDetail`, `getWeddingTaskCounts` in `weddings.ts`; `events.ts` filled. Local `test:db` case for each, including a member, a couple and another org.
-- [ ] Unit tests: form parsing, slug, tab strip, overview page.
-- [ ] Typecheck and biome clean; message catalogues match.
-- [ ] Opened in Chrome: empty, one, many, error, compact.
+- [x] Repo functions and `staffPrincipal`, 25 db cases green on local `gn_s1`, including a member, a couple, an outside editor and another org. Two guards mutated and seen to fail.
+- [x] Unit and component tests: parse, slug, form-state, tabs, header, both actions, overview page (622 web tests green).
+- [x] Typecheck and biome clean; catalogues match (`i18n/messages.test.ts`).
+- [x] Chrome (own headless, port 9311): new empty, error, create; overview one / many / no tasks; settings empty / many / add / edit / remove / save; compact; phone width; 404 for unknown and malformed id.
 
 ## Progress
 
-- [x] Read spec, prototype ranges, repo patterns; dev seed run (`s1@example.com`); local db `gn_s1`
-- [x] SPEC.md
-- [x] Repo: weddings.ts, events.ts, `staff-principal.ts`, barrel line
-- [x] Repo db tests (`packages/db/test/s1-weddings.test.ts`, 25 pass on local `gn_s1`)
-- [x] Parse and slug helpers plus tests (`parse.ts`, `slug.ts`, `form-state.ts`)
-- [x] Messages nl / en / fr (`messages/app/s1.*.json`)
-- [x] Components: wedding-tabs, wedding-header, wedding-form, events-editor, labels
-- [x] Pages and actions: overview, new, settings (`weddings/new/actions.ts`, `weddings/[id]/settings/actions.ts`)
-- [x] Update `[id]/page.test.tsx`; action tests; header, tabs tests
-- [x] typecheck, biome, unit and component tests
-- [ ] Chrome check and screenshots
-- [ ] Commit
+All done. Screenshots in the scratchpad `s1/shots/`. Not exercised in a browser: the member sentence
+(no member user in the dev seed; covered by `form-state.test.ts` and `new/actions.test.ts`).
