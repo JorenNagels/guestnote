@@ -21,6 +21,7 @@ warning once let `npm install` write a dependency into `package.json` without in
 | `packages/core/src/auth/` | The auth seam. `better-auth.ts` is the only provider contact. |
 | `packages/ui/` | Presentational primitives, one export path per public file. |
 | `packages/email/` | The mail seam. `ses.ts` is the only AWS SDK contact. |
+| `packages/storage/` | The file-storage seam: presigned PUT/GET. `s3.ts` is the only S3 SDK contact. |
 | `apps/web/src/proxy.ts` | The only file that reads the request's hostname. (`lib/app-url.ts` composes the app origin for cross-host links.) Its matcher's exclusion list is a promise those files exist — see invariant 13. |
 | `apps/web/src/env.ts` | The only file that reads `process.env`. |
 | `docs/adr/` | Decisions that were **measured**. Supersede `research/` where they overlap. |
@@ -96,10 +97,11 @@ stop and ask. The rest are held by convention alone, which is why they are writt
 
 5. **Provider libraries are reachable from exactly one file each.** `better-auth` only from
    `packages/core/src/auth/better-auth.ts`; `@aws-sdk/client-sesv2` only from
-   `packages/email/src/ses.ts` and its test. No provider type crosses either seam — everything
-   returns plain data. That is what keeps a provider swap a bounded job, and what stops the AWS
-   SDK being dragged into a bundle by a stray import. Both bans are in `biome.json` *and* in
-   `no-unsafe-imports.test.ts`.
+   `packages/email/src/ses.ts` and its test; `@aws-sdk/client-s3` and
+   `@aws-sdk/s3-request-presigner` only from `packages/storage/src/s3.ts`. No provider type
+   crosses any seam — everything returns plain data. That is what keeps a provider swap a
+   bounded job, and what stops the AWS SDK being dragged into a bundle by a stray import. All
+   the bans are in `biome.json` *and* in `no-unsafe-imports.test.ts`.
 
 6. **`apps/web/src/env.ts` is the only reader of *configuration*,** and `packages/*` reads no
    environment at all — config arrives as arguments. The single exception is `NODE_ENV`, in
