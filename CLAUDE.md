@@ -72,7 +72,7 @@ stop and ask. The rest are held by convention alone, which is why they are writt
    merely `enable`, which exempts the table owner, and on managed Postgres the app can be the
    owner — plus a policy whose predicate names its tenant key.
    `packages/db/test/schema-coverage.test.ts` fails if a table is unclassified, and runs the
-   FORCE and policy assertions over the three *scoped* buckets only. So an `UNSCOPED_TABLES`
+   FORCE and policy assertions over the *scoped* buckets only (tenant, self, user, and `ORG_SCOPED_TABLES` — `vendors`, `task_templates`, `template_items`, which carry `org_id` and no `wedding_id`). So an `UNSCOPED_TABLES`
    entry carries no RLS **by design**, and needs a stated reason of the same kind as the
    existing ones: the row is written before a principal exists, so there is no `app.user_id`
    to scope by and a policy would break sign-in outright. `mail_deliveries` and `rate_limits`
