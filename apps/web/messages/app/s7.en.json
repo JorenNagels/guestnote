@@ -1,1 +1,104 @@
-{}
+{
+  "title": "Templates",
+  "subtitle": "Reusable plans. Each task stores a number of days before or after the wedding date, never a date.",
+  "copySuffix": " (copy)",
+  "list": {
+    "new": "New template",
+    "label": "The studio's templates",
+    "emptyTitle": "No templates yet",
+    "emptyBody": "Make a template from the tasks you repeat on every wedding, then apply it to a wedding.",
+    "emptyReadOnly": "There are no templates yet. An owner or admin of the studio can make them.",
+    "readOnly": "You can view and apply templates. Only owners and admins change them.",
+    "items": "{count, plural, one {# task} other {# tasks}}"
+  },
+  "form": {
+    "titleNew": "New template",
+    "titleEdit": "Edit template",
+    "name": "Name",
+    "description": "Description",
+    "descriptionHint": "What this plan is for, for example the kind of wedding.",
+    "save": "Save",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "close": "Close",
+    "delete": "Delete template",
+    "deleteConfirm": "Delete for sure?",
+    "deleteConfirmYes": "Yes, delete",
+    "deleteNote": "Weddings you already applied this template to keep their tasks."
+  },
+  "editor": {
+    "back": "All templates",
+    "edit": "Edit",
+    "duplicate": "Duplicate",
+    "duplicating": "Duplicating…",
+    "count": "{count, plural, one {# task} other {# tasks}}",
+    "readOnly": "You can view and apply this template. Only owners and admins change it.",
+    "tableCaption": "Tasks in this template",
+    "colOrder": "Order",
+    "colOffset": "Timing",
+    "colTask": "Task",
+    "colOwner": "Owner",
+    "colBecomes": "Becomes",
+    "colActions": "Actions",
+    "owner": {
+      "planner": "Planner",
+      "couple": "Couple"
+    },
+    "internal": "Internal only",
+    "rule": {
+      "onDay": "On the wedding day",
+      "before": "{days, plural, one {# day} other {# days}} before the wedding date",
+      "after": "{days, plural, one {# day} other {# days}} after the wedding date"
+    },
+    "noDate": "No date",
+    "moveUp": "Move {title} up",
+    "moveDown": "Move {title} down",
+    "editItem": "Edit",
+    "editItemAria": "Edit {title}",
+    "emptyTitle": "This template has no tasks yet.",
+    "emptyBody": "Add the first task below.",
+    "emptyReadOnly": "There are no tasks in this template yet."
+  },
+  "item": {
+    "addTitle": "Add a task",
+    "editTitle": "Edit task",
+    "title": "Task",
+    "days": "Days",
+    "direction": "Before or after",
+    "before": "before the wedding",
+    "after": "after the wedding",
+    "owner": "Owner",
+    "visibility": "Visibility",
+    "shared": "Shared with the couple",
+    "internal": "Internal only",
+    "add": "Add",
+    "adding": "Adding…",
+    "remove": "Remove task",
+    "removeConfirm": "Remove for sure?",
+    "removeConfirmYes": "Yes, remove"
+  },
+  "apply": {
+    "title": "Apply to a wedding",
+    "wedding": "Wedding",
+    "noDateOption": "no date",
+    "noWeddings": "There is no wedding to apply this template to yet.",
+    "noDateNote": "This wedding has no date yet. The tasks get their dates once the wedding date is known.",
+    "becomesHint": "The “Becomes” column shows the dates for the chosen wedding.",
+    "button": "Apply to this wedding",
+    "applying": "Applying…",
+    "done": "{count, plural, one {# task} other {# tasks}} added to {wedding}.",
+    "openChecklist": "Open the checklist",
+    "copyNote": "The tasks are copied. Editing the template later changes nothing on the wedding. Applying twice adds the tasks twice."
+  },
+  "errors": {
+    "name": "Give the template a name of at most 120 characters.",
+    "description": "The description is too long (at most 1000 characters).",
+    "title": "Give the task a title of at most 200 characters.",
+    "offset": "Enter a whole number of days, from 0 to 3650.",
+    "forbidden": "Only owners and admins can change templates.",
+    "notFound": "Not found. Refresh the page and try again.",
+    "empty": "This template has no tasks to apply yet.",
+    "full": "A template can hold at most 300 tasks.",
+    "generic": "Something went wrong. Try again."
+  }
+}
