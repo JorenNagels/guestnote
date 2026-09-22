@@ -1,3 +1,5 @@
+import { headers } from 'next/headers'
+import { redirect } from 'next/navigation'
 import { getLocale } from 'next-intl/server'
 import { AuthFlow } from '@/components/auth/auth-flow.tsx'
 import { fill, getAuthCopy } from '@/components/auth/copy.ts'
@@ -24,10 +26,22 @@ import { app } from '../../../../../lib/routes.ts'
  * purged tokens produce one identical message, because telling them apart tells an
  * attacker which tokens once existed.
  */
-export default async function InvitePage({ params }: { params: Promise<{ token: string }> }) {
-  const [{ token }, copy, locale] = await Promise.all([params, getAuthCopy(), getLocale()])
-  const [invitation, stage] = await Promise.all([
+export default async function InvitePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ token: string }>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const [{ token }, query, copy, locale] = await Promise.all([
+    params,
+    searchParams,
+    getAuthCopy(),
+    getLocale(),
+  ])
+  const [invitation, session, stage] = await Promise.all([
     getAuth().resolveInvitation(token),
+    getAuth().getSession(await headers()),
     getStageContent(copy),
   ])
 
@@ -39,12 +53,50 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
     // Rendered only on the non-bound cases (e.g. `accepted`): the `staff` branch pins the
     // address, and `auth-flow.tsx` hides Google whenever `boundEmail` is set.
     googleEnabled: getAuth().googleAvailable(),
-    continueHref: app.home(),
+    // Back to THIS page, not the dashboard: signing in is only half of accepting. The visitor
+    // returns here with a session, and the `staff` branch below spends the invitation. The
+    // `?welcome=passkey` marker `auth-flow.tsx` may append rides along to the redirect.
+    continueHref: app.invite(token),
     stage,
   } as const
 
   switch (invitation.kind) {
-    case 'staff':
+    case 'staff': {
+      if (session) {
+        // The address on the invitation is who it is for. Comparing here saves a round trip
+        // for the ordinary mistake, and the database checks the same thing again inside
+        // `accept_invitation` -- this is the friendly copy, that is the boundary.
+        if (session.email.toLowerCase() !== invitation.email.toLowerCase()) {
+          return <AuthFlow {...shared} blocked={copy.errors.inviteWrongAccount} />
+        }
+
+        // A write on a GET, and deliberate. It only happens with a session for the invited
+        // address, i.e. after the visitor proved they own it, so a link scanner or a prefetch
+        // (which arrive with no cookie) cannot spend anything. The alternative, a confirm
+        // button, adds a click to the one moment a new colleague is most likely to give up,
+        // and is what a spreadsheet would not ask of them. Cost accepted: opening the link
+        // while signed in as the right person IS the acceptance.
+        const result = await getAuth().acceptInvitation(token, session.userId)
+        if (result.outcome === 'accepted') {
+          redirect(query.welcome === 'passkey' ? `${app.home()}?welcome=passkey` : app.home())
+        }
+        switch (result.outcome) {
+          case 'already_accepted':
+            return <AuthFlow {...shared} notice={copy.errors.inviteAccepted} />
+          case 'expired':
+            return (
+              <AuthFlow
+                {...shared}
+                blocked={fill(copy.errors.inviteExpired, { inviter: invitation.inviter })}
+              />
+            )
+          case 'wrong_user':
+            return <AuthFlow {...shared} blocked={copy.errors.inviteWrongAccount} />
+          default:
+            return <AuthFlow {...shared} blocked={copy.errors.inviteUnknown} />
+        }
+      }
+
       return (
         <AuthFlow
           {...shared}
@@ -56,10 +108,15 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
           })}
         />
       )
+    }
 
     // Already used. Not an error, and not a dead end -- they have an account, so the only
     // useful thing this screen can do is be the sign-in screen with one line of context.
+    //
+    // Except when they are already signed in, which is what reloading the link after
+    // accepting it looks like: the sign-in screen would be a screen for a task already done.
     case 'accepted':
+      if (session) redirect(app.home())
       return <AuthFlow {...shared} notice={copy.errors.inviteAccepted} />
 
     case 'expired':

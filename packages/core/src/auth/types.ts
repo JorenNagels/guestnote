@@ -100,6 +100,17 @@ export type Invitation =
   | { readonly kind: 'unknown' }
 
 /**
+ * What spending an invitation did. Every refusal is a value, not a throw, so the page can
+ * render each; `wrong_user` is the one the visitor can act on (sign in as the address that
+ * was invited), and the rest end the flow.
+ */
+export type AcceptResult =
+  | { readonly outcome: 'accepted'; readonly role: string }
+  | {
+      readonly outcome: 'unknown' | 'expired' | 'already_accepted' | 'wrong_user' | 'forbidden'
+    }
+
+/**
  * The authenticated principal, as research/07-auth-and-tenancy.md section 3 defines it.
  *
  * A discriminated union rather than a `{ orgId?, weddingId? }` bag, so that "an org

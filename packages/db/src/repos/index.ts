@@ -6,6 +6,10 @@
  * the layer research/07-auth-and-tenancy.md section 4a refers to when it says "the
  * repository layer exposes no user listing or search, so there is no code path that
  * enumerates users": the guarantee is a property of what is exported from here.
+ *
+ * One exception to "through `withTenant` or `withUser`", by construction: `invitations.ts`'s
+ * `resolveInvitationByHash` calls a SECURITY DEFINER function on a plain `Db`, because it runs
+ * for a visitor with no principal at all. It reads no table itself; see migration 0007.
  */
 
 /**
@@ -20,6 +24,8 @@
 export * from './budget.ts'
 export * from './events.ts'
 export * from './files.ts'
+export type { AcceptOutcome, InvitationLookup } from './invitations.ts'
+export { acceptInvitationByHash, resolveInvitationByHash } from './invitations.ts'
 export type {
   Memberships,
   OrgMembership,

@@ -211,37 +211,46 @@ describe('RLS is enabled AND forced', () => {
   })
 
   /**
-   * Policies whose USING scopes by `app.user_id` on a table that is otherwise org-scoped.
-   *
-   * Named individually and not derived from anything, which is the entire point: adding a
-   * policy to `organizations` that scopes by neither key still fails this test. A looser
-   * rule -- "accept either GUC on organizations" -- would have let a regression on
-   * `tenant_isolation` through silently, which is the assertion this suite exists to keep.
+   * Second policies on a table that already has its primary one, each named individually
+   * and each mapped to the GUC its USING MUST name. Named and not derived from anything,
+   * which is the entire point: adding a policy that scopes by neither key still fails this
+   * test. A looser rule -- "accept either GUC on these tables" -- would have let a
+   * regression on the primary policy through silently, which is the assertion this suite
+   * exists to keep.
    *
    * `organizations.org_read_for_members`: migration 0005. `organizations` is read under
    * `withUser`, before any tenant is known, so the dashboard's sidebar can name the
    * organisation for an org `member` -- who has no org-wide principal at all and for whom
-   * an org-wide read therefore cannot name it. FOR SELECT only, so writes are still governed by
-   * `tenant_isolation` and still checked above.
-   */
-  const USER_SCOPED_POLICY_EXCEPTIONS = new Set(['organizations.org_read_for_members'])
-
-  /**
+   * an org-wide read therefore cannot name it. Scoped by `app.user_id`. FOR SELECT only, so
+   * writes are still governed by `tenant_isolation` and still checked above.
+   *
+   * `org_members.org_staff_read` and `wedding_members.org_staff_read`: migration 0007. An
+   * owner or admin reads every membership of their org, for the Team screen. These two
+   * tables are USER_SCOPED (primary policy `own_memberships`, on `app.user_id`), so the
+   * expected key for them would be `app.user_id` -- and these are the opposite axis, scoped
+   * by `app.org_id`, which is why each exception carries the key it must name rather than
+   * being excused from naming one. FOR SELECT only: an owner cannot write a colleague's row.
+   *
    * Why the list is here and not in `src/schema/index.ts`, where the buckets live: this is
-   * not a classification. `organizations` stays `SELF_SCOPED` and its tenant key has not
-   * changed; this is a named exemption from ONE assertion, so it belongs beside the
-   * assertion it exempts. The cost is that the tenancy facts now live in two files -- the
-   * alternative, a sixth exported bucket, would dress a test-local carve-out up as a
-   * property of the schema.
+   * not a classification. The tables' tenant keys have not changed; this is a named
+   * exemption from ONE assertion, so it belongs beside the assertion it exempts. The cost is
+   * that the tenancy facts now live in two files -- the alternative, a sixth exported
+   * bucket, would dress a test-local carve-out up as a property of the schema.
    *
    * And note the limit of what the exemption check below can do: it requires the string
-   * `app.user_id` to appear, which is a substring and not a scope. `using
-   * (current_setting('app.user_id') is not null)` -- "any signed-in user reads every
-   * organisation" -- satisfies it. That mutation IS caught, but by `isolation.test.ts`
-   * sections 7 and 8 rather than here, verified 2026-08-20. Same shape as `with check
-   * (true)` satisfying "a WITH CHECK exists", which is why the assertion above this one
-   * exists at all.
+   * to appear, which is a substring and not a scope. `using (current_setting('app.user_id')
+   * is not null)` -- "any signed-in user reads every organisation" -- satisfies it. That
+   * mutation IS caught, but by `isolation.test.ts` sections 7 and 8 rather than here,
+   * verified 2026-08-20; the 0007 policies are held the same way by section 9. Same shape as
+   * `with check (true)` satisfying "a WITH CHECK exists", which is why the assertion above
+   * this one exists at all.
    */
+  const USER_SCOPED_POLICY_EXCEPTIONS = new Map([
+    ['organizations.org_read_for_members', 'app.user_id'],
+    ['org_members.org_staff_read', 'app.org_id'],
+    ['wedding_members.org_staff_read', 'app.org_id'],
+  ])
+
   it('every named policy exception still matches a real policy', async () => {
     // An exception matching nothing is a standing pre-authorisation: whoever later creates
     // a policy under that name inherits the exemption without review. So the set has to be
@@ -251,7 +260,7 @@ describe('RLS is enabled AND forced', () => {
       const rows = await catalog(`select policyname from pg_policies where tablename = $1`, [table])
       for (const r of rows) live.push(`${table}.${String(r.policyname)}`)
     }
-    const stale = [...USER_SCOPED_POLICY_EXCEPTIONS].filter((name) => !live.includes(name))
+    const stale = [...USER_SCOPED_POLICY_EXCEPTIONS.keys()].filter((name) => !live.includes(name))
     expect(
       stale,
       'these exceptions name no existing policy, so they pre-authorise a future one',
@@ -272,11 +281,14 @@ describe('RLS is enabled AND forced', () => {
         const text = String(r.qual ?? '')
 
         // An exception still has to scope by SOMETHING -- it is excused from naming this
-        // table's tenant key, not from being scoped. Dropping the predicate entirely
-        // fails here.
-        if (USER_SCOPED_POLICY_EXCEPTIONS.has(name)) {
-          if (!text.includes('app.user_id')) {
-            offenders.push(`${name} is an exception but scopes by neither key -> USING (${text})`)
+        // table's PRIMARY key, not from being scoped, and it must name the one it declared.
+        // Dropping the predicate entirely fails here.
+        const exceptionKey = USER_SCOPED_POLICY_EXCEPTIONS.get(name)
+        if (exceptionKey) {
+          if (!text.includes(exceptionKey)) {
+            offenders.push(
+              `${name} is an exception but does not name ${exceptionKey} -> USING (${text})`,
+            )
           }
           continue
         }

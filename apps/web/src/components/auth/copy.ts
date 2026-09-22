@@ -89,6 +89,8 @@ export type AuthCopy = Readonly<{
     inviteAccepted: string
     inviteCouple: string
     inviteUnknown: string
+    /** Signed in as someone other than the address the invitation was sent to. */
+    inviteWrongAccount: string
   }>
 }>
 
@@ -193,6 +195,7 @@ export async function getAuthCopy(): Promise<AuthCopy> {
       inviteAccepted: t('errors.inviteAccepted'),
       inviteCouple: t('errors.inviteCouple'),
       inviteUnknown: t('errors.inviteUnknown'),
+      inviteWrongAccount: t('errors.inviteWrongAccount'),
     },
   }
 }

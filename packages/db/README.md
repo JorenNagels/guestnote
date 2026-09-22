@@ -105,6 +105,30 @@ and the wedding-pin and role-clause assertions (seven mutations) failed on all s
 ...` clause on `files` and `template_items`, which cannot be isolated while the role clause
 beside it admits only roles that see internal rows; the note is beside the assertion.
 
+### Migration 0007: team read and invitation functions
+
+Written for slice S6, which stopped on two `NEEDS-SCHEMA` gaps. **404 passed on the local tier,
+2026-09-21** (fresh database, all eight migrations); the Neon tier was not run and `0007` has not
+been applied to Neon.
+
+- **`org_staff_read`** on `org_members` and `wedding_members`: `for select`, keyed on `app.org_id`,
+  owner and admin only, not when a wedding is pinned. Writes stay on `own_memberships`. It is a
+  second permissive policy, so `isolation.test.ts` section 9 asserts the shapes where it could add
+  rows it should not (`withUser`, an unpinned member, an admin of A pinned to org C). Sweep by hand
+  with `alter policy` on the local container: nine mutations plus `FOR ALL` on each table, all
+  caught except two equivalent ones, `wedding_members`' `weddings.org_id` comparison (redundant with
+  `weddings`' own policy inside the subquery, note beside the assertion) and none other.
+- **`resolve_invitation(token_hash)` and `accept_invitation(token_hash, user_id)`**, `SECURITY
+  DEFINER`, `search_path` empty, revoked from PUBLIC, granted to `app_user`. They work because the
+  function owner bypasses RLS on the FORCE tables, and the migration refuses to install when the
+  migrating role cannot. Accept checks the token, expiry, single use, the invited email against the
+  user's, and that `app.user_id` equals the user it accepts for, then writes `org_members` (staff
+  invitation) or `wedding_members` (wedding invitation), never both, and spends the token in the
+  same transaction. `invitations.test.ts` covers every refusal and that each writes nothing; fifteen
+  mutations of the two functions, all caught.
+- **A `withTenant` query on `org_members` or `wedding_members` now returns the whole org to an owner
+  or admin.** Nothing does that today; a future "my role here" query must filter by user itself.
+
 **`scripts/local-db.sh gn_<name>`** creates one database per caller in the `gn-pg` container
 (starting the container if needed), drops it if it exists, and applies every migration. One
 database each, because `test:db` truncates its fixture tables. The name must match
