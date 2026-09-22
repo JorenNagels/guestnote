@@ -1,1 +1,80 @@
-{}
+{
+  "title": "Run sheet",
+  "days": {
+    "label": "Days of the wedding"
+  },
+  "event": {
+    "noTime": "No time yet",
+    "noEvents": {
+      "title": "No day to make a run sheet for yet",
+      "body": "A run sheet belongs to a day of the wedding. Add a day in the settings first, for example the ceremony or the party.",
+      "action": "Go to settings"
+    }
+  },
+  "list": {
+    "caption": "Run sheet for {event}",
+    "colTime": "Time",
+    "colLength": "Length",
+    "colWhat": "What happens",
+    "colWho": "Who owns it",
+    "colWhere": "Where",
+    "colOrder": "Order",
+    "planner": "Planner",
+    "until": "until",
+    "nextDay": "the next day",
+    "edit": "Edit {title}",
+    "minutes": "{m} min",
+    "hours": "{h} h",
+    "hoursMinutes": "{h} h {m}",
+    "overlap": "Overlaps the item above by {length}",
+    "gap": "{length} free",
+    "summary": "{count, plural, one {# item} other {# items}}, {from} to {to}",
+    "add": "Add an item",
+    "moveUp": "Move {title} up",
+    "moveDown": "Move {title} down",
+    "emptyTitle": "Nothing on this run sheet yet",
+    "emptyBody": "Put the first moment of the day in, for example the guests arriving. The end time, the overlaps and the gaps work themselves out.",
+    "emptyAction": "Add the first item"
+  },
+  "sheet": {
+    "titleNew": "New item",
+    "titleEdit": "Edit item",
+    "close": "Close",
+    "startsAt": "Starts at",
+    "duration": "Length (minutes)",
+    "durationHint": "The end time works itself out.",
+    "what": "What happens",
+    "place": "Where",
+    "placeHint": "Leave empty when it is obvious.",
+    "vendor": "Who owns it",
+    "vendorNone": "Planner, no vendor",
+    "vendorEmpty": "No vendors on this wedding yet. Add them under Vendors.",
+    "vendorRemoved": "{name} (no longer on this wedding)",
+    "order": "Order",
+    "moveUp": "Up",
+    "moveDown": "Down",
+    "save": "Save",
+    "saveNext": "Save and next",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "deleteAsk": "Delete this item? This cannot be undone.",
+    "deleteConfirm": "Yes, delete",
+    "deleting": "Deleting…"
+  },
+  "errors": {
+    "event": "Choose a day of the wedding.",
+    "time": "Enter a time, for example 15:30.",
+    "duration": "Enter the length in whole minutes, from 1 to 1440.",
+    "title": "Say what happens, in 120 characters or fewer.",
+    "place": "That is too long for a place. Keep it under 120 characters.",
+    "vendor": "Choose a vendor from the list.",
+    "notFound": "This item or this wedding no longer exists. Refresh the page.",
+    "failed": "Saving did not work. Nothing was changed. Try again in a moment."
+  },
+  "error": {
+    "title": "The run sheet could not be loaded",
+    "body": "Nothing was changed. Try again.",
+    "retry": "Try again"
+  }
+}
