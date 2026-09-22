@@ -2,7 +2,7 @@ import type { ErrorLabels } from './controls.tsx'
 import type { DirectoryLabels } from './directory-view.tsx'
 import type { StatusLabels } from './status.tsx'
 import type { FormLabels } from './vendor-form.tsx'
-import type { WeddingLabels } from './wedding-vendors-view.tsx'
+import type { ManageLinkLabels, WeddingLabels } from './wedding-vendors-view.tsx'
 
 /**
  * The client components take their copy as props, because the dashboard has no
@@ -83,7 +83,33 @@ export function directoryLabels(t: Translate): DirectoryLabels {
   }
 }
 
-export function weddingLabels(t: Translate): WeddingLabels {
+/**
+ * `app.s10`'s catalogue, not `app.s3`'s -- S10 owns the "create/copy/revoke a signed link"
+ * copy (spec 0003), including the `manageLink` block this vendor-detail sheet renders and
+ * the `/vendor/[token]` page's own strings the rest of that file reads directly. Kept as its
+ * own function, taking its own translator, rather than folded into `weddingLabels` reading
+ * two namespaces at once -- one function, one catalogue, same convention as `formLabels` /
+ * `directoryLabels` above.
+ */
+export function manageLinkLabels(t: Translate): ManageLinkLabels {
+  return {
+    title: t('manageLink.title'),
+    createButton: t('manageLink.createButton'),
+    creating: t('manageLink.creating'),
+    created: t('manageLink.created'),
+    copyButton: t('manageLink.copyButton'),
+    copied: t('manageLink.copied'),
+    expiresLabel: raw(t, 'manageLink.expiresLabel'),
+    revokeButton: t('manageLink.revokeButton'),
+    revokeConfirm: t('manageLink.revokeConfirm'),
+    revokeConfirmYes: t('manageLink.revokeConfirmYes'),
+    revoked: t('manageLink.revoked'),
+    cancel: t('manageLink.cancel'),
+    error: t('manageLink.error'),
+  }
+}
+
+export function weddingLabels(t: Translate, t10: Translate): WeddingLabels {
   return {
     addLabel: t('wedding.addLabel'),
     addPlaceholder: t('wedding.addPlaceholder'),
@@ -117,5 +143,6 @@ export function weddingLabels(t: Translate): WeddingLabels {
     statuses: statuses(t),
     errors: errors(t),
     form: formLabels(t),
+    manageLink: manageLinkLabels(t10),
   }
 }

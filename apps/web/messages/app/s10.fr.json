@@ -1,1 +1,30 @@
-{}
+{
+  "sharedWith": "Partagé avec vous par {org}",
+  "sliceOfDay": "Votre part de la journée",
+  "headcount": "Nombre d'invités",
+  "timelineTitle": "Déroulé",
+  "timelineEmpty": "Rien n'est encore prévu pour vous.",
+  "minutes": "{m} min",
+  "hours": "{h} h",
+  "hoursMinutes": "{h} h {m}",
+  "plannerNeedsTitle": "Ce dont l'organisateur a besoin de vous",
+  "gone": {
+    "title": "Ce lien ne fonctionne plus",
+    "body": "Demandez un nouveau lien à l'organisateur."
+  },
+  "manageLink": {
+    "title": "Lien prestataire",
+    "createButton": "Créer un lien",
+    "creating": "Création…",
+    "created": "Lien créé. Copiez-le maintenant — il ne sera plus affiché.",
+    "copyButton": "Copier",
+    "copied": "Copié",
+    "expiresLabel": "Expire le {date}",
+    "revokeButton": "Révoquer",
+    "revokeConfirm": "Révoquer ce lien ? Il cessera de fonctionner immédiatement.",
+    "revokeConfirmYes": "Oui, révoquer",
+    "revoked": "Révoqué",
+    "cancel": "Annuler",
+    "error": "Échec. Réessayez."
+  }
+}

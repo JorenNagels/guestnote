@@ -10,7 +10,7 @@ import {
   tasks,
 } from '../schema/tasks.ts'
 import { weddings } from '../schema/weddings.ts'
-import { type Principal, withTenant } from '../tenant.ts'
+import { type MembershipPrincipal, withTenant } from '../tenant.ts'
 import { type Memberships, principalForOrg, principalForWedding } from './memberships.ts'
 
 /**
@@ -186,7 +186,11 @@ export function compareTasks(a: TaskRow, b: TaskRow): number {
  * principal (and every query pins the wedding itself); a member takes the pinned one.
  * A `weddingMember` -- couple or outside editor -- is refused, see the header.
  */
-function staffPrincipal(m: Memberships, orgId: string, weddingId: string): Principal | null {
+function staffPrincipal(
+  m: Memberships,
+  orgId: string,
+  weddingId: string,
+): MembershipPrincipal | null {
   const p = principalForOrg(m, orgId) ?? principalForWedding(m, orgId, weddingId)
   return p && p.kind !== 'weddingMember' ? p : null
 }

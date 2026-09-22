@@ -94,6 +94,8 @@ export type Gucs = {
   orgId?: string
   weddingId?: string
   weddingRole?: string
+  /** The fifth GUC, added for migration 0008's `link` principal. See tenant.ts. */
+  weddingVendorId?: string
 }
 
 /**
@@ -123,8 +125,15 @@ export async function asPrincipal(
       `select set_config('app.user_id', $1, true),
               set_config('app.org_id', $2, true),
               set_config('app.wedding_id', $3, true),
-              set_config('app.wedding_role', $4, true)`,
-      [gucs.userId ?? '', gucs.orgId ?? '', gucs.weddingId ?? '', gucs.weddingRole ?? ''],
+              set_config('app.wedding_role', $4, true),
+              set_config('app.wedding_vendor_id', $5, true)`,
+      [
+        gucs.userId ?? '',
+        gucs.orgId ?? '',
+        gucs.weddingId ?? '',
+        gucs.weddingRole ?? '',
+        gucs.weddingVendorId ?? '',
+      ],
     )
     const res = await client.query(sqlText, values)
     await client.query('commit')
@@ -320,6 +329,16 @@ export const AS = {
    * has to exist.
    */
   coupleA1Unpinned: { userId: F.coupleA1, orgId: F.orgA, weddingRole: 'couple' } as Gucs,
+  /**
+   * A `link` principal for `F.wedVendorA1` (spec 0003, S10, migration 0008). No `userId`,
+   * and deliberately no `orgId` either -- see tenant.ts's `withTenant`. `weddingId` is set,
+   * same as production, so a test can prove it is real defense in depth and not decoration.
+   */
+  linkVendorA1: {
+    weddingId: F.weddingA1,
+    weddingRole: 'link',
+    weddingVendorId: F.wedVendorA1,
+  } as Gucs,
 } as const
 
 /**

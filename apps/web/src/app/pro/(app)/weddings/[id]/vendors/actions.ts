@@ -3,7 +3,9 @@
 import {
   addWeddingVendor,
   createVendorForWedding,
+  createVendorLink,
   removeWeddingVendor,
+  revokeVendorLink,
   updateWeddingVendor,
   type VendorWriteResult,
 } from '@guestnote/db'
@@ -17,6 +19,11 @@ import {
   parseVendorInput,
   type VendorActionResult,
 } from '../../../../../../lib/vendor-input.ts'
+import {
+  DEFAULT_VENDOR_LINK_TTL_DAYS,
+  MAX_VENDOR_LINK_TTL_DAYS,
+  newVendorLinkToken,
+} from '../../../../../../lib/vendor-link-token.ts'
 
 /**
  * One wedding's vendor list: link, create-and-link, status, notes, unlink.
@@ -123,4 +130,51 @@ export async function removeVendorFromWedding(
   const r = await removeWeddingVendor(getDb(), ctx.m, ctx.orgId, ctx.weddingId, id)
   if (r.ok) refresh()
   return answer(r)
+}
+
+/**
+ * The signed link (spec 0003, S10). `createVendorLink` itself refuses anyone but owner/admin
+ * (`principalForOrg`), same as every other write in this file's repo -- `context()` above only
+ * narrows to "has some standing on this wedding", so a `member` reaches the repo call and is
+ * turned away there, not here. The plain token is returned ONCE and never stored; the caller
+ * must show it to the planner immediately and cannot ask for it again.
+ */
+export type CreateVendorLinkResult =
+  | { readonly ok: true; readonly token: string; readonly expiresAt: string }
+  | { readonly ok: false; readonly error: 'forbidden' | 'notFound' | 'invalid' }
+
+export async function createVendorLinkAction(
+  weddingId: unknown,
+  wedVendorId: unknown,
+  ttlDays: unknown,
+): Promise<CreateVendorLinkResult> {
+  const ctx = await context(weddingId)
+  if (!ctx) return { ok: false, error: 'notFound' }
+  const id = parseId(wedVendorId)
+  if (!id) return { ok: false, error: 'invalid' }
+
+  const days = ttlDays === undefined ? DEFAULT_VENDOR_LINK_TTL_DAYS : Number(ttlDays)
+  if (!Number.isInteger(days) || days < 1 || days > MAX_VENDOR_LINK_TTL_DAYS) {
+    return { ok: false, error: 'invalid' }
+  }
+
+  const { token, tokenHash } = newVendorLinkToken()
+  const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000)
+  const r = await createVendorLink(getDb(), ctx.m, ctx.orgId, id, { tokenHash, expiresAt })
+  if (r.kind !== 'created') return { ok: false, error: r.kind }
+  refresh()
+  return { ok: true, token, expiresAt: expiresAt.toISOString() }
+}
+
+export async function revokeVendorLinkAction(
+  weddingId: unknown,
+  linkId: unknown,
+): Promise<{ ok: boolean }> {
+  const ctx = await context(weddingId)
+  if (!ctx) return { ok: false }
+  const id = parseId(linkId)
+  if (!id) return { ok: false }
+  const gone = await revokeVendorLink(getDb(), ctx.m, ctx.orgId, id)
+  if (gone) refresh()
+  return { ok: gone }
 }

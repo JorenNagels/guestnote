@@ -134,6 +134,35 @@ been applied to Neon.
 database each, because `test:db` truncates its fixture tables. The name must match
 `^gn_[a-z0-9_]+$`; `guestnote` and `postgres` are refused, because it drops what it is given.
 
+### Migration 0008: the `link` principal
+
+Written for slice S10, the last slice of spec 0003. **571 passed on the local tier,
+2026-09-22** (fresh database, all nine migrations); applied to Neon dev
+(`DATABASE_URL_UNPOOLED`, as `neondb_owner`) to run the browser check, **not yet applied to
+Neon staging or production** -- the deploy workflow's migration step or a hand-applied run
+must pick it up before this ships.
+
+- **`resolve_vendor_link(token_hash)`**, `SECURITY DEFINER`, same shape as 0007's
+  `resolve_invitation`: `search_path` empty, revoked from PUBLIC, granted to `app_user`, and
+  the migration refuses to install when the migrating role cannot bypass RLS. Folds an unknown
+  token, an expired one, a revoked one, and one whose `wedding_vendors` row has since been
+  soft-deleted into either an explicit `status` (for a future admin view) or, for the public
+  route, one identical "this link no longer works" outcome.
+- **Three `link_read` policies**, all `for select`: `run_sheet_items` and `wedding_vendors`
+  scoped to `app.wedding_vendor_id`, `wedding_events` scoped to `app.wedding_id` alone (an
+  event has no vendor to scope by -- it exists only so a run-sheet item's `eventLabel` can be
+  read at all; the first working build rendered an empty timeline for every link without it,
+  measured while building this migration). `budget_lines` gets no policy: money stays
+  planner-only.
+- **`app.org_id` stays unset for a `link` principal, on purpose.** Every `tenant_isolation`
+  policy predates this principal and starts `org_id = app.org_id`; leaving the GUC unset makes
+  every one of them evaluate to NULL for this principal, with no change to any of them. See
+  `tenant.ts`'s `Principal` doc and the migration's own Part 0 for the reasoning this rests on.
+- `planner-isolation.test.ts` covers the RLS in isolation (own vendor's rows only, a sibling
+  vendor on the same wedding excluded, no budget, no writes anywhere).
+  `vendor-links-repo.test.ts` covers `resolve_vendor_link`'s status transitions and the repo's
+  parent-read guard on create.
+
 ## Applying a migration
 
 **Use the loop above, not `npm run db:migrate`.**

@@ -231,6 +231,17 @@ describe('RLS is enabled AND forced', () => {
    * by `app.org_id`, which is why each exception carries the key it must name rather than
    * being excused from naming one. FOR SELECT only: an owner cannot write a colleague's row.
    *
+   * `run_sheet_items.link_read`, `wedding_vendors.link_read` and `wedding_events.link_read`:
+   * migration 0008 (S10). All three tables are TENANT_SCOPED (primary policy
+   * `tenant_isolation`, expecting `app.org_id`), and this is a THIRD axis, not the user one:
+   * a `link` principal (0008/tenant.ts) never sets `app.org_id` at all, by design, so its own
+   * policy cannot name it and has to be excused the same way the two axes above are. The
+   * first two scope by `app.wedding_vendor_id`; `wedding_events` scopes by `app.wedding_id`
+   * alone, because an event has no vendor to scope by -- 0008_vendor_link.sql Part 0 explains
+   * why that third table had to be added at all (rendering a run-sheet item's event label).
+   * See the same Part 0 for why `app.org_id` is the wrong key on purpose. FOR SELECT only;
+   * `budget_lines` gets no policy at all for this principal (money stays planner-only).
+   *
    * Why the list is here and not in `src/schema/index.ts`, where the buckets live: this is
    * not a classification. The tables' tenant keys have not changed; this is a named
    * exemption from ONE assertion, so it belongs beside the assertion it exempts. The cost is
@@ -249,6 +260,9 @@ describe('RLS is enabled AND forced', () => {
     ['organizations.org_read_for_members', 'app.user_id'],
     ['org_members.org_staff_read', 'app.org_id'],
     ['wedding_members.org_staff_read', 'app.org_id'],
+    ['run_sheet_items.link_read', 'app.wedding_vendor_id'],
+    ['wedding_vendors.link_read', 'app.wedding_vendor_id'],
+    ['wedding_events.link_read', 'app.wedding_id'],
   ])
 
   it('every named policy exception still matches a real policy', async () => {
