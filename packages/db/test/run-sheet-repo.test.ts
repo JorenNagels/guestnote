@@ -39,7 +39,7 @@ const input = (over: Partial<RunSheetInput> = {}): RunSheetInput => ({
   ...over,
 })
 
-async function titles(m: Memberships, weddingId = A1): Promise<string[]> {
+async function titles(m: Memberships, weddingId: string = A1): Promise<string[]> {
   const data = await getRunSheet(h.db, m, F.orgA, weddingId)
   return (data?.items ?? []).map((i) => i.title)
 }
