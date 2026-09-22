@@ -1,1 +1,104 @@
-{}
+{
+  "title": "Sjablonen",
+  "subtitle": "Herbruikbare plannen. Elke taak bewaart een aantal dagen voor of na de trouwdatum, nooit een datum.",
+  "copySuffix": " (kopie)",
+  "list": {
+    "new": "Nieuw sjabloon",
+    "label": "Sjablonen van het bureau",
+    "emptyTitle": "Nog geen sjablonen",
+    "emptyBody": "Maak een sjabloon met de taken die je bij elke bruiloft opnieuw doet en pas het toe op een bruiloft.",
+    "emptyReadOnly": "Er staan nog geen sjablonen. Een eigenaar of beheerder van het bureau kan ze maken.",
+    "readOnly": "Je kunt sjablonen bekijken en toepassen. Alleen eigenaars en beheerders passen ze aan.",
+    "items": "{count, plural, one {# taak} other {# taken}}"
+  },
+  "form": {
+    "titleNew": "Nieuw sjabloon",
+    "titleEdit": "Sjabloon bewerken",
+    "name": "Naam",
+    "description": "Omschrijving",
+    "descriptionHint": "Waarvoor dit plan dient, bijvoorbeeld het type bruiloft.",
+    "save": "Opslaan",
+    "saving": "Opslaan…",
+    "cancel": "Annuleren",
+    "close": "Sluiten",
+    "delete": "Sjabloon verwijderen",
+    "deleteConfirm": "Zeker verwijderen?",
+    "deleteConfirmYes": "Ja, verwijder",
+    "deleteNote": "Bruiloften waarop je dit sjabloon al toepaste, behouden hun taken."
+  },
+  "editor": {
+    "back": "Alle sjablonen",
+    "edit": "Bewerken",
+    "duplicate": "Dupliceren",
+    "duplicating": "Dupliceren…",
+    "count": "{count, plural, one {# taak} other {# taken}}",
+    "readOnly": "Je kunt dit sjabloon bekijken en toepassen. Alleen eigenaars en beheerders passen het aan.",
+    "tableCaption": "Taken van dit sjabloon",
+    "colOrder": "Volgorde",
+    "colOffset": "Termijn",
+    "colTask": "Taak",
+    "colOwner": "Eigenaar",
+    "colBecomes": "Wordt",
+    "colActions": "Acties",
+    "owner": {
+      "planner": "Planner",
+      "couple": "Koppel"
+    },
+    "internal": "Alleen intern",
+    "rule": {
+      "onDay": "Op de trouwdag",
+      "before": "{days, plural, one {# dag} other {# dagen}} voor de trouwdatum",
+      "after": "{days, plural, one {# dag} other {# dagen}} na de trouwdatum"
+    },
+    "noDate": "Geen datum",
+    "moveUp": "{title} omhoog",
+    "moveDown": "{title} omlaag",
+    "editItem": "Bewerken",
+    "editItemAria": "{title} bewerken",
+    "emptyTitle": "Dit sjabloon heeft nog geen taken.",
+    "emptyBody": "Voeg hieronder de eerste taak toe.",
+    "emptyReadOnly": "Er staan nog geen taken in dit sjabloon."
+  },
+  "item": {
+    "addTitle": "Taak toevoegen",
+    "editTitle": "Taak bewerken",
+    "title": "Taak",
+    "days": "Dagen",
+    "direction": "Voor of na",
+    "before": "voor de trouwdag",
+    "after": "na de trouwdag",
+    "owner": "Eigenaar",
+    "visibility": "Zichtbaarheid",
+    "shared": "Gedeeld met het koppel",
+    "internal": "Alleen intern",
+    "add": "Toevoegen",
+    "adding": "Toevoegen…",
+    "remove": "Taak verwijderen",
+    "removeConfirm": "Zeker verwijderen?",
+    "removeConfirmYes": "Ja, verwijder"
+  },
+  "apply": {
+    "title": "Toepassen op een bruiloft",
+    "wedding": "Bruiloft",
+    "noDateOption": "geen datum",
+    "noWeddings": "Er is nog geen bruiloft om dit sjabloon op toe te passen.",
+    "noDateNote": "Deze bruiloft heeft nog geen datum. De taken krijgen hun termijn zodra de datum bekend is.",
+    "becomesHint": "De kolom “Wordt” toont de datum voor de gekozen bruiloft.",
+    "button": "Toepassen op deze bruiloft",
+    "applying": "Toepassen…",
+    "done": "{count, plural, one {# taak} other {# taken}} toegevoegd aan {wedding}.",
+    "openChecklist": "Bekijk de checklist",
+    "copyNote": "De taken worden gekopieerd. Een latere wijziging van het sjabloon verandert niets aan de bruiloft. Twee keer toepassen voegt de taken twee keer toe."
+  },
+  "errors": {
+    "name": "Geef het sjabloon een naam van hoogstens 120 tekens.",
+    "description": "De omschrijving is te lang (hoogstens 1000 tekens).",
+    "title": "Geef de taak een titel van hoogstens 200 tekens.",
+    "offset": "Vul een aantal hele dagen in, van 0 tot 3650.",
+    "forbidden": "Alleen eigenaars en beheerders kunnen sjablonen aanpassen.",
+    "notFound": "Niet gevonden. Vernieuw de pagina en probeer het opnieuw.",
+    "empty": "Dit sjabloon heeft nog geen taken om toe te passen.",
+    "full": "Een sjabloon kan hoogstens 300 taken bevatten.",
+    "generic": "Er ging iets mis. Probeer het opnieuw."
+  }
+}
