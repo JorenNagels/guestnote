@@ -200,6 +200,9 @@ export function Shell({
   )
 
   const orgItems = [
+    // Not `exact`, and safe: `NavItem` matches a prefix as `${href}/`, which for `/` is `//`, so
+    // this lights on `/` alone. A bare `startsWith('/')` would light it on every page --
+    // `shell.test.tsx` fails for that.
     { key: 'today', href: app.today(), icon: <TodayIcon />, label: labels.today, exact: false },
     // `exact`: `/weddings/new` and `/weddings/<id>` are under this path and are not the list.
     {

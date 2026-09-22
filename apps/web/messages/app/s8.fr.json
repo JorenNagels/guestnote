@@ -1,1 +1,30 @@
-{}
+{
+  "title": "Aujourd'hui",
+  "subtitle": "{date} · {count, plural, one {# mariage actif} other {# mariages actifs}}",
+  "weddingsLabel": "Vos mariages",
+  "load": "{open} ouvertes",
+  "loadOverdue": "{overdue} en retard · {open} ouvertes",
+  "loadNone": "Rien d'ouvert",
+  "sections": {
+    "needsYou": "À faire aujourd'hui",
+    "dueWeek": "Cette semaine",
+    "next": "À venir"
+  },
+  "count": "{count, plural, one {# tâche} other {# tâches}}",
+  "empty": {
+    "needsYou": "Rien ne demande votre attention aujourd'hui.",
+    "dueWeek": "Rien de prévu pour les sept prochains jours.",
+    "next": "Rien d'autre avec une date dans votre liste."
+  },
+  "allClear": "Vous êtes à jour. Rien d'ouvert pour aujourd'hui ni pour cette semaine.",
+  "undated": "Tâches ouvertes sans date : {count}.",
+  "noWeddings": {
+    "title": "Pas encore de mariage",
+    "body": "Créez votre premier mariage. Vous verrez ici ce qui est attendu de vous aujourd'hui et dans les jours qui viennent.",
+    "create": "Nouveau mariage"
+  },
+  "noAssignments": {
+    "title": "Aucun mariage ne vous est encore attribué",
+    "body": "Dès qu'un collègue vous ajoute à un mariage, vos tâches apparaîtront ici."
+  }
+}
