@@ -1,1 +1,30 @@
-{}
+{
+  "sharedWith": "Gedeeld met u door {org}",
+  "sliceOfDay": "Uw moment van de dag",
+  "headcount": "Aantal gasten",
+  "timelineTitle": "Tijdlijn",
+  "timelineEmpty": "Er staat nog niets voor u op het schema.",
+  "minutes": "{m} min",
+  "hours": "{h} u",
+  "hoursMinutes": "{h} u {m}",
+  "plannerNeedsTitle": "Wat de planner van u nodig heeft",
+  "gone": {
+    "title": "Deze link werkt niet meer",
+    "body": "Vraag de organisator om een nieuwe link."
+  },
+  "manageLink": {
+    "title": "Link voor leverancier",
+    "createButton": "Link aanmaken",
+    "creating": "Aanmaken…",
+    "created": "Link aangemaakt. Kopieer hem nu — hij wordt niet opnieuw getoond.",
+    "copyButton": "Kopiëren",
+    "copied": "Gekopieerd",
+    "expiresLabel": "Verloopt op {date}",
+    "revokeButton": "Intrekken",
+    "revokeConfirm": "Deze link intrekken? Hij werkt dan meteen niet meer.",
+    "revokeConfirmYes": "Ja, intrekken",
+    "revoked": "Ingetrokken",
+    "cancel": "Annuleren",
+    "error": "Dat is niet gelukt. Probeer het opnieuw."
+  }
+}

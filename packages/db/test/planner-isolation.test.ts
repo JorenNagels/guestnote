@@ -1,5 +1,15 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
-import { AS, asPrincipal, connect, countOf, F, type Gucs, type Harness, reseed } from './harness.ts'
+import {
+  AS,
+  asPrincipal,
+  connect,
+  countOf,
+  F,
+  type Gucs,
+  type Harness,
+  reseed,
+  seedExec,
+} from './harness.ts'
 
 /**
  * Isolation for the ten tables spec 0003 added (migration 0006).
@@ -644,5 +654,135 @@ describe('foreign keys are plain: a child can point at a parent the caller canno
       [F.orgA, F.weddingA1, F.vendorB],
     )
     expect(rows).toHaveLength(1)
+  })
+})
+
+/**
+ * Migration 0008, spec 0003 S10: the `link` principal. `AS.linkVendorA1` (harness.ts) is
+ * `F.wedVendorA1` on `F.weddingA1`, with no userId and -- the point of this whole design,
+ * see tenant.ts -- no `app.org_id` either.
+ *
+ * The base fixture never puts a `wedding_vendor_id` on a `run_sheet_items` row (no earlier
+ * slice needed one), so every test here sets one up itself. `afterEach(reseed)` at the top
+ * of this file cleans it back up.
+ */
+describe('the `link` principal (migration 0008, spec 0003 S10)', () => {
+  // A second wedding_vendors row on the SAME wedding as F.wedVendorA1, so "own vendor only"
+  // is provable against a sibling that shares every tenant key -- org, wedding -- and
+  // differs on nothing but the one GUC this feature adds.
+  const OTHER_WED_VENDOR = '66666666-0000-0000-0000-0000000000a9'
+  const OTHER_ITEM = '99999999-0000-0000-0000-0000000000a9'
+
+  async function pinOwnItem() {
+    await seedExec(`update run_sheet_items set wedding_vendor_id = $1 where id = $2`, [
+      F.wedVendorA1,
+      F.runItemA1,
+    ])
+  }
+
+  async function addSiblingVendorAndItem() {
+    await seedExec(
+      `insert into wedding_vendors (id, org_id, wedding_id, vendor_id) values ($1, $2, $3, $4)`,
+      [OTHER_WED_VENDOR, F.orgA, F.weddingA1, F.vendorA2],
+    )
+    await seedExec(
+      `insert into run_sheet_items
+         (id, org_id, wedding_id, event_id, starts_at, duration_min, title, wedding_vendor_id)
+       values ($1, $2, $3, $4, '11:00', 20, 'Florist setup', $5)`,
+      [OTHER_ITEM, F.orgA, F.weddingA1, F.eventA1, OTHER_WED_VENDOR],
+    )
+  }
+
+  it("reads its own vendor's run_sheet_items, not a sibling vendor's on the same wedding", async () => {
+    await pinOwnItem()
+    await addSiblingVendorAndItem()
+
+    const ids = (await run(AS.linkVendorA1, `select id from run_sheet_items order by id`)).map(
+      (r) => r.id,
+    )
+    expect(ids).toEqual([F.runItemA1])
+  })
+
+  it('an unassigned run_sheet_item (wedding_vendor_id null) is invisible too', async () => {
+    // F.runItemA1 is null by default in the base fixture -- non-vacuity that this is a real
+    // filter and not an accident of the fixture already matching.
+    expect(
+      n(await run(AS.staffA, `select count(*)::int as n from run_sheet_items`)),
+    ).toBeGreaterThan(0)
+    expect(await run(AS.linkVendorA1, `select id from run_sheet_items`)).toEqual([])
+  })
+
+  it('reads its own wedding_vendors row, not a sibling vendor row on the same wedding', async () => {
+    await addSiblingVendorAndItem()
+
+    const ids = (await run(AS.linkVendorA1, `select id from wedding_vendors order by id`)).map(
+      (r) => r.id,
+    )
+    expect(ids).toEqual([F.wedVendorA1])
+  })
+
+  it('sees no budget_lines at all: money stays planner-only (spec 0003)', async () => {
+    // Non-vacuity: the wedding really does have a budget line, and a staff GUC can see it.
+    expect(n(await run(AS.staffA, `select count(*)::int as n from budget_lines`))).toBeGreaterThan(
+      0,
+    )
+    expect(n(await run(AS.linkVendorA1, `select count(*)::int as n from budget_lines`))).toBe(0)
+  })
+
+  it('sees no payments either', async () => {
+    expect(n(await run(AS.linkVendorA1, `select count(*)::int as n from payments`))).toBe(0)
+  })
+
+  it("app.org_id staying unset (tenant.ts's design) blocks weddings, vendors and organizations too, even with app.wedding_id set", async () => {
+    expect(n(await run(AS.linkVendorA1, `select count(*)::int as n from weddings`))).toBe(0)
+    expect(n(await run(AS.linkVendorA1, `select count(*)::int as n from vendors`))).toBe(0)
+    expect(n(await run(AS.linkVendorA1, `select count(*)::int as n from organizations`))).toBe(0)
+  })
+
+  it('cannot write run_sheet_items: no FOR ALL or write policy exists for this role', async () => {
+    await pinOwnItem()
+    const updated = await run(
+      AS.linkVendorA1,
+      `update run_sheet_items set title = 'hijacked' where id = $1 returning id`,
+      [F.runItemA1],
+    )
+    expect(updated, 'a select-only policy let a link principal update a row it can read').toEqual(
+      [],
+    )
+    await expect(
+      run(
+        AS.linkVendorA1,
+        `insert into run_sheet_items
+           (id, org_id, wedding_id, event_id, starts_at, duration_min, title, wedding_vendor_id)
+         values (gen_random_uuid(), $1, $2, $3, '09:00', 15, 'Sneaked in', $4)`,
+        [F.orgA, F.weddingA1, F.eventA1, F.wedVendorA1],
+      ),
+    ).rejects.toThrow(RLS_ERROR)
+  })
+
+  it('cannot write wedding_vendors: cannot even change its own notes', async () => {
+    const updated = await run(
+      AS.linkVendorA1,
+      `update wedding_vendors set notes = 'from the vendor' where id = $1 returning id`,
+      [F.wedVendorA1],
+    )
+    expect(updated).toEqual([])
+  })
+
+  it('a link principal for a vendor removed from the wedding (soft-deleted) sees nothing', async () => {
+    await pinOwnItem()
+    await seedExec(`update wedding_vendors set deleted_at = now() where id = $1`, [F.wedVendorA1])
+
+    // wedding_vendors' own policy does not filter on deleted_at (soft delete is an
+    // application concern, same split every other repo makes) -- the row is still visible.
+    // run_sheet_items has no deleted_at join at all in its policy, so this states what IS
+    // true rather than assuming the removal cascades into RLS: `resolve_vendor_link`
+    // (migration 0008) is what actually folds a removed vendor's link into "gone", by
+    // requiring a live `wedding_vendors` row in its own join -- proven in
+    // vendor-links-repo.test.ts, not here, since this is a policy-level file and that is a
+    // function-level behaviour.
+    expect((await run(AS.linkVendorA1, `select id from run_sheet_items`)).map((r) => r.id)).toEqual(
+      [F.runItemA1],
+    )
   })
 })

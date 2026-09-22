@@ -57,6 +57,13 @@
       "when": 1790089942018,
       "tag": "0007_team_read_and_invitations",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790180000000,
+      "tag": "0008_vendor_link",
+      "breakpoints": true
     }
   ]
 }

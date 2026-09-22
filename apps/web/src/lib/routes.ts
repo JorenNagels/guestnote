@@ -65,6 +65,11 @@ export const app = {
    * cross-origin navigation.
    */
   invite: (token: string) => `/invite/${encodeURIComponent(token)}`,
+  /**
+   * The vendor's own signed link (spec 0003, S10). Same reasoning as `invite`: the token is
+   * the whole credential, so it is a path segment, never a query string.
+   */
+  vendorLink: (token: string) => `/vendor/${encodeURIComponent(token)}`,
 } as const
 
 /** Marketing paths. The locale IS part of the URL here, always. */

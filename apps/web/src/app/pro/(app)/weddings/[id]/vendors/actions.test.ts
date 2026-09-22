@@ -13,6 +13,8 @@ const addWeddingVendor = vi.fn()
 const createVendorForWedding = vi.fn()
 const removeWeddingVendor = vi.fn()
 const updateWeddingVendor = vi.fn()
+const createVendorLink = vi.fn()
+const revokeVendorLink = vi.fn()
 
 vi.mock('next/cache', () => ({ revalidatePath: (...a: unknown[]) => revalidatePath(...a) }))
 vi.mock('../../../../../../lib/db.ts', () => ({ getDb: () => ({}) }))
@@ -26,12 +28,16 @@ vi.mock('@guestnote/db', async (orig) => ({
   createVendorForWedding: (...a: unknown[]) => createVendorForWedding(...a),
   removeWeddingVendor: (...a: unknown[]) => removeWeddingVendor(...a),
   updateWeddingVendor: (...a: unknown[]) => updateWeddingVendor(...a),
+  createVendorLink: (...a: unknown[]) => createVendorLink(...a),
+  revokeVendorLink: (...a: unknown[]) => revokeVendorLink(...a),
 }))
 
 const {
   addVendorToWedding,
   createVendorOnWedding,
+  createVendorLinkAction,
   removeVendorFromWedding,
+  revokeVendorLinkAction,
   saveWeddingVendor,
   setWeddingVendorStatus,
 } = await import('./actions.ts')
@@ -57,6 +63,8 @@ beforeEach(() => {
     updateWeddingVendor,
   ])
     f.mockResolvedValue(OK)
+  createVendorLink.mockResolvedValue({ kind: 'created', id: LINK })
+  revokeVendorLink.mockResolvedValue(true)
 })
 
 describe('every action', () => {
@@ -67,18 +75,22 @@ describe('every action', () => {
       () => setWeddingVendorStatus(WEDDING, LINK, 'booked'),
       () => saveWeddingVendor(WEDDING, LINK, 'booked', ''),
       () => removeVendorFromWedding(WEDDING, LINK),
+      () => createVendorLinkAction(WEDDING, VENDOR, undefined),
+      () => revokeVendorLinkAction(WEDDING, LINK),
     ]
     currentMemberships.mockResolvedValue(null)
-    for (const c of calls) expect(await c()).toEqual({ ok: false, error: 'notFound' })
+    for (const c of calls) expect((await c()) as { ok: boolean }).toMatchObject({ ok: false })
     currentMemberships.mockResolvedValue({ userId: 'u1', orgs: [], weddings: [] })
     currentOrgId.mockResolvedValue(null)
-    for (const c of calls) expect(await c()).toEqual({ ok: false, error: 'notFound' })
+    for (const c of calls) expect((await c()) as { ok: boolean }).toMatchObject({ ok: false })
     currentOrgId.mockResolvedValue(ORG)
     expect(await addVendorToWedding('nope', VENDOR)).toEqual({ ok: false, error: 'notFound' })
     expect(addWeddingVendor).not.toHaveBeenCalled()
     expect(createVendorForWedding).not.toHaveBeenCalled()
     expect(updateWeddingVendor).not.toHaveBeenCalled()
     expect(removeWeddingVendor).not.toHaveBeenCalled()
+    expect(createVendorLink).not.toHaveBeenCalled()
+    expect(revokeVendorLink).not.toHaveBeenCalled()
   })
 })
 
@@ -170,5 +182,88 @@ describe('removeVendorFromWedding', () => {
   it('refuses a malformed link id', async () => {
     expect(await removeVendorFromWedding(WEDDING, 'x')).toEqual({ ok: false, error: 'invalid' })
     expect(removeWeddingVendor).not.toHaveBeenCalled()
+  })
+})
+
+describe('createVendorLinkAction', () => {
+  it('stores only a hash, hands back the plain token once, and refreshes', async () => {
+    const out = await createVendorLinkAction(WEDDING, VENDOR, undefined)
+
+    expect(out.ok).toBe(true)
+    if (!out.ok) throw new Error('unreachable')
+    // 32 random bytes, base64url -- see vendor-link-token.ts. Not asserted against a fixed
+    // value: the whole point is that it is random per call.
+    expect(out.token).toMatch(/^[A-Za-z0-9_-]{40,}$/)
+    expect(new Date(out.expiresAt).getTime()).toBeGreaterThan(Date.now())
+
+    const [, , , , input] = createVendorLink.mock.calls[0] as [
+      unknown,
+      unknown,
+      unknown,
+      unknown,
+      { tokenHash: string; expiresAt: Date },
+    ]
+    expect(input.tokenHash).toMatch(/^[0-9a-f]{64}$/)
+    // The credential is in the response and never in what gets stored.
+    expect(input.tokenHash).not.toBe(out.token)
+    expect(revalidatePath).toHaveBeenCalledWith('/pro/weddings/[id]/vendors', 'page')
+  })
+
+  it('defaults the expiry to 30 days, and honours an explicit one within the cap', async () => {
+    await createVendorLinkAction(WEDDING, VENDOR, undefined)
+    const defaultInput = createVendorLink.mock.calls[0]?.[4] as { expiresAt: Date }
+    expect(defaultInput.expiresAt.getTime()).toBeGreaterThan(Date.now() + 29 * 86_400_000)
+
+    createVendorLink.mockClear()
+    await createVendorLinkAction(WEDDING, VENDOR, '5')
+    const customInput = createVendorLink.mock.calls[0]?.[4] as { expiresAt: Date }
+    expect(customInput.expiresAt.getTime()).toBeLessThan(Date.now() + 6 * 86_400_000)
+  })
+
+  it.each([0, -1, 1.5, 181, 'nope', Number.NaN])(
+    'refuses ttlDays %s before touching the repo',
+    async (bad) => {
+      expect(await createVendorLinkAction(WEDDING, VENDOR, bad)).toEqual({
+        ok: false,
+        error: 'invalid',
+      })
+      expect(createVendorLink).not.toHaveBeenCalled()
+    },
+  )
+
+  it('refuses a malformed wedding_vendors id', async () => {
+    expect(await createVendorLinkAction(WEDDING, 'x', undefined)).toEqual({
+      ok: false,
+      error: 'invalid',
+    })
+    expect(createVendorLink).not.toHaveBeenCalled()
+  })
+
+  it('relays a repo refusal and does not refresh', async () => {
+    createVendorLink.mockResolvedValue({ kind: 'forbidden' })
+    expect(await createVendorLinkAction(WEDDING, VENDOR, undefined)).toEqual({
+      ok: false,
+      error: 'forbidden',
+    })
+    expect(revalidatePath).not.toHaveBeenCalled()
+  })
+})
+
+describe('revokeVendorLinkAction', () => {
+  it('revokes and refreshes', async () => {
+    expect(await revokeVendorLinkAction(WEDDING, LINK)).toEqual({ ok: true })
+    expect(revokeVendorLink).toHaveBeenCalledWith({}, expect.anything(), ORG, LINK)
+    expect(revalidatePath).toHaveBeenCalledWith('/pro/weddings/[id]/vendors', 'page')
+  })
+
+  it('reports false and does not refresh when nothing was revoked', async () => {
+    revokeVendorLink.mockResolvedValue(false)
+    expect(await revokeVendorLinkAction(WEDDING, LINK)).toEqual({ ok: false })
+    expect(revalidatePath).not.toHaveBeenCalled()
+  })
+
+  it('refuses a malformed link id', async () => {
+    expect(await revokeVendorLinkAction(WEDDING, 'x')).toEqual({ ok: false })
+    expect(revokeVendorLink).not.toHaveBeenCalled()
   })
 })

@@ -1,7 +1,12 @@
-import { and, asc, eq, isNull, sql } from 'drizzle-orm'
+import { and, asc, eq, gt, isNull, sql } from 'drizzle-orm'
 import type { Db } from '../client.ts'
 import { newId } from '../id.ts'
-import { vendors, type WEDDING_VENDOR_STATUSES, weddingVendors } from '../schema/vendors.ts'
+import {
+  vendorLinks,
+  vendors,
+  type WEDDING_VENDOR_STATUSES,
+  weddingVendors,
+} from '../schema/vendors.ts'
 import { weddings } from '../schema/weddings.ts'
 import { type Principal, type TenantDb, withTenant } from '../tenant.ts'
 import { type Memberships, principalForOrg, principalForWedding } from './memberships.ts'
@@ -55,6 +60,15 @@ export type WeddingVendorRow = {
   readonly phone: string | null
   readonly status: WeddingVendorStatus
   readonly notes: string | null
+  /**
+   * The live `vendor_links` row for this vendor, if any (spec 0003, S10). `null` both when
+   * none exists and when the caller cannot see `vendor_links` at all -- its own policy is
+   * owner/admin only (0006), so a `member` reading this list always gets `null` here even if
+   * a link exists. That is not a leak: the "create link" UI this field feeds is itself gated
+   * on `canCreate`, which is the same owner/admin test, so a `member` never sees a control
+   * this field could make say the wrong thing.
+   */
+  readonly activeLink: { readonly id: string; readonly expiresAt: Date } | null
 }
 
 export type VendorWriteResult<T = null> =
@@ -232,9 +246,23 @@ export async function getWeddingVendors(
         phone: vendors.phone,
         status: weddingVendors.status,
         notes: weddingVendors.notes,
+        activeLinkId: vendorLinks.id,
+        activeLinkExpiresAt: vendorLinks.expiresAt,
       })
       .from(weddingVendors)
       .innerJoin(vendors, eq(vendors.id, weddingVendors.vendorId))
+      // Left, and filtered in the join condition rather than in `where`: a `where` on a
+      // nullable joined column would turn this into an INNER join in effect, dropping every
+      // vendor with no live link instead of showing it with `activeLink: null`. `member`
+      // sees no rows here regardless (vendor_links' own policy is owner/admin only, 0006).
+      .leftJoin(
+        vendorLinks,
+        and(
+          eq(vendorLinks.weddingVendorId, weddingVendors.id),
+          isNull(vendorLinks.revokedAt),
+          gt(vendorLinks.expiresAt, new Date()),
+        ),
+      )
       .where(and(eq(weddingVendors.weddingId, weddingId), isNull(weddingVendors.deletedAt)))
       .orderBy(asc(sql`lower(${vendors.name})`), asc(weddingVendors.id))
 
@@ -245,7 +273,15 @@ export async function getWeddingVendors(
       .orderBy(asc(sql`lower(${vendors.name})`), asc(vendors.id))
 
     return {
-      linked: linked as WeddingVendorRow[],
+      linked: linked.map(
+        ({ activeLinkId, activeLinkExpiresAt, ...v }): WeddingVendorRow => ({
+          ...v,
+          status: v.status as WeddingVendorStatus,
+          activeLink: activeLinkId
+            ? { id: activeLinkId, expiresAt: activeLinkExpiresAt as Date }
+            : null,
+        }),
+      ),
       directory,
       canCreate: principal.kind === 'orgStaff',
     }

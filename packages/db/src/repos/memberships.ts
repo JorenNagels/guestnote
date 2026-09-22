@@ -2,7 +2,7 @@ import { and, asc, eq, isNull } from 'drizzle-orm'
 import type { Db } from '../client.ts'
 import { organizations, orgMembers } from '../schema/orgs.ts'
 import { weddingMembers } from '../schema/weddings.ts'
-import { type Principal, withUser } from '../tenant.ts'
+import { type MembershipPrincipal, withUser } from '../tenant.ts'
 
 /**
  * The query that runs BEFORE the tenant is known, in order to determine it.
@@ -162,7 +162,7 @@ export async function listOrgsForUser(db: Db, userId: string): Promise<OrgSummar
  * 'member' }` at all -- which is exactly so that this decision has to be made here,
  * once, at the point where the membership row is actually in hand.
  */
-export function principalForOrg(m: Memberships, orgId: string): Principal | null {
+export function principalForOrg(m: Memberships, orgId: string): MembershipPrincipal | null {
   const org = m.orgs.find((o) => o.orgId === orgId)
   if (!org) return null
   if (org.role !== 'owner' && org.role !== 'admin') return null
@@ -198,7 +198,7 @@ export function principalForWedding(
   m: Memberships,
   orgId: string,
   weddingId: string,
-): Principal | null {
+): MembershipPrincipal | null {
   const org = m.orgs.find((o) => o.orgId === orgId)
   const wedding = m.weddings.find((w) => w.weddingId === weddingId)
 

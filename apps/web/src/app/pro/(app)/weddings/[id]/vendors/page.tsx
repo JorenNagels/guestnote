@@ -16,11 +16,14 @@ import { app } from '../../../../../../lib/routes.ts'
  * repo refuses them rather than returning an empty list that would read as "no vendors".
  */
 export default async function WeddingVendorsPage({ params }: { params: Promise<{ id: string }> }) {
-  const [{ id }, memberships, orgId, t] = await Promise.all([
+  const [{ id }, memberships, orgId, t, t10] = await Promise.all([
     params,
     currentMemberships(),
     currentOrgId(),
     getTranslations('app.s3'),
+    // `manageLink` (create/copy/revoke a signed link, spec 0003 S10) lives in S10's own
+    // catalogue, not S3's -- see `labels.ts`'s `manageLinkLabels`.
+    getTranslations('app.s10'),
   ])
   if (!memberships || !orgId) notFound()
 
@@ -55,7 +58,7 @@ export default async function WeddingVendorsPage({ params }: { params: Promise<{
         linked={data.linked}
         directory={data.directory}
         canCreate={data.canCreate}
-        labels={weddingLabels(t)}
+        labels={weddingLabels(t, t10)}
       />
     </div>
   )

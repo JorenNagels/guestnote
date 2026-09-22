@@ -1,4 +1,4 @@
-import type { Principal } from '../tenant.ts'
+import type { MembershipPrincipal } from '../tenant.ts'
 import { type Memberships, principalForOrg, principalForWedding } from './memberships.ts'
 
 /**
@@ -21,7 +21,11 @@ import { type Memberships, principalForOrg, principalForWedding } from './member
  *
  * Returns `null` for "no standing at all" as well, so a caller renders 404, never 403.
  */
-export function staffPrincipal(m: Memberships, orgId: string, weddingId: string): Principal | null {
+export function staffPrincipal(
+  m: Memberships,
+  orgId: string,
+  weddingId: string,
+): MembershipPrincipal | null {
   const principal = principalForOrg(m, orgId) ?? principalForWedding(m, orgId, weddingId)
   if (!principal || principal.kind === 'weddingMember') return null
   return principal
