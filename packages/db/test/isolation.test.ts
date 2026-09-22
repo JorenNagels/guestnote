@@ -5,7 +5,18 @@ import {
   TENANT_SCOPED_TABLES,
   USER_SCOPED_TABLES,
 } from '../src/schema/index.ts'
-import { AS, asNobody, asPrincipal, connect, countOf, F, type Harness, reseed } from './harness.ts'
+import {
+  AS,
+  asNobody,
+  asPrincipal,
+  connect,
+  countOf,
+  F,
+  type Gucs,
+  type Harness,
+  reseed,
+  seedExec,
+} from './harness.ts'
 
 /**
  * The gate. research/05-architecture.md section 4: "~50 lines, runs in CI, and it is
@@ -347,6 +358,188 @@ describe('8. two policies on one table (app.org_id OR app.user_id)', () => {
       pinned.map((r) => r.slug),
       'the member-read policy added the user own orgs to a forged tenant read',
     ).toEqual(['org-b'])
+  })
+})
+
+/**
+ * Migration 0007's `org_staff_read`: an owner or admin reads every membership of their org.
+ *
+ * Two permissive policies again, so the same discipline as section 8: the assertions that
+ * matter are the ones where the SECOND policy could add rows it should not, and each is
+ * written against a principal chosen so that it can. All GUC bundles are set by hand, for the
+ * reason the harness gives -- the policy has to be shown doing the work, not `listTeam`'s
+ * own `where`.
+ *
+ * Fixture, org A: `staffA` owner, `staffDual` admin, `memberA` member; plus `coupleA1` and
+ * `memberA` (as editor) on wedding A1. Org B has `staffB` and NO wedding_members row, so the
+ * cross-org wedding_members assertion seeds one for itself and `reseed()`s after.
+ */
+describe('9. org-wide membership read for owner and admin (0007)', () => {
+  const orgMemberIds = async (g: Gucs, where = 'true') =>
+    (
+      await asPrincipal(h, g, `select user_id from org_members where ${where} order by user_id`)
+    ).map((r) => r.user_id)
+
+  const ORG_A_MEMBERS = [F.staffA, F.memberA, F.staffDual].sort()
+
+  it('an owner reads every membership of their org, and none of another', async () => {
+    // Not vacuous: org B's owner reads a row of org B in the next case, so the table does
+    // hold rows this list is excluding.
+    expect(await orgMemberIds(AS.staffA)).toEqual(ORG_A_MEMBERS)
+  })
+
+  it('an admin reads the same three', async () => {
+    // Filtered to org A: this admin also owns org C, and their own_memberships row there is
+    // (and always was) readable in any tenant transaction. The policy under test is the
+    // other three rows.
+    expect(await orgMemberIds(AS.adminA, `org_id = '${F.orgA}'`)).toEqual(ORG_A_MEMBERS)
+  })
+
+  it('an org B owner reads only org B, so the policy does not follow the reader to another org', async () => {
+    expect(await orgMemberIds(AS.staffB)).toEqual([F.staffB])
+  })
+
+  it.each([
+    ['an assigned member', AS.memberOnA1, [F.memberA]],
+    ['an editor', AS.editorOnA1, [F.memberA]],
+    ['a couple', AS.coupleA1, []],
+    ['an unpinned couple', AS.coupleA1Unpinned, []],
+    // Not a shape `withTenant` builds (a member has no org-wide principal), and that is the
+    // point: with no wedding pin the only thing left excluding them is the role clause, so
+    // this is the case that fails if `member` is ever added to it.
+    [
+      'an unpinned member',
+      { userId: F.memberA, orgId: F.orgA, weddingRole: 'member' },
+      [F.memberA],
+    ],
+  ] as const)('%s reads no colleague', async (_who, g, own) => {
+    expect(await orgMemberIds(g)).toEqual([...own])
+  })
+
+  it('an owner pinned to one wedding reads only their own row', async () => {
+    // `withTenant` refuses to build this shape; set by hand, the wedding_id clause is what
+    // keeps "pinned to one wedding" meaning one wedding.
+    expect(await orgMemberIds(AS.staffAOnA1)).toEqual([F.staffA])
+  })
+
+  it("an admin of A and owner of C, pinned to C, cannot read A's colleagues", async () => {
+    // The dual-membership fixture again: their own_memberships rows span both orgs, and
+    // that has always been true inside a tenant transaction. What the new policy must not do
+    // is let a role held in org A widen a transaction pinned to org C.
+    expect(await orgMemberIds(AS.staffDualOnC, `org_id = '${F.orgA}'`)).toEqual([F.staffDual])
+    expect(await orgMemberIds(AS.staffDualOnC, `org_id = '${F.orgC}'`)).toEqual([F.staffDual])
+  })
+
+  it('reads nothing extra when app.org_id is unset, whatever role is claimed', async () => {
+    // The guard: the org_id comparison is NULL with no tenant, so the policy contributes
+    // nothing. `withUser` also blanks the role, which would hide a broken guard, so this
+    // claims the role by hand -- a shape only a test can build.
+    expect(await orgMemberIds({ userId: F.staffA, weddingRole: 'owner' })).toEqual([F.staffA])
+    expect(await orgMemberIds({ userId: F.staffA, orgId: '', weddingRole: 'owner' })).toEqual([
+      F.staffA,
+    ])
+  })
+
+  it('a dual-membership user under withUser still reads exactly their own two rows', async () => {
+    expect(await orgMemberIds({ userId: F.staffDual })).toEqual([F.staffDual, F.staffDual])
+  })
+
+  it('is FOR SELECT: an owner cannot rewrite, remove or add a colleague', async () => {
+    const promoted = await asPrincipal(
+      h,
+      AS.staffA,
+      `update org_members set role = 'owner' where user_id = $1 returning user_id`,
+      [F.memberA],
+    )
+    expect(promoted, 'a read policy let an owner change a colleague').toEqual([])
+
+    const removed = await asPrincipal(
+      h,
+      AS.staffA,
+      'delete from org_members where user_id = $1 returning user_id',
+      [F.memberA],
+    )
+    expect(removed, 'a read policy let an owner remove a colleague').toEqual([])
+
+    await expect(
+      asPrincipal(
+        h,
+        AS.staffA,
+        `insert into org_members (org_id, user_id, role) values ($1, $2, 'owner')`,
+        [F.orgA, F.coupleA1],
+      ),
+    ).rejects.toThrow(/row-level security/i)
+
+    expect(await orgMemberIds(AS.staffA)).toEqual(ORG_A_MEMBERS)
+  })
+
+  describe('wedding_members', () => {
+    const weddingRows = async (g: Gucs) =>
+      (
+        await asPrincipal(h, g, 'select wedding_id, user_id from wedding_members order by 1, 2')
+      ).map((r) => `${r.wedding_id}/${r.user_id}`)
+
+    const A1_ROWS = [`${F.weddingA1}/${F.coupleA1}`, `${F.weddingA1}/${F.memberA}`].sort()
+
+    // Mutation note (2026-09-21, local container): deleting `weddings.org_id = app.org_id` from
+    // the `wedding_members` policy leaves this file green, and cannot be made red. The
+    // subquery reads `weddings`, and Postgres applies THAT table's `tenant_isolation` inside
+    // it, so `app.org_id` is already filtering one level down. Same redundancy 0005 records
+    // for its `user_id` clause; the clause stays as intent, and the `exists` itself is
+    // load-bearing (deleting it leaks org B's row below).
+    it('an owner reads every membership of their weddings, and none of another org', async () => {
+      // Give org B a row, so "only A1's two" is a claim with something to exclude.
+      await seedExec(
+        `insert into wedding_members (wedding_id, user_id, role) values ($1, $2, 'couple')`,
+        [F.weddingB1, F.staffB],
+      )
+      try {
+        expect(await weddingRows(AS.staffA)).toEqual(A1_ROWS)
+        expect(await weddingRows(AS.adminA)).toEqual(A1_ROWS)
+        expect(await weddingRows(AS.staffB)).toEqual([`${F.weddingB1}/${F.staffB}`])
+      } finally {
+        await reseed()
+      }
+    })
+
+    it.each([
+      ['an assigned member', AS.memberOnA1, [`${F.weddingA1}/${F.memberA}`]],
+      ['a couple', AS.coupleA1, [`${F.weddingA1}/${F.coupleA1}`]],
+      ['an unpinned couple', AS.coupleA1Unpinned, [`${F.weddingA1}/${F.coupleA1}`]],
+      ['an owner pinned to one wedding', AS.staffAOnA1, []],
+      ['an owner under withUser', { userId: F.staffA }, []],
+      [
+        'an unpinned member',
+        { userId: F.memberA, orgId: F.orgA, weddingRole: 'member' },
+        [`${F.weddingA1}/${F.memberA}`],
+      ],
+    ] as const)('%s reads only their own', async (_who, g, expected) => {
+      expect(await weddingRows(g)).toEqual([...expected])
+    })
+
+    it('reads nothing extra when app.org_id is unset, whatever role is claimed', async () => {
+      expect(await weddingRows({ userId: F.staffA, weddingRole: 'owner' })).toEqual([])
+    })
+
+    it('is FOR SELECT: an owner cannot add or remove a wedding member', async () => {
+      await expect(
+        asPrincipal(
+          h,
+          AS.staffA,
+          `insert into wedding_members (wedding_id, user_id, role) values ($1, $2, 'editor')`,
+          [F.weddingA2, F.memberA],
+        ),
+      ).rejects.toThrow(/row-level security/i)
+
+      const removed = await asPrincipal(
+        h,
+        AS.staffA,
+        'delete from wedding_members where user_id = $1 returning user_id',
+        [F.coupleA1],
+      )
+      expect(removed, 'a read policy let an owner remove a wedding member').toEqual([])
+      expect(await weddingRows(AS.staffA)).toEqual(A1_ROWS)
+    })
   })
 })
 

@@ -121,7 +121,8 @@
       "inviteExpired": "Deze uitnodiging is verlopen. Vraag {inviter} om een nieuwe.",
       "inviteAccepted": "Deze uitnodiging is al gebruikt. Meld je gewoon aan.",
       "inviteCouple": "Het portaal voor bruidsparen is nog niet open. Je uitnodiging blijft geldig.",
-      "inviteUnknown": "Deze link werkt niet. Vraag degene die je uitnodigde om een nieuwe."
+      "inviteUnknown": "Deze link werkt niet. Vraag degene die je uitnodigde om een nieuwe.",
+      "inviteWrongAccount": "Deze uitnodiging is voor een ander e-mailadres dan waarmee je nu bent aangemeld. Meld je af en open de link opnieuw."
     },
     "noAccount": "Nog geen account? Guestnote werkt op uitnodiging.",
     "stage": {

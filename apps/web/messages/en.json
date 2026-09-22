@@ -121,7 +121,8 @@
       "inviteExpired": "This invitation has expired. Ask {inviter} for a new one.",
       "inviteAccepted": "This invitation has already been used. Just sign in.",
       "inviteCouple": "The couple portal isn’t open yet. Your invitation stays valid.",
-      "inviteUnknown": "This link doesn’t work. Ask whoever invited you for a new one."
+      "inviteUnknown": "This link doesn’t work. Ask whoever invited you for a new one.",
+      "inviteWrongAccount": "This invitation was sent to a different email address than the one you are signed in with. Sign out and open the link again."
     },
     "noAccount": "No account yet? Guestnote is invite-only.",
     "stage": {

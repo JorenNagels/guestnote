@@ -81,6 +81,14 @@ Rejected: a live link (needs diff and conflict UX).
 **Team invites send email.** Owner or admin writes `invitations` and sends through the mailer
 seam. Seat counts and billing are not built; the Team screen shows static seat labels.
 
+**Team read and invite acceptance are migration `0007` (F1b, 2026-09-21).** S6 stopped on two
+`NEEDS-SCHEMA` gaps and F1b closed them: a `for select` policy `org_staff_read` on `org_members` and
+`wedding_members` (owner and admin read every membership of their org), and the `SECURITY DEFINER`
+functions `resolve_invitation(token_hash)` and `accept_invitation(token_hash, user_id)`, wired into
+`Auth.resolveInvitation` / `Auth.acceptInvitation` and `/invite/[token]`. Revoke stays a delete, so a
+revoked token resolves as unknown. Role change and removal of a member are still not built: writes
+on both membership tables stay on `own_memberships`. S10's migration is therefore `0008`.
+
 ## Where specs live
 
 - **This file** in `docs/specs/`: shared decisions, data, slice list.

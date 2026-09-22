@@ -121,7 +121,8 @@
       "inviteExpired": "Cette invitation a expiré. Demandez-en une nouvelle à {inviter}.",
       "inviteAccepted": "Cette invitation a déjà été utilisée. Connectez-vous simplement.",
       "inviteCouple": "L’espace des mariés n’est pas encore ouvert. Votre invitation reste valable.",
-      "inviteUnknown": "Ce lien ne fonctionne pas. Demandez-en un nouveau à la personne qui vous a invité."
+      "inviteUnknown": "Ce lien ne fonctionne pas. Demandez-en un nouveau à la personne qui vous a invité.",
+      "inviteWrongAccount": "Cette invitation a été envoyée à une autre adresse e-mail que celle avec laquelle vous êtes connecté. Déconnectez-vous et rouvrez le lien."
     },
     "noAccount": "Pas encore de compte ? Guestnote fonctionne sur invitation.",
     "stage": {

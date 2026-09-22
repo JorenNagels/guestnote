@@ -45,7 +45,7 @@ Prefix any data you create with your slice id. Never delete other slices' rows.
 
 ## 7. Stop rules
 - Three failed fixes on one gate: stop, report the exact error. Do not loop.
-- Need a schema change: stop with `NEEDS-SCHEMA: <what>`. Only F1 (and S10 for `0007`) write migrations.
+- Need a schema change: stop with `NEEDS-SCHEMA: <what>`. Only F1 (`0006`, `0007`) and S10 (`0008`) write migrations.
 - Context getting large: commit, update `Progress`, report.
 
 ## 8. Finish

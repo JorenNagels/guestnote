@@ -85,6 +85,18 @@ stop and ask. The rest are held by convention alone, which is why they are writt
    tenant-scoped read starts returning other organisations, which is how it was found.
    It is named individually in `USER_SCOPED_POLICY_EXCEPTIONS` in `schema-coverage.test.ts`,
    so a *new* policy scoping by neither key still fails.
+   **Migration 0007 added two more of the same kind, on the opposite axis:**
+   `org_members.org_staff_read` and `wedding_members.org_staff_read` are `for select`
+   policies scoped by `app.org_id` (and `app.wedding_role in ('owner','admin')`), so an owner
+   or admin can read every membership of their org. Both tables are otherwise `app.user_id`
+   scoped. Each exception now carries the GUC its `USING` must name, so it is excused from
+   the table's primary key and not from being scoped. **A future `withTenant` query on either
+   table now returns the whole org to an owner or admin: it must filter to the caller itself
+   if it means "my row".**
+   The same migration adds `resolve_invitation` and `accept_invitation`, `SECURITY DEFINER`
+   functions that are the only door onto `invitations` before a principal exists. They
+   install only when the migrating role bypasses RLS, and they are executable by `app_user`
+   alone.
 
 3. **`Principal` stays a discriminated union.** Never `{ orgId?, weddingId? }`. A principal
    with no `org_members` row *must* carry `weddingId`, or RLS falls through to org-wide
