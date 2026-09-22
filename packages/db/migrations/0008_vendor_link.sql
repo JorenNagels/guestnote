@@ -62,16 +62,24 @@
 --     The one field that exists today, `wedding_vendors.notes`, is what the app renders there:
 --     a single freeform block from the planner, not a list. Narrower than the prototype by
 --     necessity, not by choice; P18 is what closes the gap honestly.
---   * `wedding_events`: **the whole wedding's event list**, `label` and all -- NOT vendor-
---     scoped like the two above, and not one of the two tables spec 0003 names either. It
---     is here because `getVendorLinkView` (vendor-links.ts) inner-joins `run_sheet_items` to
---     `wedding_events` for `eventLabel` ("Ceremony", "Reception"), and with no policy at all
---     that join returns ZERO rows regardless of `run_sheet_items`' own policy -- measured
---     while building this migration: the timeline rendered empty for every link, including a
---     vendor with rows. An event's label and date are the day's shared schedule structure,
---     not one vendor's private data, so scoping by `wedding_vendor_id` the way the other two
---     do would be scoping something that has no vendor to scope BY -- an event is not owned
---     by one. `wedding_id` is the only key that means anything for this table.
+--   * `wedding_events`: **the whole row of every event of the wedding**, `venue` included --
+--     NOT vendor-scoped like the two above, and not one of the two tables spec 0003 names
+--     either. It is here because `getVendorLinkView` (vendor-links.ts) inner-joins
+--     `run_sheet_items` to `wedding_events` for `eventLabel` ("Ceremony", "Reception"), and
+--     with no policy at all that join returns ZERO rows regardless of `run_sheet_items`' own
+--     policy -- measured while building this migration: the timeline rendered empty for every
+--     link, including a vendor with rows. Because `wedding_events` has no per-event vendor
+--     mapping (no table says which vendor is at which event), the policy cannot scope tighter
+--     than `wedding_id` without scoping by something that does not exist -- so it grants every
+--     event of the wedding to every one of that wedding's link principals, `starts_at` and
+--     `venue` and all, not only the `label` and date `getVendorLinkView` happens to select
+--     today. This is deliberate, not an oversight: nothing on `wedding_events` today is
+--     sensitive in the way `wedding_vendors.notes` or the budget are, so the wider grant was
+--     accepted rather than building per-event vendor scoping for a leak that does not yet
+--     exist. It is exactly the shape to revisit the day a sensitive column is added to this
+--     table (a couple's private note on an event, say) -- see the `link_read on wedding_events`
+--     assertions in `planner-isolation.test.ts` for the test that documents this rather than
+--     hiding it. `wedding_id` is the only key that means anything for this table.
 --   * `budget_lines`: **no policy at all.** Spec 0003 says so explicitly ("money stays
 --     planner-only"), and the table's existing `tenant_isolation` policy already excludes
 --     `link` the same way every other pre-0008 policy does (no `app.org_id` for this kind) --
@@ -196,9 +204,10 @@ create policy link_read on "run_sheet_items"
 --> statement-breakpoint
 
 -- Wedding-scoped only, deliberately not vendor-scoped -- Part 0 says why an event has no
--- vendor to scope by. This is the widest of the three, and still far narrower than the
--- prototype's per-vendor guest counts: a label and a date, nothing else a couple or planner
--- wrote that is specific to them.
+-- vendor to scope by. This is the widest of the three: it grants the WHOLE row of every
+-- event of the wedding (venue included), not merely the label and date `getVendorLinkView`
+-- happens to select today. Still far narrower than the prototype's per-vendor guest counts,
+-- and accepted as-is because nothing on `wedding_events` is sensitive yet -- see Part 0.
 create policy link_read on "wedding_events"
   for select
   using (

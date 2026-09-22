@@ -44,6 +44,19 @@ export const INTERNAL_VISIBLE_ROLES = ['owner', 'admin', 'member', 'editor'] as 
  * `wedding_vendors`) plus `wedding_events`, added so a run-sheet item's event label can be
  * read at all -- see 0008_vendor_link.sql Part 0 for why that third one was necessary and
  * why it is scoped by `weddingId` only, not `weddingVendorId`.
+ *
+ * **This variant must be rebuilt from `resolveVendorLinkByHash` (repos/vendor-links.ts) on
+ * every use, and never persisted or reused across a request boundary.** Neither this type nor
+ * `withTenant`'s `link` branch nor 0008's `link_read` policies re-check `vendor_links
+ * .revoked_at` / `expires_at` -- `resolveVendorLinkByHash` is the only place that does, once,
+ * at construction (it reads `resolve_vendor_link`'s `status` column and the caller refuses
+ * anything but `'live'`). A `link` principal built once and kept around -- in a session, a
+ * cache, a cookie -- would go on reading rows under RLS after the link it came from was
+ * revoked or expired, because nothing downstream of construction asks again. This is safe
+ * today only because the sole call site (`apps/web/src/app/pro/(public)/vendor/[token]/page
+ * .tsx`) re-resolves fresh on every request with no caching in between --
+ * `vendor-links-repo.test.ts` has a test proving the gap exists so a future caller that DOES
+ * cache this principal gets caught by it, not by a production incident.
  */
 export type Principal =
   | { kind: 'orgStaff'; userId: string; orgId: string; role: 'owner' | 'admin' }

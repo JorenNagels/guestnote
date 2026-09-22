@@ -769,6 +769,34 @@ describe('the `link` principal (migration 0008, spec 0003 S10)', () => {
     expect(updated).toEqual([])
   })
 
+  it(
+    "reads a SIBLING event's venue and starts_at too -- wedding_events has no per-event " +
+      'vendor mapping, so link_read grants the whole row of every event of the wedding, not ' +
+      "just the vendor's own event. Documents today's real exposure (0008_vendor_link.sql " +
+      'Part 0) so a future sensitive column on this table gets noticed, not silently passed.',
+    async () => {
+      const SIBLING_EVENT = '44444444-0000-0000-0000-0000000000b9'
+      await seedExec(
+        `insert into wedding_events (id, org_id, wedding_id, label, starts_on, starts_at, venue)
+           values ($1, $2, $3, 'First look', '2027-07-31', '13:00', $4)`,
+        [SIBLING_EVENT, F.orgA, F.weddingA1, "Bride's family home"],
+      )
+
+      const rows = await run(
+        AS.linkVendorA1,
+        `select venue, starts_at from wedding_events where id = $1`,
+        [SIBLING_EVENT],
+      )
+      expect(
+        rows,
+        'link_read on wedding_events is wedding-scoped only, so a vendor with no ' +
+          "connection to this event can still read its venue -- that is today's design, " +
+          'not a bug, but this assertion must break the day the policy is narrowed or the ' +
+          'table grows a genuinely sensitive column.',
+      ).toEqual([{ venue: "Bride's family home", starts_at: '13:00:00' }])
+    },
+  )
+
   it('a link principal for a vendor removed from the wedding (soft-deleted) sees nothing', async () => {
     await pinOwnItem()
     await seedExec(`update wedding_vendors set deleted_at = now() where id = $1`, [F.wedVendorA1])

@@ -281,3 +281,63 @@ describe('getVendorLinkView', () => {
     expect(view.timeline).toEqual([])
   })
 })
+
+/**
+ * The gap `tenant.ts`'s `link` variant now documents: nothing between a `link` `Principal`
+ * and `link_read`'s RLS re-checks `vendor_links.revoked_at` / `expires_at`. Only
+ * `resolveVendorLinkByHash` checks it, once, reading `resolve_vendor_link`'s `status` column
+ * -- and only because the public route (`apps/web/src/app/pro/(public)/vendor/[token]/page
+ * .tsx`) refuses anything but `'live'` before ever constructing a principal. Build the
+ * principal directly, the way this same file's `getVendorLinkView` tests already do, and
+ * skip that check entirely: RLS itself does not know the link is dead.
+ *
+ * This does NOT close the gap -- it proves it exists, so a caller that starts caching or
+ * reusing a `link` principal across requests (the thing `tenant.ts`'s comment now warns
+ * against) gets caught by a red test here instead of by a live vendor link that outlives its
+ * own revocation.
+ */
+describe('a `link` principal built for a dead link still reads under RLS (documents the gap)', () => {
+  it('a since-REVOKED link: RLS never re-checks vendor_links.revoked_at', async () => {
+    await seedExec(`update vendor_links set revoked_at = now() where wedding_vendor_id = $1`, [
+      F.wedVendorA1,
+    ])
+    await seedExec(`update run_sheet_items set wedding_vendor_id = $1 where id = $2`, [
+      F.wedVendorA1,
+      F.runItemA1,
+    ])
+
+    // resolveVendorLinkByHash -- the ONE place that checks -- now reports it dead...
+    expect((await resolveVendorLinkByHash(h.db, 'hash-link-a1'))?.status).toBe('revoked')
+
+    // ...but a `link` principal built directly (as if a caller had kept one from before the
+    // revocation, or skipped the status check) reads exactly as it would for a live link.
+    const view = await getVendorLinkView(h.db, {
+      kind: 'link' as const,
+      orgId: F.orgA,
+      weddingId: F.weddingA1,
+      weddingVendorId: F.wedVendorA1,
+    })
+    expect(view.timeline).toHaveLength(1)
+  })
+
+  it('a since-EXPIRED link: RLS never re-checks vendor_links.expires_at either', async () => {
+    await seedExec(
+      `update vendor_links set expires_at = now() - interval '1 day' where wedding_vendor_id = $1`,
+      [F.wedVendorA1],
+    )
+    await seedExec(`update run_sheet_items set wedding_vendor_id = $1 where id = $2`, [
+      F.wedVendorA1,
+      F.runItemA1,
+    ])
+
+    expect((await resolveVendorLinkByHash(h.db, 'hash-link-a1'))?.status).toBe('expired')
+
+    const view = await getVendorLinkView(h.db, {
+      kind: 'link' as const,
+      orgId: F.orgA,
+      weddingId: F.weddingA1,
+      weddingVendorId: F.wedVendorA1,
+    })
+    expect(view.timeline).toHaveLength(1)
+  })
+})
