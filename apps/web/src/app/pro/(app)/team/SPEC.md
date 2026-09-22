@@ -1,6 +1,6 @@
 # Slice S6 — Team
 
-**Date:** 2026-09-21 · **Status:** Built, except the two blocked items · **Umbrella:** `docs/specs/0003-planner-app-screens.md`
+**Date:** 2026-09-21 · **Status:** Built 2026-09-22 · **Umbrella:** `docs/specs/0003-planner-app-screens.md`
 **Prototype:** `design-system/planner-prototype/Guestnote Planner.dc.html` lines 1369–1427.
 
 The planner sees who is in the organisation, invites a colleague by email, and can take back
@@ -35,32 +35,26 @@ an invite that has not been used yet.
 |---|---|
 | Role change, removal of a member | `packages/db` has no repo for it, and RLS on `org_members` only lets a user write their own row. Needs a schema change first. |
 | Resend an invite | Not asked for. Revoke and invite again does the same job. |
-| Accepting an invite (`/invite/[token]`) | See **Blocked**. |
 | Seat counts, billing | Spec 0003, "Not in scope". |
 
-## Blocked: needs a schema change (`NEEDS-SCHEMA`)
+## Schema gaps, closed by migration `0007` (F1b, 2026-09-22)
 
-Only F1 and S10 write migrations, so this slice stops at these two edges.
+This slice stopped at two `NEEDS-SCHEMA` edges, since only F1 and S10 write migrations. Both
+are closed now; kept here as the record of what was missing and why, per this repo's "amend,
+don't delete" rule.
 
-1. **The team list shows only the signed-in user's own row.** `org_members` and `wedding_members`
-   have one policy, `own_memberships` (`user_id = app.user_id`). An owner cannot read a colleague's
-   row through `withTenant`. The repo query (`listTeam`) is written and correct; it starts
-   returning everyone once an org-wide `for select` policy exists for owner/admin
-   (`org_id = app.org_id and app.wedding_role in ('owner','admin')`), named in
-   `USER_SCOPED_POLICY_EXCEPTIONS` the way `org_read_for_members` is. The same policy is needed
-   on `wedding_members` to show a member's assigned weddings.
-2. **The invite link cannot be accepted.** `Auth.resolveInvitation` in `packages/core/src/auth/index.ts`
-   is still a fixture map (`staff`, `wedding`, `expired`, `accepted`), and no accept function
-   exists anywhere. A real one has to read `invitations` by token hash before any principal exists,
-   which `tenant_isolation` forbids, and invariant 1 forbids a third unscoped reader. The shape that
-   fits is a `SECURITY DEFINER` function, as spec 0003 already chose for `vendor_links`:
-   `resolve_invitation(token_hash)` and `accept_invitation(token_hash, user_id)`, the second one
-   inserting the `org_members` row and setting `accepted_at` in one statement after checking the
-   token, expiry and that the signed-in email matches. Note the gap it closes: today
-   `own_memberships` `with check (user_id = app.user_id)` alone would let any signed-in user insert
-   themselves into any org they can name, so accept must not be built from `withUser` plus an insert.
-   Token format for that function: `token_hash = lower(hex(sha256(token)))`, token is 32 random
-   bytes as base64url.
+1. **The team list showed only the signed-in user's own row.** `org_members` and `wedding_members`
+   had one policy, `own_memberships` (`user_id = app.user_id`), so an owner could not read a
+   colleague's row through `withTenant`. `listTeam`'s query was already written correctly for
+   this; it just had nothing to read. Migration `0007` added the org-wide `for select` policy
+   `org_staff_read` for owner/admin on both tables, named in `USER_SCOPED_POLICY_EXCEPTIONS`
+   the way `org_read_for_members` is. The team list and the member's assigned weddings both work now.
+2. **The invite link could not be accepted.** `Auth.resolveInvitation` was a fixture map, and no
+   accept function existed. Migration `0007` added `SECURITY DEFINER` functions
+   `resolve_invitation(token_hash)` and `accept_invitation(token_hash, user_id)`, wired into
+   `packages/core/src/auth/index.ts` and `/invite/[token]`. The gap they close: `own_memberships`
+   `with check (user_id = app.user_id)` alone would let any signed-in user insert themselves into
+   any org they can name, so accept is never built from `withUser` plus a plain insert.
 
 ## States
 
@@ -85,9 +79,8 @@ those without a request (`i18n/catalogue.ts`). NL first. No hard-coded strings.
 - [x] Invite email renders in NL, EN, FR; the link is `app.<domain>/invite/<token>`.
 - [x] Unit tests for the actions, token and mail copy; component tests for the form and lists;
       `packages/db/test/team.test.ts` (tier 1) for the repo, mutation-checked.
-- [ ] `NEEDS-SCHEMA` items above resolved, then the link is accepted end to end as a new user.
-      Today the link reaches `/invite/<token>` and shows "this link does not work", because
-      `resolveInvitation` is a fixture map.
+- [x] The schema gaps above are closed (migration `0007`) and the link is accepted end to end
+      as a new user, verified in the final walkthrough (2026-09-23).
 
 ## Progress
 

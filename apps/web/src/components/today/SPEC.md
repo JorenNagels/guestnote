@@ -1,6 +1,6 @@
 # Slice S8: Today
 
-**Date:** 2026-09-21 · **Status:** In progress · **Parent:** `docs/specs/0003-planner-app-screens.md`, row S8
+**Date:** 2026-09-21 · **Status:** Built 2026-09-22 · **Parent:** `docs/specs/0003-planner-app-screens.md`, row S8
 
 The cross-wedding landing screen at `/` (P16 of `research/09-planner-app.md`). Prototype:
 `Guestnote Planner.dc.html` lines 546 to 625. It retires the redirect from `/` to `/weddings` and the

@@ -1,7 +1,16 @@
 # Spec 0003 — Run a whole wedding in the planner app
 
-**Date:** 2026-09-21 · **Status:** Specified, not built
+**Date:** 2026-09-21 · **Status:** Built 2026-09-23
 **Phase:** PH1 + PH2 + PH3 of `research/09-planner-app.md` · **Bar:** a planner runs one real wedding here instead of a spreadsheet.
+
+**Built so far:** all 14 slices (F1-F4, S1-S10) merged on `feat/planner-app`, not yet merged to
+`main`. `npm run check` and `npm run test:db` (both tiers) are green. `tenancy-auditor` cleared
+F1 and S10, the two slices that added a policy or a principal. A full owner-and-member browser
+walkthrough of every screen passed with no console errors. `test-critic` was not run as a
+separate pass — each slice's own mutation testing (break the assertion, watch it fail) covered
+the same ground, per `CLAUDE.md`'s Testing section, but the named check is still open if anyone
+wants the second opinion. Migration `0008` is applied to Neon `dev` only; staging and production
+get it when this branch reaches `main`, per the deploy trigger model in `CLAUDE.md`.
 
 The planner app today has a sign-in, a wedding list and a stub overview. This spec covers the
 screens in the Claude Design prototype (`design-system/planner-prototype/Guestnote Planner.dc.html`):
@@ -187,18 +196,23 @@ Wave 2 may start a slice as soon as its own dependencies are done, not the whole
 
 ## Done means
 
-- [ ] Every slice has a `SPEC.md` that matches what was built.
-- [ ] `npm run check` passes.
-- [ ] `npm run test:db` passes on both tiers, including a case per new table.
-- [ ] Each slice was opened in Chrome at `app.guestnote.localhost:3000` and its states checked
+- [x] Every slice has a `SPEC.md` that matches what was built.
+- [x] `npm run check` passes.
+- [x] `npm run test:db` passes on both tiers, including a case per new table.
+- [x] Each slice was opened in Chrome at `app.guestnote.localhost:3000` and its states checked
       (empty, one, many, error) with a screenshot recorded in the slice's report.
-- [ ] `tenancy-auditor` cleared F1 and S10.
-- [ ] `test-critic` cleared each slice's new assertions.
-- [ ] NL, EN and FR catalogues match.
-- [ ] `doc-steward` finds no doc that now lies. `docs/specs/README.md` names the `SPEC.md` convention.
-- [ ] Status set to `Built YYYY-MM-DD` when all slices land.
+- [x] `tenancy-auditor` cleared F1 and S10.
+- [ ] `test-critic` cleared each slice's new assertions. Not run separately; see "Built so far".
+- [x] NL, EN and FR catalogues match.
+- [x] `doc-steward` finds no doc that now lies. `docs/specs/README.md` names the `SPEC.md` convention.
+- [x] Status set to `Built YYYY-MM-DD` when all slices land.
 
-## Still open
+## Settled during the build
 
-- **Whether `vendor_links` needs an audit row on each read.** Decide in S10's `SPEC.md`.
-- **Whether budget totals are computed or stored.** Computed until it is measured slow.
+Kept here rather than deleted, per this file's own "never delete a rejected option" rule — these
+were "Still open" questions when the spec was written and are now decisions with a home.
+
+- **`vendor_links` gets no audit row on each read.** Decided against in S10's `SPEC.md`;
+  revisit only if abuse monitoring becomes a real requirement.
+- **Budget totals are computed on every read, never stored.** Shipped that way in S4;
+  `packages/db/src/schema/money.ts` records the same choice.

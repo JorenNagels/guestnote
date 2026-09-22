@@ -1,6 +1,6 @@
 # S7 Templates — reusable checklists, copied onto a wedding
 
-**Date:** 2026-09-21 · **Status:** In progress · **Parent:** `docs/specs/0003-planner-app-screens.md`, row S7
+**Date:** 2026-09-21 · **Status:** Built 2026-09-22 · **Parent:** `docs/specs/0003-planner-app-screens.md`, row S7
 
 Nothing here contradicts spec 0003. Two routes over `task_templates` and `template_items`. Applying goes
 through S2's `createTasks` (`packages/db/src/repos/tasks.ts`), unchanged.

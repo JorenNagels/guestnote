@@ -97,6 +97,15 @@ stop and ask. The rest are held by convention alone, which is why they are writt
    functions that are the only door onto `invitations` before a principal exists. They
    install only when the migrating role bypasses RLS, and they are executable by `app_user`
    alone.
+   **Migration 0008 added three more, on a third axis: no tenant key at all.**
+   `run_sheet_items.link_read`, `wedding_vendors.link_read` and `wedding_events.link_read` are
+   `for select` policies scoped by `app.wedding_role = 'link'` plus the vendor-link GUCs
+   (`resolve_vendor_link`, the matching `SECURITY DEFINER` function). The `link` principal
+   carries no `org_id` and no `user_id` — a signed link is read before either exists — so these
+   three are excused from both keys, not just one. `wedding_events.link_read` grants the whole
+   row (including `venue`) for every event of the wedding, not just the linked vendor's own
+   event, deliberately: nothing on that table is sensitive today, and the migration's own
+   comment says so plainly, with a test proving a link principal can read a sibling event's venue.
 
 3. **`Principal` stays a discriminated union.** Never `{ orgId?, weddingId? }`. A principal
    with no `org_members` row *must* carry `weddingId`, or RLS falls through to org-wide

@@ -326,15 +326,17 @@ migrations/
 ```
 
 `src/schema/index.ts` classifies every table into exactly one of
-`TENANT_SCOPED_TABLES` / `SELF_SCOPED_TABLES` / `USER_SCOPED_TABLES` /
+`TENANT_SCOPED_TABLES` / `ORG_SCOPED_TABLES` / `SELF_SCOPED_TABLES` / `USER_SCOPED_TABLES` /
 `UNSCOPED_TABLES`. `test/schema-coverage.test.ts` fails CI if a table is unclassified,
 missing a tenant key, missing `FORCE ROW LEVEL SECURITY`, or missing a policy — so
 extending the suite is mechanical rather than something to remember.
 
 A policy may be excused from naming its tenant key only by being listed in that file's
-`USER_SCOPED_POLICY_EXCEPTIONS`, which is a one-line diff a reviewer sees. There is exactly
-one entry. A second assertion fails if an exception names no live policy, because an
-exception matching nothing pre-authorises whatever is later created under that name.
+`USER_SCOPED_POLICY_EXCEPTIONS`, which is a one-line diff a reviewer sees. There are six
+entries as of migration `0008` (0005's `organizations.org_read_for_members`, 0007's two
+`org_staff_read` policies, and 0008's three `link_read` policies). A second assertion fails
+if an exception names no live policy, because an exception matching nothing pre-authorises
+whatever is later created under that name.
 
 ## Things learned by breaking it on purpose
 

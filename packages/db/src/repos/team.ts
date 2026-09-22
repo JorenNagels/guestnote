@@ -15,14 +15,14 @@ import { type Memberships, principalForOrg } from './memberships.ts'
  * `principalForOrg` means "not owner or admin here", and every function turns that into a
  * refusal before any SQL is issued.
  *
- * ## What the current policies let `listTeam` see
+ * ## What lets `listTeam` see every row
  *
- * `org_members` and `wedding_members` carry one policy each, `own_memberships`
- * (`user_id = app.user_id`), so today an owner reading through `withTenant` gets their OWN
- * row and nobody else's. The query below is the correct one for the day an org-wide SELECT
- * policy for owner/admin exists (see `team/SPEC.md`, "Blocked"); it needs no change then.
- * It is written against the intended policy rather than worked around, because the
- * workaround would be a second unscoped reader and invariant 1 says stop there.
+ * `org_members` and `wedding_members` carry `own_memberships` (`user_id = app.user_id`) for
+ * writes, plus `org_staff_read`, a `for select` policy for owner/admin scoped by `app.org_id`
+ * (migration `0007`, F1b). Without it an owner reading through `withTenant` would get only
+ * their own row. This query was written against that intended policy before it existed
+ * (see `team/SPEC.md`) rather than worked around, because the workaround would have been a
+ * second unscoped reader and invariant 1 says stop there.
  */
 
 export type TeamRole = 'owner' | 'admin' | 'member'
@@ -158,8 +158,8 @@ export async function listPendingInvites(
  *
  * Two refusals besides `forbidden`, both checked inside the same transaction as the insert:
  * a live pending invite for the same address, and an address that already belongs to a
- * member. The second read goes through `org_members`, so until the org-wide policy exists it
- * can only see the caller's own row -- see the header. The insert is not made conditional on
+ * member. The second read goes through `org_members` under `org_staff_read` (see the header),
+ * so it sees the whole org, not just the caller's own row. The insert is not made conditional on
  * either check at the database level (there is no unique index to lean on, and adding one is
  * a migration), so two simultaneous sends can both win; the cost is one duplicate pending row
  * that the planner can revoke.
