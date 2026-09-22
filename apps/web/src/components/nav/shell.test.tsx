@@ -385,7 +385,7 @@ describe('the organisation-level items', () => {
       .slice(0, 5)
       .map((a) => [a.textContent, a.getAttribute('href')])
     expect(links).toEqual([
-      ['Vandaag', '/today'],
+      ['Vandaag', '/'],
       ['Bruiloften', '/weddings'],
       ['Sjablonen', '/templates'],
       ['Leveranciers', '/vendors'],
@@ -399,6 +399,24 @@ describe('the organisation-level items', () => {
     expect(item('Sjablonen')).toHaveAttribute('aria-current', 'page')
     expect(item('Bruiloften')).not.toHaveAttribute('aria-current')
     expect(item('Vandaag')).not.toHaveAttribute('aria-current')
+  })
+
+  /**
+   * Today lives at `/`, which is a prefix of every path. `NavItem` matches `${href}/` and not a
+   * bare `startsWith(href)`, so `//` matches nothing and the item lights on the root alone. Make
+   * the prefix arm a bare `startsWith` and the second half fails.
+   */
+  it('marks Today on the root and on no other page', () => {
+    pathname = '/'
+    renderShell()
+    expect(item('Vandaag')).toHaveAttribute('aria-current', 'page')
+    expect(item('Bruiloften')).not.toHaveAttribute('aria-current')
+
+    cleanup()
+    pathname = '/weddings'
+    renderShell()
+    expect(item('Vandaag')).not.toHaveAttribute('aria-current')
+    expect(item('Bruiloften')).toHaveAttribute('aria-current', 'page')
   })
 
   /**

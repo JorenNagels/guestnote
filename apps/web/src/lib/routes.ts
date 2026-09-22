@@ -19,12 +19,13 @@ import { DEFAULT_LOCALE, type Locale } from './locales.ts'
 export const app = {
   home: () => '/',
   /**
-   * Cross-wedding "due this week" (spec 0003, S8). Its own path for now because `/` still
-   * redirects to `weddings()`, and a nav item pointing at `/` would bounce to the list.
-   * When S8 retires the redirect it decides whether this stays or becomes `home()`; the
-   * nav reads this function either way, so that is a one-line change here.
+   * Cross-wedding Today (spec 0003, S8), which IS the root now: `/` used to redirect to
+   * `weddings()`, and the F3 `/today` stub is gone. Still its own builder and not `home()`,
+   * so the sidebar reads what it means and a later move of the screen is one line here.
+   * Rejected: keeping `/today` as a second address for the same page -- two URLs for one
+   * screen splits the sidebar's active state, and nothing had linked to it yet.
    */
-  today: () => '/today',
+  today: () => '/',
   weddings: () => '/weddings',
   /**
    * A static segment beside `[id]`, which is why it needs no reservation: Next matches a

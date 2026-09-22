@@ -20,7 +20,7 @@ under "2026-09-21, by spec 0003".
 - Rail: initials chip per wedding, aria-label on every target. Phone: the same sidebar in the drawer.
 - The middle of the sidebar scrolls; collapse and account stay put.
 - Every route in `lib/routes.ts` has a `page.tsx`. Unbuilt screens render `ComingSoon`; the owning
-  slice replaces the file. `/` still redirects to `/weddings` until S8.
+  slice replaces the file. `/` is the Today screen as of S8 (it redirected to `/weddings` until then).
 
 ## States
 
