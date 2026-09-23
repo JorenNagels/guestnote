@@ -186,11 +186,12 @@ describe('the app host', () => {
     expect(passedThrough(response)).toBe(true)
   })
 
-  it('never lets the dashboard be cached or indexed', () => {
-    for (const path of ['/weddings', '/api/auth/session']) {
+  it('never lets the dashboard be cached, indexed or leaked through a Referer', () => {
+    for (const path of ['/weddings', '/api/auth/session', '/vendor/some-token']) {
       const response = proxy(request(`https://app.guestnote.be${path}`))
       expect(response.headers.get('cache-control')).toBe('private, no-store')
       expect(response.headers.get('x-robots-tag')).toBe('noindex, nofollow')
+      expect(response.headers.get('referrer-policy')).toBe('no-referrer')
     }
   })
 })
