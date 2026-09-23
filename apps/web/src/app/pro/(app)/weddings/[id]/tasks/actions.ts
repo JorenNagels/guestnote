@@ -26,9 +26,8 @@ import { isUuid } from '../../../../../../lib/uuid.ts'
  * client, and a task that is not in that wedding comes back `notFound`, the same answer as a
  * wedding that does not exist.
  *
- * Nothing catches a database error. What can reach one is a bad input, and `parseTaskForm` has
- * already refused those; anything else is an outage, and swallowing it into `failed` would hide it
- * from the logs that Next writes for an uncaught throw.
+ * Nothing catches a database error (`apps/web/README.md`, "Errors in a Server Function"). What
+ * can reach one is a bad input, and `parseTaskForm` has already refused those.
  */
 
 export type TaskActionError = TaskFormError | 'comment' | 'notFound'

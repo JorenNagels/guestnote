@@ -5,7 +5,6 @@ import { getDb } from '../../../../../../lib/db.ts'
 import { cleanText, parseCents } from '../../../../../../lib/money.ts'
 import { moneyError, revalidateMoney } from '../../../../../../lib/money-server.ts'
 import type { ActionResult } from '../../../../../../lib/money-types.ts'
-import { reportSilentFailure } from '../../../../../../lib/observability.ts'
 import { currentCaller } from '../../../../../../lib/principal.ts'
 import { isUuid } from '../../../../../../lib/uuid.ts'
 
@@ -67,24 +66,12 @@ export async function saveBudgetLine(
   const read = readLine(values)
   if ('error' in read) return { ok: false, error: read.error }
 
-  try {
-    const db = getDb()
-    const result =
-      lineId === null
-        ? await createBudgetLine(db, caller.memberships, caller.orgId, weddingId, read.input)
-        : await updateBudgetLine(
-            db,
-            caller.memberships,
-            caller.orgId,
-            weddingId,
-            lineId,
-            read.input,
-          )
-    if (!result.ok) return { ok: false, error: moneyError(result.reason, false) }
-  } catch (error) {
-    reportSilentFailure('saveBudgetLine failed', { error: String(error) })
-    return { ok: false, error: 'failed' }
-  }
+  const db = getDb()
+  const result =
+    lineId === null
+      ? await createBudgetLine(db, caller.memberships, caller.orgId, weddingId, read.input)
+      : await updateBudgetLine(db, caller.memberships, caller.orgId, weddingId, lineId, read.input)
+  if (!result.ok) return { ok: false, error: moneyError(result.reason, false) }
   revalidateMoney()
   return { ok: true }
 }
@@ -93,19 +80,14 @@ export async function removeBudgetLine(weddingId: string, lineId: string): Promi
   const caller = await currentCaller()
   if (!caller || !isUuid(weddingId) || !isUuid(lineId)) return { ok: false, error: 'notFound' }
 
-  try {
-    const result = await deleteBudgetLine(
-      getDb(),
-      caller.memberships,
-      caller.orgId,
-      weddingId,
-      lineId,
-    )
-    if (!result.ok) return { ok: false, error: moneyError(result.reason, false) }
-  } catch (error) {
-    reportSilentFailure('removeBudgetLine failed', { error: String(error) })
-    return { ok: false, error: 'failed' }
-  }
+  const result = await deleteBudgetLine(
+    getDb(),
+    caller.memberships,
+    caller.orgId,
+    weddingId,
+    lineId,
+  )
+  if (!result.ok) return { ok: false, error: moneyError(result.reason, false) }
   revalidateMoney()
   return { ok: true }
 }

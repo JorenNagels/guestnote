@@ -36,8 +36,7 @@ import { isUuid } from '../../../../../lib/uuid.ts'
  * template write**: it creates tasks, which any staff member may do on a wedding they are
  * assigned to, so it asks `createTasks` and not `canWrite`.
  *
- * Nothing catches a database error: what can reach one is an outage, and swallowing it into a
- * result would hide it from the log Next writes for an uncaught throw.
+ * Nothing catches a database error: `apps/web/README.md`, "Errors in a Server Function".
  */
 
 export type EditResult =

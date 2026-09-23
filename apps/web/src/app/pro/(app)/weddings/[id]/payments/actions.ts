@@ -11,7 +11,6 @@ import { getDb } from '../../../../../../lib/db.ts'
 import { paidInstant, parseCents, parseCivilDate } from '../../../../../../lib/money.ts'
 import { moneyError, revalidateMoney } from '../../../../../../lib/money-server.ts'
 import type { ActionResult } from '../../../../../../lib/money-types.ts'
-import { reportSilentFailure } from '../../../../../../lib/observability.ts'
 import { currentCaller } from '../../../../../../lib/principal.ts'
 import { isUuid } from '../../../../../../lib/uuid.ts'
 
@@ -63,24 +62,12 @@ export async function savePayment(
   const read = readPayment(values)
   if ('error' in read) return { ok: false, error: read.error }
 
-  try {
-    const db = getDb()
-    const result =
-      paymentId === null
-        ? await createPayment(db, caller.memberships, caller.orgId, weddingId, read.input)
-        : await updatePayment(
-            db,
-            caller.memberships,
-            caller.orgId,
-            weddingId,
-            paymentId,
-            read.input,
-          )
-    if (!result.ok) return { ok: false, error: moneyError(result.reason, true) }
-  } catch (error) {
-    reportSilentFailure('savePayment failed', { error: String(error) })
-    return { ok: false, error: 'failed' }
-  }
+  const db = getDb()
+  const result =
+    paymentId === null
+      ? await createPayment(db, caller.memberships, caller.orgId, weddingId, read.input)
+      : await updatePayment(db, caller.memberships, caller.orgId, weddingId, paymentId, read.input)
+  if (!result.ok) return { ok: false, error: moneyError(result.reason, true) }
   revalidateMoney()
   return { ok: true }
 }
@@ -97,20 +84,15 @@ export async function markPaymentPaid(
   const caller = await currentCaller()
   if (!caller || !isUuid(weddingId) || !isUuid(paymentId)) return { ok: false, error: 'notFound' }
 
-  try {
-    const result = await setPaymentPaidAt(
-      getDb(),
-      caller.memberships,
-      caller.orgId,
-      weddingId,
-      paymentId,
-      paid === true ? new Date() : null,
-    )
-    if (!result.ok) return { ok: false, error: moneyError(result.reason, false) }
-  } catch (error) {
-    reportSilentFailure('markPaymentPaid failed', { error: String(error) })
-    return { ok: false, error: 'failed' }
-  }
+  const result = await setPaymentPaidAt(
+    getDb(),
+    caller.memberships,
+    caller.orgId,
+    weddingId,
+    paymentId,
+    paid === true ? new Date() : null,
+  )
+  if (!result.ok) return { ok: false, error: moneyError(result.reason, false) }
   revalidateMoney()
   return { ok: true }
 }
@@ -119,19 +101,14 @@ export async function removePayment(weddingId: string, paymentId: string): Promi
   const caller = await currentCaller()
   if (!caller || !isUuid(weddingId) || !isUuid(paymentId)) return { ok: false, error: 'notFound' }
 
-  try {
-    const result = await deletePayment(
-      getDb(),
-      caller.memberships,
-      caller.orgId,
-      weddingId,
-      paymentId,
-    )
-    if (!result.ok) return { ok: false, error: moneyError(result.reason, false) }
-  } catch (error) {
-    reportSilentFailure('removePayment failed', { error: String(error) })
-    return { ok: false, error: 'failed' }
-  }
+  const result = await deletePayment(
+    getDb(),
+    caller.memberships,
+    caller.orgId,
+    weddingId,
+    paymentId,
+  )
+  if (!result.ok) return { ok: false, error: moneyError(result.reason, false) }
   revalidateMoney()
   return { ok: true }
 }

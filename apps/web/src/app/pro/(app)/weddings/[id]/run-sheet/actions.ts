@@ -9,7 +9,6 @@ import {
 } from '@guestnote/db'
 import { revalidatePath } from 'next/cache'
 import { getDb } from '../../../../../../lib/db.ts'
-import { reportSilentFailure } from '../../../../../../lib/observability.ts'
 import { currentCaller } from '../../../../../../lib/principal.ts'
 import {
   parseRunSheetForm,
@@ -50,17 +49,12 @@ export async function saveRunSheetItem(
   const read = parseRunSheetForm(values)
   if ('error' in read) return { ok: false, error: read.error }
 
-  try {
-    const db = getDb()
-    const result =
-      itemId === null
-        ? await createRunSheetItem(db, c.memberships, c.orgId, weddingId, read.eventId, read.input)
-        : await updateRunSheetItem(db, c.memberships, c.orgId, weddingId, itemId, read.input)
-    if (!result.ok) return { ok: false, error: refusal(result.reason) }
-  } catch (error) {
-    reportSilentFailure('saveRunSheetItem failed', { error: String(error) })
-    return { ok: false, error: 'failed' }
-  }
+  const db = getDb()
+  const result =
+    itemId === null
+      ? await createRunSheetItem(db, c.memberships, c.orgId, weddingId, read.eventId, read.input)
+      : await updateRunSheetItem(db, c.memberships, c.orgId, weddingId, itemId, read.input)
+  if (!result.ok) return { ok: false, error: refusal(result.reason) }
   revalidatePath(RUN_SHEET, 'page')
   return { ok: true }
 }
@@ -72,13 +66,8 @@ export async function removeRunSheetItem(
   const c = await currentCaller()
   if (!c || !isUuid(weddingId) || !isUuid(itemId)) return { ok: false, error: 'notFound' }
 
-  try {
-    const result = await deleteRunSheetItem(getDb(), c.memberships, c.orgId, weddingId, itemId)
-    if (!result.ok) return { ok: false, error: refusal(result.reason) }
-  } catch (error) {
-    reportSilentFailure('removeRunSheetItem failed', { error: String(error) })
-    return { ok: false, error: 'failed' }
-  }
+  const result = await deleteRunSheetItem(getDb(), c.memberships, c.orgId, weddingId, itemId)
+  if (!result.ok) return { ok: false, error: refusal(result.reason) }
   revalidatePath(RUN_SHEET, 'page')
   return { ok: true }
 }
@@ -92,20 +81,15 @@ export async function shiftRunSheetItem(
   if (!c || !isUuid(weddingId) || !isUuid(itemId)) return { ok: false, error: 'notFound' }
   if (direction !== 'up' && direction !== 'down') return { ok: false, error: 'failed' }
 
-  try {
-    const result = await moveRunSheetItem(
-      getDb(),
-      c.memberships,
-      c.orgId,
-      weddingId,
-      itemId,
-      direction,
-    )
-    if (!result.ok) return { ok: false, error: refusal(result.reason) }
-  } catch (error) {
-    reportSilentFailure('shiftRunSheetItem failed', { error: String(error) })
-    return { ok: false, error: 'failed' }
-  }
+  const result = await moveRunSheetItem(
+    getDb(),
+    c.memberships,
+    c.orgId,
+    weddingId,
+    itemId,
+    direction,
+  )
+  if (!result.ok) return { ok: false, error: refusal(result.reason) }
   revalidatePath(RUN_SHEET, 'page')
   return { ok: true }
 }
