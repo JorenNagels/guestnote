@@ -4,9 +4,10 @@ import { newId } from '../id.ts'
 import { budgetLines, payments } from '../schema/money.ts'
 import { vendors, weddingVendors } from '../schema/vendors.ts'
 import { weddings } from '../schema/weddings.ts'
-import type { Principal, TenantDb } from '../tenant.ts'
+import type { TenantDb } from '../tenant.ts'
 import { withTenant } from '../tenant.ts'
-import { type Memberships, principalForOrg, principalForWedding } from './memberships.ts'
+import type { Memberships } from './memberships.ts'
+import { staffPrincipal } from './staff-principal.ts'
 
 /**
  * Slice S4 of docs/specs/0003-planner-app-screens.md: the budget's lines.
@@ -18,7 +19,7 @@ import { type Memberships, principalForOrg, principalForWedding } from './member
  *
  * Owner, admin, and a `member` assigned to the wedding. The `budget_lines` and `payments`
  * policies exclude `couple` and `editor` (spec 0003: no new table is readable by a couple), and
- * `moneyPrincipal` refuses that shape here as well, so a `weddingMember` gets `null` -- a 404 --
+ * `staffPrincipal` refuses that shape here as well, so a `weddingMember` gets `null` -- a 404 --
  * instead of an empty budget that would say the wedding exists.
  */
 
@@ -81,20 +82,6 @@ export type MoneyResult =
   | { readonly ok: false; readonly reason: MoneyFailure }
 
 /**
- * The principal that may touch money on this wedding, or `null`.
- *
- * The same union as `getWedding`'s -- `principalForOrg` admits owner and admin, `principalForWedding`
- * an assigned member -- minus the `weddingMember` (`couple` / `editor`) shape, which the policy would
- * turn into an empty result. Refusing it here makes the failure a `null` at the top instead of a
- * silent empty budget, and it is the braces to the policy's belt.
- */
-export function moneyPrincipal(m: Memberships, orgId: string, weddingId: string): Principal | null {
-  const principal = principalForOrg(m, orgId) ?? principalForWedding(m, orgId, weddingId)
-  if (!principal || principal.kind === 'weddingMember') return null
-  return principal
-}
-
-/**
  * The wedding row, read under the principal. This IS the parent read for everything below:
  * an unpinned owner would otherwise write a row whose `wedding_id` names a wedding in another
  * org, because the foreign keys are plain, not composite (spec 0003, measured in the F1 audit).
@@ -121,7 +108,7 @@ export async function getBudget(
   orgId: string,
   weddingId: string,
 ): Promise<BudgetData | null> {
-  const principal = moneyPrincipal(m, orgId, weddingId)
+  const principal = staffPrincipal(m, orgId, weddingId)
   if (!principal) return null
 
   return withTenant(db, principal, async (tx) => {
@@ -200,7 +187,7 @@ export async function createBudgetLine(
   weddingId: string,
   input: BudgetLineInput,
 ): Promise<MoneyResult> {
-  const principal = moneyPrincipal(m, orgId, weddingId)
+  const principal = staffPrincipal(m, orgId, weddingId)
   if (!principal) return { ok: false, reason: 'not-found' }
 
   return withTenant(db, principal, async (tx): Promise<MoneyResult> => {
@@ -231,7 +218,7 @@ export async function updateBudgetLine(
   lineId: string,
   input: BudgetLineInput,
 ): Promise<MoneyResult> {
-  const principal = moneyPrincipal(m, orgId, weddingId)
+  const principal = staffPrincipal(m, orgId, weddingId)
   if (!principal) return { ok: false, reason: 'not-found' }
 
   return withTenant(db, principal, async (tx): Promise<MoneyResult> => {
@@ -275,7 +262,7 @@ export async function deleteBudgetLine(
   weddingId: string,
   lineId: string,
 ): Promise<MoneyResult> {
-  const principal = moneyPrincipal(m, orgId, weddingId)
+  const principal = staffPrincipal(m, orgId, weddingId)
   if (!principal) return { ok: false, reason: 'not-found' }
 
   return withTenant(db, principal, async (tx): Promise<MoneyResult> => {

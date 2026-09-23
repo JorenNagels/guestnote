@@ -80,7 +80,7 @@ describe('getBudget', () => {
     expect(await getBudget(h.db, otherOrgOwner, F.orgA, A1)).toBeNull()
     expect(await getBudget(h.db, otherOrgOwner, F.orgB, A1)).toBeNull()
     expect(await getBudget(h.db, member, F.orgA, A2)).toBeNull()
-    // A couple is refused by the repo AND by the policy; `moneyPrincipal` is the repo's half.
+    // A couple is refused by the repo AND by the policy; `staffPrincipal` is the repo's half.
     expect(await getBudget(h.db, couple, F.orgA, A1)).toBeNull()
   })
 

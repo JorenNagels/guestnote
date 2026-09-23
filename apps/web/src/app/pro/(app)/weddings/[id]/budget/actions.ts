@@ -9,7 +9,7 @@ import { reportSilentFailure } from '../../../../../../lib/observability.ts'
 
 /**
  * The budget's writes. Each does its own authorization (`moneyCaller`, then the repo's
- * `moneyPrincipal`), because a Server Function is a POST to its own route and the layout's
+ * `staffPrincipal`), because a Server Function is a POST to its own route and the layout's
  * session gate never runs for it.
  *
  * Every value arrives as text, because a Server Function argument is whatever the request body

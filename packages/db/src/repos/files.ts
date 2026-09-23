@@ -3,8 +3,9 @@ import type { Db } from '../client.ts'
 import { users } from '../schema/auth.ts'
 import { files } from '../schema/files.ts'
 import { weddings } from '../schema/weddings.ts'
-import { type Principal, withTenant } from '../tenant.ts'
-import { type Memberships, principalForOrg, principalForWedding } from './memberships.ts'
+import { withTenant } from '../tenant.ts'
+import type { Memberships } from './memberships.ts'
+import { staffPrincipal } from './staff-principal.ts'
 
 /**
  * The Files screen and the moodboard (spec 0003, slice S5). One table, two screens: `kind`
@@ -76,17 +77,6 @@ function toRow(r: Selected): FileRow {
     kind: r.kind === 'image' ? 'image' : 'file',
     visibility: r.visibility === 'internal' ? 'internal' : 'shared',
   }
-}
-
-/**
- * Owner, admin, or an assigned member. Never a couple or an editor.
- *
- * `principalForOrg ?? principalForWedding` is the union `getWedding` documents: the two have
- * disjoint non-null domains, so the order is not a precedence rule.
- */
-function staffPrincipal(m: Memberships, orgId: string, weddingId: string): Principal | null {
-  const p = principalForOrg(m, orgId) ?? principalForWedding(m, orgId, weddingId)
-  return p && p.kind !== 'weddingMember' ? p : null
 }
 
 /**

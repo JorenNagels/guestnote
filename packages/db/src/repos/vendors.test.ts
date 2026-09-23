@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import type { Memberships } from './memberships.ts'
-import { vendorDirectoryAccess, weddingVendorPrincipal } from './vendors.ts'
+import { vendorDirectoryAccess } from './vendors.ts'
 
 /**
  * The two decisions in `vendors.ts` that need no database: who may see the directory and
- * whether they may write it, and who may see one wedding's vendor list. The queries and the
+ * whether they may write it. Who may see one wedding's vendor list is `staffPrincipal`, tested
+ * in `staff-principal.test.ts`. The queries and the
  * policies behind them are `packages/db/test`'s job; what is asserted here is that the
  * application never asks a policy to refuse what it should have refused outright.
  */
@@ -12,7 +13,6 @@ import { vendorDirectoryAccess, weddingVendorPrincipal } from './vendors.ts'
 const ORG_A = 'aaaaaaaa-0000-0000-0000-00000000000a'
 const ORG_B = 'bbbbbbbb-0000-0000-0000-00000000000b'
 const W1 = '11111111-0000-0000-0000-000000000001'
-const W2 = '22222222-0000-0000-0000-000000000002'
 const USER = 'dddddddd-0000-0000-0000-0000000000d1'
 
 function m(x: Partial<Omit<Memberships, 'userId'>> = {}): Memberships {
@@ -56,35 +56,5 @@ describe('vendorDirectoryAccess', () => {
     expect(
       vendorDirectoryAccess(m({ weddings: [{ weddingId: W1, role: 'couple' }] }), ORG_A),
     ).toBeNull()
-  })
-})
-
-describe('weddingVendorPrincipal', () => {
-  it('gives owner and admin the org-wide principal for any wedding', () => {
-    const p = weddingVendorPrincipal(m({ orgs: [{ orgId: ORG_A, role: 'admin' }] }), ORG_A, W2)
-    expect(p?.kind).toBe('orgStaff')
-  })
-
-  it('pins a member to the wedding they are assigned to', () => {
-    const mm = m({
-      orgs: [{ orgId: ORG_A, role: 'member' }],
-      weddings: [{ weddingId: W1, role: 'editor' }],
-    })
-    expect(weddingVendorPrincipal(mm, ORG_A, W1)?.kind).toBe('assignedStaff')
-    expect(weddingVendorPrincipal(mm, ORG_A, W2)).toBeNull()
-  })
-
-  /** No new table is readable by a couple or outside editor; an empty list would lie. */
-  it('refuses a couple and an outside editor', () => {
-    for (const role of ['couple', 'editor'] as const) {
-      expect(
-        weddingVendorPrincipal(m({ weddings: [{ weddingId: W1, role }] }), ORG_A, W1),
-      ).toBeNull()
-    }
-  })
-
-  it('refuses another org', () => {
-    const mm = m({ orgs: [{ orgId: ORG_A, role: 'owner' }] })
-    expect(weddingVendorPrincipal(mm, ORG_B, W1)).toBeNull()
   })
 })

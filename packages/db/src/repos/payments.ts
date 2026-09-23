@@ -5,13 +5,14 @@ import { budgetLines, payments } from '../schema/money.ts'
 import { vendors, weddingVendors } from '../schema/vendors.ts'
 import type { TenantDb } from '../tenant.ts'
 import { withTenant } from '../tenant.ts'
-import { type MoneyContext, type MoneyResult, moneyPrincipal, readMoneyContext } from './budget.ts'
+import { type MoneyContext, type MoneyResult, readMoneyContext } from './budget.ts'
 import type { Memberships } from './memberships.ts'
+import { staffPrincipal } from './staff-principal.ts'
 
 /**
  * Slice S4 of docs/specs/0003-planner-app-screens.md: the payment schedule.
  *
- * Who may reach it, and why a couple cannot, is `budget.ts`'s `moneyPrincipal`. A payment is a
+ * Who may reach it, and why a couple cannot, is `staff-principal.ts`'s `staffPrincipal`. A payment is a
  * dated amount against a budget line; `paid_at` null means not yet paid. Whether one is overdue
  * is NOT decided here: it needs today's date in the wedding's timezone, and `apps/web/src/lib/
  * money.ts` computes it from the real clock at render, so a stored answer could only be stale.
@@ -58,7 +59,7 @@ export async function getPayments(
   orgId: string,
   weddingId: string,
 ): Promise<PaymentsData | null> {
-  const principal = moneyPrincipal(m, orgId, weddingId)
+  const principal = staffPrincipal(m, orgId, weddingId)
   if (!principal) return null
 
   return withTenant(db, principal, async (tx) => {
@@ -121,7 +122,7 @@ export async function createPayment(
   weddingId: string,
   input: PaymentInput,
 ): Promise<MoneyResult> {
-  const principal = moneyPrincipal(m, orgId, weddingId)
+  const principal = staffPrincipal(m, orgId, weddingId)
   if (!principal) return { ok: false, reason: 'not-found' }
 
   return withTenant(db, principal, async (tx): Promise<MoneyResult> => {
@@ -151,7 +152,7 @@ export async function updatePayment(
   paymentId: string,
   input: PaymentInput,
 ): Promise<MoneyResult> {
-  const principal = moneyPrincipal(m, orgId, weddingId)
+  const principal = staffPrincipal(m, orgId, weddingId)
   if (!principal) return { ok: false, reason: 'not-found' }
 
   return withTenant(db, principal, async (tx): Promise<MoneyResult> => {
@@ -183,7 +184,7 @@ export async function setPaymentPaidAt(
   paymentId: string,
   paidAt: Date | null,
 ): Promise<MoneyResult> {
-  const principal = moneyPrincipal(m, orgId, weddingId)
+  const principal = staffPrincipal(m, orgId, weddingId)
   if (!principal) return { ok: false, reason: 'not-found' }
 
   return withTenant(db, principal, async (tx): Promise<MoneyResult> => {
@@ -204,7 +205,7 @@ export async function deletePayment(
   weddingId: string,
   paymentId: string,
 ): Promise<MoneyResult> {
-  const principal = moneyPrincipal(m, orgId, weddingId)
+  const principal = staffPrincipal(m, orgId, weddingId)
   if (!principal) return { ok: false, reason: 'not-found' }
 
   return withTenant(db, principal, async (tx): Promise<MoneyResult> => {

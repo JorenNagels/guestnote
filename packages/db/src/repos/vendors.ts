@@ -10,6 +10,7 @@ import {
 import { weddings } from '../schema/weddings.ts'
 import { type Principal, type TenantDb, withTenant } from '../tenant.ts'
 import { type Memberships, principalForOrg, principalForWedding } from './memberships.ts'
+import { staffPrincipal } from './staff-principal.ts'
 
 /**
  * Slice S3 of docs/specs/0003-planner-app-screens.md: the org's vendor directory (`vendors`)
@@ -110,24 +111,6 @@ export function vendorDirectoryAccess(
   return null
 }
 
-/**
- * The principal for one wedding's vendor list, or `null`.
- *
- * `weddingMember` (couple, editor) is refused here and not left to RLS: none of the new
- * tables is readable by them until the couple spec lands, so letting the query run would
- * return an empty list and render a screen that looks like "this wedding has no vendors".
- * A 404 is the honest answer.
- */
-export function weddingVendorPrincipal(
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
-): Principal | null {
-  const p = principalForOrg(m, orgId) ?? principalForWedding(m, orgId, weddingId)
-  if (!p || p.kind === 'weddingMember') return null
-  return p
-}
-
 function isUniqueViolation(e: unknown): boolean {
   let cur: unknown = e
   for (let depth = 0; depth < 4 && typeof cur === 'object' && cur !== null; depth++) {
@@ -226,7 +209,7 @@ export async function getWeddingVendors(
   orgId: string,
   weddingId: string,
 ): Promise<{ linked: WeddingVendorRow[]; directory: VendorRow[]; canCreate: boolean } | null> {
-  const principal = weddingVendorPrincipal(m, orgId, weddingId)
+  const principal = staffPrincipal(m, orgId, weddingId)
   if (!principal) return null
 
   return withTenant(db, principal, async (tx) => {
@@ -299,7 +282,7 @@ export async function addWeddingVendor(
   weddingId: string,
   vendorId: string,
 ): Promise<VendorWriteResult<{ id: string }>> {
-  const principal = weddingVendorPrincipal(m, orgId, weddingId)
+  const principal = staffPrincipal(m, orgId, weddingId)
   if (!principal) return NOT_FOUND
   try {
     return await withTenant(db, principal, async (tx) => linkInTx(tx, orgId, weddingId, vendorId))
@@ -319,7 +302,7 @@ export async function createVendorForWedding(
   weddingId: string,
   input: VendorInput,
 ): Promise<VendorWriteResult<{ id: string; vendorId: string }>> {
-  const principal = weddingVendorPrincipal(m, orgId, weddingId)
+  const principal = staffPrincipal(m, orgId, weddingId)
   if (!principal) return NOT_FOUND
   // A member can link but not create; RLS would refuse the insert anyway, with an error
   // instead of an answer.
@@ -388,7 +371,7 @@ export async function updateWeddingVendor(
   linkId: string,
   patch: { readonly status?: WeddingVendorStatus; readonly notes?: string | null },
 ): Promise<VendorWriteResult> {
-  const principal = weddingVendorPrincipal(m, orgId, weddingId)
+  const principal = staffPrincipal(m, orgId, weddingId)
   if (!principal) return NOT_FOUND
   const changed = await withTenant(db, principal, async (tx) =>
     tx
@@ -418,7 +401,7 @@ export async function removeWeddingVendor(
   weddingId: string,
   linkId: string,
 ): Promise<VendorWriteResult> {
-  const principal = weddingVendorPrincipal(m, orgId, weddingId)
+  const principal = staffPrincipal(m, orgId, weddingId)
   if (!principal) return NOT_FOUND
   const now = new Date()
   const changed = await withTenant(db, principal, async (tx) =>

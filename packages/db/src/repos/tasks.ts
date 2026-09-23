@@ -10,8 +10,9 @@ import {
   tasks,
 } from '../schema/tasks.ts'
 import { weddings } from '../schema/weddings.ts'
-import { type MembershipPrincipal, withTenant } from '../tenant.ts'
-import { type Memberships, principalForOrg, principalForWedding } from './memberships.ts'
+import { withTenant } from '../tenant.ts'
+import { type Memberships, principalForOrg } from './memberships.ts'
+import { staffPrincipal } from './staff-principal.ts'
 
 /**
  * Slice S2 of docs/specs/0003-planner-app-screens.md. Tasks and their comments.
@@ -180,20 +181,6 @@ export function compareTasks(a: TaskRow, b: TaskRow): number {
 }
 
 // --------------------------------------------------------------------- plumbing ----
-
-/**
- * Staff who may use the planner screens, or `null`. Owner and admin take the org-wide
- * principal (and every query pins the wedding itself); a member takes the pinned one.
- * A `weddingMember` -- couple or outside editor -- is refused, see the header.
- */
-function staffPrincipal(
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
-): MembershipPrincipal | null {
-  const p = principalForOrg(m, orgId) ?? principalForWedding(m, orgId, weddingId)
-  return p && p.kind !== 'weddingMember' ? p : null
-}
 
 /**
  * A person's display name. `users.name` is nullable on purpose (an invited staff member has no
