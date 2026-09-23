@@ -160,7 +160,10 @@ export async function createVendorLinkAction(
 
   const { token, tokenHash } = newVendorLinkToken()
   const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000)
-  const r = await createVendorLink(getDb(), ctx.m, ctx.orgId, id, { tokenHash, expiresAt })
+  const r = await createVendorLink(getDb(), ctx.m, ctx.orgId, ctx.weddingId, id, {
+    tokenHash,
+    expiresAt,
+  })
   if (r.kind !== 'created') return { ok: false, error: r.kind }
   refresh()
   return { ok: true, token, expiresAt: expiresAt.toISOString() }
@@ -174,7 +177,7 @@ export async function revokeVendorLinkAction(
   if (!ctx) return { ok: false }
   const id = parseId(linkId)
   if (!id) return { ok: false }
-  const gone = await revokeVendorLink(getDb(), ctx.m, ctx.orgId, id)
+  const gone = await revokeVendorLink(getDb(), ctx.m, ctx.orgId, ctx.weddingId, id)
   if (gone) refresh()
   return { ok: gone }
 }

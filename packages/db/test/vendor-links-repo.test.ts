@@ -122,7 +122,7 @@ describe('resolve_vendor_link', () => {
 
 describe('createVendorLink', () => {
   it('owner creates a link, and it resolves live', async () => {
-    const r = await createVendorLink(h.db, owner, F.orgA, F.wedVendorA1, {
+    const r = await createVendorLink(h.db, owner, F.orgA, F.weddingA1, F.wedVendorA1, {
       tokenHash: 'hash-new-1',
       expiresAt: new Date(Date.now() + 30 * 86_400_000),
     })
@@ -131,7 +131,7 @@ describe('createVendorLink', () => {
   })
 
   it('a member is refused before any write: principalForOrg returns null for member', async () => {
-    const r = await createVendorLink(h.db, member, F.orgA, F.wedVendorA1, {
+    const r = await createVendorLink(h.db, member, F.orgA, F.weddingA1, F.wedVendorA1, {
       tokenHash: 'hash-should-not-exist',
       expiresAt: new Date(Date.now() + 86_400_000),
     })
@@ -142,7 +142,7 @@ describe('createVendorLink', () => {
   it("the parent read refuses another org's wedding_vendors row, even though the FK alone would accept it", async () => {
     // staffB has no org_members row in org A, so principalForOrg(member, F.orgA) is already
     // null for THEM -- the interesting case is org A's own owner naming org B's vendor id.
-    const r = await createVendorLink(h.db, owner, F.orgA, F.wedVendorB1, {
+    const r = await createVendorLink(h.db, owner, F.orgA, F.weddingB1, F.wedVendorB1, {
       tokenHash: 'hash-cross-org',
       expiresAt: new Date(Date.now() + 86_400_000),
     })
@@ -151,7 +151,7 @@ describe('createVendorLink', () => {
   })
 
   it("an owner of a different org cannot create a link for org A's vendor at all", async () => {
-    const r = await createVendorLink(h.db, otherOrgOwner, F.orgA, F.wedVendorA1, {
+    const r = await createVendorLink(h.db, otherOrgOwner, F.orgA, F.weddingA1, F.wedVendorA1, {
       tokenHash: 'hash-not-my-org',
       expiresAt: new Date(Date.now() + 86_400_000),
     })
@@ -162,7 +162,7 @@ describe('createVendorLink', () => {
     // F.linkA1 (hash-link-a1) is already live for F.wedVendorA1 in the base fixture.
     expect(await liveLinkCount(F.wedVendorA1)).toBe(1)
 
-    await createVendorLink(h.db, owner, F.orgA, F.wedVendorA1, {
+    await createVendorLink(h.db, owner, F.orgA, F.weddingA1, F.wedVendorA1, {
       tokenHash: 'hash-replacement',
       expiresAt: new Date(Date.now() + 86_400_000),
     })
@@ -173,8 +173,19 @@ describe('createVendorLink', () => {
     expect(await liveLinkCount(F.wedVendorA1)).toBe(1)
   })
 
+  it("refuses a vendor row from another wedding of the same org: the route's wedding is enforced", async () => {
+    // F.wedVendorA2 belongs to F.weddingA2. Same org, same owner -- only the wedding differs.
+    const r = await createVendorLink(h.db, owner, F.orgA, F.weddingA1, F.wedVendorA2, {
+      tokenHash: 'hash-wrong-wedding',
+      expiresAt: new Date(Date.now() + 86_400_000),
+    })
+    expect(r).toEqual({ kind: 'notFound' })
+    expect(await resolveRaw('hash-wrong-wedding')).toEqual([])
+    expect((await resolveRaw('hash-link-a2'))[0]?.status).toBe('live')
+  })
+
   it('does not disturb a live link on a DIFFERENT vendor', async () => {
-    await createVendorLink(h.db, owner, F.orgA, F.wedVendorA1, {
+    await createVendorLink(h.db, owner, F.orgA, F.weddingA1, F.wedVendorA1, {
       tokenHash: 'hash-a1-again',
       expiresAt: new Date(Date.now() + 86_400_000),
     })
@@ -192,7 +203,7 @@ describe('revokeVendorLink', () => {
     )
     const id = (live as { id: string }).id
 
-    expect(await revokeVendorLink(h.db, owner, F.orgA, id)).toBe(true)
+    expect(await revokeVendorLink(h.db, owner, F.orgA, F.weddingA1, id)).toBe(true)
     expect((await resolveRaw('hash-link-a1'))[0]?.status).toBe('revoked')
   })
 
@@ -204,8 +215,8 @@ describe('revokeVendorLink', () => {
     )
     const id = (live as { id: string }).id
 
-    expect(await revokeVendorLink(h.db, owner, F.orgA, id)).toBe(true)
-    expect(await revokeVendorLink(h.db, owner, F.orgA, id)).toBe(false)
+    expect(await revokeVendorLink(h.db, owner, F.orgA, F.weddingA1, id)).toBe(true)
+    expect(await revokeVendorLink(h.db, owner, F.orgA, F.weddingA1, id)).toBe(false)
   })
 
   it('a member cannot revoke: refused before any write', async () => {
@@ -216,8 +227,21 @@ describe('revokeVendorLink', () => {
     )
     const id = (live as { id: string }).id
 
-    expect(await revokeVendorLink(h.db, member, F.orgA, id)).toBe(false)
+    expect(await revokeVendorLink(h.db, member, F.orgA, F.weddingA1, id)).toBe(false)
     expect((await resolveRaw('hash-link-a1'))[0]?.status).toBe('live')
+  })
+
+  it('cannot revoke a link of another wedding of the same org by naming it under this one', async () => {
+    const [live] = await asPrincipal(
+      h,
+      { userId: F.staffA, orgId: F.orgA, weddingRole: 'owner' },
+      `select id from vendor_links where token_hash = 'hash-link-a2'`,
+    )
+    const id = (live as { id: string }).id
+
+    // hash-link-a2 is on F.weddingA2; naming it under F.weddingA1 matches nothing.
+    expect(await revokeVendorLink(h.db, owner, F.orgA, F.weddingA1, id)).toBe(false)
+    expect((await resolveRaw('hash-link-a2'))[0]?.status).toBe('live')
   })
 
   it("cannot revoke another org's link by naming its id under this org", async () => {
@@ -228,7 +252,7 @@ describe('revokeVendorLink', () => {
     )
     const id = (live as { id: string }).id
 
-    expect(await revokeVendorLink(h.db, owner, F.orgA, id)).toBe(false)
+    expect(await revokeVendorLink(h.db, owner, F.orgA, F.weddingA1, id)).toBe(false)
     expect((await resolveRaw('hash-link-b1'))[0]?.status).toBe('live')
   })
 })

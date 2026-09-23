@@ -196,7 +196,8 @@ describe('createVendorLinkAction', () => {
     expect(out.token).toMatch(/^[A-Za-z0-9_-]{40,}$/)
     expect(new Date(out.expiresAt).getTime()).toBeGreaterThan(Date.now())
 
-    const [, , , , input] = createVendorLink.mock.calls[0] as [
+    const [, , , , , input] = createVendorLink.mock.calls[0] as [
+      unknown,
       unknown,
       unknown,
       unknown,
@@ -211,12 +212,12 @@ describe('createVendorLinkAction', () => {
 
   it('defaults the expiry to 30 days, and honours an explicit one within the cap', async () => {
     await createVendorLinkAction(WEDDING, VENDOR, undefined)
-    const defaultInput = createVendorLink.mock.calls[0]?.[4] as { expiresAt: Date }
+    const defaultInput = createVendorLink.mock.calls[0]?.[5] as { expiresAt: Date }
     expect(defaultInput.expiresAt.getTime()).toBeGreaterThan(Date.now() + 29 * 86_400_000)
 
     createVendorLink.mockClear()
     await createVendorLinkAction(WEDDING, VENDOR, '5')
-    const customInput = createVendorLink.mock.calls[0]?.[4] as { expiresAt: Date }
+    const customInput = createVendorLink.mock.calls[0]?.[5] as { expiresAt: Date }
     expect(customInput.expiresAt.getTime()).toBeLessThan(Date.now() + 6 * 86_400_000)
   })
 
@@ -252,7 +253,7 @@ describe('createVendorLinkAction', () => {
 describe('revokeVendorLinkAction', () => {
   it('revokes and refreshes', async () => {
     expect(await revokeVendorLinkAction(WEDDING, LINK)).toEqual({ ok: true })
-    expect(revokeVendorLink).toHaveBeenCalledWith({}, expect.anything(), ORG, LINK)
+    expect(revokeVendorLink).toHaveBeenCalledWith({}, expect.anything(), ORG, WEDDING, LINK)
     expect(revalidatePath).toHaveBeenCalledWith('/pro/weddings/[id]/vendors', 'page')
   })
 

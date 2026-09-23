@@ -101,7 +101,9 @@ async function rowsOf<T>(pending: Promise<unknown>): Promise<T[]> {
  * Creates a link for one `wedding_vendors` row. Owner/admin only, and the parent is read
  * first (spec 0003's parent-read rule): `vendor_links.wedding_vendor_id` is a plain FK, so
  * without this an org-wide principal's policy would let a caller name another wedding's
- * `wedding_vendors` id and mint a token for it.
+ * `wedding_vendors` id and mint a token for it. The read is narrowed to `weddingId` as well
+ * as `orgId`: the route's wedding is what the planner is looking at, and a row id from a
+ * different wedding of the same org is `notFound` here rather than silently accepted.
  *
  * Any link already live for this vendor is revoked first, in the SAME transaction as the
  * insert. Nothing in the schema stops two live links existing for one vendor, but the UI
@@ -117,6 +119,7 @@ export async function createVendorLink(
   db: Db,
   m: Memberships,
   orgId: string,
+  weddingId: string,
   weddingVendorId: string,
   input: { readonly tokenHash: string; readonly expiresAt: Date },
 ): Promise<VendorLinkWriteResult> {
@@ -125,12 +128,13 @@ export async function createVendorLink(
 
   return withTenant(db, principal, async (tx) => {
     const parent = await tx
-      .select({ id: weddingVendors.id, weddingId: weddingVendors.weddingId })
+      .select({ id: weddingVendors.id })
       .from(weddingVendors)
       .where(
         and(
           eq(weddingVendors.id, weddingVendorId),
           eq(weddingVendors.orgId, orgId),
+          eq(weddingVendors.weddingId, weddingId),
           isNull(weddingVendors.deletedAt),
         ),
       )
@@ -146,7 +150,7 @@ export async function createVendorLink(
     await tx.insert(vendorLinks).values({
       id,
       orgId,
-      weddingId: wv.weddingId,
+      weddingId,
       weddingVendorId,
       tokenHash: input.tokenHash,
       expiresAt: input.expiresAt,
@@ -156,7 +160,8 @@ export async function createVendorLink(
 }
 
 /**
- * Revokes a link. Sets `revoked_at` rather than deleting -- 0006's `vendors.ts` schema comment:
+ * Revokes a link on `weddingId` -- a link id from another wedding of the same org matches
+ * nothing, like `createVendorLink`'s parent read. Sets `revoked_at` rather than deleting -- 0006's `vendors.ts` schema comment:
  * "so 'this link was revoked on...' stays answerable" -- which is also why this returns
  * `false` on a link already revoked rather than treating it as already-done: a caller
  * re-revoking a live link and one clicking a stale button should not read as the same case
@@ -166,6 +171,7 @@ export async function revokeVendorLink(
   db: Db,
   m: Memberships,
   orgId: string,
+  weddingId: string,
   linkId: string,
 ): Promise<boolean> {
   const principal = principalForOrg(m, orgId)
@@ -179,6 +185,7 @@ export async function revokeVendorLink(
         and(
           eq(vendorLinks.id, linkId),
           eq(vendorLinks.orgId, orgId),
+          eq(vendorLinks.weddingId, weddingId),
           isNull(vendorLinks.revokedAt),
         ),
       )
