@@ -3,7 +3,6 @@ import { Card } from '@guestnote/ui/card'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getLocale, getTranslations } from 'next-intl/server'
-import { isUuid } from '../../../../../components/wedding/form-state.ts'
 import {
   formatCivilDate,
   WeddingHeader,
@@ -13,6 +12,7 @@ import { getDb } from '../../../../../lib/db.ts'
 import { currentMemberships, currentOrgId } from '../../../../../lib/principal.ts'
 import { app } from '../../../../../lib/routes.ts'
 import { daysUntil } from '../../../../../lib/tminus.ts'
+import { isUuid } from '../../../../../lib/uuid.ts'
 
 /**
  * A wedding's landing screen: four figures, the next events, and the planner's own notes.

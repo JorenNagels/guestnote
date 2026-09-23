@@ -8,7 +8,6 @@ import {
   updateRunSheetItem,
 } from '@guestnote/db'
 import { revalidatePath } from 'next/cache'
-import { isUuid } from '../../../../../../components/wedding/form-state.ts'
 import { getDb } from '../../../../../../lib/db.ts'
 import { reportSilentFailure } from '../../../../../../lib/observability.ts'
 import { currentMemberships, currentOrgId } from '../../../../../../lib/principal.ts'
@@ -17,6 +16,7 @@ import {
   type RunSheetActionResult,
   type RunSheetError,
 } from '../../../../../../lib/run-sheet.ts'
+import { isUuid } from '../../../../../../lib/uuid.ts'
 
 /**
  * The run sheet's writes. Each resolves the caller itself and hands the repo memberships, from

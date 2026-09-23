@@ -15,6 +15,7 @@ import {
 import { getDb } from './db.ts'
 import { currentMemberships, currentOrgId } from './principal.ts'
 import { getStorage } from './storage.ts'
+import { isUuid } from './uuid.ts'
 
 /**
  * What the Files and Moodboard Server Functions do, once. Each route folder's `actions.ts` is a
@@ -56,7 +57,6 @@ export type StartUpload =
 
 export type Done = { readonly ok: true } | { readonly ok: false; readonly error: FileFailure }
 
-const UUID = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i
 export const NAME_MAX = 200
 
 /** Control characters out, ends trimmed. `null` for empty or not a string. */
@@ -69,7 +69,7 @@ export function cleanName(raw: unknown): string | null {
 }
 
 async function context(weddingId: unknown) {
-  if (typeof weddingId !== 'string' || !UUID.test(weddingId)) return null
+  if (!isUuid(weddingId)) return null
   const [m, orgId] = await Promise.all([currentMemberships(), currentOrgId()])
   if (!m || !orgId) return null
   return { m, orgId, weddingId }
@@ -135,7 +135,7 @@ export async function startUpload(
  */
 export async function confirmUpload(weddingId: unknown, fileId: unknown): Promise<Done> {
   const ctx = await context(weddingId)
-  if (!ctx || typeof fileId !== 'string' || !UUID.test(fileId)) {
+  if (!ctx || !isUuid(fileId)) {
     return { ok: false, error: 'not_found' }
   }
   const row = await confirmFile(getDb(), ctx.m, ctx.orgId, ctx.weddingId, fileId)
@@ -144,7 +144,7 @@ export async function confirmUpload(weddingId: unknown, fileId: unknown): Promis
 
 export async function removeWeddingFile(weddingId: unknown, fileId: unknown): Promise<Done> {
   const ctx = await context(weddingId)
-  if (!ctx || typeof fileId !== 'string' || !UUID.test(fileId)) {
+  if (!ctx || !isUuid(fileId)) {
     return { ok: false, error: 'not_found' }
   }
   return (await removeFile(getDb(), ctx.m, ctx.orgId, ctx.weddingId, fileId))
@@ -159,7 +159,7 @@ export async function renameWeddingFile(
   name: unknown,
 ): Promise<Done> {
   const ctx = await context(weddingId)
-  if (!ctx || typeof fileId !== 'string' || !UUID.test(fileId)) {
+  if (!ctx || !isUuid(fileId)) {
     return { ok: false, error: 'not_found' }
   }
   const cleaned = cleanName(name)
@@ -175,7 +175,7 @@ export async function setWeddingFileVisibility(
   visibility: unknown,
 ): Promise<Done> {
   const ctx = await context(weddingId)
-  if (!ctx || typeof fileId !== 'string' || !UUID.test(fileId) || !isVisibility(visibility)) {
+  if (!ctx || !isUuid(fileId) || !isVisibility(visibility)) {
     return { ok: false, error: 'not_found' }
   }
   return (await setFileVisibility(getDb(), ctx.m, ctx.orgId, ctx.weddingId, fileId, visibility))
@@ -193,7 +193,7 @@ export async function setWeddingFileVisibility(
  */
 export async function downloadUrl(weddingId: unknown, fileId: unknown): Promise<string | null> {
   const ctx = await context(weddingId)
-  if (!ctx || typeof fileId !== 'string' || !UUID.test(fileId)) return null
+  if (!ctx || !isUuid(fileId)) return null
 
   const row = await getFile(getDb(), ctx.m, ctx.orgId, ctx.weddingId, fileId)
   if (!row) return null

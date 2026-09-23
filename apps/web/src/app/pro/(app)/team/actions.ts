@@ -13,6 +13,7 @@ import {
   currentOrgs,
   currentSession,
 } from '../../../../lib/principal.ts'
+import { isUuid } from '../../../../lib/uuid.ts'
 
 /**
  * Team Server Functions. **Not guarded by `(app)/layout.tsx`** -- a Server Function is a POST
@@ -38,7 +39,6 @@ export type InviteOutcome = { ok: true } | { ok: false; reason: InviteFailure }
 
 /** Deliberately loose: the only real test of an address is whether mail arrives. */
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export async function inviteTeamMember(input: {
   email: string
@@ -94,7 +94,7 @@ export async function inviteTeamMember(input: {
 }
 
 export async function revokeInvite(invitationId: string): Promise<{ ok: boolean }> {
-  if (!UUID.test(String(invitationId))) return { ok: false }
+  if (!isUuid(invitationId)) return { ok: false }
 
   const [memberships, orgId] = await Promise.all([currentMemberships(), currentOrgId()])
   if (!memberships || !orgId) return { ok: false }

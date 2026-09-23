@@ -14,14 +14,6 @@ export const COMMENT_MAX = 4000
 /** The repo's own limit (`MAX_OFFSET_DAYS`), restated so the form can say it before the trip. */
 export const OFFSET_MAX = 3650
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
-/**
- * Ids arrive from a URL or a POST body. Postgres throws on a malformed uuid rather than
- * matching nothing, so an unchecked one is a 500 where the rule is a 404.
- */
-export const isUuid = (v: unknown): v is string => typeof v === 'string' && UUID.test(v)
-
 export type TaskFormValues = {
   title: string
   notes: string

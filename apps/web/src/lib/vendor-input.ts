@@ -1,4 +1,5 @@
 import type { VendorInput, WeddingVendorStatus } from '@guestnote/db'
+import { isUuid } from './uuid.ts'
 
 /**
  * Parsing for the vendor forms, shared by both `actions.ts` files. A Server Function's
@@ -59,11 +60,9 @@ export function parseNotes(raw: unknown): { value: string | null } | null {
   return notes === undefined ? null : { value: notes }
 }
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
 /** A uuid, or `null`. Postgres would throw on a malformed one; this turns that into a refusal. */
 export function parseId(raw: unknown): string | null {
-  return typeof raw === 'string' && UUID.test(raw) ? raw : null
+  return isUuid(raw) ? raw : null
 }
 
 /**

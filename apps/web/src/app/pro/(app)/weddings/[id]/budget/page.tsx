@@ -2,8 +2,8 @@ import { getBudget } from '@guestnote/db'
 import { notFound } from 'next/navigation'
 import { BudgetView } from '../../../../../../components/money/budget-view.tsx'
 import { getDb } from '../../../../../../lib/db.ts'
-import { isUuid } from '../../../../../../lib/money.ts'
 import { currentMemberships, currentOrgId } from '../../../../../../lib/principal.ts'
+import { isUuid } from '../../../../../../lib/uuid.ts'
 
 /**
  * The budget of one wedding. `null` from the repo is a 404 and never a 403, for the reason

@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import type { StorageTransport } from '@guestnote/storage'
+import { isUuid } from './uuid.ts'
 
 /**
  * The development stand-in for the files bucket: a `StorageTransport` that signs URLs to a
@@ -32,8 +33,10 @@ import type { StorageTransport } from '@guestnote/storage'
 const SECRET = 'guestnote-dev-files-not-a-secret'
 
 /** `<org>/<wedding>/<file>`, all UUIDs. The route's traversal guard, whatever the signature says. */
-const KEY =
-  /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}(\/[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}){2}$/i
+function isObjectKey(key: string): boolean {
+  const parts = key.split('/')
+  return parts.length === 3 && parts.every(isUuid)
+}
 
 export const DEV_FILES_PREFIX = '/api/dev-files/'
 
@@ -79,7 +82,7 @@ function verify(
     cl: query.get('cl') ?? '',
     cd: query.get('cd') ?? '',
   }
-  if (!KEY.test(key) || !Number.isFinite(exp) || exp * 1000 < now.getTime()) return null
+  if (!isObjectKey(key) || !Number.isFinite(exp) || exp * 1000 < now.getTime()) return null
 
   const expected = Buffer.from(sign(signed))
   const given = Buffer.from(sig)

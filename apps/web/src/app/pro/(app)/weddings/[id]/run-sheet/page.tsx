@@ -2,9 +2,9 @@ import { getRunSheet, getWedding, listWeddingEvents } from '@guestnote/db'
 import { notFound } from 'next/navigation'
 import { getLocale } from 'next-intl/server'
 import { RunSheetView } from '../../../../../../components/run-sheet/run-sheet-view.tsx'
-import { isUuid } from '../../../../../../components/wedding/form-state.ts'
 import { getDb } from '../../../../../../lib/db.ts'
 import { currentMemberships, currentOrgId } from '../../../../../../lib/principal.ts'
+import { isUuid } from '../../../../../../lib/uuid.ts'
 
 /**
  * The run sheet of one wedding, one event at a time. Slice S9 of docs/specs/0003.

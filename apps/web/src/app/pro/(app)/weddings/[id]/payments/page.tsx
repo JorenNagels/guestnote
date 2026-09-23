@@ -2,8 +2,9 @@ import { getPayments } from '@guestnote/db'
 import { notFound } from 'next/navigation'
 import { PaymentsView } from '../../../../../../components/money/payments-view.tsx'
 import { getDb } from '../../../../../../lib/db.ts'
-import { civilToday, isUuid } from '../../../../../../lib/money.ts'
+import { civilToday } from '../../../../../../lib/money.ts'
 import { currentMemberships, currentOrgId } from '../../../../../../lib/principal.ts'
+import { isUuid } from '../../../../../../lib/uuid.ts'
 
 /**
  * The payment schedule. "Today" is read from the real clock here, on every request, in the

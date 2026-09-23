@@ -1,5 +1,5 @@
 import type { RunSheetInput } from '@guestnote/db'
-import { isUuid } from '../components/wedding/form-state.ts'
+import { isUuid } from './uuid.ts'
 
 /**
  * The run sheet's arithmetic and its input parsing, kept pure so the same rules run in the

@@ -9,9 +9,10 @@ import {
 } from '@guestnote/db'
 import type { ActionResult } from '../../../../../../components/money/types.ts'
 import { getDb } from '../../../../../../lib/db.ts'
-import { isUuid, paidInstant, parseCents, parseCivilDate } from '../../../../../../lib/money.ts'
+import { paidInstant, parseCents, parseCivilDate } from '../../../../../../lib/money.ts'
 import { moneyCaller, moneyError, revalidateMoney } from '../../../../../../lib/money-server.ts'
 import { reportSilentFailure } from '../../../../../../lib/observability.ts'
+import { isUuid } from '../../../../../../lib/uuid.ts'
 
 /**
  * The payment schedule's writes. Same rules as the budget's: each authorizes itself, and every

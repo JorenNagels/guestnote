@@ -208,13 +208,6 @@ export function paymentTotals(
   return t
 }
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
-/** A malformed id reaches Postgres as a cast error and a 500; this makes it a not-found instead. */
-export function isUuid(value: string): boolean {
-  return UUID.test(value)
-}
-
 /**
  * `YYYY-MM-DD` that is a real calendar day, or `null`. The round trip is what rejects 2027-02-30:
  * `Date` would roll it to March and a regex alone would accept it.

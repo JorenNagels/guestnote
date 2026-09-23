@@ -3,10 +3,10 @@ import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { parseFilter, todayCivil } from '../../../../../../components/tasks/buckets.ts'
 import { Checklist } from '../../../../../../components/tasks/checklist.tsx'
-import { isUuid } from '../../../../../../components/tasks/form.ts'
 import { TasksIntl } from '../../../../../../components/tasks/provider.tsx'
 import { getDb } from '../../../../../../lib/db.ts'
 import { currentMemberships, currentOrgId } from '../../../../../../lib/principal.ts'
+import { isUuid } from '../../../../../../lib/uuid.ts'
 
 /**
  * Checklist for one wedding. Slice S2 of docs/specs/0003.

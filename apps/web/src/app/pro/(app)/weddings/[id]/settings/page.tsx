@@ -2,7 +2,6 @@ import { getWeddingDetail, listWeddingEvents } from '@guestnote/db'
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { EventsEditor } from '../../../../../../components/wedding/events-editor.tsx'
-import { isUuid } from '../../../../../../components/wedding/form-state.ts'
 import { eventsLabels, weddingFormLabels } from '../../../../../../components/wedding/labels.ts'
 import { asStatus } from '../../../../../../components/wedding/parse.ts'
 import { WeddingForm } from '../../../../../../components/wedding/wedding-form.tsx'
@@ -10,6 +9,7 @@ import { WeddingHeader } from '../../../../../../components/wedding/wedding-head
 import { WeddingTabs } from '../../../../../../components/wedding/wedding-tabs.tsx'
 import { getDb } from '../../../../../../lib/db.ts'
 import { currentMemberships, currentOrgId } from '../../../../../../lib/principal.ts'
+import { isUuid } from '../../../../../../lib/uuid.ts'
 import { saveEventAction, updateWeddingAction } from './actions.ts'
 
 /**

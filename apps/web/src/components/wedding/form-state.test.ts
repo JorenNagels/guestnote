@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canCreateWedding, echoValues, isUuid } from './form-state.ts'
+import { canCreateWedding, echoValues } from './form-state.ts'
 
 const m = (role: 'owner' | 'admin' | 'member', orgId = 'o1') => ({
   userId: 'u',
@@ -19,15 +19,6 @@ describe('canCreateWedding', () => {
         'o1',
       ),
     ).toBe(false)
-  })
-})
-
-describe('isUuid', () => {
-  it('accepts a uuid and nothing else', () => {
-    expect(isUuid('0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b')).toBe(true)
-    expect(isUuid('0190a1b2c3d47e5f8a9b0c1d2e3f4a5b')).toBe(false)
-    expect(isUuid('')).toBe(false)
-    expect(isUuid("' or 1=1 --")).toBe(false)
   })
 })
 

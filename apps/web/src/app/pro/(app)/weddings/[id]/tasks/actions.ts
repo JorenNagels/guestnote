@@ -11,12 +11,12 @@ import {
 import { revalidatePath } from 'next/cache'
 import {
   COMMENT_MAX,
-  isUuid,
   parseTaskForm,
   type TaskFormError,
 } from '../../../../../../components/tasks/form.ts'
 import { getDb } from '../../../../../../lib/db.ts'
 import { currentMemberships, currentOrgId } from '../../../../../../lib/principal.ts'
+import { isUuid } from '../../../../../../lib/uuid.ts'
 
 /**
  * The checklist's writes. Slice S2 of docs/specs/0003.

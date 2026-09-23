@@ -7,7 +7,6 @@ import {
   daysBetween,
   formatCents,
   groupByCategory,
-  isUuid,
   MAX_CENTS,
   moneyLocale,
   paidInstant,
@@ -187,12 +186,6 @@ describe('totals', () => {
 })
 
 describe('input guards', () => {
-  it('recognises uuids', () => {
-    expect(isUuid('0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b')).toBe(true)
-    expect(isUuid('not-a-uuid')).toBe(false)
-    expect(isUuid('')).toBe(false)
-  })
-
   it('trims text and refuses empty or over-long', () => {
     expect(cleanText('  Venue ', 10)).toBe('Venue')
     expect(cleanText('   ', 10)).toBeNull()

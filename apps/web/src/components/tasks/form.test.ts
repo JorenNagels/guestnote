@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { EMPTY_FORM, formFromTask, isUuid, offsetFromForm, parseTaskForm } from './form.ts'
+import { EMPTY_FORM, formFromTask, offsetFromForm, parseTaskForm } from './form.ts'
 
 const ok = (over: object) => parseTaskForm({ ...EMPTY_FORM, title: 'Book the DJ', ...over })
 
@@ -91,13 +91,5 @@ describe('formFromTask', () => {
       date: '2027-05-01',
     })
     expect(formFromTask({ ...base, dueOffsetDays: null, dueDate: null }).dueKind).toBe('none')
-  })
-})
-
-describe('isUuid', () => {
-  it('accepts a uuid and refuses anything else', () => {
-    expect(isUuid('018f0000-0000-7000-8000-000000000001')).toBe(true)
-    expect(isUuid('new')).toBe(false)
-    expect(isUuid(undefined)).toBe(false)
   })
 })

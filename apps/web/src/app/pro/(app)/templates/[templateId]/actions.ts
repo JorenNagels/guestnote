@@ -14,7 +14,6 @@ import {
 } from '@guestnote/db'
 import { revalidatePath } from 'next/cache'
 import { getTranslations } from 'next-intl/server'
-import { isUuid } from '../../../../../components/tasks/form.ts'
 import { getDb } from '../../../../../lib/db.ts'
 import { currentMemberships, currentOrgId } from '../../../../../lib/principal.ts'
 import {
@@ -22,6 +21,7 @@ import {
   parseTemplateInput,
   type TemplateActionError,
 } from '../../../../../lib/template-input.ts'
+import { isUuid } from '../../../../../lib/uuid.ts'
 
 /**
  * The template editor's writes. Each one does its own authorization: a Server Function is a POST

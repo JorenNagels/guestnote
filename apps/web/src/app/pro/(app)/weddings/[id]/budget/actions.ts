@@ -3,9 +3,10 @@
 import { createBudgetLine, deleteBudgetLine, updateBudgetLine } from '@guestnote/db'
 import type { ActionResult } from '../../../../../../components/money/types.ts'
 import { getDb } from '../../../../../../lib/db.ts'
-import { cleanText, isUuid, parseCents } from '../../../../../../lib/money.ts'
+import { cleanText, parseCents } from '../../../../../../lib/money.ts'
 import { moneyCaller, moneyError, revalidateMoney } from '../../../../../../lib/money-server.ts'
 import { reportSilentFailure } from '../../../../../../lib/observability.ts'
+import { isUuid } from '../../../../../../lib/uuid.ts'
 
 /**
  * The budget's writes. Each does its own authorization (`moneyCaller`, then the repo's

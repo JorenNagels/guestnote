@@ -40,13 +40,3 @@ export function canCreateWedding(m: Memberships, orgId: string): boolean {
   const role = m.orgs.find((o) => o.orgId === orgId)?.role
   return role === 'owner' || role === 'admin'
 }
-
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
-/**
- * Ids arrive from the client. Postgres raises `invalid input syntax for type uuid` on
- * anything else, which would be an uncaught 500 instead of the 404 an unknown id deserves.
- */
-export function isUuid(value: string): boolean {
-  return UUID.test(value)
-}
