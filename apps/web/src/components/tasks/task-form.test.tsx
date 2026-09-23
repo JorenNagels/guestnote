@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { EMPTY_FORM, type TaskFormValues } from './form.ts'
+import { EMPTY_FORM, type TaskFormValues } from '../../lib/task-form.ts'
 import { WithMessages } from './intl.test-util.tsx'
 
 const createTaskAction = vi.fn()

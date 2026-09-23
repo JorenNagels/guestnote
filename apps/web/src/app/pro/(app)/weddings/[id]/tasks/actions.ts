@@ -9,13 +9,9 @@ import {
   updateTask,
 } from '@guestnote/db'
 import { revalidatePath } from 'next/cache'
-import {
-  COMMENT_MAX,
-  parseTaskForm,
-  type TaskFormError,
-} from '../../../../../../components/tasks/form.ts'
 import { getDb } from '../../../../../../lib/db.ts'
 import { currentCaller } from '../../../../../../lib/principal.ts'
+import { COMMENT_MAX, parseTaskForm, type TaskFormError } from '../../../../../../lib/task-form.ts'
 import { isUuid } from '../../../../../../lib/uuid.ts'
 
 /**

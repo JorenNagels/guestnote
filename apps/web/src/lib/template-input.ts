@@ -1,5 +1,5 @@
 import type { TemplateInput, TemplateItemInput } from '@guestnote/db'
-import { offsetFromForm, TITLE_MAX } from '../components/tasks/form.ts'
+import { offsetFromForm, TITLE_MAX } from './task-form.ts'
 
 /**
  * Parsing for the template forms, shared by both `actions.ts` files. A Server Function's

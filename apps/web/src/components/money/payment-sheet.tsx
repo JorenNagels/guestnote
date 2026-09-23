@@ -9,8 +9,8 @@ import { useTranslations } from 'next-intl'
 import { type FormEvent, useState, useTransition } from 'react'
 import { removePayment, savePayment } from '../../app/pro/(app)/weddings/[id]/payments/actions.ts'
 import { centsToInput, civilDateOf } from '../../lib/money.ts'
+import type { MoneyError } from '../../lib/money-types.ts'
 import { Hint, SelectField } from './form-bits.tsx'
-import type { MoneyError } from './types.ts'
 
 /** The side sheet that adds or edits one payment. Same shape as `LineSheet`; see there. */
 export function PaymentSheet({

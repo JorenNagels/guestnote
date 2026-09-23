@@ -60,7 +60,7 @@ vi.mock('../../app/pro/(app)/actions.ts', () => ({
   signOut: vi.fn(),
 }))
 
-vi.mock('../../components/auth/actions.ts', () => ({
+vi.mock('../auth/actions.ts', () => ({
   setLocale: (...a: unknown[]) => setLocale(...a),
   beginPasskeyEnrollment: vi.fn(),
   finishPasskeyEnrollment: vi.fn(),

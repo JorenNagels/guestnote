@@ -3,16 +3,16 @@
 import { createWedding } from '@guestnote/db'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { getDb } from '../../../../../lib/db.ts'
+import { currentMemberships, currentOrgId } from '../../../../../lib/principal.ts'
+import { app } from '../../../../../lib/routes.ts'
+import { slugFromName } from '../../../../../lib/slug.ts'
 import {
   canCreateWedding,
   echoValues,
   type FormState,
-} from '../../../../../components/wedding/form-state.ts'
-import { parseWeddingForm } from '../../../../../components/wedding/parse.ts'
-import { slugFromName } from '../../../../../components/wedding/slug.ts'
-import { getDb } from '../../../../../lib/db.ts'
-import { currentMemberships, currentOrgId } from '../../../../../lib/principal.ts'
-import { app } from '../../../../../lib/routes.ts'
+} from '../../../../../lib/wedding-form-state.ts'
+import { parseWeddingForm } from '../../../../../lib/wedding-parse.ts'
 
 const FIELDS = ['coupleDisplayName', 'weddingDate', 'venue', 'headcount', 'color'] as const
 

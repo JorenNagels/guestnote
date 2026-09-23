@@ -1,4 +1,4 @@
-import type { FieldError } from './parse.ts'
+import type { FieldError } from '../../lib/wedding-parse.ts'
 
 /**
  * The words the two client forms need, gathered on the server and handed down as props --

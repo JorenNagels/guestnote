@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canCreateWedding, echoValues } from './form-state.ts'
+import { canCreateWedding, echoValues } from './wedding-form-state.ts'
 
 const m = (role: 'owner' | 'admin' | 'member', orgId = 'o1') => ({
   userId: 'u',

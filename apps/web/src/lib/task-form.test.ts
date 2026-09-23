@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { EMPTY_FORM, formFromTask, offsetFromForm, parseTaskForm } from './form.ts'
+import { EMPTY_FORM, formFromTask, offsetFromForm, parseTaskForm } from './task-form.ts'
 
 const ok = (over: object) => parseTaskForm({ ...EMPTY_FORM, title: 'Book the DJ', ...over })
 

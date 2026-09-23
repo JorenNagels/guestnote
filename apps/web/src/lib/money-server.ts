@@ -1,7 +1,7 @@
 import 'server-only'
 import type { MoneyFailure } from '@guestnote/db'
 import { revalidatePath } from 'next/cache'
-import type { MoneyError } from '../components/money/types.ts'
+import type { MoneyError } from './money-types.ts'
 
 /*
  * What the two money `actions.ts` files share. Who the caller is comes from `principal.ts`'s

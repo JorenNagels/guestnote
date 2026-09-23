@@ -7,10 +7,10 @@ import {
   setPaymentPaidAt,
   updatePayment,
 } from '@guestnote/db'
-import type { ActionResult } from '../../../../../../components/money/types.ts'
 import { getDb } from '../../../../../../lib/db.ts'
 import { paidInstant, parseCents, parseCivilDate } from '../../../../../../lib/money.ts'
 import { moneyError, revalidateMoney } from '../../../../../../lib/money-server.ts'
+import type { ActionResult } from '../../../../../../lib/money-types.ts'
 import { reportSilentFailure } from '../../../../../../lib/observability.ts'
 import { currentCaller } from '../../../../../../lib/principal.ts'
 import { isUuid } from '../../../../../../lib/uuid.ts'

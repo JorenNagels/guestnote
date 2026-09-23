@@ -19,9 +19,9 @@ import {
   paymentState,
   paymentTotals,
 } from '../../lib/money.ts'
+import type { MoneyError } from '../../lib/money-types.ts'
 import { app } from '../../lib/routes.ts'
 import { PaymentSheet } from './payment-sheet.tsx'
-import type { MoneyError } from './types.ts'
 
 type SheetState = { payment: PaymentRow | null } | null
 

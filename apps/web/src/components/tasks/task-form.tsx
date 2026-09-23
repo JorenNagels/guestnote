@@ -9,8 +9,14 @@ import {
   createTaskAction,
   updateTaskAction,
 } from '../../app/pro/(app)/weddings/[id]/tasks/actions.ts'
+import {
+  NOTES_MAX,
+  OFFSET_MAX,
+  offsetFromForm,
+  type TaskFormValues,
+  TITLE_MAX,
+} from '../../lib/task-form.ts'
 import { addDays } from './buckets.ts'
-import { NOTES_MAX, OFFSET_MAX, offsetFromForm, type TaskFormValues, TITLE_MAX } from './form.ts'
 import { formatDate } from './format.ts'
 
 /**

@@ -6,7 +6,7 @@ import { InlineError } from '@guestnote/ui/inline-error'
 import { useFormatter, useTranslations } from 'next-intl'
 import { useId, useState, useTransition } from 'react'
 import { addCommentAction } from '../../app/pro/(app)/weddings/[id]/tasks/actions.ts'
-import { COMMENT_MAX } from './form.ts'
+import { COMMENT_MAX } from '../../lib/task-form.ts'
 import { formatInstant } from './format.ts'
 
 /**

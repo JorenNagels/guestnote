@@ -8,7 +8,7 @@ import { Field } from '@guestnote/ui/field'
 import { InlineError } from '@guestnote/ui/inline-error'
 import Link from 'next/link'
 import { useActionState, useId, useState } from 'react'
-import { EMPTY_FORM_STATE, type FormState } from './form-state.ts'
+import { EMPTY_FORM_STATE, type FormState } from '../../lib/wedding-form-state.ts'
 import type { WeddingFormLabels } from './labels.ts'
 
 /**

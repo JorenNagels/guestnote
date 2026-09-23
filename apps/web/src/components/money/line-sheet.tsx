@@ -12,8 +12,8 @@ import {
   saveBudgetLine,
 } from '../../app/pro/(app)/weddings/[id]/budget/actions.ts'
 import { centsToInput } from '../../lib/money.ts'
+import type { MoneyError } from '../../lib/money-types.ts'
 import { Hint, SelectField } from './form-bits.tsx'
-import type { MoneyError } from './types.ts'
 
 /**
  * The side sheet that adds or edits one budget line. Amounts stay text in state and are parsed by

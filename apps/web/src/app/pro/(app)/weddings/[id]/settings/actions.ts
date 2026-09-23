@@ -7,11 +7,11 @@ import {
   updateWeddingEvent,
 } from '@guestnote/db'
 import { revalidatePath } from 'next/cache'
-import { echoValues, type FormState } from '../../../../../../components/wedding/form-state.ts'
-import { parseEventForm, parseWeddingForm } from '../../../../../../components/wedding/parse.ts'
 import { getDb } from '../../../../../../lib/db.ts'
 import { currentMemberships, currentOrgId } from '../../../../../../lib/principal.ts'
 import { isUuid } from '../../../../../../lib/uuid.ts'
+import { echoValues, type FormState } from '../../../../../../lib/wedding-form-state.ts'
+import { parseEventForm, parseWeddingForm } from '../../../../../../lib/wedding-parse.ts'
 
 const WEDDING_FIELDS = [
   'coupleDisplayName',

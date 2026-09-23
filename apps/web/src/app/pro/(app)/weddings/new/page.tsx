@@ -1,10 +1,10 @@
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
-import { canCreateWedding } from '../../../../../components/wedding/form-state.ts'
 import { weddingFormLabels } from '../../../../../components/wedding/labels.ts'
 import { BLANK_WEDDING, WeddingForm } from '../../../../../components/wedding/wedding-form.tsx'
 import { currentMemberships, currentOrgId } from '../../../../../lib/principal.ts'
 import { app } from '../../../../../lib/routes.ts'
+import { canCreateWedding } from '../../../../../lib/wedding-form-state.ts'
 import { createWeddingAction } from './actions.ts'
 
 /**

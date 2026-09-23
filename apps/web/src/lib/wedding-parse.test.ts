@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isCivilDate, parseEventForm, parseWeddingForm } from './parse.ts'
+import { isCivilDate, parseEventForm, parseWeddingForm } from './wedding-parse.ts'
 
 const form = (entries: Record<string, string>) => {
   const fd = new FormData()

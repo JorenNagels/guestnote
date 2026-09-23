@@ -1,9 +1,9 @@
 import type { Memberships } from '@guestnote/db'
-import type { FieldError } from './parse.ts'
+import type { FieldError } from './wedding-parse.ts'
 
 /**
  * What a wedding or event Server Function hands back to `useActionState`. Codes and echoed
- * values, never sentences: `parse.ts` says why. It sits in its own file because a `'use server'`
+ * values, never sentences: `wedding-parse.ts` says why. It sits in its own file because a `'use server'`
  * module may export nothing but async functions, and the client form needs the type.
  *
  * `values` echoes what was posted. React 19 resets an uncontrolled form when its action
