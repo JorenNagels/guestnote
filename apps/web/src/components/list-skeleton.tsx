@@ -1,9 +1,10 @@
 /**
- * The loading state for both vendor routes. Shapes only, no words: the page it stands in for
- * carries the copy, and a skeleton with its own text would be a string to translate three times
- * for a screen that shows for a few hundred milliseconds.
+ * The loading state for a list screen: a title, a subtitle and five rows (vendors, templates).
+ * Shapes only, no words: the page it stands in for carries the copy, and a skeleton with its
+ * own text would be a string to translate three times for a screen that shows for a few
+ * hundred milliseconds.
  */
-export function VendorsSkeleton() {
+export function ListSkeleton() {
   return (
     <div aria-busy="true" className="mx-auto max-w-5xl px-6 py-8">
       <div aria-hidden="true" className="animate-pulse">

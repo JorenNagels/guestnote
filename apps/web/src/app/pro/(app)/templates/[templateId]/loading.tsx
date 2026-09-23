@@ -1,5 +1,5 @@
-import { TemplatesSkeleton } from '../../../../../components/templates/skeleton.tsx'
+import { ListSkeleton } from '../../../../../components/list-skeleton.tsx'
 
 export default function Loading() {
-  return <TemplatesSkeleton />
+  return <ListSkeleton />
 }
