@@ -6,6 +6,7 @@ import { ColorPicker } from '@guestnote/ui/color-picker'
 import { cx } from '@guestnote/ui/cx'
 import { Field } from '@guestnote/ui/field'
 import { InlineError } from '@guestnote/ui/inline-error'
+import Link from 'next/link'
 import { useActionState, useId, useState } from 'react'
 import { EMPTY_FORM_STATE, type FormState } from './form-state.ts'
 import type { WeddingFormLabels } from './labels.ts'
@@ -223,12 +224,12 @@ export function WeddingForm({
           </Button>
         </div>
         {cancelHref ? (
-          <a
+          <Link
             href={cancelHref}
             className="text-muted-foreground hover:text-foreground text-sm underline underline-offset-[3px]"
           >
             {labels.cancel}
-          </a>
+          </Link>
         ) : null}
         {state.notice === 'saved' ? (
           <p role="status" className="text-muted-foreground text-sm">

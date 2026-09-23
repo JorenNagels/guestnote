@@ -1,6 +1,7 @@
 'use client'
 
 import { cx } from '@guestnote/ui/cx'
+import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
 
@@ -46,9 +47,9 @@ export function NavItem({
   const active = exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`)
 
   return (
-    <a
+    <Link
       href={href}
-      onClick={onNavigate}
+      onClick={() => onNavigate?.()}
       aria-current={active ? 'page' : undefined}
       // The accessible name moves onto the element when the label is not rendered. A
       // tooltip is decoration and is not reachable by touch or by a screen reader, so it
@@ -69,7 +70,7 @@ export function NavItem({
     >
       {icon}
       {collapsed ? null : <span className="min-w-0 flex-1 truncate">{label}</span>}
-    </a>
+    </Link>
   )
 }
 

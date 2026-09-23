@@ -1,4 +1,5 @@
 import { listAssignedTasks, listWeddings, principalForOrg } from '@guestnote/db'
+import Link from 'next/link'
 import { getFormatter, getTranslations } from 'next-intl/server'
 import { todayCivil } from '../../../components/tasks/buckets.ts'
 import { TasksIntl } from '../../../components/tasks/provider.tsx'
@@ -100,12 +101,12 @@ export default async function TodayPage() {
             {t(canCreate ? 'noWeddings.body' : 'noAssignments.body')}
           </p>
           {canCreate && (
-            <a
+            <Link
               href={app.weddingNew()}
               className="bg-primary text-primary-foreground focus-visible:outline-ring mt-4 inline-flex h-9 items-center rounded-[var(--radius)] px-4 text-sm font-semibold hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2"
             >
               {t('noWeddings.create')}
-            </a>
+            </Link>
           )}
         </section>
       ) : (

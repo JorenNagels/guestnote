@@ -1,4 +1,5 @@
 import { listWeddings, type WeddingSummary } from '@guestnote/db'
+import Link from 'next/link'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { getDb } from '../../../../lib/db.ts'
 import { currentMemberships, currentOrgId } from '../../../../lib/principal.ts'
@@ -73,7 +74,7 @@ export default async function WeddingsPage() {
         <ul className="divide-border bg-card divide-y overflow-hidden rounded-[var(--radius)] border">
           {rows.map((w) => (
             <li key={w.id}>
-              <a
+              <Link
                 href={app.wedding(w.id)}
                 className="hover:bg-muted/50 focus-visible:outline-ring flex items-baseline justify-between gap-4 px-4 py-3 focus-visible:outline-2 focus-visible:-outline-offset-2"
               >
@@ -93,7 +94,7 @@ export default async function WeddingsPage() {
                   </time>
                   <StatusPill status={w.status} label={t(`weddings.status.${w.status}`)} />
                 </span>
-              </a>
+              </Link>
             </li>
           ))}
         </ul>

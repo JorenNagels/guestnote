@@ -27,5 +27,6 @@
   "comingSoon": {
     "title": "Coming soon",
     "body": "This screen is still being built."
-  }
+  },
+  "loading": "Loading…"
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { cx } from '@guestnote/ui/cx'
+import Link from 'next/link'
 import { app } from '../../lib/routes.ts'
 import { daysUntil, formatTMinus } from '../../lib/tminus.ts'
 
@@ -122,9 +123,9 @@ export function WeddingRow({
 
   if (collapsed) {
     return (
-      <a
+      <Link
         href={app.wedding(wedding.id)}
-        onClick={onNavigate}
+        onClick={() => onNavigate?.()}
         aria-current={current ? 'true' : undefined}
         // The name moves onto the element for the same reason as in `NavItem`: a `title`
         // is not reachable by touch and is announced inconsistently.
@@ -143,7 +144,7 @@ export function WeddingRow({
             `aria-hidden`, so without this the link has no content at all and lint (rightly)
             cannot tell it is named. `aria-label` still wins for the accessible name. */}
         <span className="sr-only">{wedding.name}</span>
-      </a>
+      </Link>
     )
   }
 
@@ -155,9 +156,9 @@ export function WeddingRow({
       : null
 
   return (
-    <a
+    <Link
       href={app.wedding(wedding.id)}
-      onClick={onNavigate}
+      onClick={() => onNavigate?.()}
       aria-current={current ? 'true' : undefined}
       style={{ borderLeftColor: stripe }}
       className={cx(shared, 'min-h-[calc(var(--control-h)+2px)] gap-2.5 py-1 pr-2.5 pl-[7px]')}
@@ -198,6 +199,6 @@ export function WeddingRow({
           )}
         </span>
       </span>
-    </a>
+    </Link>
   )
 }

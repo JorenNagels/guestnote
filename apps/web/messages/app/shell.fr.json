@@ -27,5 +27,6 @@
   "comingSoon": {
     "title": "Bientôt disponible",
     "body": "Cet écran est encore en construction."
-  }
+  },
+  "loading": "Chargement…"
 }

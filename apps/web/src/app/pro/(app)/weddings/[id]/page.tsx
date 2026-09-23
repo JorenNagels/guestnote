@@ -1,5 +1,6 @@
 import { getWeddingDetail, getWeddingTaskCounts, listWeddingEvents } from '@guestnote/db'
 import { Card } from '@guestnote/ui/card'
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { isUuid } from '../../../../../components/wedding/form-state.ts'
@@ -104,12 +105,12 @@ export default async function WeddingPage({ params }: { params: Promise<{ id: st
               <h2 id="events-h" className="text-[15px] font-semibold tracking-tight">
                 {t('events.title')}
               </h2>
-              <a
+              <Link
                 href={app.weddingSettings(id)}
                 className="text-primary text-xs underline underline-offset-[3px]"
               >
                 {t('events.manage')}
-              </a>
+              </Link>
             </div>
             {shown.length === 0 ? (
               <Card>

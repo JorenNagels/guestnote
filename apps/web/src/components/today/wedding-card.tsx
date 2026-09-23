@@ -1,4 +1,5 @@
 import type { WeddingSummary } from '@guestnote/db'
+import Link from 'next/link'
 import { getFormatter, getLocale, getTranslations } from 'next-intl/server'
 import { app } from '../../lib/routes.ts'
 import { daysUntil, formatTMinus } from '../../lib/tminus.ts'
@@ -37,7 +38,7 @@ export async function WeddingCard({
       : t('load', { open: load.open })
 
   return (
-    <a
+    <Link
       href={app.wedding(wedding.id)}
       className="border-border bg-card hover:bg-muted/50 focus-visible:outline-ring block rounded-[var(--radius)] border px-3.5 py-3 focus-visible:outline-2 focus-visible:-outline-offset-2"
     >
@@ -80,7 +81,7 @@ export async function WeddingCard({
           {loadText}
         </span>
       </span>
-    </a>
+    </Link>
   )
 }
 
