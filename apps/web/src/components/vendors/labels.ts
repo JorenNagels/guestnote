@@ -132,6 +132,7 @@ export function weddingLabels(t: Translate, t10: Translate): WeddingLabels {
     sheetTitle: raw(t, 'wedding.sheetTitle'),
     status: t('wedding.status'),
     notes: t('wedding.notes'),
+    notesHint: t('wedding.notesHint'),
     save: t('wedding.save'),
     saving: t('wedding.saving'),
     cancel: t('form.cancel'),

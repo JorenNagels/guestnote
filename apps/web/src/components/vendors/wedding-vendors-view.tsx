@@ -68,6 +68,8 @@ export type WeddingLabels = {
   sheetTitle: string
   status: string
   notes: string
+  /** Says out loud that the vendor link shows these notes -- see the textarea below. */
+  notesHint: string
   save: string
   saving: string
   cancel: string
@@ -420,8 +422,17 @@ function LinkSheet({
             onChange={(e) => setNotes(e.target.value)}
             maxLength={2000}
             rows={6}
+            aria-describedby={`${formId}-notes-hint`}
             className="block w-full rounded-[var(--radius)] border border-[var(--input)] bg-transparent px-3 py-2 text-sm"
           />
+          {/* The vendor link (`/vendor/<token>`) renders these notes verbatim as "what the
+              planner needs". Without this line a planner reads "notes for this wedding" as
+              internal and writes prices or opinions into a field any link holder can read.
+              Rejected for now: a separate vendor-facing column -- a migration for what one
+              honest sentence already prevents. */}
+          <p id={`${formId}-notes-hint`} className="text-muted-foreground mt-1.5 text-xs">
+            {labels.notesHint}
+          </p>
         </div>
 
         {message && <InlineError>{message}</InlineError>}
