@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull, ne, sql } from 'drizzle-orm'
+import { and, eq, isNull, ne, sql } from 'drizzle-orm'
 import type { Db, TenantDb } from '../client.ts'
 import { newId } from '../id.ts'
 import { users } from '../schema/auth.ts'
@@ -6,7 +6,6 @@ import {
   type TASK_ASSIGNEE_ROLES,
   type TASK_STATUSES,
   type TASK_VISIBILITIES,
-  taskComments,
   tasks,
 } from '../schema/tasks.ts'
 import { weddings } from '../schema/weddings.ts'
@@ -15,9 +14,11 @@ import { type Memberships, principalForOrg } from './memberships.ts'
 import { fail, ok, type Result } from './result.ts'
 import type { WeddingScope } from './scope.ts'
 import { staffPrincipal } from './staff-principal.ts'
+import { resolveTaskDueDate, taskDueColumns } from './task-dates.ts'
 
 /**
- * Slice S2 of docs/specs/0003-planner-app-screens.md. Tasks and their comments.
+ * Slice S2 of docs/specs/0003-planner-app-screens.md: tasks. Their comments are `task-comments.ts`
+ * and the due-date arithmetic `task-dates.ts`.
  *
  * S7 (template apply) and S8 (Today) build on this file, so every name is prefixed by what it
  * is -- the barrel is `export *`, and a clash with another slice is a compile error at the merge.
@@ -110,68 +111,6 @@ export type TaskInput = {
 
 export type TaskPatch = Partial<TaskInput>
 
-const DAY_MS = 86_400_000
-
-/** Ten years each way. A typo of an extra digit is the failure this catches. */
-const MAX_OFFSET_DAYS = 3650
-
-// ---------------------------------------------------------------- pure helpers ----
-
-function assertCivilDate(date: string): number {
-  const ms = /^\d{4}-\d{2}-\d{2}$/.test(date) ? Date.parse(`${date}T00:00:00Z`) : Number.NaN
-  // `Date.parse` rolls 2027-02-31 over to March, so the round trip is the real check.
-  if (Number.isNaN(ms) || new Date(ms).toISOString().slice(0, 10) !== date) {
-    throw new RangeError(`tasks: "${date}" is not a calendar date (YYYY-MM-DD)`)
-  }
-  return ms
-}
-
-/** `YYYY-MM-DD` plus whole days, in UTC. No DST exists there, so a day is always 86 400 s. */
-export function taskAddDays(date: string, days: number): string {
-  return new Date(assertCivilDate(date) + days * DAY_MS).toISOString().slice(0, 10)
-}
-
-/**
- * The date a task falls on. Offset first: the whole point of storing T-minus is that a
- * wedding which moves takes its tasks with it, and a stale `due_at` must not outvote that.
- *
- * `weddingDate` is a `date` column, so it arrives as `YYYY-MM-DD` and is read as UTC midnight;
- * it is a civil date and never shifts with a zone (see `weddings.wedding_date`).
- */
-export function resolveTaskDueDate(
-  task: { dueOffsetDays: number | null; dueAt: Date | null },
-  weddingDate: string | null,
-): string | null {
-  if (task.dueOffsetDays !== null) {
-    return weddingDate === null ? null : taskAddDays(weddingDate, task.dueOffsetDays)
-  }
-  return task.dueAt === null ? null : task.dueAt.toISOString().slice(0, 10)
-}
-
-/** 12:00 UTC, the seed's convention: the same civil date in every zone from Honolulu to Auckland. */
-const noonUtc = (date: string): Date => new Date(assertCivilDate(date) + DAY_MS / 2)
-
-/**
- * The two stored columns for a `TaskDue`. `dueAt` is written for an offset task too, so the
- * `(org_id, due_at)` index serves the cross-wedding "due this week" screen; reads never trust
- * it (`resolveTaskDueDate`). It goes stale if `wedding_date` changes, until the task is next
- * saved -- the price of not putting a trigger on `weddings`.
- */
-export function taskDueColumns(
-  due: TaskDue,
-  weddingDate: string | null,
-): { dueOffsetDays: number | null; dueAt: Date | null } {
-  if (due.kind === 'none') return { dueOffsetDays: null, dueAt: null }
-  if (due.kind === 'date') return { dueOffsetDays: null, dueAt: noonUtc(due.date) }
-  if (!Number.isInteger(due.days) || Math.abs(due.days) > MAX_OFFSET_DAYS) {
-    throw new RangeError(`tasks: an offset must be a whole number within ${MAX_OFFSET_DAYS} days`)
-  }
-  return {
-    dueOffsetDays: due.days,
-    dueAt: weddingDate === null ? null : noonUtc(taskAddDays(weddingDate, due.days)),
-  }
-}
-
 /** Earliest date first, undated last, then title -- so a bucket reads the same on every load. */
 export function compareTasks(a: TaskRow, b: TaskRow): number {
   if (a.dueDate !== b.dueDate) {
@@ -189,7 +128,7 @@ export function compareTasks(a: TaskRow, b: TaskRow): number {
  * name until they type one, see `schema/auth.ts`), and "Unknown" beside a comment from a
  * teammate the planner can see in the team list is worse than their address.
  */
-const personName = sql<string | null>`coalesce(nullif(${users.name}, ''), ${users.email})`
+export const personName = sql<string | null>`coalesce(nullif(${users.name}, ''), ${users.email})`
 
 const TASK_SELECT = {
   id: tasks.id,
@@ -242,7 +181,7 @@ function selectTasks(tx: TenantDb) {
     .leftJoin(users, eq(users.id, tasks.assigneeUserId))
 }
 
-async function loadTask(
+export async function loadTask(
   tx: TenantDb,
   weddingId: string,
   taskId: string,
@@ -484,95 +423,5 @@ export async function completeTask(
 
     const task = (await loadTask(tx, weddingId, taskId))?.task
     return task ? ok(task) : fail('notFound')
-  })
-}
-
-// --------------------------------------------------------------------- comments ----
-
-const COMMENT_SELECT = {
-  id: taskComments.id,
-  taskId: taskComments.taskId,
-  visibility: taskComments.visibility,
-  authorUserId: taskComments.authorUserId,
-  authorName: personName,
-  body: taskComments.body,
-  createdAt: taskComments.createdAt,
-}
-
-function selectComments(tx: TenantDb) {
-  return tx
-    .select(COMMENT_SELECT)
-    .from(taskComments)
-    .leftJoin(users, eq(users.id, taskComments.authorUserId))
-}
-
-const toComment = (r: {
-  id: string
-  taskId: string
-  visibility: string
-  authorUserId: string | null
-  authorName: string | null
-  body: string
-  createdAt: Date
-}): TaskCommentRow => ({ ...r, visibility: r.visibility as TaskVisibility })
-
-/** A task's thread, oldest first. `[]` for an unreachable wedding and for a thread with nobody in it. */
-export async function listTaskComments(
-  scope: WeddingScope,
-  taskId: string,
-): Promise<TaskCommentRow[]> {
-  const { db, weddingId } = scope
-  const principal = scope.principal
-  if (!principal) return []
-
-  const rows = await withTenant(db, principal, (tx) =>
-    selectComments(tx)
-      .where(
-        and(
-          eq(taskComments.taskId, taskId),
-          eq(taskComments.weddingId, weddingId),
-          isNull(taskComments.deletedAt),
-        ),
-      )
-      .orderBy(asc(taskComments.createdAt), asc(taskComments.id)),
-  )
-  return rows.map(toComment)
-}
-
-/**
- * Adds a comment and returns it, or `notFound` when the task is not in that wedding.
- *
- * The task is read under the SAME wedding filter first. The insert trigger looks the task up by
- * id alone and would happily attach a comment to a sibling wedding's task for an org-wide
- * principal, stamping that wedding's id on it -- a foreign key that plain FKs do not stop (spec
- * 0003, "Shared rules"). `org_id`, `wedding_id` and `visibility` are then overwritten by that
- * trigger; the values written here only satisfy NOT NULL.
- */
-export async function addTaskComment(
-  scope: WeddingScope,
-  taskId: string,
-  body: string,
-): Promise<Result<TaskCommentRow, 'notFound'>> {
-  const { db, weddingId } = scope
-  const principal = scope.principal
-  if (!principal) return fail('notFound')
-  const text = body.trim()
-  if (!text) throw new RangeError('tasks: a comment needs a body')
-
-  return withTenant(db, principal, async (tx) => {
-    if (!(await loadTask(tx, weddingId, taskId))) return fail('notFound')
-
-    const id = newId()
-    await tx.insert(taskComments).values({
-      id,
-      orgId: principal.orgId,
-      weddingId,
-      taskId,
-      authorUserId: principal.userId,
-      body: text,
-    })
-    const rows = await selectComments(tx).where(eq(taskComments.id, id))
-    const row = rows[0]
-    return row ? ok(toComment(row)) : fail('notFound')
   })
 }

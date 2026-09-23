@@ -2,7 +2,8 @@ import type { ErrorLabels } from './controls.tsx'
 import type { DirectoryLabels } from './directory-view.tsx'
 import type { StatusLabels } from './status.tsx'
 import type { FormLabels } from './vendor-form.tsx'
-import type { ManageLinkLabels, WeddingLabels } from './wedding-vendors-view.tsx'
+import type { ManageLinkLabels } from './vendor-link-controls.tsx'
+import type { WeddingLabels } from './wedding-vendors-view.tsx'
 
 /**
  * The client components take their copy as props, because the dashboard has no

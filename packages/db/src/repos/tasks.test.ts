@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import {
-  compareTasks,
-  resolveTaskDueDate,
-  type TaskRow,
-  taskAddDays,
-  taskDueColumns,
-} from './tasks.ts'
+import { resolveTaskDueDate, taskAddDays, taskDueColumns } from './task-dates.ts'
+import { compareTasks, type TaskRow } from './tasks.ts'
 
 describe('taskAddDays', () => {
   it('crosses month, year and leap-day boundaries in UTC', () => {

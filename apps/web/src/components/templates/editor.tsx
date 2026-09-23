@@ -1,46 +1,29 @@
 'use client'
 
 import type { TemplateDetail, TemplateItemRow } from '@guestnote/db'
-import { Button } from '@guestnote/ui/button'
 import { Card } from '@guestnote/ui/card'
 import { InlineError } from '@guestnote/ui/inline-error'
 import { Pill } from '@guestnote/ui/pill'
-import { Sheet } from '@guestnote/ui/sheet'
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell } from '@guestnote/ui/table'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useFormatter, useTranslations } from 'next-intl'
-import { type FormEvent, useId, useRef, useState, useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import {
-  addItemAction,
-  applyTemplateAction,
-  deleteItemAction,
   deleteTemplateAction,
   duplicateTemplateAction,
   moveItemAction,
-  updateItemAction,
   updateTemplateAction,
 } from '../../app/pro/(app)/templates/[templateId]/actions.ts'
 import { app } from '../../lib/routes.ts'
-import {
-  EMPTY_ITEM,
-  formFromItem,
-  type ItemFormValues,
-  type TemplateActionError,
-} from '../../lib/template-input.ts'
 import { addDaysCivil, formatOffset } from '../../lib/template-preview.ts'
 import { formatDate } from '../tasks/format.ts'
-import { SELECT_CLASS, SmallButton } from '../vendors/controls.tsx'
-import { ItemFields } from './item-fields.tsx'
+import { SmallButton } from '../vendors/controls.tsx'
+import { ApplyPanel, type WeddingOption } from './apply-panel.tsx'
 import { TemplateSheet } from './template-sheet.tsx'
 
-export type WeddingOption = { id: string; name: string; date: string | null }
+export type { WeddingOption }
 
-type Result = { ok: true } | { ok: false; error: TemplateActionError }
-type ApplyState =
-  | { kind: 'idle' }
-  | { kind: 'done'; count: number; weddingId: string; wedding: string }
-  | { kind: 'error'; error: string }
+import { AddItemForm, ItemSheet } from './item-editor.tsx'
 
 /**
  * One template: its plan as a table, the apply panel, and the forms that change it.
@@ -264,250 +247,4 @@ export function TemplateEditor({
 function ruleText(t: ReturnType<typeof useTranslations>, offset: number): string {
   if (offset === 0) return t('editor.rule.onDay')
   return t(offset < 0 ? 'editor.rule.before' : 'editor.rule.after', { days: Math.abs(offset) })
-}
-
-function ApplyPanel({
-  templateId,
-  weddings,
-  weddingId,
-  onWedding,
-  hasItems,
-}: {
-  templateId: string
-  weddings: WeddingOption[]
-  weddingId: string
-  onWedding: (id: string) => void
-  hasItems: boolean
-}) {
-  const t = useTranslations('app.templates')
-  const format = useFormatter()
-  const selectId = useId()
-  const [pending, startTransition] = useTransition()
-  const [state, setState] = useState<ApplyState>({ kind: 'idle' })
-  const wedding = weddings.find((w) => w.id === weddingId) ?? null
-
-  const apply = () => {
-    if (!wedding) return
-    setState({ kind: 'idle' })
-    startTransition(async () => {
-      try {
-        const r = await applyTemplateAction(templateId, wedding.id)
-        setState(
-          r.ok
-            ? { kind: 'done', count: r.count, weddingId: wedding.id, wedding: wedding.name }
-            : { kind: 'error', error: r.error },
-        )
-      } catch {
-        setState({ kind: 'error', error: 'generic' })
-      }
-    })
-  }
-
-  return (
-    <Card as="section" aria-labelledby={`${selectId}-title`}>
-      <h2 id={`${selectId}-title`} className="text-sm font-semibold">
-        {t('apply.title')}
-      </h2>
-      {weddings.length === 0 ? (
-        <p className="text-muted-foreground mt-2 text-sm">{t('apply.noWeddings')}</p>
-      ) : (
-        <>
-          <div className="mt-3 flex flex-wrap items-end gap-3">
-            <div className="min-w-0 flex-1 basis-56 sm:max-w-sm">
-              <label
-                htmlFor={selectId}
-                className="text-muted-foreground mb-1 block text-[11px] font-medium"
-              >
-                {t('apply.wedding')}
-              </label>
-              <select
-                id={selectId}
-                value={weddingId}
-                onChange={(e) => {
-                  onWedding(e.target.value)
-                  setState({ kind: 'idle' })
-                }}
-                className={`${SELECT_CLASS} w-full`}
-              >
-                {weddings.map((w) => (
-                  <option key={w.id} value={w.id}>
-                    {w.name} · {w.date ? formatDate(format, w.date) : t('apply.noDateOption')}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="w-full sm:w-64">
-              <Button
-                busy={pending}
-                busyLabel={t('apply.applying')}
-                disabled={!hasItems || !wedding}
-                onClick={apply}
-              >
-                {t('apply.button')}
-              </Button>
-            </div>
-          </div>
-          <p className="text-muted-foreground mt-2 text-xs">
-            {wedding && wedding.date === null ? t('apply.noDateNote') : t('apply.becomesHint')}
-          </p>
-          <p className="text-muted-foreground mt-1 text-xs">{t('apply.copyNote')}</p>
-        </>
-      )}
-      {state.kind === 'done' && (
-        <p role="status" className="mt-3 text-sm">
-          {t('apply.done', { count: state.count, wedding: state.wedding })}{' '}
-          <Link className="underline underline-offset-2" href={app.weddingTasks(state.weddingId)}>
-            {t('apply.openChecklist')}
-          </Link>
-        </p>
-      )}
-      {state.kind === 'error' && <InlineError>{t(`errors.${state.error}`)}</InlineError>}
-    </Card>
-  )
-}
-
-function AddItemForm({ templateId }: { templateId: string }) {
-  const t = useTranslations('app.templates')
-  const formId = useId()
-  const title = useRef<HTMLInputElement>(null)
-  const [values, setValues] = useState<ItemFormValues>(EMPTY_ITEM)
-  const [pending, startTransition] = useTransition()
-  const [error, setError] = useState<string | null>(null)
-
-  const submit = (e: FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    startTransition(async () => {
-      try {
-        const r = await addItemAction(templateId, values)
-        if (r.ok) {
-          // Keep timing, owner and visibility: a plan is typed in runs of similar rows.
-          setValues({ ...values, title: '', offsetDays: '' })
-          title.current?.focus()
-        } else {
-          setError(r.error)
-        }
-      } catch {
-        setError('generic')
-      }
-    })
-  }
-
-  return (
-    <form
-      onSubmit={submit}
-      aria-labelledby={`${formId}-heading`}
-      className="border-border rounded-[var(--radius)] border border-dashed p-3"
-    >
-      {/* `-heading`, not `-title`: `idPrefix={formId}` below also names the title FIELD
-          `${formId}-title`, and two elements sharing one id breaks its `label[for]`. */}
-      <h2 id={`${formId}-heading`} className="mb-2 text-sm font-semibold">
-        {t('item.addTitle')}
-      </h2>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-        <div className="min-w-0 flex-1">
-          <ItemFields
-            values={values}
-            onChange={setValues}
-            idPrefix={formId}
-            layout="row"
-            titleRef={title}
-          />
-        </div>
-        <div className="w-full sm:w-32">
-          <Button type="submit" busy={pending} busyLabel={t('item.adding')}>
-            {t('item.add')}
-          </Button>
-        </div>
-      </div>
-      {error && <InlineError>{t(`errors.${error}`)}</InlineError>}
-    </form>
-  )
-}
-
-function ItemSheet({
-  templateId,
-  item,
-  onClose,
-}: {
-  templateId: string
-  item: TemplateItemRow
-  onClose: () => void
-}) {
-  const t = useTranslations('app.templates')
-  const formId = useId()
-  const [values, setValues] = useState<ItemFormValues>(() => formFromItem(item))
-  const [pending, startTransition] = useTransition()
-  const [error, setError] = useState<string | null>(null)
-  const [confirming, setConfirming] = useState(false)
-
-  const run = (fn: () => Promise<Result>) => {
-    setError(null)
-    startTransition(async () => {
-      try {
-        const r = await fn()
-        if (r.ok) onClose()
-        else setError(r.error)
-      } catch {
-        setError('generic')
-      }
-    })
-  }
-
-  return (
-    <Sheet
-      open
-      onClose={onClose}
-      title={t('item.editTitle')}
-      closeLabel={t('form.close')}
-      footer={
-        <div className="grid grid-cols-2 gap-2">
-          <Button
-            type="submit"
-            form={formId}
-            busy={pending}
-            busyLabel={t('form.saving')}
-            disabled={confirming}
-          >
-            {t('form.save')}
-          </Button>
-          <Button variant="secondary" onClick={onClose} disabled={pending}>
-            {t('form.cancel')}
-          </Button>
-        </div>
-      }
-    >
-      <form
-        id={formId}
-        onSubmit={(e) => {
-          e.preventDefault()
-          run(() => updateItemAction(templateId, item.id, values))
-        }}
-        className="space-y-4"
-      >
-        <ItemFields values={values} onChange={setValues} idPrefix={formId} layout="stack" />
-        {error && <InlineError>{t(`errors.${error}`)}</InlineError>}
-        <div className="border-border border-t pt-4">
-          {confirming ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm">{t('item.removeConfirm')}</span>
-              <SmallButton
-                disabled={pending}
-                onClick={() => run(() => deleteItemAction(templateId, item.id))}
-              >
-                {t('item.removeConfirmYes')}
-              </SmallButton>
-              <SmallButton disabled={pending} onClick={() => setConfirming(false)}>
-                {t('form.cancel')}
-              </SmallButton>
-            </div>
-          ) : (
-            <SmallButton disabled={pending} onClick={() => setConfirming(true)}>
-              {t('item.remove')}
-            </SmallButton>
-          )}
-        </div>
-      </form>
-    </Sheet>
-  )
 }

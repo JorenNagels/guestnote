@@ -1,49 +1,22 @@
 'use client'
 
 import type { VendorRow, WeddingVendorRow } from '@guestnote/db'
-import { Button } from '@guestnote/ui/button'
 import { Card } from '@guestnote/ui/card'
 import { InlineError } from '@guestnote/ui/inline-error'
 import { Pill } from '@guestnote/ui/pill'
-import { Sheet } from '@guestnote/ui/sheet'
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell } from '@guestnote/ui/table'
 import { useId, useMemo, useState, useTransition } from 'react'
 import {
   addVendorToWedding,
-  createVendorLinkAction,
   createVendorOnWedding,
-  removeVendorFromWedding,
-  revokeVendorLinkAction,
-  saveWeddingVendor,
   setWeddingVendorStatus,
 } from '../../app/pro/(app)/weddings/[id]/vendors/actions.ts'
 import { VENDOR_STATUSES, type VendorActionResult } from '../../lib/vendor-input.ts'
 import { type ErrorLabels, errorText, Monogram, SELECT_CLASS, SmallButton } from './controls.tsx'
 import { STATUS_TONE, type StatusLabels, type VendorStatus } from './status.tsx'
 import { type FormLabels, VendorForm } from './vendor-form.tsx'
-
-/**
- * Spec 0003, S10: create/copy/revoke a vendor's signed link. Read by `LinkSheet` alone, and
- * kept as its own type (not folded into `WeddingLabels`' flat shape) so `app.vendorLink`'s catalogue
- * stays S10's file -- `catalogue.ts` merges one slice's JSON per key, and `WeddingLabels`
- * already reads `app.vendors`.
- */
-export type ManageLinkLabels = {
-  title: string
-  createButton: string
-  creating: string
-  created: string
-  copyButton: string
-  copied: string
-  /** `{date}` template, filled with `YYYY-MM-DD`. */
-  expiresLabel: string
-  revokeButton: string
-  revokeConfirm: string
-  revokeConfirmYes: string
-  revoked: string
-  cancel: string
-  error: string
-}
+import type { ManageLinkLabels } from './vendor-link-controls.tsx'
+import { WeddingVendorSheet } from './wedding-vendor-sheet.tsx'
 
 export type WeddingLabels = {
   addLabel: string
@@ -157,7 +130,7 @@ export function WeddingVendorsView({
       )}
 
       {editing && (
-        <LinkSheet
+        <WeddingVendorSheet
           weddingId={weddingId}
           vendor={editing}
           canManageLink={canCreate}
@@ -328,272 +301,5 @@ function Row({
         </SmallButton>
       </TableCell>
     </tr>
-  )
-}
-
-/** Status, notes and unlink for one row. Unmounted when closed, like every `Sheet`. */
-function LinkSheet({
-  weddingId,
-  vendor,
-  canManageLink,
-  labels,
-  onClose,
-}: {
-  weddingId: string
-  vendor: WeddingVendorRow
-  /** Owner/admin only (spec 0003 permissions table: "create signed links"). A `member` can
-   *  still edit status and notes below -- this gates only the link section. */
-  canManageLink: boolean
-  labels: WeddingLabels
-  onClose: () => void
-}) {
-  const formId = useId()
-  const [status, setStatus] = useState<VendorStatus>(vendor.status)
-  const [notes, setNotes] = useState(vendor.notes ?? '')
-  const [confirming, setConfirming] = useState(false)
-  const [pending, startTransition] = useTransition()
-  const [result, setResult] = useState<VendorActionResult | null>(null)
-  const [failed, setFailed] = useState(false)
-  const message = failed ? labels.errors.generic : errorText(labels.errors, result)
-
-  const run = (fn: () => Promise<VendorActionResult>) => {
-    setFailed(false)
-    startTransition(async () => {
-      try {
-        const r = await fn()
-        setResult(r)
-        if (r.ok) onClose()
-      } catch {
-        setFailed(true)
-      }
-    })
-  }
-
-  return (
-    <Sheet
-      open
-      onClose={onClose}
-      title={labels.sheetTitle.replace('{name}', vendor.name)}
-      closeLabel={labels.close}
-      footer={
-        <div className="grid grid-cols-2 gap-2">
-          <Button
-            busy={pending}
-            busyLabel={labels.saving}
-            disabled={confirming}
-            onClick={() => run(() => saveWeddingVendor(weddingId, vendor.id, status, notes))}
-          >
-            {labels.save}
-          </Button>
-          <Button variant="secondary" onClick={onClose} disabled={pending}>
-            {labels.cancel}
-          </Button>
-        </div>
-      }
-    >
-      <div className="space-y-4">
-        <div>
-          <label htmlFor={`${formId}-status`} className="mb-1.5 block text-sm font-medium">
-            {labels.status}
-          </label>
-          <select
-            id={`${formId}-status`}
-            value={status}
-            onChange={(e) => {
-              const next = VENDOR_STATUSES.find((s) => s === e.target.value)
-              if (next) setStatus(next)
-            }}
-            className="border-[var(--input)] h-11 w-full rounded-[var(--radius)] border bg-transparent px-3 text-sm"
-          >
-            {VENDOR_STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {labels.statuses[s]}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label htmlFor={`${formId}-notes`} className="mb-1.5 block text-sm font-medium">
-            {labels.notes}
-          </label>
-          <textarea
-            id={`${formId}-notes`}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            maxLength={2000}
-            rows={6}
-            aria-describedby={`${formId}-notes-hint`}
-            className="block w-full rounded-[var(--radius)] border border-[var(--input)] bg-transparent px-3 py-2 text-sm"
-          />
-          {/* The vendor link (`/vendor/<token>`) renders these notes verbatim as "what the
-              planner needs". Without this line a planner reads "notes for this wedding" as
-              internal and writes prices or opinions into a field any link holder can read.
-              Rejected for now: a separate vendor-facing column -- a migration for what one
-              honest sentence already prevents. */}
-          <p id={`${formId}-notes-hint`} className="text-muted-foreground mt-1.5 text-xs">
-            {labels.notesHint}
-          </p>
-        </div>
-
-        {message && <InlineError>{message}</InlineError>}
-
-        {canManageLink && (
-          <div className="border-border border-t pt-4">
-            <VendorLinkControls
-              weddingId={weddingId}
-              vendorLinkId={vendor.id}
-              activeLink={vendor.activeLink}
-              labels={labels.manageLink}
-            />
-          </div>
-        )}
-
-        <div className="border-border border-t pt-4">
-          {confirming ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm">{labels.removeConfirm}</span>
-              <SmallButton
-                disabled={pending}
-                onClick={() => run(() => removeVendorFromWedding(weddingId, vendor.id))}
-              >
-                {labels.removeConfirmYes}
-              </SmallButton>
-              <SmallButton disabled={pending} onClick={() => setConfirming(false)}>
-                {labels.cancel}
-              </SmallButton>
-            </div>
-          ) : (
-            <SmallButton disabled={pending} onClick={() => setConfirming(true)}>
-              {labels.remove}
-            </SmallButton>
-          )}
-          <p className="text-muted-foreground mt-2 text-xs">{labels.removeNote}</p>
-        </div>
-      </div>
-    </Sheet>
-  )
-}
-
-/**
- * Create, copy once, revoke. Spec 0003, S10.
- *
- * The plain token exists ONLY in `created` state, held in memory for this mount and never
- * written anywhere -- reloading the sheet loses it, same as the server: `vendor_links` stores
- * only the hash (`createVendorLinkAction`). "Create" reads "replace" (the repo revokes any
- * link already live for this vendor in the same transaction, see `vendor-links.ts`), so this
- * never needs to reconcile two live links.
- */
-function VendorLinkControls({
-  weddingId,
-  vendorLinkId,
-  activeLink,
-  labels,
-}: {
-  weddingId: string
-  vendorLinkId: string
-  activeLink: WeddingVendorRow['activeLink']
-  labels: ManageLinkLabels
-}) {
-  const [created, setCreated] = useState<{ token: string; expiresAt: string } | null>(null)
-  const [copied, setCopied] = useState(false)
-  const [confirmingRevoke, setConfirmingRevoke] = useState(false)
-  const [revoked, setRevoked] = useState(false)
-  const [pending, startTransition] = useTransition()
-  const [failed, setFailed] = useState(false)
-
-  const create = () => {
-    setFailed(false)
-    startTransition(async () => {
-      try {
-        const r = await createVendorLinkAction(weddingId, vendorLinkId, undefined)
-        if (r.ok) {
-          setCreated({ token: r.token, expiresAt: r.expiresAt })
-          setCopied(false)
-        } else {
-          setFailed(true)
-        }
-      } catch {
-        setFailed(true)
-      }
-    })
-  }
-
-  const revoke = (linkId: string) => {
-    setFailed(false)
-    startTransition(async () => {
-      try {
-        const r = await revokeVendorLinkAction(weddingId, linkId)
-        if (r.ok) {
-          setRevoked(true)
-          setConfirmingRevoke(false)
-        } else {
-          setFailed(true)
-        }
-      } catch {
-        setFailed(true)
-      }
-    })
-  }
-
-  const copy = async (token: string) => {
-    try {
-      await navigator.clipboard.writeText(`${window.location.origin}/vendor/${token}`)
-      setCopied(true)
-    } catch {
-      // Clipboard access can be denied by the browser; the token stays selectable on screen.
-    }
-  }
-
-  return (
-    <div>
-      <p className="mb-2 text-sm font-medium">{labels.title}</p>
-
-      {created ? (
-        <div className="space-y-2">
-          <p className="text-muted-foreground text-xs">{labels.created}</p>
-          <div className="flex flex-wrap items-center gap-2">
-            <code className="border-border bg-muted min-w-0 flex-1 basis-56 truncate rounded-[var(--radius)] border px-2 py-1.5 text-xs">
-              {`${typeof window === 'undefined' ? '' : window.location.origin}/vendor/${created.token}`}
-            </code>
-            <SmallButton onClick={() => copy(created.token)}>
-              {copied ? labels.copied : labels.copyButton}
-            </SmallButton>
-          </div>
-          <p className="text-muted-foreground text-xs">
-            {labels.expiresLabel.replace('{date}', created.expiresAt.slice(0, 10))}
-          </p>
-        </div>
-      ) : activeLink && !revoked ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-muted-foreground text-xs">
-            {labels.expiresLabel.replace('{date}', activeLink.expiresAt.toISOString().slice(0, 10))}
-          </span>
-          {confirmingRevoke ? (
-            <>
-              <span className="text-sm">{labels.revokeConfirm}</span>
-              <SmallButton disabled={pending} onClick={() => revoke(activeLink.id)}>
-                {labels.revokeConfirmYes}
-              </SmallButton>
-              <SmallButton disabled={pending} onClick={() => setConfirmingRevoke(false)}>
-                {labels.cancel}
-              </SmallButton>
-            </>
-          ) : (
-            <SmallButton disabled={pending} onClick={() => setConfirmingRevoke(true)}>
-              {labels.revokeButton}
-            </SmallButton>
-          )}
-        </div>
-      ) : (
-        <SmallButton tone="primary" disabled={pending} onClick={create}>
-          {pending ? labels.creating : labels.createButton}
-        </SmallButton>
-      )}
-
-      {revoked && !created && (
-        <p className="text-muted-foreground mt-2 text-xs">{labels.revoked}</p>
-      )}
-      {failed && <InlineError>{labels.error}</InlineError>}
-    </div>
   )
 }
