@@ -1,9 +1,9 @@
 import { getVendorLinkView, resolveVendorLinkByHash } from '@guestnote/db'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { formatCivilDate } from '../../../../../components/wedding/wedding-header.tsx'
+import { hashBearerToken } from '../../../../../lib/bearer-token.ts'
 import { getDb } from '../../../../../lib/db.ts'
 import { splitDuration } from '../../../../../lib/run-sheet.ts'
-import { hashVendorLinkToken } from '../../../../../lib/vendor-link-token.ts'
 
 /**
  * `app.guestnote.be/vendor/<token>` -- spec 0003, S10. The one screen a vendor with no
@@ -32,7 +32,7 @@ export default async function VendorLinkPage({ params }: { params: Promise<{ tok
     getLocale(),
   ])
 
-  const lookup = await resolveVendorLinkByHash(getDb(), hashVendorLinkToken(token))
+  const lookup = await resolveVendorLinkByHash(getDb(), hashBearerToken(token))
   if (lookup?.status !== 'live') {
     return <Gone title={t('gone.title')} body={t('gone.body')} />
   }

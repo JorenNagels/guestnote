@@ -10,6 +10,7 @@ import {
   type VendorWriteResult,
 } from '@guestnote/db'
 import { revalidatePath } from 'next/cache'
+import { newBearerToken } from '../../../../../../lib/bearer-token.ts'
 import { getDb } from '../../../../../../lib/db.ts'
 import { currentMemberships, currentOrgId } from '../../../../../../lib/principal.ts'
 import {
@@ -22,7 +23,6 @@ import {
 import {
   DEFAULT_VENDOR_LINK_TTL_DAYS,
   MAX_VENDOR_LINK_TTL_DAYS,
-  newVendorLinkToken,
 } from '../../../../../../lib/vendor-link-token.ts'
 
 /**
@@ -158,7 +158,7 @@ export async function createVendorLinkAction(
     return { ok: false, error: 'invalid' }
   }
 
-  const { token, tokenHash } = newVendorLinkToken()
+  const { token, tokenHash } = newBearerToken()
   const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000)
   const r = await createVendorLink(getDb(), ctx.m, ctx.orgId, ctx.weddingId, id, {
     tokenHash,

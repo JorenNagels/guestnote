@@ -191,7 +191,7 @@ describe('createVendorLinkAction', () => {
 
     expect(out.ok).toBe(true)
     if (!out.ok) throw new Error('unreachable')
-    // 32 random bytes, base64url -- see vendor-link-token.ts. Not asserted against a fixed
+    // 32 random bytes, base64url -- see bearer-token.ts. Not asserted against a fixed
     // value: the whole point is that it is random per call.
     expect(out.token).toMatch(/^[A-Za-z0-9_-]{40,}$/)
     expect(new Date(out.expiresAt).getTime()).toBeGreaterThan(Date.now())

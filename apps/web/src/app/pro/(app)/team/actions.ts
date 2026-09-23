@@ -3,9 +3,10 @@
 import { createStaffInvite, revokeStaffInvite } from '@guestnote/db'
 import { revalidatePath } from 'next/cache'
 import { getLocale } from 'next-intl/server'
+import { newBearerToken } from '../../../../lib/bearer-token.ts'
 import { getDb } from '../../../../lib/db.ts'
 import { sendStaffInviteMail } from '../../../../lib/invite-mail.ts'
-import { INVITE_TTL_DAYS, newInviteToken } from '../../../../lib/invite-token.ts'
+import { INVITE_TTL_DAYS } from '../../../../lib/invite-token.ts'
 import {
   currentMemberships,
   currentOrgId,
@@ -61,7 +62,7 @@ export async function inviteTeamMember(input: {
   ])
   if (!session || !memberships || !orgId) return { ok: false, reason: 'forbidden' }
 
-  const { token, tokenHash } = newInviteToken()
+  const { token, tokenHash } = newBearerToken()
   const expiresAt = new Date(Date.now() + INVITE_TTL_DAYS * 24 * 60 * 60 * 1000)
 
   const created = await createStaffInvite(getDb(), memberships, orgId, {

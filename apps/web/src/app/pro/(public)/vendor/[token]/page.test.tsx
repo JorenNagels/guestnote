@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
  *
  * `@guestnote/db` is mocked at the two functions this page calls; `getDb()` is mocked to a
  * sentinel so a call with the wrong "db" argument would show up in `toHaveBeenCalledWith`.
- * `hashVendorLinkToken` is the real module -- it is pure and deterministic, so mocking it
+ * `hashBearerToken` is the real module -- it is pure and deterministic, so mocking it
  * would only hide a wrong argument getting through.
  */
 const resolveVendorLinkByHash = vi.fn()
