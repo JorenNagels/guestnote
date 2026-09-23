@@ -1,0 +1,30 @@
+{
+  "title": "Vandaag",
+  "subtitle": "{date} · {count, plural, one {# actieve bruiloft} other {# actieve bruiloften}}",
+  "weddingsLabel": "Je bruiloften",
+  "load": "{open} open",
+  "loadOverdue": "{overdue} te laat · {open} open",
+  "loadNone": "Niets open",
+  "sections": {
+    "needsYou": "Vandaag voor jou",
+    "dueWeek": "Deze week",
+    "next": "Hierna"
+  },
+  "count": "{count, plural, one {# taak} other {# taken}}",
+  "empty": {
+    "needsYou": "Niets dat vandaag aandacht vraagt.",
+    "dueWeek": "Niets gepland voor de komende zeven dagen.",
+    "next": "Verder staat er niets met een datum in je lijst."
+  },
+  "allClear": "Je bent bij. Er staat niets open voor vandaag of deze week.",
+  "undated": "Open taken zonder datum: {count}.",
+  "noWeddings": {
+    "title": "Nog geen bruiloften",
+    "body": "Maak je eerste bruiloft aan. Hier zie je dan wat er vandaag en de komende dagen van jou verwacht wordt.",
+    "create": "Nieuwe bruiloft"
+  },
+  "noAssignments": {
+    "title": "Nog geen bruiloften aan jou toegewezen",
+    "body": "Zodra een collega je aan een bruiloft toevoegt, verschijnen je taken hier."
+  }
+}

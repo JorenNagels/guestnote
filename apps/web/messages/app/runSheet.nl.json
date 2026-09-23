@@ -1,0 +1,80 @@
+{
+  "title": "Draaiboek",
+  "days": {
+    "label": "Dagen van de bruiloft"
+  },
+  "event": {
+    "noTime": "Nog geen uur",
+    "noEvents": {
+      "title": "Nog geen dag om een draaiboek voor te maken",
+      "body": "Een draaiboek hoort bij een dag van de bruiloft. Voeg eerst een dag toe in de instellingen, bijvoorbeeld de ceremonie of het feest.",
+      "action": "Naar de instellingen"
+    }
+  },
+  "list": {
+    "caption": "Draaiboek van {event}",
+    "colTime": "Tijd",
+    "colLength": "Duur",
+    "colWhat": "Wat gebeurt er",
+    "colWho": "Wie",
+    "colWhere": "Waar",
+    "colOrder": "Volgorde",
+    "planner": "Planner",
+    "until": "tot",
+    "nextDay": "de volgende dag",
+    "edit": "Bewerk {title}",
+    "minutes": "{m} min",
+    "hours": "{h} u",
+    "hoursMinutes": "{h} u {m}",
+    "overlap": "Overlap van {length} met wat erboven staat",
+    "gap": "{length} leeg",
+    "summary": "{count, plural, one {# onderdeel} other {# onderdelen}}, van {from} tot {to}",
+    "add": "Onderdeel toevoegen",
+    "moveUp": "Zet {title} hoger",
+    "moveDown": "Zet {title} lager",
+    "emptyTitle": "Nog geen onderdelen op dit draaiboek",
+    "emptyBody": "Zet het eerste moment van de dag erin, bijvoorbeeld de aankomst van de gasten. Het einduur, de overlap en de leegte rekenen zichzelf uit.",
+    "emptyAction": "Eerste onderdeel toevoegen"
+  },
+  "sheet": {
+    "titleNew": "Nieuw onderdeel",
+    "titleEdit": "Onderdeel bewerken",
+    "close": "Sluiten",
+    "startsAt": "Begint om",
+    "duration": "Duur (minuten)",
+    "durationHint": "Het einduur rekent zichzelf uit.",
+    "what": "Wat gebeurt er",
+    "place": "Waar",
+    "placeHint": "Laat leeg als het duidelijk is.",
+    "vendor": "Wie is verantwoordelijk",
+    "vendorNone": "Planner, geen leverancier",
+    "vendorEmpty": "Nog geen leveranciers bij deze bruiloft. Voeg ze toe bij Leveranciers.",
+    "vendorRemoved": "{name} (niet meer bij deze bruiloft)",
+    "order": "Volgorde",
+    "moveUp": "Hoger",
+    "moveDown": "Lager",
+    "save": "Opslaan",
+    "saveNext": "Opslaan en volgende",
+    "saving": "Opslaan…",
+    "cancel": "Annuleren",
+    "delete": "Verwijderen",
+    "deleteAsk": "Dit onderdeel verwijderen? Dat kan niet ongedaan gemaakt worden.",
+    "deleteConfirm": "Ja, verwijderen",
+    "deleting": "Verwijderen…"
+  },
+  "errors": {
+    "event": "Kies een dag van de bruiloft.",
+    "time": "Geef een uur op, bijvoorbeeld 15:30.",
+    "duration": "Geef de duur op in hele minuten, van 1 tot 1440.",
+    "title": "Zeg wat er gebeurt, in hoogstens 120 tekens.",
+    "place": "Dat is te lang voor een plaats. Hou het onder 120 tekens.",
+    "vendor": "Kies een leverancier uit de lijst.",
+    "notFound": "Dit onderdeel of deze bruiloft bestaat niet meer. Vernieuw de pagina.",
+    "failed": "Het opslaan is niet gelukt. Er is niets gewijzigd. Probeer het zo nog eens."
+  },
+  "error": {
+    "title": "Het draaiboek kon niet geladen worden",
+    "body": "Er is niets gewijzigd. Probeer het opnieuw.",
+    "retry": "Opnieuw proberen"
+  }
+}

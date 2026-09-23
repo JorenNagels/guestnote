@@ -1,0 +1,69 @@
+{
+  "files": {
+    "title": "Fichiers",
+    "tableCaption": "Fichiers de ce mariage",
+    "columnName": "Nom",
+    "columnActions": "Actions",
+    "emptyTitle": "Aucun fichier pour l’instant",
+    "emptyBody": "Ajoutez un contrat, un devis ou un plan de salle : déposez-le ici ou choisissez un fichier.",
+    "internalOnly": "Interne uniquement",
+    "internalNext": "Interne uniquement",
+    "by": "par",
+    "upload": {
+      "button": "Ajouter des fichiers",
+      "hint": "Déposez des fichiers ici. PDF, Word, Excel, PowerPoint, texte et images jusqu’à 25 Mo."
+    },
+    "actions": {
+      "download": "Télécharger",
+      "rename": "Renommer",
+      "makeInternal": "Rendre interne",
+      "makeShared": "Partager",
+      "remove": "Supprimer",
+      "removeConfirm": "Supprimer « {name} » ?",
+      "removeYes": "Oui, supprimer",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "renameField": "Nouveau nom"
+    },
+    "aria": {
+      "download": "Télécharger {name}",
+      "rename": "Renommer {name}",
+      "makeInternal": "Rendre {name} interne",
+      "makeShared": "Partager {name}",
+      "remove": "Supprimer {name}"
+    }
+  },
+  "moodboard": {
+    "title": "Moodboard",
+    "emptyTitle": "Aucune image pour l’instant",
+    "emptyBody": "Ajoutez des photos de fleurs, de tables, de robes ou de lieux. Cliquez sur une légende pour la modifier.",
+    "upload": {
+      "button": "Ajouter des images",
+      "hint": "Déposez des images ici. JPEG, PNG, WebP, GIF, HEIC ou AVIF jusqu’à 25 Mo."
+    },
+    "tileRemove": "Supprimer",
+    "tileRemoveConfirm": "Supprimer ?",
+    "tileRemoveYes": "Oui",
+    "tileCancel": "Annuler",
+    "aria": {
+      "remove": "Supprimer {name}",
+      "caption": "Modifier la légende de {name}"
+    },
+    "captionField": "Légende",
+    "captionSave": "Enregistrer",
+    "imageUnavailable": "Image indisponible"
+  },
+  "uploading": "Envoi en cours…",
+  "dismiss": "Fermer",
+  "errors": {
+    "notFound": "Introuvable. Il a peut-être déjà été supprimé.",
+    "invalidName": "Saisissez un nom de 200 caractères au maximum.",
+    "invalidSize": "Ce fichier est vide ou sa taille est incorrecte.",
+    "tooLarge": "Ce fichier dépasse 25 Mo.",
+    "typeNotAllowed": "Ce type de fichier ne peut pas être envoyé.",
+    "unavailable": "L’enregistrement est impossible pour le moment. Réessayez dans un instant.",
+    "network": "Pas de connexion. Réessayez.",
+    "uploadFailed": "L’envoi a échoué. Réessayez.",
+    "unknown": "Une erreur s’est produite. Réessayez."
+  }
+}

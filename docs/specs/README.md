@@ -27,6 +27,9 @@ so those were being inferred at planning time, silently, and discovered wrong on
   this gap on the first one. A fourth status term was the alternative and was rejected:
   "partly built" is not a state anyone can act on, whereas a line naming the built pieces
   is. `Built YYYY-MM-DD` means the whole spec is real.
+- **An umbrella spec may hand each slice a `SPEC.md` beside its code.** The umbrella holds the
+  shared decisions and data; the slice file holds behaviour, copy and done for that slice, and
+  may not contradict the umbrella. First used by `0003`.
 - **A rejected option is never deleted**, the same rule `research/` runs on. The spec records
   what was chosen *and* what was turned down, so the question is not reopened from scratch.
 - **A spec that no longer describes the product gets amended, not left standing.** One that

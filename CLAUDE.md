@@ -21,6 +21,7 @@ warning once let `npm install` write a dependency into `package.json` without in
 | `packages/core/src/auth/` | The auth seam. `better-auth.ts` is the only provider contact. |
 | `packages/ui/` | Presentational primitives, one export path per public file. |
 | `packages/email/` | The mail seam. `ses.ts` is the only AWS SDK contact. |
+| `packages/storage/` | The file-storage seam: presigned PUT/GET. `s3.ts` is the only S3 SDK contact. |
 | `apps/web/src/proxy.ts` | The only file that reads the request's hostname. (`lib/app-url.ts` composes the app origin for cross-host links.) Its matcher's exclusion list is a promise those files exist — see invariant 13. |
 | `apps/web/src/env.ts` | The only file that reads `process.env`. |
 | `docs/adr/` | Decisions that were **measured**. Supersede `research/` where they overlap. |
@@ -71,7 +72,7 @@ stop and ask. The rest are held by convention alone, which is why they are writt
    merely `enable`, which exempts the table owner, and on managed Postgres the app can be the
    owner — plus a policy whose predicate names its tenant key.
    `packages/db/test/schema-coverage.test.ts` fails if a table is unclassified, and runs the
-   FORCE and policy assertions over the three *scoped* buckets only. So an `UNSCOPED_TABLES`
+   FORCE and policy assertions over the *scoped* buckets only (tenant, self, user, and `ORG_SCOPED_TABLES` — `vendors`, `task_templates`, `template_items`, which carry `org_id` and no `wedding_id`). So an `UNSCOPED_TABLES`
    entry carries no RLS **by design**, and needs a stated reason of the same kind as the
    existing ones: the row is written before a principal exists, so there is no `app.user_id`
    to scope by and a policy would break sign-in outright. `mail_deliveries` and `rate_limits`
@@ -84,6 +85,27 @@ stop and ask. The rest are held by convention alone, which is why they are writt
    tenant-scoped read starts returning other organisations, which is how it was found.
    It is named individually in `USER_SCOPED_POLICY_EXCEPTIONS` in `schema-coverage.test.ts`,
    so a *new* policy scoping by neither key still fails.
+   **Migration 0007 added two more of the same kind, on the opposite axis:**
+   `org_members.org_staff_read` and `wedding_members.org_staff_read` are `for select`
+   policies scoped by `app.org_id` (and `app.wedding_role in ('owner','admin')`), so an owner
+   or admin can read every membership of their org. Both tables are otherwise `app.user_id`
+   scoped. Each exception now carries the GUC its `USING` must name, so it is excused from
+   the table's primary key and not from being scoped. **A future `withTenant` query on either
+   table now returns the whole org to an owner or admin: it must filter to the caller itself
+   if it means "my row".**
+   The same migration adds `resolve_invitation` and `accept_invitation`, `SECURITY DEFINER`
+   functions that are the only door onto `invitations` before a principal exists. They
+   install only when the migrating role bypasses RLS, and they are executable by `app_user`
+   alone.
+   **Migration 0008 added three more, on a third axis: no tenant key at all.**
+   `run_sheet_items.link_read`, `wedding_vendors.link_read` and `wedding_events.link_read` are
+   `for select` policies scoped by `app.wedding_role = 'link'` plus the vendor-link GUCs
+   (`resolve_vendor_link`, the matching `SECURITY DEFINER` function). The `link` principal
+   carries no `org_id` and no `user_id` — a signed link is read before either exists — so these
+   three are excused from both keys, not just one. `wedding_events.link_read` grants the whole
+   row (including `venue`) for every event of the wedding, not just the linked vendor's own
+   event, deliberately: nothing on that table is sensitive today, and the migration's own
+   comment says so plainly, with a test proving a link principal can read a sibling event's venue.
 
 3. **`Principal` stays a discriminated union.** Never `{ orgId?, weddingId? }`. A principal
    with no `org_members` row *must* carry `weddingId`, or RLS falls through to org-wide
@@ -96,16 +118,18 @@ stop and ask. The rest are held by convention alone, which is why they are writt
 
 5. **Provider libraries are reachable from exactly one file each.** `better-auth` only from
    `packages/core/src/auth/better-auth.ts`; `@aws-sdk/client-sesv2` only from
-   `packages/email/src/ses.ts` and its test. No provider type crosses either seam — everything
-   returns plain data. That is what keeps a provider swap a bounded job, and what stops the AWS
-   SDK being dragged into a bundle by a stray import. Both bans are in `biome.json` *and* in
-   `no-unsafe-imports.test.ts`.
+   `packages/email/src/ses.ts` and its test; `@aws-sdk/client-s3` and
+   `@aws-sdk/s3-request-presigner` only from `packages/storage/src/s3.ts`. No provider type
+   crosses any seam — everything returns plain data. That is what keeps a provider swap a
+   bounded job, and what stops the AWS SDK being dragged into a bundle by a stray import. All
+   the bans are in `biome.json` *and* in `no-unsafe-imports.test.ts`.
 
 6. **`apps/web/src/env.ts` is the only reader of *configuration*,** and `packages/*` reads no
    environment at all — config arrives as arguments. The single exception is `NODE_ENV`, in
-   exactly two places, each guarding a dev-only refusal: `lib/auth.ts`'s `DEV_SECRET` and
-   `lib/mailer.ts`'s console transport. `packages/email/src/console.ts` explains why the check
-   lives in the app and not in the package. Values a `next build` must not require
+   exactly three places, each guarding a dev-only refusal: `lib/auth.ts`'s `DEV_SECRET`,
+   `lib/mailer.ts`'s console transport and `lib/storage.ts`'s local-directory fallback for the
+   files bucket. `packages/email/src/console.ts` explains why the check lives in the app and
+   not in the package. Values a `next build` must not require
    (`DATABASE_URL`, `BETTER_AUTH_SECRET`) are optional in `env.ts` and validated lazily at the
    point of use. Deployed secrets come from SSM at `/guestnote/<env>/*`.
    Where a variable selects behaviour rather than supplying a value, **the value you get by

@@ -1,0 +1,30 @@
+{
+  "title": "Today",
+  "subtitle": "{date} · {count, plural, one {# active wedding} other {# active weddings}}",
+  "weddingsLabel": "Your weddings",
+  "load": "{open} open",
+  "loadOverdue": "{overdue} overdue · {open} open",
+  "loadNone": "Nothing open",
+  "sections": {
+    "needsYou": "Needs you today",
+    "dueWeek": "Due this week",
+    "next": "Coming up"
+  },
+  "count": "{count, plural, one {# task} other {# tasks}}",
+  "empty": {
+    "needsYou": "Nothing needs your attention today.",
+    "dueWeek": "Nothing planned for the next seven days.",
+    "next": "Nothing else with a date on your list."
+  },
+  "allClear": "You are up to date. Nothing is open for today or this week.",
+  "undated": "Open tasks with no date: {count}.",
+  "noWeddings": {
+    "title": "No weddings yet",
+    "body": "Create your first wedding. This is where you will see what is expected of you today and in the days ahead.",
+    "create": "New wedding"
+  },
+  "noAssignments": {
+    "title": "No weddings assigned to you yet",
+    "body": "Once a colleague adds you to a wedding, your tasks will appear here."
+  }
+}

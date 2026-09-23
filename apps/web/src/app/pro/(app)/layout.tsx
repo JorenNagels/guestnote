@@ -1,9 +1,11 @@
+import { listWeddings, type WeddingSummary } from '@guestnote/db'
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { getLocale, getTranslations } from 'next-intl/server'
 import type { ReactNode } from 'react'
-import { Shell } from '../../../components/nav/shell.tsx'
+import { Shell, type ShellWedding } from '../../../components/nav/shell.tsx'
 import { getAuth } from '../../../lib/auth.ts'
+import { getDb } from '../../../lib/db.ts'
 import { DEFAULT_LOCALE, isLocale } from '../../../lib/locales.ts'
 import {
   DENSITY_COOKIE,
@@ -13,7 +15,7 @@ import {
   parseTheme,
   THEME_COOKIE,
 } from '../../../lib/prefs.ts'
-import { currentOrgId, currentOrgs } from '../../../lib/principal.ts'
+import { currentMemberships, currentOrgId, currentOrgs } from '../../../lib/principal.ts'
 import { app } from '../../../lib/routes.ts'
 
 /**
@@ -52,38 +54,55 @@ export default async function AppShellLayout({ children }: { children: ReactNode
   const session = await getAuth().getSession(requestHeaders)
   if (!session) redirect(app.loginAfterExpiry())
 
-  const [orgId, orgs, store, locale, t, authT, hasPasskey] = await Promise.all([
-    currentOrgId(),
-    currentOrgs(),
-    cookies(),
-    getLocale(),
-    getTranslations('app'),
-    getTranslations('auth'),
-    /**
-     * Whether this user already holds a passkey -- the half of the enrollment offer's gate
-     * that only the server can answer, and the one rung 2 of sign-in could never ask.
-     *
-     * In the `Promise.all` and not behind an `if (welcome)`: a layout cannot read search
-     * params at all (Next gives them to pages only), so the marker that decides whether the
-     * prompt is *shown* is read client-side in `enrollment-prompt.tsx`. The cost is one
-     * extra query per dashboard render, paid by everyone who has no passkey yet and
-     * disappearing for good the moment they enrol -- and it is concurrent with four reads
-     * already happening, so it adds a round trip's latency to none of them.
-     *
-     * Rejected: `beginPasskeyEnrollment` failing loudly instead. Every passkey failure on
-     * this path renders as nothing, by design, so "offer it and find out" means offering
-     * something that silently does nothing to the people who least need it.
-     */
-    getAuth().hasPasskey(requestHeaders),
-  ])
+  const [orgId, orgs, memberships, store, locale, t, shellT, authT, hasPasskey] = await Promise.all(
+    [
+      currentOrgId(),
+      currentOrgs(),
+      currentMemberships(),
+      cookies(),
+      getLocale(),
+      getTranslations('app'),
+      getTranslations('app.shell'),
+      getTranslations('auth'),
+      /**
+       * Whether this user already holds a passkey -- the half of the enrollment offer's gate
+       * that only the server can answer, and the one rung 2 of sign-in could never ask.
+       *
+       * In the `Promise.all` and not behind an `if (welcome)`: a layout cannot read search
+       * params at all (Next gives them to pages only), so the marker that decides whether the
+       * prompt is *shown* is read client-side in `enrollment-prompt.tsx`. The cost is one
+       * extra query per dashboard render, paid by everyone who has no passkey yet and
+       * disappearing for good the moment they enrol -- and it is concurrent with four reads
+       * already happening, so it adds a round trip's latency to none of them.
+       *
+       * Rejected: `beginPasskeyEnrollment` failing loudly instead. Every passkey failure on
+       * this path renders as nothing, by design, so "offer it and find out" means offering
+       * something that silently does nothing to the people who least need it.
+       */
+      getAuth().hasPasskey(requestHeaders),
+    ],
+  )
 
   const current = orgs.find((o) => o.id === orgId)
   if (!orgId || !current) return children
+
+  // After the no-org return, and not in the `Promise.all` above: it needs `orgId`, and a
+  // planner with no org has nothing to list. `listWeddings` derives its own principal from
+  // `memberships` and scopes through RLS, so this is not a place the layout decides anything --
+  // an org the user has no standing in returns `[]`, indistinguishable from an empty one.
+  // `.raw`, not a formatted read: these four are templates with a `{days}` the browser fills
+  // in per row, and formatting them here throws FORMATTING_ERROR for the missing variable.
+  // Found in the browser, not by a test -- the component tests hand the labels in as props, so
+  // nothing there can see how the layout produces them.
+  const raw = (key: string) => String(shellT.raw(key))
+
+  const weddings = memberships ? await listWeddings(getDb(), memberships, orgId) : []
 
   return (
     <Shell
       org={current}
       orgs={orgs}
+      weddings={weddings.map(toShellWedding)}
       user={{ name: session.name, email: session.email }}
       offerPasskey={getAuth().passkeysAvailable() && !hasPasskey}
       initialNav={parseNavState(store.get(NAV_COOKIE)?.value)}
@@ -97,8 +116,31 @@ export default async function AppShellLayout({ children }: { children: ReactNode
       labels={{
         nav: t('nav.label'),
         weddings: t('weddings.title'),
-        overview: t('nav.overview'),
-        weddingSection: t('nav.weddingSection'),
+        today: shellT('nav.today'),
+        templates: shellT('nav.templates'),
+        vendors: shellT('nav.vendors'),
+        team: shellT('nav.team'),
+        weddingsSection: shellT('nav.weddingsSection'),
+        newWedding: shellT('nav.newWedding'),
+        wedding: {
+          overview: t('nav.overview'),
+          checklist: shellT('nav.checklist'),
+          budget: shellT('nav.budget'),
+          payments: shellT('nav.payments'),
+          vendors: shellT('nav.vendors'),
+          runSheet: shellT('nav.runSheet'),
+          files: shellT('nav.files'),
+          moodboard: shellT('nav.moodboard'),
+        },
+        row: {
+          noDate: shellT('nav.noDate'),
+          archived: t('weddings.status.archived'),
+          today: shellT('countdown.today'),
+          untilOne: raw('countdown.untilOne'),
+          untilOther: raw('countdown.untilOther'),
+          sinceOne: raw('countdown.sinceOne'),
+          sinceOther: raw('countdown.sinceOther'),
+        },
         collapse: t('nav.collapse'),
         expand: t('nav.expand'),
         openMenu: t('nav.openMenu'),
@@ -139,4 +181,23 @@ export default async function AppShellLayout({ children }: { children: ReactNode
       {children}
     </Shell>
   )
+}
+
+/**
+ * The summary the repo returns, narrowed to what the sidebar draws.
+ *
+ * `color` is read defensively because `weddings.color` arrives with F1's migration and the
+ * repo's `WeddingSummary` grows the field with it. `'color' in w` is true from that day on and
+ * false before, so this compiles and behaves correctly on both sides of it -- and the sidebar
+ * shows a neutral dot until then rather than needing a second change here. Whatever string
+ * arrives is validated as a hex again where it is used (`wedding-row.tsx`).
+ */
+function toShellWedding(w: WeddingSummary): ShellWedding {
+  return {
+    id: w.id,
+    name: w.coupleDisplayName,
+    date: w.weddingDate,
+    status: w.status,
+    color: 'color' in w && typeof w.color === 'string' ? w.color : null,
+  }
 }

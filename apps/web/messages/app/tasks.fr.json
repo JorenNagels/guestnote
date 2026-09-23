@@ -1,0 +1,110 @@
+{
+  "title": "Checklist",
+  "newTask": "Nouvelle tâche",
+  "filtersLabel": "Filtre",
+  "filters": {
+    "all": "Tout",
+    "open": "Ouvertes",
+    "overdue": "En retard",
+    "internal": "Interne",
+    "shared": "Partagé"
+  },
+  "buckets": {
+    "overdue": "En retard",
+    "soon": "14 prochains jours",
+    "later": "Plus tard",
+    "undated": "Sans date",
+    "done": "Terminées"
+  },
+  "empty": {
+    "title": "Pas encore de tâches",
+    "body": "Ajoutez la première tâche, ou appliquez un modèle plus tard."
+  },
+  "filterEmpty": {
+    "title": "Aucune tâche pour ce filtre",
+    "back": "Tout afficher"
+  },
+  "row": {
+    "complete": "Marquer comme terminée : {title}",
+    "reopen": "Rouvrir : {title}",
+    "inProgress": "En cours",
+    "noWeddingDate": "Pas de date de mariage",
+    "noDue": "Sans date",
+    "couple": "Couple",
+    "planner": "Planner"
+  },
+  "due": {
+    "today": "Aujourd'hui",
+    "tomorrow": "Demain",
+    "overdueDays": "{days, plural, one {# jour de retard} other {# jours de retard}}",
+    "inDays": "Dans {days} jours"
+  },
+  "rule": {
+    "before": "{days, plural, one {# jour avant le mariage} other {# jours avant le mariage}}",
+    "after": "{days, plural, one {# jour après le mariage} other {# jours après le mariage}}",
+    "onDay": "Le jour du mariage",
+    "fixed": "Date fixe"
+  },
+  "visibility": {
+    "shared": "Partagé avec le couple",
+    "internal": "Interne uniquement"
+  },
+  "form": {
+    "newHeading": "Nouvelle tâche",
+    "editHeading": "Modifier la tâche",
+    "title": "Tâche",
+    "titlePlaceholder": "Que faut-il faire ?",
+    "notes": "Notes",
+    "owner": "Responsable",
+    "visibility": "Visibilité",
+    "dueHeading": "Échéance",
+    "dueNone": "Sans date",
+    "dueOffset": "Compte à partir du jour du mariage",
+    "dueDate": "Une date fixe",
+    "date": "Date",
+    "offsetDays": "Nombre de jours",
+    "before": "Avant le mariage",
+    "after": "Après le mariage",
+    "fixedHint": "Reste en place si le mariage est déplacé.",
+    "offsetHint": "Suit le mariage s'il est déplacé.",
+    "previewDate": "Tombe le {date}",
+    "previewNoWeddingDate": "Pas de date de mariage : la date apparaîtra dès que vous en fixez une.",
+    "save": "Enregistrer la tâche",
+    "saving": "Enregistrement…",
+    "cancel": "Annuler"
+  },
+  "errors": {
+    "title": "Donnez un titre à la tâche, de 200 caractères au plus.",
+    "notes": "Les notes sont trop longues (4000 caractères au plus).",
+    "offset": "Indiquez un nombre de jours, un entier jusqu'à 3650.",
+    "date": "Choisissez une date valide.",
+    "comment": "Écrivez un commentaire de 4000 caractères au plus.",
+    "notFound": "Cette tâche n'existe plus.",
+    "failed": "Cela n'a pas fonctionné. Réessayez."
+  },
+  "detail": {
+    "back": "Retour à la checklist",
+    "edit": "Modifier",
+    "due": "Échéance",
+    "rule": "Règle",
+    "assignedTo": "Assignée à",
+    "visibility": "Visibilité",
+    "unassigned": "Personne",
+    "notes": "Notes",
+    "makeInternal": "Rendre interne",
+    "makeShared": "Partager avec le couple",
+    "completedAt": "Terminée le {date}"
+  },
+  "comments": {
+    "heading": "Commentaires",
+    "empty": "Pas encore de commentaires.",
+    "label": "Écrire un commentaire",
+    "placeholder": "Écrire un commentaire…",
+    "internalNote": "Cette tâche est interne : le couple ne voit pas ses commentaires.",
+    "sharedNote": "Cette tâche est partagée : le couple voit ses commentaires.",
+    "add": "Publier le commentaire",
+    "adding": "Publication…",
+    "unknownAuthor": "Inconnu",
+    "utc": "{date} UTC"
+  }
+}

@@ -73,6 +73,96 @@ header: which half of the `EXISTS` is load-bearing (the `org_id` correlation, no
 returns the right answer even when the policy is wrong), and the guard above.
 `isolation.test.ts` §7 holds the policy up and §8 holds the guard up.
 
+`0006_planner_tables.sql` is spec 0003's data: ten tables for the planner app, plus four
+columns on `weddings`. The top is drizzle-kit generated; the tail (enable + force, policies,
+grants) is hand-written, in the same file on purpose -- deploy.yml applies each file in its own
+transaction, and a failure between a `0006` and a separate RLS file would leave the tables with
+default DML grants and no RLS. Read the header of that tail before changing any of it. Five
+things it settles that are easy to lose:
+
+- **A `couple` reads none of it.** Every policy carries a positive role list, `in ('owner',
+  'admin', 'member')`, because a couple's GUCs are identical to a planner's and the tenant keys
+  cannot tell them apart. `editor` is out too. Unset or unknown roles read nothing.
+- **A new tenancy bucket, `ORG_SCOPED_TABLES`** (`vendors`, `task_templates`,
+  `template_items`): `org_id` and no `wedding_id`. `schema-coverage.test.ts` asserts the
+  absence, so a table that grows a wedding key has to move buckets. A `member` reads them and
+  cannot write: two policies each, `tenant_isolation` (owner, admin, FOR ALL) and `member_read`
+  (FOR SELECT). One FOR ALL policy with a narrower WITH CHECK would still let a member delete.
+- **`vendor_links` is owner and admin only, reads included.** It is the table only; the `link`
+  principal and its lookup function are slice S10's.
+- **Foreign keys are plain, so RI ignores RLS.** A child row can name a parent in another
+  wedding of the same org (`payments.budget_line_id`, `budget_lines.wedding_vendor_id`): the FK
+  check runs without RLS. The guard is that a slice action reads the parent under `withTenant`
+  before it inserts. `planner-isolation.test.ts` records today's behaviour.
+- **`weddings.notes` is couple-readable** the day a couple reaches `weddings` at all, because
+  that policy is unchanged. Nothing can reach it today. The couple-portal spec must answer it.
+
+`test/planner-isolation.test.ts` covers all ten tables: couple, editor, member and cross-org, read
+and write, plus the CHECKs and foreign keys. **356 passed on the local tier, 2026-09-21**; the
+Neon tier was not run for this change. The mutation sweep (nine policy mutations, run by hand
+with `alter policy`) failed the suite on eight; a second sweep on the member-read/write split
+and the wedding-pin and role-clause assertions (seven mutations) failed on all seven. The survivor is the `visibility = 'shared' or
+...` clause on `files` and `template_items`, which cannot be isolated while the role clause
+beside it admits only roles that see internal rows; the note is beside the assertion.
+
+### Migration 0007: team read and invitation functions
+
+Written for slice S6, which stopped on two `NEEDS-SCHEMA` gaps. **404 passed on the local tier,
+2026-09-21** (fresh database, all eight migrations); the Neon tier was not run and `0007` has not
+been applied to Neon.
+
+- **`org_staff_read`** on `org_members` and `wedding_members`: `for select`, keyed on `app.org_id`,
+  owner and admin only, not when a wedding is pinned. Writes stay on `own_memberships`. It is a
+  second permissive policy, so `isolation.test.ts` section 9 asserts the shapes where it could add
+  rows it should not (`withUser`, an unpinned member, an admin of A pinned to org C). Sweep by hand
+  with `alter policy` on the local container: nine mutations plus `FOR ALL` on each table, all
+  caught except two equivalent ones, `wedding_members`' `weddings.org_id` comparison (redundant with
+  `weddings`' own policy inside the subquery, note beside the assertion) and none other.
+- **`resolve_invitation(token_hash)` and `accept_invitation(token_hash, user_id)`**, `SECURITY
+  DEFINER`, `search_path` empty, revoked from PUBLIC, granted to `app_user`. They work because the
+  function owner bypasses RLS on the FORCE tables, and the migration refuses to install when the
+  migrating role cannot. Accept checks the token, expiry, single use, the invited email against the
+  user's, and that `app.user_id` equals the user it accepts for, then writes `org_members` (staff
+  invitation) or `wedding_members` (wedding invitation), never both, and spends the token in the
+  same transaction. `invitations.test.ts` covers every refusal and that each writes nothing; fifteen
+  mutations of the two functions, all caught.
+- **A `withTenant` query on `org_members` or `wedding_members` now returns the whole org to an owner
+  or admin.** Nothing does that today; a future "my role here" query must filter by user itself.
+
+**`scripts/local-db.sh gn_<name>`** creates one database per caller in the `gn-pg` container
+(starting the container if needed), drops it if it exists, and applies every migration. One
+database each, because `test:db` truncates its fixture tables. The name must match
+`^gn_[a-z0-9_]+$`; `guestnote` and `postgres` are refused, because it drops what it is given.
+
+### Migration 0008: the `link` principal
+
+Written for slice S10, the last slice of spec 0003. **571 passed on the local tier,
+2026-09-22** (fresh database, all nine migrations); applied to Neon dev
+(`DATABASE_URL_UNPOOLED`, as `neondb_owner`) to run the browser check, **not yet applied to
+Neon staging or production** -- the deploy workflow's migration step or a hand-applied run
+must pick it up before this ships.
+
+- **`resolve_vendor_link(token_hash)`**, `SECURITY DEFINER`, same shape as 0007's
+  `resolve_invitation`: `search_path` empty, revoked from PUBLIC, granted to `app_user`, and
+  the migration refuses to install when the migrating role cannot bypass RLS. Folds an unknown
+  token, an expired one, a revoked one, and one whose `wedding_vendors` row has since been
+  soft-deleted into either an explicit `status` (for a future admin view) or, for the public
+  route, one identical "this link no longer works" outcome.
+- **Three `link_read` policies**, all `for select`: `run_sheet_items` and `wedding_vendors`
+  scoped to `app.wedding_vendor_id`, `wedding_events` scoped to `app.wedding_id` alone (an
+  event has no vendor to scope by -- it exists only so a run-sheet item's `eventLabel` can be
+  read at all; the first working build rendered an empty timeline for every link without it,
+  measured while building this migration). `budget_lines` gets no policy: money stays
+  planner-only.
+- **`app.org_id` stays unset for a `link` principal, on purpose.** Every `tenant_isolation`
+  policy predates this principal and starts `org_id = app.org_id`; leaving the GUC unset makes
+  every one of them evaluate to NULL for this principal, with no change to any of them. See
+  `tenant.ts`'s `Principal` doc and the migration's own Part 0 for the reasoning this rests on.
+- `planner-isolation.test.ts` covers the RLS in isolation (own vendor's rows only, a sibling
+  vendor on the same wedding excluded, no budget, no writes anywhere).
+  `vendor-links-repo.test.ts` covers `resolve_vendor_link`'s status transitions and the repo's
+  parent-read guard on create.
+
 ## Applying a migration
 
 **Use the loop above, not `npm run db:migrate`.**
@@ -104,7 +194,7 @@ weaker claim, and `pooling.test.ts` prints which tier it ran.
 
 `APP_DATABASE_URL`, `TEST_DATABASE_URL` and `SEED_DATABASE_URL` in `.env.local` all point at
 the same Neon project and the same `neondb`. So **`npm run test:db` truncates the data
-`npm run dev` is serving** — `reseed()` opens with `truncate ... cascade` over eleven tables,
+`npm run dev` is serving** — `reseed()` opens with `truncate ... cascade` over every fixture table (twenty-one since 0006),
 by design, because the fixture has to be ground truth.
 
 Noticed 2026-08-21 while running the dev server to look at the dashboard: the three
@@ -231,18 +321,22 @@ migrations/
   0000_*.sql      generated by drizzle-kit
   0001_rls.sql    hand-written: enable + force, policies, visibility triggers
   0002_grants.sql app_user grants; separate so policies need no role to exist
+  0006_planner_tables.sql  generated top (spec 0003's ten tables, four `weddings` columns);
+                           hand-written tail (enable + force, policies, grants for those ten)
 ```
 
 `src/schema/index.ts` classifies every table into exactly one of
-`TENANT_SCOPED_TABLES` / `SELF_SCOPED_TABLES` / `USER_SCOPED_TABLES` /
+`TENANT_SCOPED_TABLES` / `ORG_SCOPED_TABLES` / `SELF_SCOPED_TABLES` / `USER_SCOPED_TABLES` /
 `UNSCOPED_TABLES`. `test/schema-coverage.test.ts` fails CI if a table is unclassified,
 missing a tenant key, missing `FORCE ROW LEVEL SECURITY`, or missing a policy — so
 extending the suite is mechanical rather than something to remember.
 
 A policy may be excused from naming its tenant key only by being listed in that file's
-`USER_SCOPED_POLICY_EXCEPTIONS`, which is a one-line diff a reviewer sees. There is exactly
-one entry. A second assertion fails if an exception names no live policy, because an
-exception matching nothing pre-authorises whatever is later created under that name.
+`USER_SCOPED_POLICY_EXCEPTIONS`, which is a one-line diff a reviewer sees. There are six
+entries as of migration `0008` (0005's `organizations.org_read_for_members`, 0007's two
+`org_staff_read` policies, and 0008's three `link_read` policies). A second assertion fails
+if an exception names no live policy, because an exception matching nothing pre-authorises
+whatever is later created under that name.
 
 ## Things learned by breaking it on purpose
 

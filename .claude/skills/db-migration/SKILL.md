@@ -50,6 +50,7 @@ In `packages/db/src/schema/index.ts`, add the table to **exactly one** of:
 | Bucket | Meaning |
 |---|---|
 | `TENANT_SCOPED_TABLES` | carries `org_id` + `wedding_id`, gets the standard tenant policy |
+| `ORG_SCOPED_TABLES` | carries `org_id` and **no** `wedding_id`: reused across the org's weddings (`vendors`) |
 | `SELF_SCOPED_TABLES` | its own primary key *is* the scope (`organizations`, `weddings`) |
 | `USER_SCOPED_TABLES` | read *before* the tenant is known, so scoped on `app.user_id` |
 | `UNSCOPED_TABLES` | genuinely not tenant-owned, and needs a stated reason |
@@ -60,9 +61,12 @@ In `packages/db/src/schema/index.ts`, add the table to **exactly one** of:
 `UNSCOPED_TABLES` is exempt from those three by design.
 
 **Adding a policy to a table that already has one is a different job from adding a table**, and
-the buckets above will not lead you to it. `organizations` is the only case so far — migration
+the buckets above will not lead you to it. `organizations` was the first case — migration
 `0005_org_read_for_members`, which lets an org `member` read their organisation's name before a
-tenant is known. It stayed in `SELF_SCOPED_TABLES`, because its tenant key did not change; what
+tenant is known — and `0007` added two more (`org_staff_read` on `org_members` and
+`wedding_members`, the opposite axis: `app.org_id`). A `SECURITY DEFINER` function that must
+read or write a FORCE-RLS table works only if its owner bypasses RLS; `0007` checks that at
+migration time and refuses to install otherwise, which is the pattern to copy. It stayed in `SELF_SCOPED_TABLES`, because its tenant key did not change; what
 changed is that it now carries a second, `FOR SELECT` policy on the `app.user_id` axis. If that
 is what you are doing, read §4b below before writing anything. That is the mechanism that makes extending the
 suite mechanical instead of something to remember — do not weaken it to make a table fit.

@@ -203,6 +203,21 @@ const schema = z.object({
    * self-hosting auth is only true while nothing leaves.
    */
   AWS_REGION: z.string().min(1).default('eu-central-1'),
+
+  /**
+   * The private files bucket's name: planner files and the moodboard (`packages/storage`).
+   * `sst.config.ts` creates the bucket and passes the name in; it is not a secret.
+   *
+   * **Optional here and validated at the point of use, in `lib/storage.ts`**, for the reason
+   * `DATABASE_URL` is: `next build` evaluates route modules, and a required value would make a
+   * bucket a build-time dependency. Unset is a working state in development only, where
+   * `lib/storage.ts` substitutes a local directory; anywhere else it throws there rather than
+   * quietly writing uploads to disk on a read-only Lambda.
+   */
+  GUESTNOTE_FILES_BUCKET: z
+    .string()
+    .optional()
+    .transform((v) => (v ? v : undefined)),
 })
 
 const parsed = schema.safeParse(process.env)
@@ -234,5 +249,10 @@ export const env = {
   // that distinction into the branch with the worse failure mode.
   mailTransport: parsed.data.GUESTNOTE_MAIL_TRANSPORT,
   awsRegion: parsed.data.AWS_REGION,
+  // `undefined` and not '' for the reason `mailTransport` is: `lib/storage.ts` tells "not set,
+  // decide from NODE_ENV" apart from "set". An empty `GUESTNOTE_FILES_BUCKET=` (what copying a
+  // template leaves behind) is folded into "not set" by the schema, because a bucket named
+  // nothing is not a value and failing the whole app at import over it would be out of scale.
+  filesBucket: parsed.data.GUESTNOTE_FILES_BUCKET,
   devPort: parsed.data.PORT,
 } as const

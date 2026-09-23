@@ -4,6 +4,7 @@ import {
   check,
   date,
   index,
+  integer,
   jsonb,
   pgTable,
   primaryKey,
@@ -43,6 +44,29 @@ export const weddings = pgTable(
      * `tasks.due_offset_days` resolve "6 months before" to a real instant.
      */
     weddingDate: date('wedding_date'),
+    /**
+     * Spec 0003. Three plain columns, all nullable, so a wedding row created before the
+     * planner app existed is still valid. `venue` is free text: the venue as a *directory
+     * entry* is a `vendors` row, and a wedding may name a place nobody has entered there.
+     *
+     * `notes` is the planner's own, and this table's policy is the couple-readable one --
+     * the `tenant_isolation` policy on `weddings` admits a `couple` principal to its own
+     * wedding row, whole. So `notes` is readable by a couple the day a couple can reach this
+     * table at all. Nothing can today (spec 0003: no screen is open to `couple`), and the
+     * couple-portal spec must decide between a column-level answer and a separate table
+     * before it lands. Recorded here, not fixed here, because 0006 must not change who can
+     * read `weddings`.
+     */
+    venue: text('venue'),
+    headcount: integer('headcount'),
+    notes: text('notes'),
+    /**
+     * `#RRGGBB`, upper-case, or null. The server upper-cases before writing; the CHECK is
+     * what makes a lower-case or 3-digit value a write error instead of a stored surprise.
+     * A dot or a stripe, never text and never a background behind text, so no contrast rule
+     * applies to an arbitrary hex (spec 0003).
+     */
+    color: text('color'),
     timezone: text('timezone').notNull().default('Europe/Brussels'),
     localeDefault: text('locale_default').notNull().default('nl'),
     locales: text('locales').array().notNull().default(sql`array['nl']`),
@@ -55,6 +79,8 @@ export const weddings = pgTable(
   },
   (t) => [
     check('weddings_status_check', oneOf('status', WEDDING_STATUSES)),
+    check('weddings_headcount_check', sql.raw('headcount >= 0')),
+    check('weddings_color_check', sql.raw("color ~ '^#[0-9A-F]{6}$'")),
     // The slug becomes a subdomain -- <slug>.guestnote.be -- so it is globally
     // unique, not unique per org. Reserved words are enforced in the repository
     // layer, where a useful error message can be produced.

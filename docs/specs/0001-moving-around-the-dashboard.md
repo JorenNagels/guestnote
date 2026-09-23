@@ -358,6 +358,25 @@ contract, not the loser of an argument it never heard.
 | States → Error: a failed membership resolve throws to an error boundary | Falls through to the no-org page | **Still wrong, and marked in the code.** `(app)/layout.tsx` says so at the branch: root layout B has no error boundary above it, so a throw has nowhere to go. A planner who has an org but whose name is unreadable is told they have none. |
 | `/weddings/[id]` is "name, date, status" | Also an untranslated `Slug` row | Deliberate for now — the slug is the subdomain and is the thing a planner needs when a guest site misbehaves. It is not translated because it is not a word. |
 
+### 2026-09-21, by spec 0003 (F3 Shell)
+
+| Spec said | Now | Why |
+|---|---|---|
+| No count badge; the layout must not list weddings | The layout lists them, for a row per wedding with T-minus and a colour dot | Spec 0003 asks for the row. The cost is the one this spec refused a badge over -- N transactions for a `member`, once per hard load or `revalidatePath`, not per client navigation -- and it is accepted for the list. Unread counts stay refused: they would be N more per wedding. |
+| Wedding section client-fetched via `weddingHeader` | Removed. The section hangs off the current wedding's row, from the list the layout already has | A second round trip for a row in hand. A wedding not in the list gets no section, the same 404-not-403 answer `weddingHeader` gave. |
+| Wedding section holds Overzicht only | Holds eight sections: Overzicht, Checklist, Budget, Betalingen, Leveranciers, Draaiboek, Bestanden, Moodboard | Every one is a real route now; slices that have not landed answer with `ComingSoon`. This reverses "omit rather than disable" for the reason that the alternative is a nav that grows a row per merge. |
+| `nav.weddingSection` heading over the section | Not rendered in the sidebar; the key stays for the wedding page's eyebrow | The wedding's own row is the heading. |
+
+### 2026-09-21, by spec 0003 (S8 Today)
+
+| Spec said | Now | Why |
+|---|---|---|
+| `/` keeps redirecting to `/weddings`; **Vandaag** / a real `/` landing is withheld until P16 exists | `/` is the Today screen (`(app)/page.tsx`), and the sidebar's first item points at it | P16 exists: S8 builds it on S2's `listAssignedTasks`, a cross-wedding read that is one transaction per assigned wedding for a `member`. The reason for withholding the item, a nav entry that highlights a redirect, no longer holds. |
+| Nothing at `/today` | The F3 `/today` stub is deleted | It never shipped. `app.today()` is `/`, so there is one address per screen and the item's active state has one place to be right. |
+
+Nav labels for the new items live in `apps/web/messages/app/shell.{nl,en,fr}.json`, merged at
+`app.shell` by `i18n/catalogue.ts`.
+
 Dead keys removed rather than left: `app.palette.close` (threaded through the layout and
 rendered nowhere) and `app.wedding.notFound` (authored for a message `notFound()` must never
 show, because naming the reason is the leak the 404 exists to prevent).
@@ -480,7 +499,7 @@ the nav item and the palette group), `app.weddings.dateUnknown`, `app.weddings.s
 | Which operations need a fresh passkey assertion | Named as open and assigned to the shell at `src-app-pro-public-login.md:411`. Still open. |
 | Guests, budget, vendors, run-sheet, files nav items | No tables — the classification at `packages/db/src/schema/index.ts:24-80` has no bucket entry for any of them. Rejected: showing them disabled or as placeholder pages — a greyed list of six things you cannot click reads as a demo, and the competitor is a working spreadsheet. |
 | A **Taken** nav item | `tasks` and `task_comments` exist, but no page does. It arrives with the tasks feature, which is what this shell was built to receive. |
-| **Vandaag** / a real `/` landing | P16, and it needs a cross-wedding read path. A nav item pointing at a redirect would highlight the wrong thing. |
+| **Vandaag** / a real `/` landing | P16, and it needs a cross-wedding read path. A nav item pointing at a redirect would highlight the wrong thing. **Built by spec 0003 S8, 2026-09-21; see Amendments.** |
 | `--sidebar-*` tokens | `docs/adr/0003-one-app-three-hosts.md:192` — needs a contrast pass in both modes. Design work, not plumbing. |
 | A `user_preferences` table | Cookies chosen instead; see above. The right long-term shape, deferred with its reason recorded. |
 | `org_members.last_used_at` | Deferred again, on a cookie. `memberships.ts:215` gets amended rather than left promising it. |

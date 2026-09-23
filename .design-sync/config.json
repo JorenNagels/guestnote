@@ -1,0 +1,10 @@
+{
+  "projectId": "240b9331-5b9f-4720-b144-b0c2bf41fe46",
+  "pkg": "@guestnote/ui",
+  "globalName": "GuestnoteUI",
+  "shape": "package",
+  "buildCmd": ".ds-sync/node_modules/.bin/tailwindcss -i .design-sync/ui-tailwind-entry.css -o packages/ui/.ds-compiled.css --cwd .",
+  "cssEntry": ".ds-compiled.css",
+  "extraFonts": ["../../../.design-sync/fonts/fonts.css"],
+  "readmeHeader": ".design-sync/conventions.md"
+}

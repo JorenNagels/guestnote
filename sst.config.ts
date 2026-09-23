@@ -118,6 +118,49 @@ export default $config({
           dns: sst.aws.dns({ zone: zoneId }),
         }
 
+    // The planner app's `app.` host, named once because both the env var below and the bucket's
+    // CORS rule must agree on it.
+    const appSubdomain = 'app'
+
+    /**
+     * Private files bucket -- planner files and the moodboard (spec 0003, `packages/storage`).
+     *
+     * **Private, and it stays so.** No `access`, so SST leaves the public-access block on and
+     * the bucket policy only enforces HTTPS. Nothing reads or writes an object except by a
+     * presigned URL that `packages/storage` signs with the server function's role, five
+     * minutes at a time. The alternatives rejected: `access: 'cloudfront'` (a cacheable public
+     * URL for a document that may be a contract), and a Lambda proxy for uploads (Lambda's 6 MB
+     * body limit is smaller than a phone photo).
+     *
+     * **CORS is for the browser's direct PUT and nothing else.** Origin is the app host only,
+     * because that is the one page that uploads -- SST's default is `*` on every method, which
+     * would let any site a planner visits drive a presigned URL it had somehow obtained. GET is
+     * not listed: an `<img src>` or a download link is not a CORS request. `content-type` is the
+     * one non-safelisted header the browser sends; `Content-Length` it sets itself and never
+     * appears in the preflight. `etag` is exposed for a future multipart upload.
+     *
+     * Localhost is allowed on non-production stages only, so `npm run dev` can upload to a
+     * deployed staging bucket without a second bucket per laptop.
+     *
+     * Retention follows the app: `removal: 'retain'` and `protect` on production (top of file),
+     * and SST's own `forceDestroy` on the rest, so a personal stage can be removed with files
+     * in it. Versioning is off: every key is a fresh UUID, so no upload ever overwrites one.
+     *
+     * Not deployed by whoever wrote this. `sst diff --stage staging` first (infra/README.md).
+     */
+    const files = new sst.aws.Bucket('Files', {
+      cors: {
+        allowOrigins: [
+          `https://${appSubdomain}.${rootDomain}`,
+          ...(isProd ? [] : [`http://${appSubdomain}.guestnote.localhost:3000`]),
+        ],
+        allowMethods: ['PUT'],
+        allowHeaders: ['content-type'],
+        exposeHeaders: ['etag'],
+        maxAge: '1 day',
+      },
+    })
+
     const web = new sst.aws.Nextjs('Web', {
       path: 'apps/web',
       domain,
@@ -132,11 +175,24 @@ export default $config({
       // one sending identity, and pinning the ARN here would drag the account id into a
       // file that otherwise reads every account specific from SSM. Scope it down if a
       // second identity ever exists.
-      permissions: [{ actions: ['ses:SendEmail'], resources: ['*'] }],
+      permissions: [
+        { actions: ['ses:SendEmail'], resources: ['*'] },
+        // Presigning is a local signature made with the role's own credentials, and S3 checks
+        // the *signer's* permissions when the URL is used -- so without these two actions every
+        // presigned URL is valid-looking and answers 403. Objects only, this one bucket, and no
+        // `s3:ListBucket` or `s3:DeleteObject`: the app cannot enumerate or remove files yet.
+        {
+          actions: ['s3:PutObject', 's3:GetObject'],
+          resources: [$interpolate`${files.arn}/*`],
+        },
+      ],
       environment: {
         // proxy.ts resolves which surface answers from the Host header, against these two.
         GUESTNOTE_ROOT_DOMAIN: rootDomain,
-        GUESTNOTE_APP_SUBDOMAIN: 'app',
+        GUESTNOTE_APP_SUBDOMAIN: appSubdomain,
+        // Name only, not a secret. apps/web/src/env.ts reads it and `lib/storage.ts` composes
+        // `createS3Transport` from it; unset there is an error outside development.
+        GUESTNOTE_FILES_BUCKET: files.name,
         DATABASE_URL: secret('DATABASE_URL'),
         BETTER_AUTH_SECRET: secret('BETTER_AUTH_SECRET'),
         GOOGLE_CLIENT_ID: secret('GOOGLE_CLIENT_ID'),

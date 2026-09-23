@@ -1,7 +1,10 @@
+import { readdirSync, readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import en from '../../messages/en.json'
-import fr from '../../messages/fr.json'
-import nl from '../../messages/nl.json'
+import enBase from '../../messages/en.json'
+import frBase from '../../messages/fr.json'
+import nlBase from '../../messages/nl.json'
+import { mergeSlices, SLICES } from './catalogue.ts'
 
 /**
  * The three catalogues, checked against each other.
@@ -17,9 +20,35 @@ import nl from '../../messages/nl.json'
  * placeholder dropped in translation.
  *
  * NL is the reference because `lib/locales.ts` makes it `DEFAULT_LOCALE`.
+ *
+ * ## The slice files
+ *
+ * The planner app's copy lives in `messages/app/<slice>.<locale>.json` and `i18n/catalogue.ts`
+ * merges it under `app.<slice>`. Everything below compares the MERGED catalogues, built here
+ * with the same `mergeSlices` the runtime uses, so a key missing from one locale's slice file
+ * fails exactly like a key missing from `fr.json`. The slice files are read from disk with
+ * `readFileSync` and not imported: the set that exists on disk is itself under test, and a
+ * static import of a file that is not there would fail the whole module instead of naming it.
  */
 
-const CATALOGUES = { en, fr } as const
+const APP_DIR = fileURLToPath(new URL('../../messages/app/', import.meta.url))
+const LOCALES = ['nl', 'en', 'fr'] as const
+
+function merged(locale: (typeof LOCALES)[number], base: Parameters<typeof mergeSlices>[0]) {
+  const slices: Record<string, Parameters<typeof mergeSlices>[0]> = {}
+  for (const id of SLICES) {
+    try {
+      slices[id] = JSON.parse(readFileSync(`${APP_DIR}${id}.${locale}.json`, 'utf8'))
+    } catch {
+      // Left out, so the key comparison below reports the gap by name. The file-set test
+      // reports the missing file itself.
+    }
+  }
+  return mergeSlices(base, slices)
+}
+
+const nl = merged('nl', nlBase)
+const CATALOGUES = { en: merged('en', enBase), fr: merged('fr', frBase) } as const
 
 /** Every leaf path, so nesting differences show up as key differences. */
 function leafKeys(value: unknown, prefix = ''): string[] {
@@ -63,6 +92,23 @@ describe('the NL, EN and FR catalogues stay in step', () => {
   it('actually read the catalogues', () => {
     expect(leafKeys(nl).length).toBeGreaterThan(60)
     expect(reference.get('email.signInCode.subject')).toContain('{code}')
+    // A slice key, so a merge that dropped the slice files would fail here and not only
+    // by every planner-app label rendering as its own path.
+    expect(reference.get('app.shell.nav.today')).toBeTruthy()
+  })
+
+  /**
+   * The file set, both directions. A file on disk that `SLICES` does not list is never merged
+   * -- its keys render as paths and no other test notices, because it is not in any catalogue
+   * -- and a listed slice missing a locale is a runtime import failure on every page.
+   */
+  it('has exactly one file per listed slice and locale under messages/app', () => {
+    const expected = SLICES.flatMap((id) => LOCALES.map((l) => `${id}.${l}.json`)).sort()
+    expect(readdirSync(APP_DIR).sort()).toEqual(expected)
+  })
+
+  it('refuses a slice whose id is already a key under app', () => {
+    expect(() => mergeSlices(nlBase, { weddings: {} })).toThrow(/collides with app\.weddings/)
   })
 
   for (const [locale, catalogue] of Object.entries(CATALOGUES)) {

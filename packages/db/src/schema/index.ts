@@ -1,8 +1,13 @@
 export * from './audit.ts'
 export * from './auth.ts'
+export * from './events.ts'
+export * from './files.ts'
 export * from './mail.ts'
+export * from './money.ts'
 export * from './orgs.ts'
 export * from './tasks.ts'
+export * from './templates.ts'
+export * from './vendors.ts'
 export * from './weddings.ts'
 
 /**
@@ -27,7 +32,32 @@ export const TENANT_SCOPED_TABLES = [
   'tasks',
   'task_comments',
   'audit_log',
+  // Spec 0003, migration 0006. Every one is closed to a `couple` principal by the role
+  // clause in its policy, not only by the tenant keys -- see the tail of 0006.
+  'wedding_events',
+  'budget_lines',
+  'payments',
+  'wedding_vendors',
+  'run_sheet_items',
+  'files',
+  'vendor_links',
 ] as const
+
+/**
+ * Carry `org_id` and NO `wedding_id`: the row belongs to the organisation and is reused
+ * across all of its weddings. The policy is `org_id = app.org_id`, plus the role clause
+ * that keeps a `couple` out.
+ *
+ * A bucket of its own rather than a widening of `TENANT_SCOPED_TABLES`, whose coverage
+ * test asserts `wedding_id` exists -- weakening that assertion so three tables fit would
+ * let a wedding-scoped table lose its wedding key unnoticed. Spec 0003.
+ *
+ * Note what an org-scoped policy does NOT do: it does not narrow an `assignedStaff` member
+ * to their wedding. A member reads the whole directory and every template of the org,
+ * which is what the permissions table in spec 0003 says ("Manage vendors, templates:
+ * member read").
+ */
+export const ORG_SCOPED_TABLES = ['vendors', 'task_templates', 'template_items'] as const
 
 /**
  * Tenant-scoped, but their own primary key IS the scope, so their policy compares
@@ -87,4 +117,9 @@ export const UNSCOPED_TABLES = [
  * Tables whose policy additionally tests `app.wedding_role`, because they hold rows
  * a couple must never see even within their own wedding. See tasks.ts.
  */
-export const VISIBILITY_SCOPED_TABLES = ['tasks', 'task_comments'] as const
+export const VISIBILITY_SCOPED_TABLES = [
+  'tasks',
+  'task_comments',
+  'template_items',
+  'files',
+] as const

@@ -1,0 +1,104 @@
+{
+  "header": {
+    "noDate": "Nog geen datum",
+    "noVenue": "Nog geen locatie"
+  },
+  "tabs": {
+    "label": "Onderdelen van deze bruiloft"
+  },
+  "overview": {
+    "stats": {
+      "daysToGo": "Dagen te gaan",
+      "daysSince": "Dagen geleden",
+      "openTasks": "Open taken",
+      "done": "Afgerond",
+      "guests": "Gasten",
+      "today": "Vandaag",
+      "noDate": "Nog geen datum",
+      "donePercent": "{percent}% klaar",
+      "noTasks": "Nog geen taken",
+      "guestsUnknown": "Nog niet ingevuld",
+      "guestsKnown": "Volgens de planner",
+      "lateNone": "Niets te laat",
+      "lateSome": "{count} te laat"
+    },
+    "events": {
+      "title": "Volgende momenten",
+      "empty": "Nog geen momenten op de planning. Voeg ze toe bij de instellingen.",
+      "manage": "Momenten beheren",
+      "more": "+ {count} meer",
+      "noTime": "Tijdstip nog open"
+    },
+    "notes": {
+      "title": "Interne notities",
+      "hint": "Het koppel ziet dit nooit."
+    }
+  },
+  "form": {
+    "sectionWedding": "De bruiloft",
+    "couple": "Koppel",
+    "couplePlaceholder": "Marie & Thomas",
+    "date": "Hoofddag",
+    "dateHint": "Elke taak telt vanaf deze dag. Leeg laten mag: een bruiloft zonder datum krijgt later een.",
+    "venue": "Locatie",
+    "venuePlaceholder": "Nog niet geboekt",
+    "guests": "Gasten",
+    "stage": "Fase",
+    "notes": "Interne notities",
+    "notesHint": "Alleen voor het team. Het koppel ziet dit nooit.",
+    "notesPlaceholder": "Hoe het koppel de dag omschreef, de opdracht, alles wat het team voor een gesprek moet lezen.",
+    "sectionColour": "Kleur",
+    "colourHint": "Zo herken je deze bruiloft in een zijbalk vol. Later aan te passen.",
+    "colourGroup": "Kleur van de bruiloft",
+    "colourCustom": "Andere kleur kiezen",
+    "colourNone": "Geen kleur",
+    "colours": {
+      "#206560": "Teal",
+      "#886A20": "Goud",
+      "#A94F4A": "Klei",
+      "#2F5C85": "Lucht",
+      "#417E50": "Mos",
+      "#6C4A72": "Pruim"
+    },
+    "create": "Bruiloft aanmaken",
+    "save": "Opslaan",
+    "saving": "Bezig...",
+    "saved": "Opgeslagen.",
+    "cancel": "Annuleren"
+  },
+  "events": {
+    "title": "Momenten",
+    "hint": "De hoofddag hierboven is de dag waar de checklist van telt. Momenten zijn de extra dagen: de burgerlijke trouw van vorige week, de brunch de ochtend erna.",
+    "label": "Naam",
+    "labelPlaceholder": "Receptie",
+    "date": "Datum",
+    "time": "Uur",
+    "venue": "Locatie",
+    "save": "Opslaan",
+    "add": "Moment toevoegen",
+    "remove": "Verwijderen",
+    "saved": "Moment opgeslagen.",
+    "empty": "Nog geen momenten."
+  },
+  "new": {
+    "eyebrow": "Nieuwe bruiloft",
+    "title": "Een bruiloft aanmaken",
+    "intro": "Een paar dingen nu, de rest later.",
+    "forbidden": "Alleen een eigenaar of beheerder van de organisatie kan een bruiloft aanmaken. Vraag het na bij wie jou heeft uitgenodigd."
+  },
+  "settings": {
+    "eyebrow": "Instellingen",
+    "intro": "Alles wat de rest van de app hieruit leest."
+  },
+  "errors": {
+    "required": "Vul dit in.",
+    "tooLong": "Dit is te lang.",
+    "invalidDate": "Geef een echte datum.",
+    "invalidNumber": "Geef een heel getal tussen 0 en 100000.",
+    "invalidTime": "Geef een uur zoals 15:30.",
+    "invalidColor": "Kies een kleur uit de lijst of de kleurkiezer.",
+    "invalidStatus": "Kies een van de drie fasen.",
+    "forbidden": "Je mag dit niet doen in deze organisatie.",
+    "failed": "Opslaan is niet gelukt. Probeer het nog eens."
+  }
+}

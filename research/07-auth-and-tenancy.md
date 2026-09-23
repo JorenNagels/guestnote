@@ -95,7 +95,9 @@ remembers that `se-parti-rsvp` already uses Clerk.
 >   row rather than colliding on the unique email. The button is hidden on the *bound*
 >   staff-invitation flow (`boundEmail` set — that flow pins the address on purpose), and
 >   `resolveInvitation` is still fixtures (M3), so an invitation actually granting a role via
->   Google is future.
+>   Google is future. *Correction, 2026-09-21: `resolveInvitation` is real since migration 0007
+>   (`resolve_invitation` / `accept_invitation`, SECURITY DEFINER), so a staff invitation now
+>   grants its role after either sign-in method.*
 > - **Still bounded to reverse.** Removing the button is deleting the env vars and the
 >   `socialProviders.google` branch; the `accounts` OAuth columns were always present.
 

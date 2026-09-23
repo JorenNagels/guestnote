@@ -66,6 +66,7 @@ coverage/
 # Contains live sign-in codes, so it must never be committed. The transport refuses to
 # run outside development, which is the other half of keeping that true.
 apps/web/.mail/
+apps/web/.files/
 
 # Generated share image for the holding page; deploy.sh re-renders it from og.html.
 coming-soon/og.png
@@ -75,3 +76,14 @@ coming-soon/og.png
 # per-session: the question server's transcripts, and live-mode's injection targets.
 .impeccable/questions/
 .impeccable/live/
+
+# /design-sync (claude.ai/design import): staged converter scripts + their own
+# node_modules, generated bundle output, and machine/verification state. The durable
+# set (.design-sync/config.json, NOTES.md, conventions.md, previews/, overrides/) is
+# NOT here — it's committed.
+.ds-sync/
+ds-bundle/
+.design-sync/.cache/
+.design-sync/learnings/
+.design-sync/node_modules
+packages/ui/.ds-compiled.css

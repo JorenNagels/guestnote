@@ -1,0 +1,61 @@
+{
+  "title": "Team",
+  "subtitle": "Who works at {org}, and who still has an invitation open.",
+  "table": {
+    "caption": "Team members",
+    "member": "Member",
+    "role": "Role",
+    "seat": "Seat",
+    "weddings": "Assigned weddings",
+    "you": "you",
+    "allWeddings": "All weddings",
+    "noWeddings": "No wedding assigned yet"
+  },
+  "seat": "Seat {n}",
+  "roles": {
+    "owner": "Owner",
+    "admin": "Admin",
+    "member": "Team member"
+  },
+  "invite": {
+    "title": "Invite someone",
+    "hint": "A colleague gets an email with a link to create an account.",
+    "email": "Email address",
+    "emailPlaceholder": "colleague@studiowit.be",
+    "role": "Role",
+    "roleAdminHint": "Admin: sees every wedding and manages the team.",
+    "roleMemberHint": "Team member: sees only the weddings they are assigned to.",
+    "send": "Send invitation",
+    "sending": "Sending…",
+    "sent": "Invitation sent to {email}.",
+    "errors": {
+      "invalidEmail": "That does not look like a valid email address.",
+      "invalidRole": "Choose a role for the invitation.",
+      "duplicate": "This address already has a pending invitation. Revoke it first if you want to send a new one.",
+      "alreadyMember": "This address is already on the team.",
+      "forbidden": "Only owners and admins can invite.",
+      "mailFailed": "The email could not be sent. Nothing was saved, so try again in a moment."
+    }
+  },
+  "pending": {
+    "title": "Pending invitations",
+    "caption": "Pending invitations",
+    "empty": "No pending invitations.",
+    "email": "Email address",
+    "role": "Role",
+    "status": "Status",
+    "sentToday": "Sent today",
+    "sentAgo": "Sent {days, plural, one {# day} other {# days}} ago",
+    "expiresToday": "expires today",
+    "expiresIn": "expires in {days, plural, one {# day} other {# days}}",
+    "expired": "Expired",
+    "revoke": "Revoke",
+    "revoking": "Working…",
+    "revokeLabel": "Revoke the invitation for {email}",
+    "revokeFailed": "Could not revoke. Refresh the page and try again."
+  },
+  "notAllowed": {
+    "title": "For owners and admins only",
+    "body": "The team at {org} is managed by its owner and admins. Ask one of them to invite a colleague."
+  }
+}

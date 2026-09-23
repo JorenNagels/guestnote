@@ -64,12 +64,22 @@ export function appLoginUrl(): string {
  * `https://app.guestnote.be/` -- the dashboard, for a link that starts on the apex.
  *
  * Points at the dashboard ROOT rather than `/weddings`, so the app host stays the only
- * thing that decides where a signed-in planner lands. `app/pro/(app)/page.tsx` redirects
- * to the wedding list today and to the cross-wedding "due this week" screen when P16
- * lands; a link built here would have to be found and changed on that day.
+ * thing that decides where a signed-in planner lands. `app/pro/(app)/page.tsx` is the
+ * cross-wedding Today screen (spec 0003, S8); before that it redirected to the wedding
+ * list, and a link built here would have had to be found and changed on that day.
  */
 export function appHomeUrl(): string {
   return `${appOrigin()}${app.home()}`
+}
+
+/**
+ * `https://app.guestnote.be/invite/<token>` -- the link inside an invitation email.
+ *
+ * Absolute because the recipient opens it from a mail client, not from the dashboard. The
+ * token is a path segment and never a query, for the reason `app.invite` gives.
+ */
+export function appInviteUrl(token: string): string {
+  return `${appOrigin()}${app.invite(token)}`
 }
 
 /**

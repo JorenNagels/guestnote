@@ -138,6 +138,20 @@ requires 0. `docs/adr/0001` calls that "the real trap... not the pooler".
 scale-to-zero if the health check touches the database". This route touches the database on
 purpose, so point the warmer at a separate static route.
 
+## Errors in a Server Function
+
+**A Server Function does not catch a database error.** It returns a result for what the
+planner can fix or is not allowed to do (`notFound`, a field key), and lets anything else throw.
+Next logs an uncaught throw with its stack and a digest, and the route's `error.tsx` renders a
+retry.
+
+Rejected: catching, reporting through `reportSilentFailure` and returning `failed`. It keeps an
+open sheet's draft on screen through an outage, which is real, but it cost a `failed` message in
+every feature's copy and `String(error)` dropped the stack. The money and run-sheet actions did
+this and the tasks and templates actions did not, until the PR #1 review made it one rule
+(2026-09-23). A catch that exists stays only where the failure is specific and expected: a mail
+send (`team/actions.ts`, which takes the invite back when the mail does not leave).
+
 ## Layout
 
 ```

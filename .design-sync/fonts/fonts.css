@@ -1,0 +1,30 @@
+/* /design-sync's cfg.extraFonts source. design-system/tokens.css's --font-sans /
+   --font-mono reference "Inter Variable", "Inter" and "JetBrains Mono" but no
+   @font-face for any of them ships anywhere in this repo yet (not in packages/ui, not
+   in apps/web -- confirmed by grep, 2026-09-17). Fetched from Google Fonts (Inter and
+   JetBrains Mono are both SIL Open Font License), latin subset only, variable-weight
+   woff2 -- enough for every DS preview and every design the claude.ai/design agent
+   builds with this system. This is a /design-sync artifact only; it does not wire the
+   fonts into apps/web itself (that gap is real and separate -- see .design-sync/NOTES.md
+   Re-sync risks). */
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("./inter-variable-latin.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("./inter-variable-latin.woff2") format("woff2");
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("./jetbrains-mono-variable-latin.woff2") format("woff2");
+}

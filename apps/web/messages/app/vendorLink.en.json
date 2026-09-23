@@ -1,0 +1,30 @@
+{
+  "sharedWith": "Shared with you by {org}",
+  "sliceOfDay": "Your slice of the day",
+  "headcount": "Guests",
+  "timelineTitle": "Timeline",
+  "timelineEmpty": "Nothing on the schedule for you yet.",
+  "minutes": "{m} min",
+  "hours": "{h} h",
+  "hoursMinutes": "{h} h {m}",
+  "plannerNeedsTitle": "What the planner needs from you",
+  "gone": {
+    "title": "This link no longer works",
+    "body": "Ask the planner for a new one."
+  },
+  "manageLink": {
+    "title": "Vendor link",
+    "createButton": "Create link",
+    "creating": "Creating…",
+    "created": "Link created. Copy it now — it will not be shown again.",
+    "copyButton": "Copy",
+    "copied": "Copied",
+    "expiresLabel": "Expires {date}",
+    "revokeButton": "Revoke",
+    "revokeConfirm": "Revoke this link? It stops working immediately.",
+    "revokeConfirmYes": "Yes, revoke",
+    "revoked": "Revoked",
+    "cancel": "Cancel",
+    "error": "That did not work. Try again."
+  }
+}

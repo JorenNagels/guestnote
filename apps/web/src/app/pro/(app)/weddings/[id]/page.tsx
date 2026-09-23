@@ -1,87 +1,212 @@
-import { getWedding } from '@guestnote/db'
+import {
+  getWeddingDetail,
+  getWeddingTaskCounts,
+  listWeddingEvents,
+  WeddingScope,
+} from '@guestnote/db'
+import { Card } from '@guestnote/ui/card'
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getLocale, getTranslations } from 'next-intl/server'
+import { WeddingHeader } from '../../../../../components/wedding/wedding-header.tsx'
+import { WeddingTabs } from '../../../../../components/wedding/wedding-tabs.tsx'
+import { formatCivilDate } from '../../../../../lib/civil-date.ts'
 import { getDb } from '../../../../../lib/db.ts'
 import { currentMemberships, currentOrgId } from '../../../../../lib/principal.ts'
+import { app } from '../../../../../lib/routes.ts'
+import { daysUntil } from '../../../../../lib/tminus.ts'
+import { isUuid } from '../../../../../lib/uuid.ts'
 
 /**
- * One wedding. Name, date, status -- and that is the whole screen, on purpose.
- *
- * It exists because the ⌘K palette needs somewhere to land. `docs/specs/0001` records the
- * trade: "jump to any wedding by typing" is the palette's entire value, and a palette that
- * lists weddings and then drops you back on the list teaches a planner not to trust it. So
- * the scope widened by one page rather than shipping a jump that does not arrive.
- *
- * The sections a wedding will really have -- tasks, guests, budget, the run sheet -- are
- * not here and are not stubbed. `tasks` is the only one with a table, and it arrives with
- * the feature that builds its screen.
+ * A wedding's landing screen: four figures, the next events, and the planner's own notes.
+ * Spec 0003, slice S1.
  *
  * ## `null` is a 404, and never a 403
  *
- * `getWedding` returns `null` for three different situations: no such wedding, a wedding in
- * another organisation, and a wedding in this organisation that a `member` is not assigned
- * to. They are deliberately indistinguishable from here, and `notFound()` is what keeps
- * them that way. research/07 section 3's permission table ends "neither -> 404 (not 403 --
- * don't confirm the wedding exists)": telling somebody a wedding exists but is not theirs
- * is itself the leak.
+ * `getWeddingDetail` returns `null` for no such wedding, a wedding in another organisation, a
+ * wedding this `member` is not assigned to, and a `couple` or outside `editor` (who can read the
+ * row under RLS and must not read the notes). They are deliberately indistinguishable here, and
+ * `notFound()` is what keeps them so. research/07 section 3: "neither -> 404 (not 403 -- don't
+ * confirm the wedding exists)".
+ *
+ * ## What is not here
+ *
+ * The prototype's "next five tasks" list. S2 owns the tasks repo; this screen counts tasks and
+ * does not list them, so it does not reach into a table another slice is about to define reads for.
  */
+const NEXT_EVENTS = 5
+
 export default async function WeddingPage({ params }: { params: Promise<{ id: string }> }) {
   const [{ id }, memberships, orgId, t, locale] = await Promise.all([
     params,
     currentMemberships(),
     currentOrgId(),
-    getTranslations('app'),
+    getTranslations('app.weddingPages.overview'),
     getLocale(),
   ])
 
-  if (!memberships || !orgId) notFound()
+  // A malformed id is a 404 like any other unknown one: Postgres would raise on the uuid cast
+  // and the planner would get a 500 for a mistyped URL.
+  if (!memberships || !orgId || !isUuid(id)) notFound()
 
-  const wedding = await getWedding(getDb(), memberships, orgId, id)
+  const scope = WeddingScope.of(getDb(), memberships, orgId, id)
+  const wedding = await getWeddingDetail(scope)
   if (!wedding) notFound()
+
+  const [counts, events] = await Promise.all([
+    getWeddingTaskCounts(scope),
+    listWeddingEvents(scope),
+  ])
+
+  const days = daysUntil(wedding.weddingDate)
+  const upcoming = events.filter((e) => (daysUntil(e.startsOn) ?? -1) >= 0)
+  const shown = upcoming.slice(0, NEXT_EVENTS)
+  const percent = counts.total === 0 ? 0 : Math.round((counts.done / counts.total) * 100)
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
-      <header>
-        <p className="text-muted-foreground text-xs font-semibold tracking-[0.09em] uppercase">
-          {t('nav.weddingSection')}
-        </p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">{wedding.coupleDisplayName}</h1>
-      </header>
+      <WeddingHeader wedding={wedding} />
+      <WeddingTabs weddingId={id} current="overview" />
 
-      <dl className="divide-border bg-card mt-7 divide-y overflow-hidden rounded-[var(--radius)] border">
-        <Row label={t('wedding.date')}>
-          {/* Formatted in UTC, which looks wrong and is not: `weddings.wedding_date` is a
-              `date`, and the schema says why -- a wedding date is a local civil date, the
-              same date to the couple whether they are in Brussels or Bali. Drizzle hands
-              back `YYYY-MM-DD`, `new Date()` reads it as UTC midnight, and formatting in a
-              zone west of Greenwich would render the day before. */}
-          {wedding.weddingDate ? (
-            <time dateTime={wedding.weddingDate} className="tabular-nums">
-              {new Intl.DateTimeFormat(locale, {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-                timeZone: 'UTC',
-              }).format(new Date(wedding.weddingDate))}
-            </time>
-          ) : (
-            <span className="text-muted-foreground">{t('weddings.dateUnknown')}</span>
-          )}
-        </Row>
-        <Row label={t('wedding.status')}>{t(`weddings.status.${wedding.status}`)}</Row>
-        <Row label="Slug">
-          <span className="font-mono text-xs">{wedding.slug}</span>
-        </Row>
-      </dl>
+      <div className="mt-6 flex flex-wrap items-start gap-6">
+        <div className="min-w-[min(100%,520px)] flex-[1_1_520px]">
+          <dl className="mb-6 grid grid-cols-[repeat(auto-fit,minmax(8.5rem,1fr))] gap-2.5">
+            <Stat
+              label={days !== null && days < 0 ? t('stats.daysSince') : t('stats.daysToGo')}
+              value={days === null ? '–' : days === 0 ? t('stats.today') : String(Math.abs(days))}
+              sub={
+                wedding.weddingDate
+                  ? formatCivilDate(locale, wedding.weddingDate)
+                  : t('stats.noDate')
+              }
+            />
+            <Stat
+              label={t('stats.openTasks')}
+              value={String(counts.open)}
+              sub={
+                counts.overdue === 0
+                  ? t('stats.lateNone')
+                  : t('stats.lateSome', { count: counts.overdue })
+              }
+              warn={counts.overdue > 0}
+            />
+            <Stat
+              label={t('stats.done')}
+              value={`${counts.done}/${counts.total}`}
+              sub={counts.total === 0 ? t('stats.noTasks') : t('stats.donePercent', { percent })}
+              percent={counts.total === 0 ? undefined : percent}
+            />
+            <Stat
+              label={t('stats.guests')}
+              value={wedding.headcount === null ? '–' : String(wedding.headcount)}
+              sub={wedding.headcount === null ? t('stats.guestsUnknown') : t('stats.guestsKnown')}
+            />
+          </dl>
+
+          <section aria-labelledby="events-h">
+            <div className="mb-2 flex items-baseline justify-between gap-3">
+              <h2 id="events-h" className="text-[15px] font-semibold tracking-tight">
+                {t('events.title')}
+              </h2>
+              <Link
+                href={app.weddingSettings(id)}
+                className="text-primary text-xs underline underline-offset-[3px]"
+              >
+                {t('events.manage')}
+              </Link>
+            </div>
+            {shown.length === 0 ? (
+              <Card>
+                <p className="text-muted-foreground text-sm">{t('events.empty')}</p>
+              </Card>
+            ) : (
+              <Card as="div" padding="none">
+                <ul className="divide-border m-0 list-none divide-y p-0">
+                  {shown.map((e) => (
+                    <li
+                      key={e.id}
+                      className="flex flex-wrap items-baseline gap-x-4 gap-y-0.5 px-3.5 py-2.5"
+                    >
+                      <span className="min-w-[10rem] flex-1 text-sm">
+                        <span className="font-medium">{e.label}</span>
+                        {e.venue ? (
+                          <span className="text-muted-foreground"> · {e.venue}</span>
+                        ) : null}
+                      </span>
+                      <time
+                        dateTime={e.startsOn}
+                        className="text-muted-foreground font-mono text-xs tabular-nums"
+                      >
+                        {formatCivilDate(locale, e.startsOn)} · {e.startsAt ?? t('events.noTime')}
+                      </time>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            )}
+            {upcoming.length > shown.length ? (
+              <p className="text-muted-foreground mt-2 text-xs">
+                {t('events.more', { count: upcoming.length - shown.length })}
+              </p>
+            ) : null}
+          </section>
+        </div>
+
+        {wedding.notes ? (
+          <aside className="min-w-[min(100%,260px)] flex-[1_1_260px]">
+            <Card>
+              <h2 className="text-muted-foreground mb-1.5 text-[10.5px] font-semibold tracking-[0.09em] uppercase">
+                {t('notes.title')}
+              </h2>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">{wedding.notes}</p>
+              <p className="text-muted-foreground mt-2 text-xs">{t('notes.hint')}</p>
+            </Card>
+          </aside>
+        ) : null}
+      </div>
     </div>
   )
 }
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+function Stat({
+  label,
+  value,
+  sub,
+  percent,
+  warn = false,
+}: {
+  label: string
+  value: string
+  sub: string
+  percent?: number | undefined
+  warn?: boolean
+}) {
   return (
-    <div className="flex items-baseline justify-between gap-6 px-4 py-3 text-sm">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 truncate text-right">{children}</dd>
-    </div>
+    <Card className="px-[15px] py-[13px]">
+      <dt className="text-muted-foreground text-[11px] font-semibold tracking-[0.08em] uppercase">
+        {label}
+      </dt>
+      <dd className="m-0">
+        <span className="mt-2 block font-mono text-[21px] font-semibold tracking-tight tabular-nums">
+          {value}
+        </span>
+        {percent === undefined ? null : (
+          <span
+            aria-hidden="true"
+            className="bg-muted mt-2 block h-1.5 overflow-hidden rounded-full"
+          >
+            <span
+              className="bg-primary block h-1.5 rounded-full"
+              style={{ width: `${percent}%` }}
+            />
+          </span>
+        )}
+        <span
+          className={`mt-0.5 block text-[11.5px] ${warn ? 'text-destructive font-medium' : 'text-muted-foreground'}`}
+        >
+          {sub}
+        </span>
+      </dd>
+    </Card>
   )
 }

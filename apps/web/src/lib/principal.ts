@@ -105,6 +105,20 @@ export const currentOrgId = cache(async (): Promise<string | null> => {
 })
 
 /**
+ * Who is signed in and which org they are acting in, or `null` when either is missing. The
+ * first line of every Server Function: a Server Function is a POST to its own route, so no
+ * layout guards it (CLAUDE.md invariant 7). This is the "is anybody there" check and NOT the
+ * authorization -- every repo call re-derives the principal from `memberships`.
+ */
+export async function currentCaller(): Promise<{
+  memberships: Memberships
+  orgId: string
+} | null> {
+  const [memberships, orgId] = await Promise.all([currentMemberships(), currentOrgId()])
+  return memberships && orgId ? { memberships, orgId } : null
+}
+
+/**
  * Every organisation this user belongs to, named, for the sidebar head and the switcher.
  *
  * `React.cache` for the same reason as everything else here: the head renders it and the

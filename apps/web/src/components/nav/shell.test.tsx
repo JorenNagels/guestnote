@@ -1,5 +1,6 @@
 import {
   act,
+  cleanup,
   createEvent,
   fireEvent,
   render,
@@ -7,8 +8,8 @@ import {
   waitFor,
   within,
 } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { ShellLabels } from './shell.tsx'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ShellLabels, ShellWedding } from './shell.tsx'
 
 /**
  * The dashboard's chrome, rendered for real.
@@ -17,7 +18,8 @@ import type { ShellLabels } from './shell.tsx'
  *
  * Two things leave the browser and nothing else is replaced: the Server Functions in
  * `(app)/actions.ts` (POST requests here) and `next/navigation`'s router hooks (there is no
- * router in jsdom). `OrgHead`, `AccountMenu`, `Palette`, `Menu`, `NavItem`, `Monogram` and
+ * router in jsdom). The wedding list is a plain prop -- the layout resolves it -- so nothing
+ * here stands in for a database. `OrgHead`, `AccountMenu`, `Palette`, `Menu`, `NavItem`, `Monogram` and
  * the real `LocaleSwitcher` from `packages/ui` all render. That is deliberate: the
  * assertions below are about what a planner's screen reader and keyboard actually get, and
  * a mocked `Menu` would let the focus return or the `aria-expanded` disappear without one
@@ -30,13 +32,17 @@ import type { ShellLabels } from './shell.tsx'
  * `waitFor` polls a clock nothing advances and hangs until the suite times out. So the
  * async assertions here await real microtasks, which is all a resolved Server Function
  * mock needs.
+ *
+ * The one clock-dependent thing, the countdown on each wedding row, is pinned with
+ * `vi.setSystemTime` WITHOUT `useFakeTimers`: with fake timers off it replaces `Date` only and
+ * leaves the timers real, which is the half the countdown needs and none of the half that hangs
+ * `waitFor`.
  */
 const setNavCollapsed = vi.fn()
 const switchOrg = vi.fn()
 const setTheme = vi.fn()
 const setDensity = vi.fn()
 const paletteWeddings = vi.fn()
-const weddingHeader = vi.fn()
 const setLocale = vi.fn()
 const replace = vi.fn()
 const platformAuthenticatorAvailable = vi.fn()
@@ -51,11 +57,10 @@ vi.mock('../../app/pro/(app)/actions.ts', () => ({
   setTheme: (...a: unknown[]) => setTheme(...a),
   setDensity: (...a: unknown[]) => setDensity(...a),
   paletteWeddings: () => paletteWeddings(),
-  weddingHeader: (...a: unknown[]) => weddingHeader(...a),
   signOut: vi.fn(),
 }))
 
-vi.mock('../../components/auth/actions.ts', () => ({
+vi.mock('../auth/actions.ts', () => ({
   setLocale: (...a: unknown[]) => setLocale(...a),
   beginPasskeyEnrollment: vi.fn(),
   finishPasskeyEnrollment: vi.fn(),
@@ -82,8 +87,31 @@ const { Shell } = await import('./shell.tsx')
 const LABELS: ShellLabels = {
   nav: 'Hoofdnavigatie',
   weddings: 'Bruiloften',
-  overview: 'Overzicht',
-  weddingSection: 'Deze bruiloft',
+  today: 'Vandaag',
+  templates: 'Sjablonen',
+  vendors: 'Leveranciers',
+  team: 'Team',
+  weddingsSection: 'Jouw bruiloften',
+  newWedding: 'Nieuwe bruiloft',
+  wedding: {
+    overview: 'Overzicht',
+    checklist: 'Checklist',
+    budget: 'Budget',
+    payments: 'Betalingen',
+    vendors: 'Leveranciers',
+    runSheet: 'Draaiboek',
+    files: 'Bestanden',
+    moodboard: 'Moodboard',
+  },
+  row: {
+    noDate: 'Nog geen datum',
+    archived: 'Gearchiveerd',
+    today: 'Vandaag is het zover',
+    untilOne: 'Nog {days} dag',
+    untilOther: 'Nog {days} dagen',
+    sinceOne: '{days} dag geleden',
+    sinceOther: '{days} dagen geleden',
+  },
   collapse: 'Zijbalk inklappen',
   expand: 'Zijbalk uitklappen',
   openMenu: 'Menu openen',
@@ -126,6 +154,7 @@ function shellTree(over: Partial<Parameters<typeof Shell>[0]> = {}) {
     <Shell
       org={STUDIO_A}
       orgs={[STUDIO_A]}
+      weddings={[]}
       user={{ name: 'Joren Nagels', email: 'joren@example.test' }}
       offerPasskey={false}
       initialNav="expanded"
@@ -159,7 +188,6 @@ beforeEach(() => {
   params = {}
   searchParams = ''
   paletteWeddings.mockResolvedValue([])
-  weddingHeader.mockResolvedValue(null)
   platformAuthenticatorAvailable.mockResolvedValue(true)
 })
 
@@ -325,73 +353,335 @@ describe('the collapsed rail', () => {
   })
 })
 
-describe('the wedding-context section', () => {
-  it('is absent on the wedding list', () => {
+const ELS: ShellWedding = {
+  id: 'w1',
+  name: 'Els & Jan',
+  date: '2026-11-02',
+  status: 'live',
+  color: '#7A6A9B',
+}
+const MIRA: ShellWedding = {
+  id: 'w2',
+  name: 'Mira & Tom',
+  date: null,
+  status: 'draft',
+  color: null,
+}
+
+/** The link for one org-level item, by its literal label. */
+const item = (name: string) => screen.getByRole('link', { name })
+
+describe('the organisation-level items', () => {
+  /**
+   * The hrefs are literals, not `app.today()` and friends -- otherwise a mistyped builder in
+   * `lib/routes.ts` moves the assertion with the bug. Order is asserted too: `getAllByRole`
+   * returns document order, and Vandaag-then-Bruiloften is the reading order spec 0003 gives.
+   */
+  it('lists Today, Weddings, Templates, Vendors and Team, in that order, at their own paths', () => {
     renderShell()
-    expect(screen.queryByText('Deze bruiloft')).not.toBeInTheDocument()
-    expect(weddingHeader).not.toHaveBeenCalled()
+    const nav = screen.getByRole('navigation', { name: 'Hoofdnavigatie' })
+    const links = within(nav)
+      .getAllByRole('link')
+      .slice(0, 5)
+      .map((a) => [a.textContent, a.getAttribute('href')])
+    expect(links).toEqual([
+      ['Vandaag', '/'],
+      ['Bruiloften', '/weddings'],
+      ['Sjablonen', '/templates'],
+      ['Leveranciers', '/vendors'],
+      ['Team', '/team'],
+    ])
   })
 
-  it('appears inside a wedding, named, and marks Overzicht rather than the list', async () => {
-    pathname = '/weddings/w1'
-    params = { id: 'w1' }
-    weddingHeader.mockResolvedValue({ id: 'w1', name: 'Els & Jan', date: '2027-06-12' })
+  it('marks only the page you are on', () => {
+    pathname = '/templates'
     renderShell()
-
-    await waitFor(() => expect(screen.getByText('Els & Jan')).toBeInTheDocument())
-    expect(weddingHeader).toHaveBeenCalledWith('w1')
-
-    // Inside a wedding the section is where you are, so the list must NOT also read as
-    // current -- marking both says two places are one place.
-    expect(screen.getByRole('link', { name: 'Overzicht' })).toHaveAttribute('aria-current', 'page')
-    expect(screen.getByRole('link', { name: 'Bruiloften' })).not.toHaveAttribute('aria-current')
+    expect(item('Sjablonen')).toHaveAttribute('aria-current', 'page')
+    expect(item('Bruiloften')).not.toHaveAttribute('aria-current')
+    expect(item('Vandaag')).not.toHaveAttribute('aria-current')
   })
 
   /**
-   * Navigating BETWEEN two weddings, which is the only case that can observe the clear.
-   *
-   * A first render cannot: the state starts `null`, so `setWedding(null)` is a no-op there
-   * and deleting it left this green -- measured 2026-08-21. The mutation only shows up on a
-   * transition, so the test has to make one.
+   * Today lives at `/`, which is a prefix of every path. `NavItem` matches `${href}/` and not a
+   * bare `startsWith(href)`, so `//` matches nothing and the item lights on the root alone. Make
+   * the prefix arm a bare `startsWith` and the second half fails.
    */
-  it('drops the previous wedding.s name while the next one loads', async () => {
+  it('marks Today on the root and on no other page', () => {
+    pathname = '/'
+    renderShell()
+    expect(item('Vandaag')).toHaveAttribute('aria-current', 'page')
+    expect(item('Bruiloften')).not.toHaveAttribute('aria-current')
+
+    cleanup()
+    pathname = '/weddings'
+    renderShell()
+    expect(item('Vandaag')).not.toHaveAttribute('aria-current')
+    expect(item('Bruiloften')).toHaveAttribute('aria-current', 'page')
+  })
+
+  /**
+   * The prefix branch, which had no caller until spec 0003 and so no assertion could tell it
+   * from `exact`. Delete the `startsWith` arm in `nav-item.tsx` and the first half fails; make
+   * it a bare `startsWith(href)` with no trailing slash and the second half fails.
+   */
+  it('keeps a section marked while one of its detail pages is open, and only its own', () => {
+    pathname = '/templates/t9'
+    renderShell()
+    expect(item('Sjablonen')).toHaveAttribute('aria-current', 'page')
+
+    cleanup()
+    pathname = '/templates-archive'
+    renderShell()
+    expect(item('Sjablonen')).not.toHaveAttribute('aria-current')
+  })
+
+  it('does not mark the list on the way to a new wedding, and marks the new-wedding row', () => {
+    pathname = '/weddings/new'
+    renderShell()
+    // `exact` on the list: `/weddings/new` sits under `/weddings`, and two lit rows say two
+    // places are one place.
+    expect(item('Bruiloften')).not.toHaveAttribute('aria-current')
+    expect(item('Nieuwe bruiloft')).toHaveAttribute('aria-current', 'page')
+    expect(item('Nieuwe bruiloft')).toHaveAttribute('href', '/weddings/new')
+  })
+})
+
+describe('the wedding rows', () => {
+  beforeEach(() => {
+    // Noon UTC on 2026-09-21: the same civil day in Brussels, so no boundary is in play.
+    vi.setSystemTime(new Date('2026-09-21T12:00:00Z'))
+  })
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('has one row per wedding under a heading, and only the new-wedding row when there are none', () => {
+    renderShell()
+    expect(screen.getByText('Jouw bruiloften')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /Els & Jan/ })).not.toBeInTheDocument()
+    expect(item('Nieuwe bruiloft')).toBeInTheDocument()
+
+    cleanup()
+    renderShell({ weddings: [ELS, MIRA] })
+    expect(screen.getByRole('link', { name: /Els & Jan/ })).toHaveAttribute('href', '/weddings/w1')
+    expect(screen.getByRole('link', { name: /Mira & Tom/ })).toHaveAttribute('href', '/weddings/w2')
+  })
+
+  /**
+   * The countdown, end to end through the row: 2026-11-02 is 42 days after 2026-09-21. The
+   * spoken form is asserted separately because the visible `T-42` is `aria-hidden` -- a screen
+   * reader must not be handed "T dash forty-two".
+   */
+  it('shows T-minus and the short date, and speaks it as words', () => {
+    renderShell({ weddings: [ELS] })
+    const row = screen.getByRole('link', { name: /Els & Jan/ })
+    expect(within(row).getByText('T-42')).toHaveAttribute('aria-hidden', 'true')
+    expect(within(row).getByText('Nog 42 dagen')).toBeInTheDocument()
+    expect(row).toHaveTextContent(/2 nov/)
+  })
+
+  it('counts up after the day, says the day itself, and keeps the singular', () => {
+    renderShell({
+      weddings: [
+        { ...ELS, id: 'a', name: 'Aa', date: '2026-09-18' },
+        { ...ELS, id: 'b', name: 'Bb', date: '2026-09-21' },
+        { ...ELS, id: 'c', name: 'Cc', date: '2026-09-22' },
+      ],
+    })
+    expect(within(screen.getByRole('link', { name: /Aa/ })).getByText('T+3')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Aa/ })).toHaveTextContent('3 dagen geleden')
+    expect(within(screen.getByRole('link', { name: /Bb/ })).getByText('T-0')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /Bb/ })).toHaveTextContent('Vandaag is het zover')
+    expect(screen.getByRole('link', { name: /Cc/ })).toHaveTextContent('Nog 1 dag')
+    expect(screen.getByRole('link', { name: /Cc/ })).not.toHaveTextContent('Nog 1 dagen')
+  })
+
+  /**
+   * `sort` is stable, so the live weddings keep the order they came in. Reverse the comparator
+   * or drop the sort and the archived one is first.
+   */
+  it('puts archived weddings after the live ones and leaves the rest in order', () => {
+    renderShell({
+      weddings: [
+        { ...ELS, id: 'z', name: 'Oud & Klaar', status: 'archived' },
+        { ...ELS, id: 'b', name: 'Bb' },
+        MIRA,
+      ],
+    })
+    const rows = screen
+      .getAllByRole('link')
+      .map((a) => a.getAttribute('href'))
+      .filter((h) => h === '/weddings/z' || h === '/weddings/b' || h === '/weddings/w2')
+    expect(rows).toEqual(['/weddings/b', '/weddings/w2', '/weddings/z'])
+  })
+
+  it('says so when there is no date, and does not count down an archived wedding', () => {
+    renderShell({
+      weddings: [MIRA, { ...ELS, id: 'w3', name: 'Oud & Klaar', status: 'archived' }],
+    })
+    expect(screen.getByRole('link', { name: /Mira & Tom/ })).toHaveTextContent('Nog geen datum')
+    const archived = screen.getByRole('link', { name: /Oud & Klaar/ })
+    expect(archived).toHaveTextContent('Gearchiveerd')
+    expect(within(archived).queryByText(/^T[-+]/)).not.toBeInTheDocument()
+  })
+
+  /**
+   * `color` is null for every wedding until F1's migration lands, so the null case is the one
+   * the app actually ships with today and must draw a neutral dot rather than nothing or a
+   * stray `undefined` in a style attribute.
+   */
+  it('draws the colour as a dot, and a neutral one when there is no colour', () => {
+    renderShell({ weddings: [ELS, MIRA] })
+    const dot = (name: RegExp) =>
+      screen.getByRole('link', { name }).querySelector('[aria-hidden="true"]') as HTMLElement
+    expect(dot(/Els & Jan/)).toHaveStyle({ backgroundColor: '#7A6A9B' })
+    expect(dot(/Mira & Tom/)).not.toHaveAttribute('style')
+  })
+
+  /**
+   * The database CHECK promises `#RRGGBB`; this is the UI holding to it. `red` is a value the
+   * browser would happily draw, which is what makes it the discriminating input -- an invalid
+   * one is dropped by the CSSOM whether or not `safeColor` is there.
+   */
+  it('draws nothing for a colour that is not a plain hex, even one the browser accepts', () => {
+    renderShell({ weddings: [{ ...ELS, color: 'red' }] })
+    const row = screen.getByRole('link', { name: /Els & Jan/ })
+    expect(row.querySelector('[aria-hidden="true"]')).not.toHaveAttribute('style')
+  })
+
+  it('marks the wedding you are inside as current, and the others not', () => {
+    pathname = '/weddings/w2/budget'
+    params = { id: 'w2' }
+    renderShell({ weddings: [ELS, MIRA] })
+    expect(screen.getByRole('link', { name: /Mira & Tom/ })).toHaveAttribute('aria-current', 'true')
+    expect(screen.getByRole('link', { name: /Els & Jan/ })).not.toHaveAttribute('aria-current')
+  })
+
+  it('shows the stripe in the wedding colour on the current row only', () => {
     pathname = '/weddings/w1'
     params = { id: 'w1' }
-    weddingHeader.mockResolvedValue({ id: 'w1', name: 'Els & Jan', date: null })
-    const { rerender } = renderShell()
-    await waitFor(() => expect(screen.getByText('Els & Jan')).toBeInTheDocument())
+    renderShell({ weddings: [ELS, { ...ELS, id: 'w9', name: 'Ander & Paar' }] })
+    expect(screen.getByRole('link', { name: /Els & Jan/ })).toHaveStyle({
+      borderLeftColor: '#7A6A9B',
+    })
+    expect(screen.getByRole('link', { name: /Ander & Paar/ })).not.toHaveStyle({
+      borderLeftColor: '#7A6A9B',
+    })
+  })
+})
 
-    // Now jump to another wedding whose fetch has not resolved yet.
-    let resolve: (v: unknown) => void = () => {}
-    weddingHeader.mockReturnValue(new Promise((r) => (resolve = r)))
-    pathname = '/weddings/w2'
-    params = { id: 'w2' }
-    await act(async () => {
-      rerender(
-        <Shell
-          org={STUDIO_A}
-          orgs={[STUDIO_A]}
-          user={{ name: 'Joren Nagels', email: 'joren@example.test' }}
-          offerPasskey={false}
-          initialNav="expanded"
-          locale="nl"
-          theme="light"
-          density="comfortable"
-          labels={LABELS}
-        >
-          <p>page body</p>
-        </Shell>,
+describe('the sections inside a wedding', () => {
+  const inWedding = (id: string, at = `/weddings/${id}`) => {
+    pathname = at
+    params = { id }
+  }
+
+  it('are absent on the wedding list and on a page with no wedding in it', () => {
+    renderShell({ weddings: [ELS] })
+    expect(screen.queryByRole('link', { name: 'Draaiboek' })).not.toBeInTheDocument()
+
+    cleanup()
+    pathname = '/weddings/new'
+    params = {}
+    renderShell({ weddings: [ELS] })
+    expect(screen.queryByRole('link', { name: 'Draaiboek' })).not.toBeInTheDocument()
+  })
+
+  it('list all eight, at their own paths, under the wedding you are in', () => {
+    inWedding('w1')
+    renderShell({ weddings: [ELS] })
+    const group = screen.getByRole('list', { name: 'Els & Jan' })
+    const links = within(group)
+      .getAllByRole('link')
+      .map((a) => [a.textContent, a.getAttribute('href')])
+    expect(links).toEqual([
+      ['Overzicht', '/weddings/w1'],
+      ['Checklist', '/weddings/w1/tasks'],
+      ['Budget', '/weddings/w1/budget'],
+      ['Betalingen', '/weddings/w1/payments'],
+      ['Leveranciers', '/weddings/w1/vendors'],
+      ['Draaiboek', '/weddings/w1/run-sheet'],
+      ['Bestanden', '/weddings/w1/files'],
+      ['Moodboard', '/weddings/w1/moodboard'],
+    ])
+  })
+
+  /**
+   * The whole point of `current = w.id === weddingId`: sections under the wedding you are in,
+   * not under the first row and not under all of them. Two weddings, the second one open.
+   */
+  it('hang off the open wedding and no other', () => {
+    inWedding('w2')
+    renderShell({ weddings: [ELS, MIRA] })
+    expect(screen.getByRole('list', { name: 'Mira & Tom' })).toBeInTheDocument()
+    expect(screen.queryByRole('list', { name: 'Els & Jan' })).not.toBeInTheDocument()
+  })
+
+  it('follow a jump from one wedding to another', () => {
+    inWedding('w1')
+    renderShell({ weddings: [ELS, MIRA] })
+    expect(screen.getByRole('list', { name: 'Els & Jan' })).toBeInTheDocument()
+
+    inWedding('w2')
+    rerenderShell({ weddings: [ELS, MIRA] })
+    expect(screen.queryByRole('list', { name: 'Els & Jan' })).not.toBeInTheDocument()
+    expect(screen.getByRole('list', { name: 'Mira & Tom' })).toBeInTheDocument()
+  })
+
+  /**
+   * The URL names a wedding the layout did not list -- a wedding in another org, or a `member`
+   * who is not assigned. The list is what the principal may see, so nothing hangs off it.
+   * The page answers 404; the sidebar must not have said the wedding exists.
+   */
+  it('do not appear for a wedding that is not in the list', () => {
+    inWedding('w-not-mine')
+    renderShell({ weddings: [ELS] })
+    expect(screen.queryByRole('link', { name: 'Draaiboek' })).not.toBeInTheDocument()
+  })
+
+  it('mark Overzicht on the wedding itself, and the list not at all', () => {
+    inWedding('w1')
+    renderShell({ weddings: [ELS] })
+    expect(screen.getByRole('link', { name: 'Overzicht' })).toHaveAttribute('aria-current', 'page')
+    // Inside a wedding the section is where you are, so the list must NOT also read as
+    // current -- marking both says two places are one place.
+    expect(screen.getByRole('link', { name: 'Bruiloften' })).not.toHaveAttribute('aria-current')
+    expect(screen.getByRole('link', { name: 'Checklist' })).not.toHaveAttribute('aria-current')
+  })
+
+  it('keep Checklist marked on a task page, and Overzicht not', () => {
+    inWedding('w1', '/weddings/w1/tasks/t9')
+    renderShell({ weddings: [ELS] })
+    expect(screen.getByRole('link', { name: 'Checklist' })).toHaveAttribute('aria-current', 'page')
+    // `exact` on Overzicht: every section is under `/weddings/w1`.
+    expect(screen.getByRole('link', { name: 'Overzicht' })).not.toHaveAttribute('aria-current')
+  })
+
+  it('keep a name on every target on the rail, wedding rows and sections included', () => {
+    inWedding('w1')
+    renderShell({ initialNav: 'collapsed', weddings: [ELS, MIRA] })
+    const nav = screen.getByRole('navigation', { name: 'Hoofdnavigatie' })
+    for (const el of nav.querySelectorAll('a, button')) {
+      expect(el, `${el.tagName} "${el.textContent}" has no aria-label on the rail`).toHaveAttribute(
+        'aria-label',
+        expect.stringMatching(/\S/),
       )
-    })
-
-    // A heading that lags says you are somewhere you are not, which is worse than a heading
-    // that is briefly absent.
-    expect(screen.queryByText('Els & Jan')).not.toBeInTheDocument()
-
-    await act(async () => {
-      resolve({ id: 'w2', name: 'Mira & Tom', date: null })
-    })
-    expect(screen.getByText('Mira & Tom')).toBeInTheDocument()
+    }
+    // The wedding row, by attribute: `title` also names a link, so the role query would pass
+    // with the `aria-label` deleted -- the same hole the rail test above records for `NavItem`.
+    expect(screen.getByRole('link', { name: 'Mira & Tom' })).toHaveAttribute(
+      'aria-label',
+      'Mira & Tom',
+    )
+    // The rail has no room to write the countdown out; it must not leak into the name.
+    expect(screen.getByRole('link', { name: 'Mira & Tom' })).not.toHaveTextContent('T-')
+    // The chip is the only thing a sighted user reads on the rail. Two initials, split on the
+    // `&`, so the pair reads `MT` and not `M` or `Mi`. Its `aria-hidden` and the `sr-only` name
+    // beside it cannot be discriminated by any assertion here -- the `aria-label` above wins the
+    // accessible name either way -- so the `sr-only` span is held by lint (`useAnchorContent`)
+    // and by nothing in this file.
+    expect(screen.getByRole('link', { name: 'Mira & Tom' })).toHaveTextContent(/MT/)
+    expect(screen.getByRole('link', { name: 'Els & Jan' })).toHaveTextContent(/EJ/)
   })
 })
 

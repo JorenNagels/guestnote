@@ -274,6 +274,13 @@ function hostOf(request: NextRequest): string {
 function noStore(response: NextResponse): NextResponse {
   response.headers.set('Cache-Control', 'private, no-store')
   response.headers.set('X-Robots-Tag', 'noindex, nofollow')
+  // `/vendor/<token>` and `/invite/<token>` carry a bearer token in the PATH, and the browser
+  // default (`strict-origin-when-cross-origin`) still sends the full URL on a same-origin
+  // request. `no-referrer` app-wide rather than on those two routes: the rewrite hides the
+  // real path from a next.config rule (see above), and nothing in the dashboard reads Referer
+  // -- Better Auth checks `Origin`. What this does NOT cover: the token still lands in
+  // CloudFront and Lambda access logs, which only moving it out of the path would fix.
+  response.headers.set('Referrer-Policy', 'no-referrer')
   return response
 }
 

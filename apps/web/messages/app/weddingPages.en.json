@@ -1,0 +1,104 @@
+{
+  "header": {
+    "noDate": "No date yet",
+    "noVenue": "No venue yet"
+  },
+  "tabs": {
+    "label": "Sections of this wedding"
+  },
+  "overview": {
+    "stats": {
+      "daysToGo": "Days to go",
+      "daysSince": "Days ago",
+      "openTasks": "Open tasks",
+      "done": "Done",
+      "guests": "Guests",
+      "today": "Today",
+      "noDate": "No date yet",
+      "donePercent": "{percent}% done",
+      "noTasks": "No tasks yet",
+      "guestsUnknown": "Not filled in yet",
+      "guestsKnown": "As the planner says",
+      "lateNone": "Nothing late",
+      "lateSome": "{count} late"
+    },
+    "events": {
+      "title": "Next events",
+      "empty": "No events planned yet. Add them in settings.",
+      "manage": "Manage events",
+      "more": "+ {count} more",
+      "noTime": "Time still open"
+    },
+    "notes": {
+      "title": "Internal notes",
+      "hint": "The couple never sees this."
+    }
+  },
+  "form": {
+    "sectionWedding": "The wedding",
+    "couple": "Couple",
+    "couplePlaceholder": "Marie & Thomas",
+    "date": "Main day",
+    "dateHint": "Every task counts from this day. Leaving it empty is fine: a wedding with no date gets one later.",
+    "venue": "Venue",
+    "venuePlaceholder": "Not booked yet",
+    "guests": "Guests",
+    "stage": "Stage",
+    "notes": "Internal notes",
+    "notesHint": "For the team only. The couple never sees this.",
+    "notesPlaceholder": "How the couple described the day, the brief, anything the team should read before a call.",
+    "sectionColour": "Colour",
+    "colourHint": "How you recognise this wedding in a full sidebar. Changeable later.",
+    "colourGroup": "Wedding colour",
+    "colourCustom": "Pick another colour",
+    "colourNone": "No colour",
+    "colours": {
+      "#206560": "Teal",
+      "#886A20": "Gold",
+      "#A94F4A": "Clay",
+      "#2F5C85": "Sky",
+      "#417E50": "Moss",
+      "#6C4A72": "Plum"
+    },
+    "create": "Create wedding",
+    "save": "Save",
+    "saving": "Saving...",
+    "saved": "Saved.",
+    "cancel": "Cancel"
+  },
+  "events": {
+    "title": "Events",
+    "hint": "The main day above is the day the checklist counts from. Events are the extra days: the civil ceremony last week, the brunch the morning after.",
+    "label": "Name",
+    "labelPlaceholder": "Reception",
+    "date": "Date",
+    "time": "Time",
+    "venue": "Venue",
+    "save": "Save",
+    "add": "Add event",
+    "remove": "Remove",
+    "saved": "Event saved.",
+    "empty": "No events yet."
+  },
+  "new": {
+    "eyebrow": "New wedding",
+    "title": "Create a wedding",
+    "intro": "A few things now, the rest later.",
+    "forbidden": "Only an owner or admin of the organisation can create a wedding. Ask whoever invited you."
+  },
+  "settings": {
+    "eyebrow": "Settings",
+    "intro": "Everything the rest of the app reads from."
+  },
+  "errors": {
+    "required": "Fill this in.",
+    "tooLong": "This is too long.",
+    "invalidDate": "Enter a real date.",
+    "invalidNumber": "Enter a whole number between 0 and 100000.",
+    "invalidTime": "Enter a time like 15:30.",
+    "invalidColor": "Pick a colour from the list or the picker.",
+    "invalidStatus": "Pick one of the three stages.",
+    "forbidden": "You may not do this in this organisation.",
+    "failed": "Saving did not work. Try again."
+  }
+}

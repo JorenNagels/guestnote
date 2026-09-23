@@ -121,7 +121,8 @@
       "inviteExpired": "Deze uitnodiging is verlopen. Vraag {inviter} om een nieuwe.",
       "inviteAccepted": "Deze uitnodiging is al gebruikt. Meld je gewoon aan.",
       "inviteCouple": "Het portaal voor bruidsparen is nog niet open. Je uitnodiging blijft geldig.",
-      "inviteUnknown": "Deze link werkt niet. Vraag degene die je uitnodigde om een nieuwe."
+      "inviteUnknown": "Deze link werkt niet. Vraag degene die je uitnodigde om een nieuwe.",
+      "inviteWrongAccount": "Deze uitnodiging is voor een ander e-mailadres dan waarmee je nu bent aangemeld. Meld je af en open de link opnieuw."
     },
     "noAccount": "Nog geen account? Guestnote werkt op uitnodiging.",
     "stage": {
@@ -143,6 +144,19 @@
       "intro": "Voer deze code in om je aan te melden bij Guestnote.",
       "expiry": "De code verloopt over {minutes, plural, one {# minuut} other {# minuten}}.",
       "ignore": "Heb je dit niet aangevraagd? Dan kun je deze e-mail negeren.",
+      "footer": "Guestnote · automatisch bericht. Antwoorden op dit adres komen niet aan."
+    },
+    "staffInvite": {
+      "subject": "{inviter} nodigde je uit voor {org} op Guestnote",
+      "preheader": "Maak je account aan om samen bruiloften te plannen.",
+      "heading": "Je bent uitgenodigd",
+      "intro": "{inviter} nodigde je uit om als {role} deel te nemen aan {org} op Guestnote.",
+      "roleAdmin": "beheerder",
+      "roleMember": "teamlid",
+      "cta": "Uitnodiging bekijken",
+      "linkFallback": "Werkt de knop niet? Kopieer dan deze link in je browser:",
+      "expiry": "De uitnodiging is {days, plural, one {# dag} other {# dagen}} geldig.",
+      "ignore": "Ken je {inviter} niet, of verwachtte je dit niet? Dan kun je deze e-mail negeren.",
       "footer": "Guestnote · automatisch bericht. Antwoorden op dit adres komen niet aan."
     }
   }

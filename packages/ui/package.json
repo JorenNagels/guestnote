@@ -5,11 +5,20 @@
   "type": "module",
   "exports": {
     "./cx": "./src/cx.ts",
+    "./arrival-badge": "./src/arrival-badge.tsx",
+    "./badge": "./src/badge.tsx",
     "./button": "./src/button.tsx",
+    "./card": "./src/card.tsx",
+    "./color-picker": "./src/color-picker.tsx",
     "./field": "./src/field.tsx",
     "./inline-error": "./src/inline-error.tsx",
     "./live-region": "./src/live-region.tsx",
-    "./locale-switcher": "./src/locale-switcher.tsx"
+    "./locale-switcher": "./src/locale-switcher.tsx",
+    "./pill": "./src/pill.tsx",
+    "./sheet": "./src/sheet.tsx",
+    "./step-indicator": "./src/step-indicator.tsx",
+    "./table": "./src/table.tsx",
+    "./tabs": "./src/tabs.tsx"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

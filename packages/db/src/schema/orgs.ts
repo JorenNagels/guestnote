@@ -61,6 +61,9 @@ export const organizations = pgTable(
  * "Only two" is about the whole policy set, not the axis: since migration 0005
  * `organizations` also has a policy reading `app.user_id`, a second one beside its
  * `tenant_isolation`, so a member can read their org's name before a tenant is known.
+ * And since migration 0007 this table has a second policy of its own, the opposite way round:
+ * `org_staff_read`, `for select`, scoped by `app.org_id`, so an owner or admin reads every
+ * membership of their org. Writes are still `own_memberships` alone.
  */
 export const orgMembers = pgTable(
   'org_members',

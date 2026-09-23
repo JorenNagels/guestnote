@@ -3,22 +3,59 @@
 import { cx } from '@guestnote/ui/cx'
 import { useParams, usePathname } from 'next/navigation'
 import { type ReactNode, Suspense, useEffect, useRef, useState, useTransition } from 'react'
-import { setNavCollapsed, weddingHeader } from '../../app/pro/(app)/actions.ts'
+import { setNavCollapsed } from '../../app/pro/(app)/actions.ts'
 import type { Locale } from '../../lib/locales.ts'
 import type { Density, NavState, Theme } from '../../lib/prefs.ts'
 import { app } from '../../lib/routes.ts'
 import { type EnrollmentLabels, EnrollmentPrompt } from '../auth/enrollment-prompt.tsx'
 import { AccountMenu } from './account-menu.tsx'
-import { CloseIcon, CollapseIcon, MenuIcon, OverviewIcon, WeddingsIcon } from './icons.tsx'
+import {
+  BudgetIcon,
+  ChecklistIcon,
+  CloseIcon,
+  CollapseIcon,
+  FilesIcon,
+  MenuIcon,
+  MoodboardIcon,
+  OverviewIcon,
+  PaymentsIcon,
+  PlusIcon,
+  RunSheetIcon,
+  TeamIcon,
+  TemplatesIcon,
+  TodayIcon,
+  VendorsIcon,
+  WeddingsIcon,
+} from './icons.tsx'
 import { NavAction, NavItem } from './nav-item.tsx'
 import { OrgHead, type OrgOption } from './org-head.tsx'
 import { Palette, type PaletteLabels } from './palette.tsx'
+import { type ShellWedding, WeddingRow, type WeddingRowLabels } from './wedding-row.tsx'
+
+export type { ShellWedding } from './wedding-row.tsx'
 
 export type ShellLabels = {
   nav: string
+  /** The org-level list page, and the palette's group name. */
   weddings: string
-  overview: string
-  weddingSection: string
+  today: string
+  templates: string
+  vendors: string
+  team: string
+  /** The heading over the wedding rows. Not `weddings`: two identical words a row apart. */
+  weddingsSection: string
+  newWedding: string
+  wedding: {
+    overview: string
+    checklist: string
+    budget: string
+    payments: string
+    vendors: string
+    runSheet: string
+    files: string
+    moodboard: string
+  }
+  row: WeddingRowLabels
   collapse: string
   expand: string
   openMenu: string
@@ -29,8 +66,6 @@ export type ShellLabels = {
   enroll: EnrollmentLabels
 }
 
-export type ShellWedding = { id: string; name: string; date: string | null }
-
 /**
  * The dashboard's chrome: a persistent left sidebar, a rail when collapsed, a drawer on a
  * phone.
@@ -39,12 +74,22 @@ export type ShellWedding = { id: string; name: string; date: string | null }
  * palette -- and because `usePathname` is the only way a layout can know where it is.
  *
  * Everything the shell can be GIVEN arrives as plain props from `(app)/layout.tsx`, which
- * stays a Server Component. Two things cannot be given and are fetched from here through
- * Server Functions, each for a reason argued at its own call site: the wedding heading,
- * because a layout cannot see a param from a segment below it, and the palette's list,
- * because handing it down would cost a `member` N transactions on every page. So the client
- * bundle carries markup, event handlers and two POST call sites -- and no database code,
- * which is the half of the original claim that survived.
+ * stays a Server Component -- including, since spec 0003, the wedding list the sidebar shows.
+ * One thing cannot be given and is fetched from here through a Server Function: the palette's
+ * list, which is a second read of the same rows and is paid for only by a planner who presses
+ * the chord. So the client bundle carries markup, event handlers and one POST call site --
+ * and no database code, which is the half of the original claim that survived.
+ *
+ * ## The wedding list is in the layout, and that reverses a 2026-08-21 decision
+ *
+ * `docs/specs/0001` refused a count badge because listing weddings in the layout costs a
+ * `member` one transaction per assigned wedding, and fetched the *current* wedding's name
+ * through `weddingHeader` instead. Spec 0003 asks for a row per wedding, which needs the list
+ * anyway, and given the list `weddingHeader` is a second round trip for a row already in hand
+ * -- so it went. Cost accepted: the layout renders on a hard load and after any
+ * `revalidatePath` of the dashboard tree, not on client navigation, and an owner or admin pays
+ * one query for it. A `member` pays N, which is the same N the wedding list page already pays.
+ * Unread counts stay refused: those are N more per wedding, per render.
  *
  * ## Collapse persists, and why the cookie is not the source of truth here
  *
@@ -71,6 +116,7 @@ export type ShellWedding = { id: string; name: string; date: string | null }
 export function Shell({
   org,
   orgs,
+  weddings,
   user,
   offerPasskey,
   initialNav,
@@ -82,6 +128,8 @@ export function Shell({
 }: {
   org: OrgOption
   orgs: OrgOption[]
+  /** Every wedding this user may see in `org`, soonest first. Resolved by the layout. */
+  weddings: ShellWedding[]
   user: { name: string | null; email: string }
   /**
    * Whether this user could still be offered a passkey: the deployment can verify one and
@@ -98,40 +146,17 @@ export function Shell({
 }) {
   const [nav, setNav] = useState<NavState>(initialNav)
   const [drawer, setDrawer] = useState(false)
-  const [wedding, setWedding] = useState<ShellWedding | null>(null)
   const [, startTransition] = useTransition()
   const pathname = usePathname()
   const params = useParams<{ id?: string }>()
   const menuButtonRef = useRef<HTMLButtonElement>(null)
 
   const collapsed = nav === 'collapsed'
+  // `useParams` and not a pathname regex: the router already parsed the segment, and a regex
+  // here would have to be kept in step with `lib/routes.ts` by hand. It is `undefined` on
+  // `/weddings/new`, a static segment, which is what stops the new-wedding form reading as
+  // "inside a wedding".
   const weddingId = typeof params?.id === 'string' ? params.id : null
-
-  /**
-   * The wedding-context section's data, fetched per wedding route.
-   *
-   * `useParams` and not a pathname regex: the router already parsed the segment, and a
-   * regex here would have to be kept in step with `lib/routes.ts` by hand.
-   *
-   * Cleared to `null` the moment the id changes rather than left showing the previous
-   * wedding's name while the next one loads -- a heading that lags is worse than a heading
-   * that is briefly absent, because it says you are somewhere you are not. `live` guards
-   * the out-of-order resolve when a planner jumps between two weddings quickly.
-   */
-  useEffect(() => {
-    if (!weddingId) {
-      setWedding(null)
-      return
-    }
-    let live = true
-    setWedding(null)
-    void weddingHeader(weddingId).then((row) => {
-      if (live && row) setWedding({ id: row.id, name: row.name, date: row.date })
-    })
-    return () => {
-      live = false
-    }
-  }, [weddingId])
 
   // Close the drawer on navigation -- without this it stays open over the page you just
   // asked for, which reads as the tap not having worked.
@@ -166,6 +191,44 @@ export function Shell({
     })
   }
 
+  // Live weddings first, archived last, each group keeping the repo's soonest-date order.
+  // `Array.prototype.sort` is stable, so returning 0 within a group is what keeps that order; a
+  // year-old archived wedding is otherwise the first row of every planner's sidebar, above the
+  // one happening this weekend.
+  const ordered = [...weddings].sort(
+    (a, b) => Number(a.status === 'archived') - Number(b.status === 'archived'),
+  )
+
+  const orgItems = [
+    // Not `exact`, and safe: `NavItem` matches a prefix as `${href}/`, which for `/` is `//`, so
+    // this lights on `/` alone. A bare `startsWith('/')` would light it on every page --
+    // `shell.test.tsx` fails for that.
+    { key: 'today', href: app.today(), icon: <TodayIcon />, label: labels.today, exact: false },
+    // `exact`: `/weddings/new` and `/weddings/<id>` are under this path and are not the list.
+    {
+      key: 'weddings',
+      href: app.weddings(),
+      icon: <WeddingsIcon />,
+      label: labels.weddings,
+      exact: true,
+    },
+    {
+      key: 'templates',
+      href: app.templates(),
+      icon: <TemplatesIcon />,
+      label: labels.templates,
+      exact: false,
+    },
+    {
+      key: 'vendors',
+      href: app.vendors(),
+      icon: <VendorsIcon />,
+      label: labels.vendors,
+      exact: false,
+    },
+    { key: 'team', href: app.team(), icon: <TeamIcon />, label: labels.team, exact: false },
+  ]
+
   const sidebar = (
     <nav
       aria-label={labels.nav}
@@ -181,59 +244,87 @@ export function Shell({
         {/* Search is a sidebar row rather than a header field: there is no header band on
             this surface by decision, and one search implementation beats two. */}
         <Palette labels={labels.palette} collapsed={collapsed} />
+      </div>
 
-        {/* No count badge, deliberately. A number here means listing weddings in the
-            layout on every page render, which for a `member` is one transaction per
-            assigned wedding -- the exact cost `paletteWeddings` was restructured to
-            avoid. The destination shows the count for free. */}
+      {/* Everything that can outgrow the screen scrolls here, and the collapse row and the
+          account menu below it do not: the wedding list is the one part of the sidebar with no
+          upper bound, and a footer that scrolls away is the account menu going missing.
+          `-mx-1 px-1` because a scroll container clips, and a 2px focus outline drawn outside
+          the row would be sliced off at both edges. */}
+      <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-1 pt-1 pb-1">
+        {orgItems.map((item) => (
+          <NavItem
+            key={item.key}
+            href={item.href}
+            icon={item.icon}
+            label={item.label}
+            collapsed={collapsed}
+            exact={item.exact}
+            onNavigate={() => setDrawer(false)}
+          />
+        ))}
+
+        {collapsed ? (
+          <hr className="border-border mx-2 my-2" />
+        ) : (
+          <p className="text-muted-foreground mt-4 px-2.5 pb-1 text-[0.6875rem] font-semibold tracking-[0.08em] uppercase">
+            {labels.weddingsSection}
+          </p>
+        )}
+
+        <ul className="flex flex-col gap-0.5">
+          {ordered.map((w) => {
+            const current = w.id === weddingId
+            return (
+              <li key={w.id}>
+                <WeddingRow
+                  wedding={w}
+                  current={current}
+                  collapsed={collapsed}
+                  locale={locale}
+                  labels={labels.row}
+                  onNavigate={() => setDrawer(false)}
+                />
+                {/* The sections of the wedding you are in, and only that one: eight rows per
+                    wedding would be a sidebar of sections and no weddings. Every section is a
+                    real screen -- a stub still answers, which is why they are listed rather
+                    than omitted as `docs/specs/0001` first did. */}
+                {current ? (
+                  <ul
+                    aria-label={w.name}
+                    className={cx(
+                      'mt-0.5 mb-1 flex flex-col gap-0.5',
+                      collapsed ? null : 'border-border ml-3 border-l pl-1.5',
+                    )}
+                  >
+                    {weddingItems(w.id, labels.wedding).map((item) => (
+                      <li key={item.key}>
+                        <NavItem
+                          href={item.href}
+                          icon={item.icon}
+                          label={item.label}
+                          collapsed={collapsed}
+                          exact={item.exact}
+                          onNavigate={() => setDrawer(false)}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </li>
+            )
+          })}
+        </ul>
+
         <NavItem
-          href={app.weddings()}
-          icon={<WeddingsIcon />}
-          label={labels.weddings}
+          href={app.weddingNew()}
+          icon={<PlusIcon />}
+          label={labels.newWedding}
           collapsed={collapsed}
           exact
           onNavigate={() => setDrawer(false)}
         />
       </div>
-
-      {/* The wedding-context section, present only while inside one. Unbuilt sections --
-          guests, budget, vendors, run sheet, files -- are omitted rather than shown
-          disabled: a greyed list of six things you cannot click reads as a demo, and the
-          competitor is a spreadsheet that works. docs/specs/0001 records the decision. */}
-      {wedding ? (
-        <div className="mt-4 flex min-w-0 flex-col gap-0.5">
-          {collapsed ? (
-            <hr className="border-border mx-2 my-1" />
-          ) : (
-            <div className="px-2.5 pb-1">
-              <p className="text-muted-foreground truncate text-[0.6875rem] font-semibold tracking-[0.08em] uppercase">
-                {labels.weddingSection}
-              </p>
-              <p className="mt-0.5 truncate text-sm font-medium">{wedding.name}</p>
-              {/* The date earns the field `weddingHeader` already returns. Without it the
-                  round trip fetched a value nothing rendered, which a review caught. */}
-              {wedding.date ? (
-                <time
-                  dateTime={wedding.date}
-                  className="text-muted-foreground mt-0.5 block truncate text-xs tabular-nums"
-                >
-                  {wedding.date}
-                </time>
-              ) : null}
-            </div>
-          )}
-          <NavItem
-            href={app.wedding(wedding.id)}
-            icon={<OverviewIcon />}
-            label={labels.overview}
-            collapsed={collapsed}
-            exact
-            onNavigate={() => setDrawer(false)}
-          />
-        </div>
-      ) : null}
-
-      <div className="flex-1" />
 
       <div className="hidden md:block">
         <NavAction
@@ -366,4 +457,66 @@ export function Shell({
       ) : null}
     </div>
   )
+}
+
+/**
+ * The sections inside one wedding, in the order a planner works through them.
+ *
+ * Overview is `exact` because every other section's path sits under it. The rest are prefix
+ * matches so a task open at `/tasks/<id>` still marks the checklist -- which is the first
+ * caller `NavItem`'s prefix branch has ever had.
+ */
+function weddingItems(id: string, l: ShellLabels['wedding']) {
+  return [
+    {
+      key: 'overview',
+      href: app.wedding(id),
+      icon: <OverviewIcon />,
+      label: l.overview,
+      exact: true,
+    },
+    {
+      key: 'checklist',
+      href: app.weddingTasks(id),
+      icon: <ChecklistIcon />,
+      label: l.checklist,
+      exact: false,
+    },
+    {
+      key: 'budget',
+      href: app.weddingBudget(id),
+      icon: <BudgetIcon />,
+      label: l.budget,
+      exact: false,
+    },
+    {
+      key: 'payments',
+      href: app.weddingPayments(id),
+      icon: <PaymentsIcon />,
+      label: l.payments,
+      exact: false,
+    },
+    {
+      key: 'vendors',
+      href: app.weddingVendors(id),
+      icon: <VendorsIcon />,
+      label: l.vendors,
+      exact: false,
+    },
+    {
+      key: 'runSheet',
+      href: app.weddingRunSheet(id),
+      icon: <RunSheetIcon />,
+      label: l.runSheet,
+      exact: false,
+    },
+    { key: 'files', href: app.weddingFiles(id), icon: <FilesIcon />, label: l.files, exact: false },
+    {
+      key: 'moodboard',
+      href: app.weddingMoodboard(id),
+      icon: <MoodboardIcon />,
+      label: l.moodboard,
+      exact: false,
+    },
+  ]
 }

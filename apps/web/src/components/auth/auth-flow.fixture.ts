@@ -76,6 +76,7 @@ export const COPY: AuthCopy = {
     inviteAccepted: 'ERR-INVITE-ACCEPTED',
     inviteCouple: 'ERR-INVITE-COUPLE',
     inviteUnknown: 'ERR-INVITE-UNKNOWN',
+    inviteWrongAccount: 'ERR-INVITE-WRONG-ACCOUNT',
   },
 }
 

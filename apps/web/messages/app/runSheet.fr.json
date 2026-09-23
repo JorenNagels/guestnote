@@ -1,0 +1,80 @@
+{
+  "title": "Déroulé",
+  "days": {
+    "label": "Jours du mariage"
+  },
+  "event": {
+    "noTime": "Pas encore d'heure",
+    "noEvents": {
+      "title": "Pas encore de jour pour lequel faire un déroulé",
+      "body": "Un déroulé appartient à un jour du mariage. Ajoutez d'abord un jour dans les paramètres, par exemple la cérémonie ou la fête.",
+      "action": "Aller aux paramètres"
+    }
+  },
+  "list": {
+    "caption": "Déroulé de {event}",
+    "colTime": "Heure",
+    "colLength": "Durée",
+    "colWhat": "Ce qui se passe",
+    "colWho": "Qui s'en charge",
+    "colWhere": "Où",
+    "colOrder": "Ordre",
+    "planner": "Planner",
+    "until": "jusqu'à",
+    "nextDay": "le lendemain",
+    "edit": "Modifier {title}",
+    "minutes": "{m} min",
+    "hours": "{h} h",
+    "hoursMinutes": "{h} h {m}",
+    "overlap": "Chevauche l'élément du dessus de {length}",
+    "gap": "{length} de libre",
+    "summary": "{count, plural, one {# élément} other {# éléments}}, de {from} à {to}",
+    "add": "Ajouter un élément",
+    "moveUp": "Monter {title}",
+    "moveDown": "Descendre {title}",
+    "emptyTitle": "Rien encore dans ce déroulé",
+    "emptyBody": "Mettez-y le premier moment de la journée, par exemple l'arrivée des invités. L'heure de fin, les chevauchements et les trous se calculent tout seuls.",
+    "emptyAction": "Ajouter le premier élément"
+  },
+  "sheet": {
+    "titleNew": "Nouvel élément",
+    "titleEdit": "Modifier l'élément",
+    "close": "Fermer",
+    "startsAt": "Commence à",
+    "duration": "Durée (minutes)",
+    "durationHint": "L'heure de fin se calcule toute seule.",
+    "what": "Ce qui se passe",
+    "place": "Où",
+    "placeHint": "Laissez vide quand c'est évident.",
+    "vendor": "Qui s'en charge",
+    "vendorNone": "Planner, pas de prestataire",
+    "vendorEmpty": "Pas encore de prestataires sur ce mariage. Ajoutez-les sous Prestataires.",
+    "vendorRemoved": "{name} (ne fait plus partie de ce mariage)",
+    "order": "Ordre",
+    "moveUp": "Monter",
+    "moveDown": "Descendre",
+    "save": "Enregistrer",
+    "saveNext": "Enregistrer et suivant",
+    "saving": "Enregistrement…",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "deleteAsk": "Supprimer cet élément ? Cela ne peut pas être annulé.",
+    "deleteConfirm": "Oui, supprimer",
+    "deleting": "Suppression…"
+  },
+  "errors": {
+    "event": "Choisissez un jour du mariage.",
+    "time": "Indiquez une heure, par exemple 15:30.",
+    "duration": "Indiquez la durée en minutes entières, de 1 à 1440.",
+    "title": "Dites ce qui se passe, en 120 caractères maximum.",
+    "place": "C'est trop long pour un lieu. Restez sous 120 caractères.",
+    "vendor": "Choisissez un prestataire dans la liste.",
+    "notFound": "Cet élément ou ce mariage n'existe plus. Actualisez la page.",
+    "failed": "L'enregistrement n'a pas abouti. Rien n'a été modifié. Réessayez dans un instant."
+  },
+  "error": {
+    "title": "Le déroulé n'a pas pu être chargé",
+    "body": "Rien n'a été modifié. Réessayez.",
+    "retry": "Réessayer"
+  }
+}

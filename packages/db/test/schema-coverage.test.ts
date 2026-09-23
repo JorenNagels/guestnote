@@ -2,6 +2,7 @@ import { getTableName, isTable } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import * as schemaModule from '../src/schema/index.ts'
 import {
+  ORG_SCOPED_TABLES,
   SELF_SCOPED_TABLES,
   TENANT_SCOPED_TABLES,
   UNSCOPED_TABLES,
@@ -41,6 +42,7 @@ const declaredTables: string[] = Object.values(schemaModule)
 
 const classified = [
   ...TENANT_SCOPED_TABLES,
+  ...ORG_SCOPED_TABLES,
   ...SELF_SCOPED_TABLES,
   ...USER_SCOPED_TABLES,
   ...UNSCOPED_TABLES,
@@ -48,6 +50,7 @@ const classified = [
 
 const rlsTables = [
   ...TENANT_SCOPED_TABLES,
+  ...ORG_SCOPED_TABLES,
   ...SELF_SCOPED_TABLES,
   ...USER_SCOPED_TABLES,
 ] as readonly string[]
@@ -71,7 +74,8 @@ describe('every table is classified exactly once', () => {
     expect(
       hits,
       `${table} is in ${hits} buckets. Add it to exactly one of TENANT_SCOPED_TABLES, ` +
-        'SELF_SCOPED_TABLES, USER_SCOPED_TABLES or UNSCOPED_TABLES in src/schema/index.ts, ' +
+        'ORG_SCOPED_TABLES, SELF_SCOPED_TABLES, USER_SCOPED_TABLES or UNSCOPED_TABLES in ' +
+        'src/schema/index.ts, ' +
         'and give it a policy in a new migration if it holds tenant data.',
     ).toBe(1)
   })
@@ -94,6 +98,22 @@ describe('tenant-scoped tables carry their tenant keys', () => {
     // every policy is a single-column check with no joins.
     expect(cols, `${table} is missing org_id`).toContain('org_id')
     expect(cols, `${table} is missing wedding_id`).toContain('wedding_id')
+  })
+
+  it.each(ORG_SCOPED_TABLES)('%s has org_id and NO wedding_id', async (table) => {
+    const rows = await catalog(
+      `select column_name from information_schema.columns
+        where table_schema = 'public' and table_name = $1`,
+      [table],
+    )
+    const cols = rows.map((r) => r.column_name as string)
+    expect(cols, `${table} is missing org_id`).toContain('org_id')
+    // The bucket's whole claim. A table that has grown a wedding key is wedding-scoped and
+    // its policy has to say so; leaving it here would let it be read org-wide by a pinned
+    // member. Moving it to TENANT_SCOPED_TABLES is the fix, not deleting this line.
+    expect(cols, `${table} has a wedding_id, so it belongs in TENANT_SCOPED_TABLES`).not.toContain(
+      'wedding_id',
+    )
   })
 
   it.each(SELF_SCOPED_TABLES)('%s has org_id (its own id is the wedding scope)', async (table) => {
@@ -191,37 +211,60 @@ describe('RLS is enabled AND forced', () => {
   })
 
   /**
-   * Policies whose USING scopes by `app.user_id` on a table that is otherwise org-scoped.
-   *
-   * Named individually and not derived from anything, which is the entire point: adding a
-   * policy to `organizations` that scopes by neither key still fails this test. A looser
-   * rule -- "accept either GUC on organizations" -- would have let a regression on
-   * `tenant_isolation` through silently, which is the assertion this suite exists to keep.
+   * Second policies on a table that already has its primary one, each named individually
+   * and each mapped to the GUC its USING MUST name. Named and not derived from anything,
+   * which is the entire point: adding a policy that scopes by neither key still fails this
+   * test. A looser rule -- "accept either GUC on these tables" -- would have let a
+   * regression on the primary policy through silently, which is the assertion this suite
+   * exists to keep.
    *
    * `organizations.org_read_for_members`: migration 0005. `organizations` is read under
    * `withUser`, before any tenant is known, so the dashboard's sidebar can name the
    * organisation for an org `member` -- who has no org-wide principal at all and for whom
-   * an org-wide read therefore cannot name it. FOR SELECT only, so writes are still governed by
-   * `tenant_isolation` and still checked above.
-   */
-  const USER_SCOPED_POLICY_EXCEPTIONS = new Set(['organizations.org_read_for_members'])
-
-  /**
+   * an org-wide read therefore cannot name it. Scoped by `app.user_id`. FOR SELECT only, so
+   * writes are still governed by `tenant_isolation` and still checked above.
+   *
+   * `org_members.org_staff_read` and `wedding_members.org_staff_read`: migration 0007. An
+   * owner or admin reads every membership of their org, for the Team screen. These two
+   * tables are USER_SCOPED (primary policy `own_memberships`, on `app.user_id`), so the
+   * expected key for them would be `app.user_id` -- and these are the opposite axis, scoped
+   * by `app.org_id`, which is why each exception carries the key it must name rather than
+   * being excused from naming one. FOR SELECT only: an owner cannot write a colleague's row.
+   *
+   * `run_sheet_items.link_read`, `wedding_vendors.link_read` and `wedding_events.link_read`:
+   * migration 0008 (S10). All three tables are TENANT_SCOPED (primary policy
+   * `tenant_isolation`, expecting `app.org_id`), and this is a THIRD axis, not the user one:
+   * a `link` principal (0008/tenant.ts) never sets `app.org_id` at all, by design, so its own
+   * policy cannot name it and has to be excused the same way the two axes above are. The
+   * first two scope by `app.wedding_vendor_id`; `wedding_events` scopes by `app.wedding_id`
+   * alone, because an event has no vendor to scope by -- 0008_vendor_link.sql Part 0 explains
+   * why that third table had to be added at all (rendering a run-sheet item's event label).
+   * See the same Part 0 for why `app.org_id` is the wrong key on purpose. FOR SELECT only;
+   * `budget_lines` gets no policy at all for this principal (money stays planner-only).
+   *
    * Why the list is here and not in `src/schema/index.ts`, where the buckets live: this is
-   * not a classification. `organizations` stays `SELF_SCOPED` and its tenant key has not
-   * changed; this is a named exemption from ONE assertion, so it belongs beside the
-   * assertion it exempts. The cost is that the tenancy facts now live in two files -- the
-   * alternative, a sixth exported bucket, would dress a test-local carve-out up as a
-   * property of the schema.
+   * not a classification. The tables' tenant keys have not changed; this is a named
+   * exemption from ONE assertion, so it belongs beside the assertion it exempts. The cost is
+   * that the tenancy facts now live in two files -- the alternative, a sixth exported
+   * bucket, would dress a test-local carve-out up as a property of the schema.
    *
    * And note the limit of what the exemption check below can do: it requires the string
-   * `app.user_id` to appear, which is a substring and not a scope. `using
-   * (current_setting('app.user_id') is not null)` -- "any signed-in user reads every
-   * organisation" -- satisfies it. That mutation IS caught, but by `isolation.test.ts`
-   * sections 7 and 8 rather than here, verified 2026-08-20. Same shape as `with check
-   * (true)` satisfying "a WITH CHECK exists", which is why the assertion above this one
-   * exists at all.
+   * to appear, which is a substring and not a scope. `using (current_setting('app.user_id')
+   * is not null)` -- "any signed-in user reads every organisation" -- satisfies it. That
+   * mutation IS caught, but by `isolation.test.ts` sections 7 and 8 rather than here,
+   * verified 2026-08-20; the 0007 policies are held the same way by section 9. Same shape as
+   * `with check (true)` satisfying "a WITH CHECK exists", which is why the assertion above
+   * this one exists at all.
    */
+  const USER_SCOPED_POLICY_EXCEPTIONS = new Map([
+    ['organizations.org_read_for_members', 'app.user_id'],
+    ['org_members.org_staff_read', 'app.org_id'],
+    ['wedding_members.org_staff_read', 'app.org_id'],
+    ['run_sheet_items.link_read', 'app.wedding_vendor_id'],
+    ['wedding_vendors.link_read', 'app.wedding_vendor_id'],
+    ['wedding_events.link_read', 'app.wedding_id'],
+  ])
+
   it('every named policy exception still matches a real policy', async () => {
     // An exception matching nothing is a standing pre-authorisation: whoever later creates
     // a policy under that name inherits the exemption without review. So the set has to be
@@ -231,7 +274,7 @@ describe('RLS is enabled AND forced', () => {
       const rows = await catalog(`select policyname from pg_policies where tablename = $1`, [table])
       for (const r of rows) live.push(`${table}.${String(r.policyname)}`)
     }
-    const stale = [...USER_SCOPED_POLICY_EXCEPTIONS].filter((name) => !live.includes(name))
+    const stale = [...USER_SCOPED_POLICY_EXCEPTIONS.keys()].filter((name) => !live.includes(name))
     expect(
       stale,
       'these exceptions name no existing policy, so they pre-authorise a future one',
@@ -252,11 +295,14 @@ describe('RLS is enabled AND forced', () => {
         const text = String(r.qual ?? '')
 
         // An exception still has to scope by SOMETHING -- it is excused from naming this
-        // table's tenant key, not from being scoped. Dropping the predicate entirely
-        // fails here.
-        if (USER_SCOPED_POLICY_EXCEPTIONS.has(name)) {
-          if (!text.includes('app.user_id')) {
-            offenders.push(`${name} is an exception but scopes by neither key -> USING (${text})`)
+        // table's PRIMARY key, not from being scoped, and it must name the one it declared.
+        // Dropping the predicate entirely fails here.
+        const exceptionKey = USER_SCOPED_POLICY_EXCEPTIONS.get(name)
+        if (exceptionKey) {
+          if (!text.includes(exceptionKey)) {
+            offenders.push(
+              `${name} is an exception but does not name ${exceptionKey} -> USING (${text})`,
+            )
           }
           continue
         }
@@ -270,6 +316,92 @@ describe('RLS is enabled AND forced', () => {
       offenders,
       `these USING predicates do not scope by tenant:\n  ${offenders.join('\n  ')}`,
     ).toEqual([])
+  })
+})
+
+describe('wedding-scoped policies pin the wedding and carry the role clause', () => {
+  /**
+   * The two things `tenant_isolation`'s org_id check cannot say, and that the isolation
+   * suite would only notice if a fixture happened to exercise them:
+   *
+   *   - `app.wedding_id`: without it a principal pinned to one wedding (an assigned
+   *     `member`, a couple) reads the whole org, because `app.org_id` alone matches every
+   *     wedding in it. Asserted on EVERY wedding-scoped table.
+   *   - `app.wedding_role`: without it a couple's GUCs, which are identical to a planner's,
+   *     read the row (research/07 section 3). Asserted on every table added by spec 0003
+   *     and after -- that is, everything except the older tables named below, which predate
+   *     the rule and are held by other means (`tasks` by its visibility clause, the rest by
+   *     what is in them). A NEW wedding-scoped table therefore has to carry the role clause
+   *     or be added to that list in a diff a reviewer sees.
+   *
+   * Substring checks, so the limit is the one every assertion in this file has: they prove
+   * the GUC is named, not that the predicate is right. What proves the predicate is
+   * planner-isolation.test.ts. These exist so that dropping the clause from one policy of
+   * ten fails here, by name, before any fixture has to notice.
+   */
+  const PREDATES_ROLE_CLAUSE = new Set([
+    'invitations',
+    'wedding_domains',
+    'tasks',
+    'task_comments',
+    'audit_log',
+  ])
+  const carriesRoleClause = (t: string) => !PREDATES_ROLE_CLAUSE.has(t)
+
+  const policies = async (table: string) =>
+    (await catalog(
+      `select policyname, cmd, qual, with_check from pg_policies where tablename = $1`,
+      [table],
+    )) as { policyname: string; cmd: string; qual: string | null; with_check: string | null }[]
+
+  it.each(TENANT_SCOPED_TABLES)('%s: every policy names app.wedding_id', async (table) => {
+    for (const p of await policies(table)) {
+      expect(p.qual ?? '', `${table}.${p.policyname} USING does not pin the wedding`).toContain(
+        'app.wedding_id',
+      )
+      // FOR SELECT has no WITH CHECK, and a cmd = 'ALL' one without it is already failed by
+      // 'policies apply to writes too'.
+      if (p.cmd !== 'SELECT') {
+        expect(
+          p.with_check ?? '',
+          `${table}.${p.policyname} WITH CHECK does not pin the wedding`,
+        ).toContain('app.wedding_id')
+      }
+    }
+  })
+
+  it.each(TENANT_SCOPED_TABLES.filter(carriesRoleClause))(
+    '%s: every policy carries the role clause',
+    async (table) => {
+      for (const p of await policies(table)) {
+        expect(
+          p.qual ?? '',
+          `${table}.${p.policyname} USING does not test app.wedding_role, so a couple reads it`,
+        ).toContain('app.wedding_role')
+        if (p.cmd !== 'SELECT') {
+          expect(
+            p.with_check ?? '',
+            `${table}.${p.policyname} WITH CHECK does not test app.wedding_role, so a couple writes it`,
+          ).toContain('app.wedding_role')
+        }
+      }
+    },
+  )
+
+  it.each(ORG_SCOPED_TABLES)('%s: every policy carries the role clause', async (table) => {
+    // No wedding key to pin, but the role clause is what keeps a couple out all the same.
+    for (const p of await policies(table)) {
+      expect(
+        p.qual ?? '',
+        `${table}.${p.policyname} USING does not test app.wedding_role`,
+      ).toContain('app.wedding_role')
+      if (p.cmd !== 'SELECT') {
+        expect(
+          p.with_check ?? '',
+          `${table}.${p.policyname} WITH CHECK does not test app.wedding_role`,
+        ).toContain('app.wedding_role')
+      }
+    }
   })
 })
 

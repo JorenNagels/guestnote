@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 /**
- * The four import bans, enforced as tests rather than only as lint rules.
+ * The import bans, enforced as tests rather than only as lint rules.
  *
  * Both exist in biome.json as well. The duplication is deliberate:
  *
@@ -249,6 +249,48 @@ describe('the AWS SES SDK stays behind the packages/email seam', () => {
         'createSesTransport() in @guestnote/email instead:\n  ' +
         offenders.join('\n  '),
     ).toEqual([])
+  })
+})
+
+describe('the AWS S3 SDK stays behind the packages/storage seam', () => {
+  /**
+   * The second AWS SDK ban, and the same two reasons as SES above: a
+   * provider swap should be one new file, and the SDK must not reach a bundle by a stray import.
+   * `packages/storage/README.md` has the measured size.
+   *
+   * There is a third reason specific to this one. `s3.ts` is where a presigned PUT's signed
+   * headers are chosen, and the SDK's defaults get two things wrong (`content-type` unsigned,
+   * an empty-body checksum in the query string; both measured 2026-09-21). A second file
+   * presigning with the defaults would reintroduce both, and nothing would say so until an
+   * upload stored the wrong thing or failed with `BadDigest`.
+   *
+   * Unlike SES there is no second allowed path: `s3.test.ts` runs the real presigner through
+   * `createS3Transport` and never imports the SDK itself.
+   *
+   * Both package names, because the presigner is a separate package and the more dangerous one.
+   * The group's parentheses keep this file's own copy of the pattern from matching itself, for
+   * the reason the SES ban above records.
+   */
+  const ALLOWED = [/^packages\/storage\/src\/s3\.ts$/]
+  const IMPORTS_S3 = "from '(@aws-sdk/(client-s3|s3-request-presigner))(/[^']*)?'"
+
+  it('is imported only by packages/storage/src/s3.ts', () => {
+    const offenders = gitGrep(IMPORTS_S3).filter((f) => !ALLOWED.some((re) => re.test(f)))
+    expect(
+      offenders,
+      'These files import the S3 SDK directly. Go through createStorage() / ' +
+        'createS3Transport() in @guestnote/storage instead:\n  ' +
+        offenders.join('\n  '),
+    ).toEqual([])
+  })
+
+  it('has a pattern that actually matches the one legitimate importer', () => {
+    // The canary: a regex that matches nothing passes forever.
+    expect(
+      gitGrep(IMPORTS_S3),
+      'The S3 pattern matched nothing at all, so the assertion above proves nothing. ' +
+        's3.ts imports @aws-sdk/client-s3 and should be found here (is it tracked by git?).',
+    ).toContain('packages/storage/src/s3.ts')
   })
 })
 

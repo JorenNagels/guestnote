@@ -153,6 +153,12 @@ Against `07-auth-and-tenancy.md`, which was written for the RSVP product.
 Currently `couple | editor`. **P18** needs a third, much narrower role: sees its own run-sheet
 rows and its own tasks; never the budget, never the guest list. The `invitations` table
 already carries wedding-scoped invites, so only the enum and the permission checks change.
+*Correction, 2026-09-23: this did not happen. Spec `docs/specs/0003` decided the signed-link
+route instead — no `vendor` role, no `wedding_members` change. `WEDDING_ROLES` in
+`packages/db/src/schema/weddings.ts` is still `couple | editor`. A vendor is reached through a
+new `link` `Principal` and a `SECURITY DEFINER` lookup function (migration `0008`), read only:
+its own run sheet items and its own `wedding_vendors` row, nothing else. See §d below and the
+Open item on vendor accounts.*
 
 **b. Tasks need visibility, not just an assignee.**
 
@@ -203,6 +209,13 @@ Some planners do take vendor commission; one column now beats a migration later.
 The `withTenant()` trap from §3 applies unchanged, and gets more dangerous: a vendor
 principal has no `org_members` row, so **`app.wedding_id` is mandatory** for them too.
 
+*Correction, 2026-09-23: the "vendor" column above described a `wedding_members` role that was
+never built (see §a). The shipped shape is narrower: a `link` principal reads only its own
+`run_sheet_items` and its own `wedding_vendors` row — never "own only" tasks or budget as this
+table proposed, because build spec `docs/specs/0003` kept money and tasks planner-only and did
+not extend either to vendors. `wedding_events` is the one exception, readable in full (including
+other events' venues) because nothing on it is sensitive today — see `CLAUDE.md` invariant 2.*
+
 ---
 
 ## What this changes in the build order
@@ -226,9 +239,10 @@ and it is acceptable only because PH4 is committed rather than hypothetical.
   primary with a six-digit email code beneath it and no password at all, so the cheap answer is
   the same surface scoped down. Magic link is off the table for both — see
   `07-auth-and-tenancy.md`'s credential note
-- **Do vendors get accounts at all, or a signed link like guests?** A signed link is far less
-  work and vendors are even more occasional than couples. If so, `vendor` may not need to be a
-  `wedding_members` role at all — it could reuse the household-token pattern
+- ~~**Do vendors get accounts at all, or a signed link like guests?**~~ **Settled 2026-09-23:**
+  signed link, no account. Spec `docs/specs/0003` and migration `0008` built it: a `link`
+  `Principal`, a `SECURITY DEFINER` token-lookup function, and read-only RLS policies scoped to
+  the one vendor. See the correction on §a.
 - **Pricing.** `02-strategy-and-verdict.md` §4 prices a website product. A planner app billed
   per planner per month is a different model, and the per-wedding pricing may not survive
 - **How many professional wedding planners are actually in Flanders?** The market sizing in

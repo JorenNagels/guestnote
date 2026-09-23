@@ -1,0 +1,32 @@
+{
+  "nav": {
+    "today": "Vandaag",
+    "templates": "Sjablonen",
+    "vendors": "Leveranciers",
+    "team": "Team",
+    "weddingsSection": "Jouw bruiloften",
+    "newWedding": "Nieuwe bruiloft",
+    "noDate": "Nog geen datum",
+    "checklist": "Checklist",
+    "budget": "Budget",
+    "payments": "Betalingen",
+    "runSheet": "Draaiboek",
+    "files": "Bestanden",
+    "moodboard": "Moodboard",
+    "settings": "Instellingen",
+    "task": "Taak",
+    "template": "Sjabloon"
+  },
+  "countdown": {
+    "untilOne": "Nog {days} dag",
+    "untilOther": "Nog {days} dagen",
+    "today": "Vandaag is het zover",
+    "sinceOne": "{days} dag geleden",
+    "sinceOther": "{days} dagen geleden"
+  },
+  "comingSoon": {
+    "title": "Binnenkort",
+    "body": "Dit scherm is nog in aanbouw."
+  },
+  "loading": "Laden…"
+}

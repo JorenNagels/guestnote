@@ -18,9 +18,39 @@ import { DEFAULT_LOCALE, type Locale } from './locales.ts'
 /** Dashboard paths. No `/pro`, and no locale prefix -- both are invisible to the user. */
 export const app = {
   home: () => '/',
+  /**
+   * Cross-wedding Today (spec 0003, S8), which IS the root now: `/` used to redirect to
+   * `weddings()`, and the F3 `/today` stub is gone. Still its own builder and not `home()`,
+   * so the sidebar reads what it means and a later move of the screen is one line here.
+   * Rejected: keeping `/today` as a second address for the same page -- two URLs for one
+   * screen splits the sidebar's active state, and nothing had linked to it yet.
+   */
+  today: () => '/',
   weddings: () => '/weddings',
+  /**
+   * A static segment beside `[id]`, which is why it needs no reservation: Next matches a
+   * static segment before a dynamic one, so `/weddings/new` never reaches `[id]`. The cost
+   * is that a wedding whose id is the string `new` is unreachable -- ids are UUIDv7
+   * (invariant 9), so none exists.
+   */
+  weddingNew: () => '/weddings/new',
   wedding: (weddingId: string) => `/weddings/${weddingId}`,
+  weddingSettings: (weddingId: string) => `/weddings/${weddingId}/settings`,
+  // `tasks` and not `checklist`: the path predates the screen name and the route already
+  // existed in this file. The nav label is what the planner reads; the path they rarely do.
   weddingTasks: (weddingId: string) => `/weddings/${weddingId}/tasks`,
+  weddingTask: (weddingId: string, taskId: string) => `/weddings/${weddingId}/tasks/${taskId}`,
+  weddingBudget: (weddingId: string) => `/weddings/${weddingId}/budget`,
+  weddingPayments: (weddingId: string) => `/weddings/${weddingId}/payments`,
+  weddingVendors: (weddingId: string) => `/weddings/${weddingId}/vendors`,
+  weddingRunSheet: (weddingId: string) => `/weddings/${weddingId}/run-sheet`,
+  weddingFiles: (weddingId: string) => `/weddings/${weddingId}/files`,
+  weddingMoodboard: (weddingId: string) => `/weddings/${weddingId}/moodboard`,
+  /** The org-level directory. `weddingVendors` is the per-wedding view of the same people. */
+  vendors: () => '/vendors',
+  templates: () => '/templates',
+  template: (templateId: string) => `/templates/${templateId}`,
+  team: () => '/team',
   login: () => '/login',
   /**
    * Where a lapsed session sends the planner. The reason is a query rather than a
@@ -35,6 +65,11 @@ export const app = {
    * cross-origin navigation.
    */
   invite: (token: string) => `/invite/${encodeURIComponent(token)}`,
+  /**
+   * The vendor's own signed link (spec 0003, S10). Same reasoning as `invite`: the token is
+   * the whole credential, so it is a path segment, never a query string.
+   */
+  vendorLink: (token: string) => `/vendor/${encodeURIComponent(token)}`,
 } as const
 
 /** Marketing paths. The locale IS part of the URL here, always. */

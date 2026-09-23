@@ -4,7 +4,8 @@ Transactional mail: react-email templates rendered to HTML and handed to SES v2 
 `research/05-architecture.md` §6 is the design; `docs/adr/0004-sign-in-mail-sends-for-real.md`
 records where that document turned out to be wrong and what was measured instead.
 
-One template today — the sign-in code — because it is the only one with a live trigger.
+Two templates today: the sign-in code, and the staff invitation (`src/templates/staff-invite.tsx`,
+added with spec 0003's team slice and migration `0007`'s real `resolveInvitation`).
 
 ## The seam
 
@@ -108,8 +109,6 @@ one-digit colour change, and the import ban on a probe file that imported the SD
 
 ## What is deliberately not here
 
-- **A staff-invitation template.** `packages/core/src/auth/index.ts` still resolves invitations
-  from a fixture map, so there is no flow that would send one.
 - **Bounce consumption.** `infra/mail-events.yaml` publishes to SNS; the consumer that writes
   `mail_deliveries.bounced_at` needs a public origin and lands with M1a. Those columns are always
   null today.

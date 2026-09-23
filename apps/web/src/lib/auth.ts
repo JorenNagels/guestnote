@@ -1,6 +1,6 @@
 import 'server-only'
 import { createAuth } from '@guestnote/core/auth'
-import { newId, schema } from '@guestnote/db'
+import { acceptInvitationByHash, newId, resolveInvitationByHash, schema } from '@guestnote/db'
 import { cookies } from 'next/headers'
 import { env } from '../env.ts'
 import { getDb } from './db.ts'
@@ -161,6 +161,32 @@ export function getAuth() {
         // render. `mail_deliveries` already has the row with the reason by the time we get here.
         throw new Error(`could not send the sign-in code: ${result.failure} -- ${result.detail}`)
       }
+    },
+
+    /**
+     * The database half of invitations, over `resolve_invitation` and `accept_invitation`
+     * (migration 0007). Neither touches a table from here: each is one call to a SECURITY
+     * DEFINER function, which is why this is not a third unscoped writer in `lib/db.ts`.
+     * The seam hashes the token first, so what arrives here is already the hash.
+     */
+    invitations: {
+      async resolve(tokenHash) {
+        const r = await resolveInvitationByHash(getDb(), tokenHash)
+        return (
+          r && {
+            weddingId: r.weddingId,
+            email: r.email,
+            role: r.role,
+            orgName: r.orgName,
+            inviterName: r.inviterName,
+            status: r.status,
+          }
+        )
+      },
+      async accept(tokenHash, userId) {
+        const r = await acceptInvitationByHash(getDb(), tokenHash, userId)
+        return r.outcome === 'accepted' ? { outcome: 'accepted', role: r.role } : r
+      },
     },
   })
   return cached
