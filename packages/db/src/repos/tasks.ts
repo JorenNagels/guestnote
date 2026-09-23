@@ -12,6 +12,7 @@ import {
 import { weddings } from '../schema/weddings.ts'
 import { withTenant } from '../tenant.ts'
 import { type Memberships, principalForOrg } from './memberships.ts'
+import { fail, ok, type Result } from './result.ts'
 import { staffPrincipal } from './staff-principal.ts'
 
 /**
@@ -28,7 +29,7 @@ import { staffPrincipal } from './staff-principal.ts'
  * `staffPrincipal` below refuses them here rather than leaving the door the policy left open:
  * when the couple spec lands, it adds its own reader instead of widening this one.
  *
- * Every function returns `null` (or `[]`) for a principal that does not exist, and the caller
+ * A read returns `null` (or `[]`) and a write `notFound` for a principal that does not exist, and the caller
  * renders 404. Same rule as `getWedding`: telling somebody a wedding exists but is not theirs is
  * itself the leak.
  *
@@ -363,7 +364,7 @@ function assigneeFor(
 }
 
 /**
- * One task, or `null` when the wedding is not reachable. Title is trimmed and must survive it.
+ * One task, or `notFound` when the wedding is not reachable. Title is trimmed and must survive it.
  */
 export async function createTask(
   db: Db,
@@ -371,15 +372,17 @@ export async function createTask(
   orgId: string,
   weddingId: string,
   input: TaskInput,
-): Promise<TaskRow | null> {
-  const [id] = (await createTasks(db, m, orgId, weddingId, [input])) ?? []
-  if (!id) return null
-  return getTask(db, m, orgId, weddingId, id)
+): Promise<Result<TaskRow, 'notFound'>> {
+  const created = await createTasks(db, m, orgId, weddingId, [input])
+  const id = created.ok ? created.value[0] : undefined
+  if (!id) return fail('notFound')
+  const task = await getTask(db, m, orgId, weddingId, id)
+  return task ? ok(task) : fail('notFound')
 }
 
 /**
  * Many tasks in one transaction and one INSERT -- what applying a template does (S7). Returns
- * the new ids in input order, or `null` when the wedding is not reachable.
+ * the new ids in input order, or `notFound` when the wedding is not reachable.
  *
  * All or nothing: a bad item throws before anything is written, so a template never lands
  * half-applied.
@@ -390,15 +393,15 @@ export async function createTasks(
   orgId: string,
   weddingId: string,
   items: readonly TaskInput[],
-): Promise<string[] | null> {
+): Promise<Result<string[], 'notFound'>> {
   const principal = staffPrincipal(m, orgId, weddingId)
-  if (!principal) return null
-  if (items.length === 0) return []
+  if (!principal) return fail('notFound')
+  if (items.length === 0) return ok([])
 
   return withTenant(db, principal, async (tx) => {
     const weddingDate = await weddingDateOf(tx, weddingId)
     // `undefined` and not `null`: null is a wedding with no date, which is a real wedding.
-    if (weddingDate === undefined) return null
+    if (weddingDate === undefined) return fail('notFound')
 
     const values = items.map((item) => {
       const title = item.title.trim()
@@ -418,12 +421,12 @@ export async function createTasks(
       }
     })
     const inserted = await tx.insert(tasks).values(values).returning({ id: tasks.id })
-    return inserted.map((r) => r.id)
+    return ok(inserted.map((r) => r.id))
   })
 }
 
 /**
- * Changes the named fields and leaves the rest. `null` when the task is not in that wedding
+ * Changes the named fields and leaves the rest. `notFound` when the task is not in that wedding
  * or the wedding is not reachable -- one answer for both, so the 404 leaks neither.
  *
  * Flipping `visibility` needs nothing more: `tasks_propagate_visibility` moves the comments.
@@ -435,13 +438,13 @@ export async function updateTask(
   weddingId: string,
   taskId: string,
   patch: TaskPatch,
-): Promise<TaskRow | null> {
+): Promise<Result<TaskRow, 'notFound'>> {
   const principal = staffPrincipal(m, orgId, weddingId)
-  if (!principal) return null
+  if (!principal) return fail('notFound')
 
   return withTenant(db, principal, async (tx) => {
     const current = await loadTask(tx, weddingId, taskId)
-    if (!current) return null
+    if (!current) return fail('notFound')
 
     const set: Partial<typeof tasks.$inferInsert> = { updatedAt: new Date() }
     if (patch.title !== undefined) {
@@ -466,7 +469,8 @@ export async function updateTask(
       .set(set)
       .where(and(eq(tasks.id, taskId), eq(tasks.weddingId, weddingId)))
 
-    return (await loadTask(tx, weddingId, taskId))?.task ?? null
+    const task = (await loadTask(tx, weddingId, taskId))?.task
+    return task ? ok(task) : fail('notFound')
   })
 }
 
@@ -482,9 +486,9 @@ export async function completeTask(
   weddingId: string,
   taskId: string,
   done: boolean,
-): Promise<TaskRow | null> {
+): Promise<Result<TaskRow, 'notFound'>> {
   const principal = staffPrincipal(m, orgId, weddingId)
-  if (!principal) return null
+  if (!principal) return fail('notFound')
 
   return withTenant(db, principal, async (tx) => {
     const now = new Date()
@@ -493,9 +497,10 @@ export async function completeTask(
       .set({ status: done ? 'done' : 'open', completedAt: done ? now : null, updatedAt: now })
       .where(and(eq(tasks.id, taskId), eq(tasks.weddingId, weddingId), isNull(tasks.deletedAt)))
       .returning({ id: tasks.id })
-    if (changed.length === 0) return null
+    if (changed.length === 0) return fail('notFound')
 
-    return (await loadTask(tx, weddingId, taskId))?.task ?? null
+    const task = (await loadTask(tx, weddingId, taskId))?.task
+    return task ? ok(task) : fail('notFound')
   })
 }
 
@@ -554,7 +559,7 @@ export async function listTaskComments(
 }
 
 /**
- * Adds a comment and returns it, or `null` when the task is not in that wedding.
+ * Adds a comment and returns it, or `notFound` when the task is not in that wedding.
  *
  * The task is read under the SAME wedding filter first. The insert trigger looks the task up by
  * id alone and would happily attach a comment to a sibling wedding's task for an org-wide
@@ -569,14 +574,14 @@ export async function addTaskComment(
   weddingId: string,
   taskId: string,
   body: string,
-): Promise<TaskCommentRow | null> {
+): Promise<Result<TaskCommentRow, 'notFound'>> {
   const principal = staffPrincipal(m, orgId, weddingId)
-  if (!principal) return null
+  if (!principal) return fail('notFound')
   const text = body.trim()
   if (!text) throw new RangeError('tasks: a comment needs a body')
 
   return withTenant(db, principal, async (tx) => {
-    if (!(await loadTask(tx, weddingId, taskId))) return null
+    if (!(await loadTask(tx, weddingId, taskId))) return fail('notFound')
 
     const id = newId()
     await tx.insert(taskComments).values({
@@ -589,6 +594,6 @@ export async function addTaskComment(
     })
     const rows = await selectComments(tx).where(eq(taskComments.id, id))
     const row = rows[0]
-    return row ? toComment(row) : null
+    return row ? ok(toComment(row)) : fail('notFound')
   })
 }

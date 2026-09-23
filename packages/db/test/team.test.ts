@@ -7,7 +7,7 @@ import {
   resolveMemberships,
   revokeStaffInvite,
 } from '../src/repos/index.ts'
-import { connect, F, type Harness, reseed, seedExec } from './harness.ts'
+import { connect, F, type Harness, NOT_FOUND, reseed, seedExec } from './harness.ts'
 
 /**
  * Slice S6 (spec 0003): staff invitations and the team list, through the repo against the
@@ -67,7 +67,7 @@ describe('createStaffInvite', () => {
       tokenHash: 'a'.repeat(64),
       expiresAt,
     })
-    expect(out.kind).toBe('created')
+    expect(out.ok).toBe(true)
 
     const rows = await listPendingInvites(h.db, owner, F.orgA)
     const fresh = rows?.find((r) => r.email === 'fresh@a.test')
@@ -82,7 +82,7 @@ describe('createStaffInvite', () => {
       tokenHash: 'b'.repeat(64),
       expiresAt: IN_A_WEEK(),
     })
-    expect(out).toEqual({ kind: 'duplicate' })
+    expect(out).toEqual({ ok: false, reason: 'duplicate' })
   })
 
   it('allows a new invite once the earlier one for the same address has expired', async () => {
@@ -97,7 +97,7 @@ describe('createStaffInvite', () => {
       tokenHash: 'c'.repeat(64),
       expiresAt: IN_A_WEEK(),
     })
-    expect(out.kind).toBe('created')
+    expect(out.ok).toBe(true)
   })
 
   it('refuses an address that is already a member of the org, as far as the caller can see', async () => {
@@ -113,7 +113,7 @@ describe('createStaffInvite', () => {
       tokenHash: 'd'.repeat(64),
       expiresAt: IN_A_WEEK(),
     })
-    expect(out).toEqual({ kind: 'alreadyMember' })
+    expect(out).toEqual({ ok: false, reason: 'alreadyMember' })
   })
 
   it('refuses a member and a foreign org before writing', async () => {
@@ -123,9 +123,13 @@ describe('createStaffInvite', () => {
       tokenHash: 'e'.repeat(64),
       expiresAt: IN_A_WEEK(),
     }
-    expect(await createStaffInvite(h.db, member, F.orgA, input)).toEqual({ kind: 'forbidden' })
+    expect(await createStaffInvite(h.db, member, F.orgA, input)).toEqual({
+      ok: false,
+      reason: 'forbidden',
+    })
     expect(await createStaffInvite(h.db, otherOrgOwner, F.orgA, input)).toEqual({
-      kind: 'forbidden',
+      ok: false,
+      reason: 'forbidden',
     })
     const rows = await listPendingInvites(h.db, owner, F.orgA)
     expect(rows?.some((r) => r.email === 'x@a.test')).toBe(false)
@@ -138,7 +142,7 @@ describe('createStaffInvite', () => {
       tokenHash: 'f'.repeat(64),
       expiresAt: IN_A_WEEK(),
     })
-    expect(out.kind).toBe('created')
+    expect(out.ok).toBe(true)
   })
 })
 
@@ -147,8 +151,11 @@ describe('revokeStaffInvite', () => {
     const rows = await listPendingInvites(h.db, owner, F.orgA)
     const target = rows?.find((r) => r.email === 'newstaff@a.test')
     expect(target).toBeDefined()
-    expect(await revokeStaffInvite(h.db, owner, F.orgA, target?.id as string)).toBe(true)
-    expect(await revokeStaffInvite(h.db, owner, F.orgA, target?.id as string)).toBe(false)
+    expect(await revokeStaffInvite(h.db, owner, F.orgA, target?.id as string)).toEqual({
+      ok: true,
+      value: null,
+    })
+    expect(await revokeStaffInvite(h.db, owner, F.orgA, target?.id as string)).toEqual(NOT_FOUND)
   })
 
   // Mutation note: deleting `eq(invitations.orgId, orgId)` from `revokeStaffInvite` leaves this
@@ -157,8 +164,8 @@ describe('revokeStaffInvite', () => {
   it("cannot revoke another org's invitation, even with its id and an owner principal of its own", async () => {
     const theirs = await listPendingInvites(h.db, otherOrgOwner, F.orgB)
     const id = theirs?.[0]?.id as string
-    expect(await revokeStaffInvite(h.db, owner, F.orgA, id)).toBe(false)
-    expect(await revokeStaffInvite(h.db, owner, F.orgB, id)).toBe(false)
+    expect(await revokeStaffInvite(h.db, owner, F.orgA, id)).toEqual(NOT_FOUND)
+    expect(await revokeStaffInvite(h.db, owner, F.orgB, id)).toEqual(NOT_FOUND)
     expect((await listPendingInvites(h.db, otherOrgOwner, F.orgB))?.some((r) => r.id === id)).toBe(
       true,
     )
@@ -167,7 +174,7 @@ describe('revokeStaffInvite', () => {
   it('refuses a member without deleting anything', async () => {
     const rows = await listPendingInvites(h.db, owner, F.orgA)
     const id = rows?.[0]?.id as string
-    expect(await revokeStaffInvite(h.db, member, F.orgA, id)).toBe(false)
+    expect(await revokeStaffInvite(h.db, member, F.orgA, id)).toEqual(NOT_FOUND)
     expect((await listPendingInvites(h.db, owner, F.orgA))?.some((r) => r.id === id)).toBe(true)
   })
 
@@ -179,7 +186,7 @@ describe('revokeStaffInvite', () => {
     )
     expect(
       await revokeStaffInvite(h.db, owner, F.orgA, '019a0000-0000-7000-8000-0000000000aa'),
-    ).toBe(false)
+    ).toEqual(NOT_FOUND)
   })
 })
 

@@ -5,6 +5,7 @@ import { weddingEvents } from '../schema/events.ts'
 import { weddings } from '../schema/weddings.ts'
 import { withTenant } from '../tenant.ts'
 import type { Memberships } from './memberships.ts'
+import { fail, ok, type Result } from './result.ts'
 import { staffPrincipal } from './staff-principal.ts'
 
 /**
@@ -103,16 +104,16 @@ export async function createWeddingEvent(
   orgId: string,
   weddingId: string,
   input: WeddingEventInput,
-): Promise<WeddingEvent | null> {
+): Promise<Result<WeddingEvent, 'notFound'>> {
   const principal = staffPrincipal(m, orgId, weddingId)
-  if (!principal) return null
+  if (!principal) return fail('notFound')
 
   return withTenant(db, principal, async (tx) => {
     const parent = await tx
       .select({ id: weddings.id })
       .from(weddings)
       .where(and(eq(weddings.id, weddingId), isNull(weddings.deletedAt)))
-    if (parent.length === 0) return null
+    if (parent.length === 0) return fail('notFound')
 
     const last = await tx
       .select({ n: sql<number>`coalesce(max(${weddingEvents.position}), -1)::int` })
@@ -133,11 +134,11 @@ export async function createWeddingEvent(
       })
       .returning(COLUMNS)
     const row = rows[0]
-    return row ? toEvent(row) : null
+    return row ? ok(toEvent(row)) : fail('notFound')
   })
 }
 
-/** `null` when the event is not on this wedding, is removed, or the caller has no standing. */
+/** `notFound` when the event is not on this wedding, is removed, or the caller has no standing. */
 export async function updateWeddingEvent(
   db: Db,
   m: Memberships,
@@ -145,9 +146,9 @@ export async function updateWeddingEvent(
   weddingId: string,
   eventId: string,
   input: WeddingEventInput,
-): Promise<WeddingEvent | null> {
+): Promise<Result<WeddingEvent, 'notFound'>> {
   const principal = staffPrincipal(m, orgId, weddingId)
-  if (!principal) return null
+  if (!principal) return fail('notFound')
 
   const rows = await withTenant(db, principal, async (tx) =>
     tx
@@ -171,19 +172,19 @@ export async function updateWeddingEvent(
       .returning(COLUMNS),
   )
   const row = rows[0]
-  return row ? toEvent(row) : null
+  return row ? ok(toEvent(row)) : fail('notFound')
 }
 
-/** Soft delete. `true` when a row was removed. */
+/** Soft delete. `ok` when a row was removed. */
 export async function deleteWeddingEvent(
   db: Db,
   m: Memberships,
   orgId: string,
   weddingId: string,
   eventId: string,
-): Promise<boolean> {
+): Promise<Result<null, 'notFound'>> {
   const principal = staffPrincipal(m, orgId, weddingId)
-  if (!principal) return false
+  if (!principal) return fail('notFound')
 
   const rows = await withTenant(db, principal, async (tx) =>
     tx
@@ -198,5 +199,5 @@ export async function deleteWeddingEvent(
       )
       .returning({ id: weddingEvents.id }),
   )
-  return rows.length > 0
+  return rows.length > 0 ? ok(null) : fail('notFound')
 }

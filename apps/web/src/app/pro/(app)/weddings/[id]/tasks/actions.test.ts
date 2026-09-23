@@ -62,7 +62,9 @@ beforeEach(() => {
   vi.clearAllMocks()
   currentMemberships.mockResolvedValue(MEMBERSHIPS)
   currentOrgId.mockResolvedValue('org-1')
-  for (const fn of [createTask, updateTask, completeTask, addTaskComment]) fn.mockResolvedValue(row)
+  for (const fn of [createTask, updateTask, completeTask, addTaskComment]) {
+    fn.mockResolvedValue({ ok: true, value: row })
+  }
 })
 
 describe('without a session', () => {
@@ -125,7 +127,7 @@ describe('createTaskAction', () => {
   })
 
   it('is notFound when the repo says the wedding is unreachable', async () => {
-    createTask.mockResolvedValue(null)
+    createTask.mockResolvedValue({ ok: false, reason: 'notFound' })
     expect(await createTaskAction(WEDDING, FORM)).toEqual({ ok: false, error: 'notFound' })
     expect(revalidatePath).not.toHaveBeenCalled()
   })
@@ -146,7 +148,7 @@ describe('updateTaskAction', () => {
   })
 
   it('is notFound for a task in another wedding (the repo answers null)', async () => {
-    updateTask.mockResolvedValue(null)
+    updateTask.mockResolvedValue({ ok: false, reason: 'notFound' })
     expect(await updateTaskAction(WEDDING, TASK, FORM)).toEqual({ ok: false, error: 'notFound' })
   })
 })
@@ -210,7 +212,7 @@ describe('addCommentAction', () => {
   })
 
   it('is notFound when the task is not in that wedding', async () => {
-    addTaskComment.mockResolvedValue(null)
+    addTaskComment.mockResolvedValue({ ok: false, reason: 'notFound' })
     expect(await addCommentAction(WEDDING, TASK, 'hi')).toEqual({ ok: false, error: 'notFound' })
   })
 })

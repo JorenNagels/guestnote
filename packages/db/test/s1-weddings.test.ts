@@ -13,7 +13,17 @@ import {
   updateWeddingEvent,
   type WeddingInput,
 } from '../src/repos/index.ts'
-import { AS, asPrincipal, connect, F, type Harness, reseed, seedExec } from './harness.ts'
+import {
+  AS,
+  asPrincipal,
+  connect,
+  F,
+  type Harness,
+  NOT_FOUND,
+  reseed,
+  seedExec,
+  unwrap,
+} from './harness.ts'
 
 /**
  * Slice S1 (spec 0003): the wedding create / update path and the events repo, through the real
@@ -65,7 +75,9 @@ const INPUT: WeddingInput = {
 
 describe('createWedding', () => {
   it('lets an owner create one, storing the colour upper-case', async () => {
-    const w = await createWedding(h.db, owner, F.orgA, { ...INPUT, slugBase: 'marie-en-thomas' })
+    const w = unwrap(
+      await createWedding(h.db, owner, F.orgA, { ...INPUT, slugBase: 'marie-en-thomas' }),
+    )
     expect(w).toMatchObject({
       slug: 'marie-en-thomas',
       coupleDisplayName: 'Marie & Thomas',
@@ -79,17 +91,21 @@ describe('createWedding', () => {
   it('lets an admin create one', async () => {
     expect(
       await createWedding(h.db, admin, F.orgA, { ...INPUT, slugBase: 'admin-made' }),
-    ).not.toBeNull()
+    ).toMatchObject({ ok: true })
   })
 
   // principalForOrg is null for a member; an assignedStaff principal is pinned to a wedding
   // that does not exist yet. There is no principal a member could create one as.
   it('refuses a member, a couple, and a user with no standing in the org', async () => {
-    expect(await createWedding(h.db, member, F.orgA, { ...INPUT, slugBase: 'nope-1' })).toBeNull()
-    expect(await createWedding(h.db, couple, F.orgA, { ...INPUT, slugBase: 'nope-2' })).toBeNull()
+    expect(await createWedding(h.db, member, F.orgA, { ...INPUT, slugBase: 'nope-1' })).toEqual(
+      NOT_FOUND,
+    )
+    expect(await createWedding(h.db, couple, F.orgA, { ...INPUT, slugBase: 'nope-2' })).toEqual(
+      NOT_FOUND,
+    )
     expect(
       await createWedding(h.db, otherOrgOwner, F.orgA, { ...INPUT, slugBase: 'nope-3' }),
-    ).toBeNull()
+    ).toEqual(NOT_FOUND)
     expect((await listWeddings(h.db, owner, F.orgA)).map((x) => x.slug)).toEqual(['a-one', 'a-two'])
   })
 
@@ -102,7 +118,7 @@ describe('createWedding', () => {
   // The slug is unique across organisations and a transaction cannot see another org's rows, so
   // the collision has to be resolved by the insert itself. Org B owns 'b-one'; org A asks for it.
   it('gives a taken slug, even one held by another organisation, a suffix', async () => {
-    const w = await createWedding(h.db, owner, F.orgA, { ...INPUT, slugBase: 'b-one' })
+    const w = unwrap(await createWedding(h.db, owner, F.orgA, { ...INPUT, slugBase: 'b-one' }))
     expect(w).not.toBeNull()
     expect(w?.slug).toMatch(/^b-one-[0-9a-f]{5}$/)
     // and the other org's wedding is untouched
@@ -138,7 +154,7 @@ describe('updateWedding', () => {
   const EDIT: WeddingInput = { ...INPUT, coupleDisplayName: 'Renamed', status: 'live' }
 
   it('saves every editable field for an owner and an assigned member', async () => {
-    const saved = await updateWedding(h.db, owner, F.orgA, F.weddingA1, EDIT)
+    const saved = unwrap(await updateWedding(h.db, owner, F.orgA, F.weddingA1, EDIT))
     expect(saved).toMatchObject({
       coupleDisplayName: 'Renamed',
       status: 'live',
@@ -148,31 +164,33 @@ describe('updateWedding', () => {
       notes: 'Internal note',
       color: '#A94F4A',
     })
-    const again = await updateWedding(h.db, member, F.orgA, F.weddingA1, {
-      ...EDIT,
-      color: null,
-      headcount: null,
-    })
+    const again = unwrap(
+      await updateWedding(h.db, member, F.orgA, F.weddingA1, {
+        ...EDIT,
+        color: null,
+        headcount: null,
+      }),
+    )
     expect(again).toMatchObject({ color: null, headcount: null })
   })
 
   it('does not touch the slug', async () => {
-    const saved = await updateWedding(h.db, owner, F.orgA, F.weddingA1, EDIT)
+    const saved = unwrap(await updateWedding(h.db, owner, F.orgA, F.weddingA1, EDIT))
     expect(saved?.slug).toBe('a-one')
   })
 
   // The policy on `weddings` would let this write through. The repo is the only refusal.
   it('refuses a couple, and writes nothing', async () => {
-    expect(await updateWedding(h.db, couple, F.orgA, F.weddingA1, EDIT)).toBeNull()
+    expect(await updateWedding(h.db, couple, F.orgA, F.weddingA1, EDIT)).toEqual(NOT_FOUND)
     expect((await getWeddingDetail(h.db, owner, F.orgA, F.weddingA1))?.coupleDisplayName).toBe(
       'A One',
     )
   })
 
   it("refuses a member on someone else's wedding and a stranger from another org", async () => {
-    expect(await updateWedding(h.db, member, F.orgA, F.weddingA2, EDIT)).toBeNull()
-    expect(await updateWedding(h.db, otherOrgOwner, F.orgA, F.weddingA1, EDIT)).toBeNull()
-    expect(await updateWedding(h.db, owner, F.orgA, F.weddingB1, EDIT)).toBeNull()
+    expect(await updateWedding(h.db, member, F.orgA, F.weddingA2, EDIT)).toEqual(NOT_FOUND)
+    expect(await updateWedding(h.db, otherOrgOwner, F.orgA, F.weddingA1, EDIT)).toEqual(NOT_FOUND)
+    expect(await updateWedding(h.db, owner, F.orgA, F.weddingB1, EDIT)).toEqual(NOT_FOUND)
     expect(
       (await getWeddingDetail(h.db, otherOrgOwner, F.orgB, F.weddingB1))?.coupleDisplayName,
     ).toBe('B One')
@@ -261,24 +279,27 @@ describe('events', () => {
   })
 
   it("appends at the end of the wedding's positions", async () => {
-    const a = await createWeddingEvent(h.db, owner, F.orgA, F.weddingA1, EVENT)
-    const b = await createWeddingEvent(h.db, owner, F.orgA, F.weddingA1, EVENT)
+    const a = unwrap(await createWeddingEvent(h.db, owner, F.orgA, F.weddingA1, EVENT))
+    const b = unwrap(await createWeddingEvent(h.db, owner, F.orgA, F.weddingA1, EVENT))
     expect([a?.position, b?.position]).toEqual([1, 2])
   })
 
   it('lets an assigned member create, edit and remove on their wedding', async () => {
-    const made = await createWeddingEvent(h.db, member, F.orgA, F.weddingA1, EVENT)
+    const made = unwrap(await createWeddingEvent(h.db, member, F.orgA, F.weddingA1, EVENT))
     expect(made).not.toBeNull()
     const id = made?.id ?? ''
     expect(
-      (
+      unwrap(
         await updateWeddingEvent(h.db, member, F.orgA, F.weddingA1, id, {
           ...EVENT,
           label: 'Renamed',
-        })
+        }),
       )?.label,
     ).toBe('Renamed')
-    expect(await deleteWeddingEvent(h.db, member, F.orgA, F.weddingA1, id)).toBe(true)
+    expect(await deleteWeddingEvent(h.db, member, F.orgA, F.weddingA1, id)).toEqual({
+      ok: true,
+      value: null,
+    })
     expect((await listWeddingEvents(h.db, member, F.orgA, F.weddingA1)).map((e) => e.id)).toEqual([
       F.eventA1,
     ])
@@ -303,10 +324,12 @@ describe('events', () => {
       [member, F.weddingA2],
       [otherOrgOwner, F.weddingA1],
     ] as const) {
-      expect(await createWeddingEvent(h.db, who, F.orgA, wedding, EVENT)).toBeNull()
+      expect(await createWeddingEvent(h.db, who, F.orgA, wedding, EVENT)).toEqual(NOT_FOUND)
       expect(await listWeddingEvents(h.db, who, F.orgA, wedding)).toEqual([])
-      expect(await updateWeddingEvent(h.db, who, F.orgA, wedding, F.eventA1, EVENT)).toBeNull()
-      expect(await deleteWeddingEvent(h.db, who, F.orgA, wedding, F.eventA1)).toBe(false)
+      expect(await updateWeddingEvent(h.db, who, F.orgA, wedding, F.eventA1, EVENT)).toEqual(
+        NOT_FOUND,
+      )
+      expect(await deleteWeddingEvent(h.db, who, F.orgA, wedding, F.eventA1)).toEqual(NOT_FOUND)
     }
     expect(await listWeddingEvents(h.db, owner, F.orgA, F.weddingA1)).toHaveLength(1)
   })
@@ -315,9 +338,11 @@ describe('events', () => {
   // predicate is what stops A1's URL editing A2's event -- and the parent read is what stops
   // creating an event on another org's wedding, which a plain foreign key would accept.
   it('does not let an owner reach across weddings or orgs through the wrong id', async () => {
-    expect(await updateWeddingEvent(h.db, owner, F.orgA, F.weddingA1, F.eventA2, EVENT)).toBeNull()
-    expect(await deleteWeddingEvent(h.db, owner, F.orgA, F.weddingA1, F.eventA2)).toBe(false)
-    expect(await createWeddingEvent(h.db, owner, F.orgA, F.weddingB1, EVENT)).toBeNull()
+    expect(await updateWeddingEvent(h.db, owner, F.orgA, F.weddingA1, F.eventA2, EVENT)).toEqual(
+      NOT_FOUND,
+    )
+    expect(await deleteWeddingEvent(h.db, owner, F.orgA, F.weddingA1, F.eventA2)).toEqual(NOT_FOUND)
+    expect(await createWeddingEvent(h.db, owner, F.orgA, F.weddingB1, EVENT)).toEqual(NOT_FOUND)
     expect(await listWeddingEvents(h.db, owner, F.orgA, F.weddingA2)).toHaveLength(1)
     expect(await listWeddingEvents(h.db, otherOrgOwner, F.orgB, F.weddingB1)).toHaveLength(1)
   })
@@ -325,6 +350,6 @@ describe('events', () => {
   it('rejects an event on a wedding that does not exist', async () => {
     expect(
       await createWeddingEvent(h.db, owner, F.orgA, '00000000-0000-0000-0000-000000000000', EVENT),
-    ).toBeNull()
+    ).toEqual(NOT_FOUND)
   })
 })

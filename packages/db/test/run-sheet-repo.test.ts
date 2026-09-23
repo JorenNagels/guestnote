@@ -111,7 +111,7 @@ describe('createRunSheetItem', () => {
 
   it('refuses an event of a sibling wedding, even for the org-wide owner', async () => {
     const r = await createRunSheetItem(h.db, owner, F.orgA, A1, F.eventA2, input())
-    expect(r).toEqual({ ok: false, reason: 'event-not-found' })
+    expect(r).toEqual({ ok: false, reason: 'eventNotFound' })
     expect(await titles(owner, A2)).toEqual(['First dance'])
   })
 
@@ -124,7 +124,7 @@ describe('createRunSheetItem', () => {
       F.eventA1,
       input({ weddingVendorId: F.wedVendorA2 }),
     )
-    expect(r).toEqual({ ok: false, reason: 'vendor-not-found' })
+    expect(r).toEqual({ ok: false, reason: 'vendorNotFound' })
     expect(await titles(owner)).toEqual(['Ceremony'])
   })
 
@@ -142,7 +142,7 @@ describe('createRunSheetItem', () => {
   })
 
   it('writes nothing for a caller with no standing', async () => {
-    const none = { ok: false, reason: 'not-found' }
+    const none = { ok: false, reason: 'notFound' }
     expect(await createRunSheetItem(h.db, couple, F.orgA, A1, F.eventA1, input())).toEqual(none)
     expect(await createRunSheetItem(h.db, member, F.orgA, A2, F.eventA2, input())).toEqual(none)
     expect(await createRunSheetItem(h.db, otherOrgOwner, F.orgA, A1, F.eventA1, input())).toEqual(
@@ -155,7 +155,7 @@ describe('createRunSheetItem', () => {
 describe('updateRunSheetItem', () => {
   it('will not touch an item of a sibling wedding, even for the org-wide owner', async () => {
     const r = await updateRunSheetItem(h.db, owner, F.orgA, A1, F.runItemA2, input())
-    expect(r).toEqual({ ok: false, reason: 'item-not-found' })
+    expect(r).toEqual({ ok: false, reason: 'itemNotFound' })
     expect(await titles(owner, A2)).toEqual(['First dance'])
   })
 
@@ -168,7 +168,7 @@ describe('updateRunSheetItem', () => {
       F.runItemA1,
       input({ weddingVendorId: F.wedVendorA2 }),
     )
-    expect(bad).toEqual({ ok: false, reason: 'vendor-not-found' })
+    expect(bad).toEqual({ ok: false, reason: 'vendorNotFound' })
 
     await updateRunSheetItem(
       h.db,
@@ -254,7 +254,7 @@ describe('updateRunSheetItem', () => {
 
   it('refuses a caller with no standing', async () => {
     const r = await updateRunSheetItem(h.db, couple, F.orgA, A1, F.runItemA1, input())
-    expect(r).toEqual({ ok: false, reason: 'not-found' })
+    expect(r).toEqual({ ok: false, reason: 'notFound' })
     expect(await titles(owner)).toEqual(['Ceremony'])
   })
 })
@@ -289,7 +289,7 @@ describe('moveRunSheetItem', () => {
 
   it('will not move an item of a sibling wedding', async () => {
     const r = await moveRunSheetItem(h.db, owner, F.orgA, A1, F.runItemA2, 'up')
-    expect(r).toEqual({ ok: false, reason: 'item-not-found' })
+    expect(r).toEqual({ ok: false, reason: 'itemNotFound' })
   })
 })
 
@@ -303,11 +303,11 @@ describe('deleteRunSheetItem', () => {
   it('will not delete an item of a sibling wedding, or for a caller with no standing', async () => {
     expect(await deleteRunSheetItem(h.db, owner, F.orgA, A1, F.runItemA2)).toEqual({
       ok: false,
-      reason: 'item-not-found',
+      reason: 'itemNotFound',
     })
     expect(await deleteRunSheetItem(h.db, couple, F.orgA, A1, F.runItemA1)).toEqual({
       ok: false,
-      reason: 'not-found',
+      reason: 'notFound',
     })
     expect(await titles(owner, A2)).toEqual(['First dance'])
     expect(await titles(owner)).toEqual(['Ceremony'])

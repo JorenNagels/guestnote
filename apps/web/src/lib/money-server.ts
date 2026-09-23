@@ -21,7 +21,7 @@ export function revalidateMoney(): void {
 
 /** The reason a repo write refused, as the key the form shows. `line` is the payment form's own. */
 export function moneyError(reason: MoneyFailure, lineIsField: boolean): MoneyError {
-  if (reason === 'vendor-not-found') return 'vendor'
-  if (reason === 'line-not-found' && lineIsField) return 'line'
+  if (reason === 'vendorNotFound') return 'vendor'
+  if (reason === 'lineNotFound' && lineIsField) return 'line'
   return 'notFound'
 }

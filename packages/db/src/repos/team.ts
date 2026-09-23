@@ -6,6 +6,7 @@ import { invitations, orgMembers } from '../schema/orgs.ts'
 import { weddingMembers, weddings } from '../schema/weddings.ts'
 import { withTenant } from '../tenant.ts'
 import { type Memberships, principalForOrg } from './memberships.ts'
+import { fail, ok, type Result } from './result.ts'
 
 /**
  * Slice S6 (spec 0003): the team list and staff invitations.
@@ -46,11 +47,10 @@ export type PendingInvite = {
   readonly invitedByName: string | null
 }
 
-export type InviteResult =
-  | { readonly kind: 'created'; readonly id: string }
-  | { readonly kind: 'forbidden' }
-  | { readonly kind: 'duplicate' }
-  | { readonly kind: 'alreadyMember' }
+export type InviteResult = Result<
+  { readonly id: string },
+  'forbidden' | 'duplicate' | 'alreadyMember'
+>
 
 /** Owner before admin before member, then by join date, so the seat labels are stable. */
 const ROLE_RANK: Record<TeamRole, number> = { owner: 0, admin: 1, member: 2 }
@@ -179,7 +179,7 @@ export async function createStaffInvite(
   },
 ): Promise<InviteResult> {
   const principal = principalForOrg(m, orgId)
-  if (!principal) return { kind: 'forbidden' }
+  if (!principal) return fail('forbidden')
 
   return withTenant(db, principal, async (tx) => {
     const [member] = await tx
@@ -188,7 +188,7 @@ export async function createStaffInvite(
       .innerJoin(users, eq(users.id, orgMembers.userId))
       .where(and(eq(orgMembers.orgId, orgId), sql`lower(${users.email}) = ${input.email}`))
       .limit(1)
-    if (member) return { kind: 'alreadyMember' }
+    if (member) return fail('alreadyMember')
 
     const [live] = await tx
       .select({ id: invitations.id })
@@ -202,7 +202,7 @@ export async function createStaffInvite(
         ),
       )
       .limit(1)
-    if (live) return { kind: 'duplicate' }
+    if (live) return fail('duplicate')
 
     const id = newId()
     await tx.insert(invitations).values({
@@ -215,12 +215,12 @@ export async function createStaffInvite(
       expiresAt: input.expiresAt,
       invitedBy: principal.userId,
     })
-    return { kind: 'created', id }
+    return ok({ id })
   })
 }
 
 /**
- * Deletes a staff invitation that has not been accepted. `true` when a row went away.
+ * Deletes a staff invitation that has not been accepted. `ok` when a row went away.
  *
  * Deleting rather than flagging: `invitations` has no `revoked_at`, and adding one is a
  * migration this slice may not write. The cost is that "who revoked what" is not
@@ -235,9 +235,9 @@ export async function revokeStaffInvite(
   m: Memberships,
   orgId: string,
   invitationId: string,
-): Promise<boolean> {
+): Promise<Result<null, 'notFound'>> {
   const principal = principalForOrg(m, orgId)
-  if (!principal) return false
+  if (!principal) return fail('notFound')
 
   return withTenant(db, principal, async (tx) => {
     const gone = await tx
@@ -251,6 +251,6 @@ export async function revokeStaffInvite(
         ),
       )
       .returning({ id: invitations.id })
-    return gone.length > 0
+    return gone.length > 0 ? ok(null) : fail('notFound')
   })
 }

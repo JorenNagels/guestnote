@@ -6,6 +6,7 @@ import { vendors, weddingVendors } from '../schema/vendors.ts'
 import { weddings } from '../schema/weddings.ts'
 import { type TenantDb, withTenant } from '../tenant.ts'
 import type { Memberships } from './memberships.ts'
+import { fail, ok, type Result } from './result.ts'
 import { staffPrincipal } from './staff-principal.ts'
 
 /**
@@ -64,17 +65,9 @@ export type RunSheetInput = {
   readonly weddingVendorId: string | null
 }
 
-export type RunSheetFailure =
-  | 'not-found'
-  | 'event-not-found'
-  | 'vendor-not-found'
-  | 'item-not-found'
+export type RunSheetFailure = 'notFound' | 'eventNotFound' | 'vendorNotFound' | 'itemNotFound'
 
-export type RunSheetResult =
-  | { readonly ok: true; readonly id: string }
-  | { readonly ok: false; readonly reason: RunSheetFailure }
-
-const fail = (reason: RunSheetFailure) => ({ ok: false, reason }) as const
+export type RunSheetResult = Result<{ readonly id: string }, RunSheetFailure>
 
 /**
  * Where a new time goes among the items already there, as the index to insert at.
@@ -273,13 +266,13 @@ export async function createRunSheetItem(
   input: RunSheetInput,
 ): Promise<RunSheetResult> {
   const principal = staffPrincipal(m, orgId, weddingId)
-  if (!principal) return fail('not-found')
+  if (!principal) return fail('notFound')
 
   return withTenant(db, principal, async (tx) => {
-    if (!(await liveWedding(tx, weddingId))) return fail('not-found')
-    if (!(await liveEvent(tx, weddingId, eventId))) return fail('event-not-found')
+    if (!(await liveWedding(tx, weddingId))) return fail('notFound')
+    if (!(await liveEvent(tx, weddingId, eventId))) return fail('eventNotFound')
     if (input.weddingVendorId && !(await liveVendorLink(tx, weddingId, input.weddingVendorId))) {
-      return fail('vendor-not-found')
+      return fail('vendorNotFound')
     }
 
     const slots = await slotsOf(tx, weddingId, eventId)
@@ -305,7 +298,7 @@ export async function createRunSheetItem(
     const order = slots.map((s) => s.id)
     order.splice(index, 0, id)
     await writeOrder(tx, weddingId, order, new Map([...positions(slots), [id, index]]))
-    return { ok: true, id } as const
+    return ok({ id })
   })
 }
 
@@ -325,7 +318,7 @@ export async function updateRunSheetItem(
   input: RunSheetInput,
 ): Promise<RunSheetResult> {
   const principal = staffPrincipal(m, orgId, weddingId)
-  if (!principal) return fail('not-found')
+  if (!principal) return fail('notFound')
 
   return withTenant(db, principal, async (tx) => {
     const found = await tx
@@ -337,7 +330,7 @@ export async function updateRunSheetItem(
       .from(runSheetItems)
       .where(and(eq(runSheetItems.id, itemId), eq(runSheetItems.weddingId, weddingId)))
     const existing = found[0]
-    if (!existing) return fail('item-not-found')
+    if (!existing) return fail('itemNotFound')
 
     // An unchanged vendor is not re-checked: it may have been removed from the wedding since,
     // and refusing the save would make every other edit to that row impossible.
@@ -346,7 +339,7 @@ export async function updateRunSheetItem(
       input.weddingVendorId !== existing.weddingVendorId &&
       !(await liveVendorLink(tx, weddingId, input.weddingVendorId))
     ) {
-      return fail('vendor-not-found')
+      return fail('vendorNotFound')
     }
 
     // Read the order BEFORE the update: the rollover test is about where the item sits now, and
@@ -377,7 +370,7 @@ export async function updateRunSheetItem(
       order.splice(index, 0, itemId)
       await writeOrder(tx, weddingId, order, positions(slots))
     }
-    return { ok: true, id: itemId } as const
+    return ok({ id: itemId })
   })
 }
 
@@ -390,7 +383,7 @@ export async function deleteRunSheetItem(
   itemId: string,
 ): Promise<RunSheetResult> {
   const principal = staffPrincipal(m, orgId, weddingId)
-  if (!principal) return fail('not-found')
+  if (!principal) return fail('notFound')
 
   const rows = await withTenant(db, principal, async (tx) =>
     tx
@@ -398,7 +391,7 @@ export async function deleteRunSheetItem(
       .where(and(eq(runSheetItems.id, itemId), eq(runSheetItems.weddingId, weddingId)))
       .returning({ id: runSheetItems.id }),
   )
-  return rows.length === 0 ? fail('item-not-found') : { ok: true, id: itemId }
+  return rows.length === 0 ? fail('itemNotFound') : ok({ id: itemId })
 }
 
 /**
@@ -415,7 +408,7 @@ export async function moveRunSheetItem(
   direction: 'up' | 'down',
 ): Promise<RunSheetResult> {
   const principal = staffPrincipal(m, orgId, weddingId)
-  if (!principal) return fail('not-found')
+  if (!principal) return fail('notFound')
 
   return withTenant(db, principal, async (tx) => {
     const found = await tx
@@ -423,7 +416,7 @@ export async function moveRunSheetItem(
       .from(runSheetItems)
       .where(and(eq(runSheetItems.id, itemId), eq(runSheetItems.weddingId, weddingId)))
     const eventId = found[0]?.eventId
-    if (!eventId) return fail('item-not-found')
+    if (!eventId) return fail('itemNotFound')
 
     const slots = await slotsOf(tx, weddingId, eventId)
     const order = slots.map((s) => s.id)
@@ -431,10 +424,10 @@ export async function moveRunSheetItem(
     const to = direction === 'up' ? at - 1 : at + 1
     const a = order[at]
     const b = order[to]
-    if (a === undefined || b === undefined) return { ok: true, id: itemId } as const
+    if (a === undefined || b === undefined) return ok({ id: itemId })
     order[at] = b
     order[to] = a
     await writeOrder(tx, weddingId, order, positions(slots))
-    return { ok: true, id: itemId } as const
+    return ok({ id: itemId })
   })
 }

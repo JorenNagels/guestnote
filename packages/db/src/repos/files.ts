@@ -5,6 +5,7 @@ import { files } from '../schema/files.ts'
 import { weddings } from '../schema/weddings.ts'
 import { withTenant } from '../tenant.ts'
 import type { Memberships } from './memberships.ts'
+import { fail, ok, type Result } from './result.ts'
 import { staffPrincipal } from './staff-principal.ts'
 
 /**
@@ -15,7 +16,7 @@ import { staffPrincipal } from './staff-principal.ts'
  * The bytes are never here. `storage_key` names an object that `packages/storage` signed a
  * URL for; this file only keeps the claim that it exists.
  *
- * ## Every function returns `null` (or `false`) for "no access", and that is a 404
+ * ## A read returns `null` and a write `notFound` for "no access", and that is a 404
  *
  * Same contract as `getWedding`: no standing in the org, an unassigned `member`, a wedding
  * in another org and a wedding that does not exist all look the same from outside. A
@@ -141,7 +142,7 @@ export type PendingFileInput = {
 }
 
 /**
- * Inserts a row that is invisible until `confirmFile`. `false` when the wedding is not
+ * Inserts a row that is invisible until `confirmFile`. `notFound` when the wedding is not
  * reachable by this principal.
  *
  * The wedding is read first because the FK from `files.wedding_id` is plain, not composite
@@ -155,16 +156,16 @@ export async function createPendingFile(
   orgId: string,
   weddingId: string,
   input: PendingFileInput,
-): Promise<boolean> {
+): Promise<Result<null, 'notFound'>> {
   const principal = staffPrincipal(m, orgId, weddingId)
-  if (!principal) return false
+  if (!principal) return fail('notFound')
 
   return withTenant(db, principal, async (tx) => {
     const parent = await tx
       .select({ id: weddings.id })
       .from(weddings)
       .where(and(eq(weddings.id, weddingId), isNull(weddings.deletedAt)))
-    if (parent.length === 0) return false
+    if (parent.length === 0) return fail('notFound')
 
     // One instant for all three, because equality of `deleted_at` and `created_at` is the
     // pending marker (see the header). Both are set from this value, not from `now()`.
@@ -184,12 +185,12 @@ export async function createPendingFile(
       updatedAt: at,
       deletedAt: at,
     })
-    return true
+    return ok(null)
   })
 }
 
 /**
- * Makes a pending row real. `null` unless the row is pending AND was created by the caller,
+ * Makes a pending row real. `notFound` unless the row is pending AND was created by the caller,
  * so a confirm cannot resurrect a deleted file (a delete is a later instant, not equal to
  * `created_at`) and cannot be used on somebody else's half-finished upload.
  */
@@ -199,9 +200,9 @@ export async function confirmFile(
   orgId: string,
   weddingId: string,
   fileId: string,
-): Promise<FileRow | null> {
+): Promise<Result<FileRow, 'notFound'>> {
   const principal = staffPrincipal(m, orgId, weddingId)
-  if (!principal) return null
+  if (!principal) return fail('notFound')
 
   const changed = await withTenant(db, principal, async (tx) =>
     tx
@@ -217,11 +218,12 @@ export async function confirmFile(
       )
       .returning({ id: files.id }),
   )
-  if (changed.length === 0) return null
-  return getFile(db, m, orgId, weddingId, fileId)
+  if (changed.length === 0) return fail('notFound')
+  const row = await getFile(db, m, orgId, weddingId, fileId)
+  return row ? ok(row) : fail('notFound')
 }
 
-/** The Files screen's caption and the moodboard's. `false` when nothing was changed. */
+/** The Files screen's caption and the moodboard's. `notFound` when nothing was changed. */
 export async function renameFile(
   db: Db,
   m: Memberships,
@@ -229,7 +231,7 @@ export async function renameFile(
   weddingId: string,
   fileId: string,
   name: string,
-): Promise<boolean> {
+): Promise<Result<null, 'notFound'>> {
   return updateConfirmed(db, m, orgId, weddingId, fileId, { name })
 }
 
@@ -240,7 +242,7 @@ export async function setFileVisibility(
   weddingId: string,
   fileId: string,
   visibility: FileVisibility,
-): Promise<boolean> {
+): Promise<Result<null, 'notFound'>> {
   return updateConfirmed(db, m, orgId, weddingId, fileId, { visibility })
 }
 
@@ -254,7 +256,7 @@ export async function removeFile(
   orgId: string,
   weddingId: string,
   fileId: string,
-): Promise<boolean> {
+): Promise<Result<null, 'notFound'>> {
   return updateConfirmed(db, m, orgId, weddingId, fileId, { deletedAt: new Date() })
 }
 
@@ -265,9 +267,9 @@ async function updateConfirmed(
   weddingId: string,
   fileId: string,
   set: { name?: string; visibility?: FileVisibility; deletedAt?: Date },
-): Promise<boolean> {
+): Promise<Result<null, 'notFound'>> {
   const principal = staffPrincipal(m, orgId, weddingId)
-  if (!principal) return false
+  if (!principal) return fail('notFound')
 
   const changed = await withTenant(db, principal, async (tx) =>
     tx
@@ -276,5 +278,5 @@ async function updateConfirmed(
       .where(and(eq(files.id, fileId), eq(files.weddingId, weddingId), isNull(files.deletedAt)))
       .returning({ id: files.id }),
   )
-  return changed.length > 0
+  return changed.length > 0 ? ok(null) : fail('notFound')
 }

@@ -656,3 +656,16 @@ export async function reseed(): Promise<void> {
     await pool.end()
   }
 }
+
+/**
+ * A write's value, or `null` when it was refused -- so a test that reads the row a write
+ * returned can keep asserting on the row. Where the refusal itself is the point, assert on the
+ * `Result` (`{ ok: false, reason: 'notFound' }`) rather than on this.
+ */
+export function unwrap<T>(
+  r: { readonly ok: true; readonly value: T } | { readonly ok: false },
+): T | null {
+  return r.ok ? r.value : null
+}
+
+export const NOT_FOUND = { ok: false, reason: 'notFound' } as const

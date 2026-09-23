@@ -71,7 +71,7 @@ export async function inviteTeamMember(input: {
     tokenHash,
     expiresAt,
   })
-  if (created.kind !== 'created') return { ok: false, reason: created.kind }
+  if (!created.ok) return { ok: false, reason: created.reason }
 
   const sent = await sendStaffInviteMail({
     to: email,
@@ -85,7 +85,7 @@ export async function inviteTeamMember(input: {
   if (!sent?.ok) {
     // Take the row back: a pending invite whose mail never left is one the planner cannot
     // tell from a live one, and its only effect would be to block a retry as a duplicate.
-    await revokeStaffInvite(getDb(), memberships, orgId, created.id)
+    await revokeStaffInvite(getDb(), memberships, orgId, created.value.id)
     return { ok: false, reason: 'mailFailed' }
   }
 
@@ -100,6 +100,6 @@ export async function revokeInvite(invitationId: string): Promise<{ ok: boolean 
   if (!memberships || !orgId) return { ok: false }
 
   const gone = await revokeStaffInvite(getDb(), memberships, orgId, invitationId)
-  if (gone) revalidatePath('/pro/team')
-  return { ok: gone }
+  if (gone.ok) revalidatePath('/pro/team')
+  return { ok: gone.ok }
 }

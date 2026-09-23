@@ -7,7 +7,16 @@ import {
   resolveVendorLinkByHash,
   revokeVendorLink,
 } from '../src/repos/index.ts'
-import { asNobody, asPrincipal, connect, F, type Harness, reseed, seedExec } from './harness.ts'
+import {
+  asNobody,
+  asPrincipal,
+  connect,
+  F,
+  type Harness,
+  NOT_FOUND,
+  reseed,
+  seedExec,
+} from './harness.ts'
 
 /**
  * Migration 0008's `resolve_vendor_link`, and `vendor-links.ts`'s three doors onto it (spec
@@ -126,7 +135,7 @@ describe('createVendorLink', () => {
       tokenHash: 'hash-new-1',
       expiresAt: new Date(Date.now() + 30 * 86_400_000),
     })
-    expect(r).toMatchObject({ kind: 'created' })
+    expect(r).toMatchObject({ ok: true })
     expect((await resolveRaw('hash-new-1'))[0]?.status).toBe('live')
   })
 
@@ -135,7 +144,7 @@ describe('createVendorLink', () => {
       tokenHash: 'hash-should-not-exist',
       expiresAt: new Date(Date.now() + 86_400_000),
     })
-    expect(r).toEqual({ kind: 'forbidden' })
+    expect(r).toEqual({ ok: false, reason: 'forbidden' })
     expect(await resolveRaw('hash-should-not-exist')).toEqual([])
   })
 
@@ -146,7 +155,7 @@ describe('createVendorLink', () => {
       tokenHash: 'hash-cross-org',
       expiresAt: new Date(Date.now() + 86_400_000),
     })
-    expect(r).toEqual({ kind: 'notFound' })
+    expect(r).toEqual({ ok: false, reason: 'notFound' })
     expect(await resolveRaw('hash-cross-org')).toEqual([])
   })
 
@@ -155,7 +164,7 @@ describe('createVendorLink', () => {
       tokenHash: 'hash-not-my-org',
       expiresAt: new Date(Date.now() + 86_400_000),
     })
-    expect(r).toEqual({ kind: 'forbidden' })
+    expect(r).toEqual({ ok: false, reason: 'forbidden' })
   })
 
   it('"create" means "replace": the prior live link for this vendor is revoked in the same transaction', async () => {
@@ -179,7 +188,7 @@ describe('createVendorLink', () => {
       tokenHash: 'hash-wrong-wedding',
       expiresAt: new Date(Date.now() + 86_400_000),
     })
-    expect(r).toEqual({ kind: 'notFound' })
+    expect(r).toEqual({ ok: false, reason: 'notFound' })
     expect(await resolveRaw('hash-wrong-wedding')).toEqual([])
     expect((await resolveRaw('hash-link-a2'))[0]?.status).toBe('live')
   })
@@ -203,7 +212,10 @@ describe('revokeVendorLink', () => {
     )
     const id = (live as { id: string }).id
 
-    expect(await revokeVendorLink(h.db, owner, F.orgA, F.weddingA1, id)).toBe(true)
+    expect(await revokeVendorLink(h.db, owner, F.orgA, F.weddingA1, id)).toEqual({
+      ok: true,
+      value: null,
+    })
     expect((await resolveRaw('hash-link-a1'))[0]?.status).toBe('revoked')
   })
 
@@ -215,8 +227,11 @@ describe('revokeVendorLink', () => {
     )
     const id = (live as { id: string }).id
 
-    expect(await revokeVendorLink(h.db, owner, F.orgA, F.weddingA1, id)).toBe(true)
-    expect(await revokeVendorLink(h.db, owner, F.orgA, F.weddingA1, id)).toBe(false)
+    expect(await revokeVendorLink(h.db, owner, F.orgA, F.weddingA1, id)).toEqual({
+      ok: true,
+      value: null,
+    })
+    expect(await revokeVendorLink(h.db, owner, F.orgA, F.weddingA1, id)).toEqual(NOT_FOUND)
   })
 
   it('a member cannot revoke: refused before any write', async () => {
@@ -227,7 +242,7 @@ describe('revokeVendorLink', () => {
     )
     const id = (live as { id: string }).id
 
-    expect(await revokeVendorLink(h.db, member, F.orgA, F.weddingA1, id)).toBe(false)
+    expect(await revokeVendorLink(h.db, member, F.orgA, F.weddingA1, id)).toEqual(NOT_FOUND)
     expect((await resolveRaw('hash-link-a1'))[0]?.status).toBe('live')
   })
 
@@ -240,7 +255,7 @@ describe('revokeVendorLink', () => {
     const id = (live as { id: string }).id
 
     // hash-link-a2 is on F.weddingA2; naming it under F.weddingA1 matches nothing.
-    expect(await revokeVendorLink(h.db, owner, F.orgA, F.weddingA1, id)).toBe(false)
+    expect(await revokeVendorLink(h.db, owner, F.orgA, F.weddingA1, id)).toEqual(NOT_FOUND)
     expect((await resolveRaw('hash-link-a2'))[0]?.status).toBe('live')
   })
 
@@ -252,7 +267,7 @@ describe('revokeVendorLink', () => {
     )
     const id = (live as { id: string }).id
 
-    expect(await revokeVendorLink(h.db, owner, F.orgA, F.weddingA1, id)).toBe(false)
+    expect(await revokeVendorLink(h.db, owner, F.orgA, F.weddingA1, id)).toEqual(NOT_FOUND)
     expect((await resolveRaw('hash-link-b1'))[0]?.status).toBe('live')
   })
 })

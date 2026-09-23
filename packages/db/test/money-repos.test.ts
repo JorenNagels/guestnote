@@ -102,7 +102,7 @@ describe('createBudgetLine', () => {
       ...line,
       weddingVendorId: F.wedVendorA2,
     })
-    expect(r).toEqual({ ok: false, reason: 'vendor-not-found' })
+    expect(r).toEqual({ ok: false, reason: 'vendorNotFound' })
     expect((await getBudget(h.db, owner, F.orgA, A1))?.lines).toHaveLength(1)
   })
 
@@ -115,11 +115,11 @@ describe('createBudgetLine', () => {
   it('writes nothing for a caller with no standing', async () => {
     expect(await createBudgetLine(h.db, couple, F.orgA, A1, line)).toEqual({
       ok: false,
-      reason: 'not-found',
+      reason: 'notFound',
     })
     expect(await createBudgetLine(h.db, member, F.orgA, A2, line)).toEqual({
       ok: false,
-      reason: 'not-found',
+      reason: 'notFound',
     })
   })
 })
@@ -127,11 +127,11 @@ describe('createBudgetLine', () => {
 describe('updateBudgetLine and deleteBudgetLine', () => {
   it('will not touch a line of a sibling wedding, even for the org-wide owner', async () => {
     const r = await updateBudgetLine(h.db, owner, F.orgA, A1, F.budgetLineA2, line)
-    expect(r).toEqual({ ok: false, reason: 'line-not-found' })
+    expect(r).toEqual({ ok: false, reason: 'lineNotFound' })
     expect((await getBudget(h.db, owner, F.orgA, A2))?.lines[0]?.label).toBe('Dinner')
 
     const d = await deleteBudgetLine(h.db, owner, F.orgA, A1, F.budgetLineA2)
-    expect(d).toEqual({ ok: false, reason: 'line-not-found' })
+    expect(d).toEqual({ ok: false, reason: 'lineNotFound' })
     expect((await getBudget(h.db, owner, F.orgA, A2))?.lines).toHaveLength(1)
   })
 
@@ -185,19 +185,19 @@ describe('payments', () => {
 
   it('refuses a line of a sibling wedding on create and on update', async () => {
     const c = await createPayment(h.db, owner, F.orgA, A1, { ...pay, budgetLineId: F.budgetLineA2 })
-    expect(c).toEqual({ ok: false, reason: 'line-not-found' })
+    expect(c).toEqual({ ok: false, reason: 'lineNotFound' })
     const u = await updatePayment(h.db, owner, F.orgA, A1, F.paymentA1, {
       ...pay,
       budgetLineId: F.budgetLineA2,
     })
-    expect(u).toEqual({ ok: false, reason: 'line-not-found' })
+    expect(u).toEqual({ ok: false, reason: 'lineNotFound' })
     expect((await getPayments(h.db, owner, F.orgA, A1))?.payments).toHaveLength(1)
   })
 
   it('will not mark, edit or delete a payment of a sibling wedding', async () => {
     expect(await setPaymentPaidAt(h.db, owner, F.orgA, A1, F.paymentA2, new Date())).toEqual({
       ok: false,
-      reason: 'payment-not-found',
+      reason: 'paymentNotFound',
     })
     expect((await updatePayment(h.db, owner, F.orgA, A1, F.paymentA2, pay)).ok).toBe(false)
     expect((await deletePayment(h.db, owner, F.orgA, A1, F.paymentA2)).ok).toBe(false)

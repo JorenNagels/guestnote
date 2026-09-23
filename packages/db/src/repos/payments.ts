@@ -7,6 +7,7 @@ import type { TenantDb } from '../tenant.ts'
 import { withTenant } from '../tenant.ts'
 import { type MoneyContext, type MoneyResult, readMoneyContext } from './budget.ts'
 import type { Memberships } from './memberships.ts'
+import { fail, ok } from './result.ts'
 import { staffPrincipal } from './staff-principal.ts'
 
 /**
@@ -123,12 +124,12 @@ export async function createPayment(
   input: PaymentInput,
 ): Promise<MoneyResult> {
   const principal = staffPrincipal(m, orgId, weddingId)
-  if (!principal) return { ok: false, reason: 'not-found' }
+  if (!principal) return fail('notFound')
 
   return withTenant(db, principal, async (tx): Promise<MoneyResult> => {
-    if (!(await readMoneyContext(tx, weddingId))) return { ok: false, reason: 'not-found' }
+    if (!(await readMoneyContext(tx, weddingId))) return fail('notFound')
     if (!(await lineExists(tx, weddingId, input.budgetLineId))) {
-      return { ok: false, reason: 'line-not-found' }
+      return fail('lineNotFound')
     }
     const id = newId()
     await tx.insert(payments).values({
@@ -140,7 +141,7 @@ export async function createPayment(
       amountCents: input.amountCents,
       paidAt: input.paidAt,
     })
-    return { ok: true, id }
+    return ok({ id })
   })
 }
 
@@ -153,12 +154,12 @@ export async function updatePayment(
   input: PaymentInput,
 ): Promise<MoneyResult> {
   const principal = staffPrincipal(m, orgId, weddingId)
-  if (!principal) return { ok: false, reason: 'not-found' }
+  if (!principal) return fail('notFound')
 
   return withTenant(db, principal, async (tx): Promise<MoneyResult> => {
-    if (!(await readMoneyContext(tx, weddingId))) return { ok: false, reason: 'not-found' }
+    if (!(await readMoneyContext(tx, weddingId))) return fail('notFound')
     if (!(await lineExists(tx, weddingId, input.budgetLineId))) {
-      return { ok: false, reason: 'line-not-found' }
+      return fail('lineNotFound')
     }
     const rows = await tx
       .update(payments)
@@ -171,7 +172,7 @@ export async function updatePayment(
       })
       .where(and(eq(payments.id, paymentId), eq(payments.weddingId, weddingId)))
       .returning({ id: payments.id })
-    return rows[0] ? { ok: true, id: paymentId } : { ok: false, reason: 'payment-not-found' }
+    return rows[0] ? ok({ id: paymentId }) : fail('paymentNotFound')
   })
 }
 
@@ -185,7 +186,7 @@ export async function setPaymentPaidAt(
   paidAt: Date | null,
 ): Promise<MoneyResult> {
   const principal = staffPrincipal(m, orgId, weddingId)
-  if (!principal) return { ok: false, reason: 'not-found' }
+  if (!principal) return fail('notFound')
 
   return withTenant(db, principal, async (tx): Promise<MoneyResult> => {
     const rows = await tx
@@ -193,7 +194,7 @@ export async function setPaymentPaidAt(
       .set({ paidAt, updatedAt: new Date() })
       .where(and(eq(payments.id, paymentId), eq(payments.weddingId, weddingId)))
       .returning({ id: payments.id })
-    return rows[0] ? { ok: true, id: paymentId } : { ok: false, reason: 'payment-not-found' }
+    return rows[0] ? ok({ id: paymentId }) : fail('paymentNotFound')
   })
 }
 
@@ -206,13 +207,13 @@ export async function deletePayment(
   paymentId: string,
 ): Promise<MoneyResult> {
   const principal = staffPrincipal(m, orgId, weddingId)
-  if (!principal) return { ok: false, reason: 'not-found' }
+  if (!principal) return fail('notFound')
 
   return withTenant(db, principal, async (tx): Promise<MoneyResult> => {
     const rows = await tx
       .delete(payments)
       .where(and(eq(payments.id, paymentId), eq(payments.weddingId, weddingId)))
       .returning({ id: payments.id })
-    return rows[0] ? { ok: true, id: paymentId } : { ok: false, reason: 'payment-not-found' }
+    return rows[0] ? ok({ id: paymentId }) : fail('paymentNotFound')
   })
 }

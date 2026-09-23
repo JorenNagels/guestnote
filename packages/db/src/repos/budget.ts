@@ -7,6 +7,7 @@ import { weddings } from '../schema/weddings.ts'
 import type { TenantDb } from '../tenant.ts'
 import { withTenant } from '../tenant.ts'
 import type { Memberships } from './memberships.ts'
+import { fail, ok, type Result } from './result.ts'
 import { staffPrincipal } from './staff-principal.ts'
 
 /**
@@ -73,13 +74,11 @@ export type BudgetLineInput = {
 /**
  * Why a write did not happen. Three parents can be missing and they are told apart so the
  * caller can say which field to fix; all of them collapse to the same 404-style answer for a
- * wedding the caller may not see (`not-found`).
+ * wedding the caller may not see (`notFound`).
  */
-export type MoneyFailure = 'not-found' | 'line-not-found' | 'vendor-not-found' | 'payment-not-found'
+export type MoneyFailure = 'notFound' | 'lineNotFound' | 'vendorNotFound' | 'paymentNotFound'
 
-export type MoneyResult =
-  | { readonly ok: true; readonly id: string }
-  | { readonly ok: false; readonly reason: MoneyFailure }
+export type MoneyResult = Result<{ readonly id: string }, MoneyFailure>
 
 /**
  * The wedding row, read under the principal. This IS the parent read for everything below:
@@ -188,12 +187,12 @@ export async function createBudgetLine(
   input: BudgetLineInput,
 ): Promise<MoneyResult> {
   const principal = staffPrincipal(m, orgId, weddingId)
-  if (!principal) return { ok: false, reason: 'not-found' }
+  if (!principal) return fail('notFound')
 
   return withTenant(db, principal, async (tx): Promise<MoneyResult> => {
-    if (!(await readMoneyContext(tx, weddingId))) return { ok: false, reason: 'not-found' }
+    if (!(await readMoneyContext(tx, weddingId))) return fail('notFound')
     if (input.weddingVendorId && !(await vendorExists(tx, weddingId, input.weddingVendorId))) {
-      return { ok: false, reason: 'vendor-not-found' }
+      return fail('vendorNotFound')
     }
     const id = newId()
     await tx.insert(budgetLines).values({
@@ -206,7 +205,7 @@ export async function createBudgetLine(
       actualCents: input.actualCents,
       weddingVendorId: input.weddingVendorId,
     })
-    return { ok: true, id }
+    return ok({ id })
   })
 }
 
@@ -219,12 +218,12 @@ export async function updateBudgetLine(
   input: BudgetLineInput,
 ): Promise<MoneyResult> {
   const principal = staffPrincipal(m, orgId, weddingId)
-  if (!principal) return { ok: false, reason: 'not-found' }
+  if (!principal) return fail('notFound')
 
   return withTenant(db, principal, async (tx): Promise<MoneyResult> => {
-    if (!(await readMoneyContext(tx, weddingId))) return { ok: false, reason: 'not-found' }
+    if (!(await readMoneyContext(tx, weddingId))) return fail('notFound')
     if (input.weddingVendorId && !(await vendorExists(tx, weddingId, input.weddingVendorId))) {
-      return { ok: false, reason: 'vendor-not-found' }
+      return fail('vendorNotFound')
     }
     // `weddingId` is in the where, not just the id: an unpinned owner's principal is org-wide, so
     // RLS alone would let this touch a line of a sibling wedding whose id was guessed.
@@ -246,7 +245,7 @@ export async function updateBudgetLine(
         ),
       )
       .returning({ id: budgetLines.id })
-    return rows[0] ? { ok: true, id: lineId } : { ok: false, reason: 'line-not-found' }
+    return rows[0] ? ok({ id: lineId }) : fail('lineNotFound')
   })
 }
 
@@ -263,7 +262,7 @@ export async function deleteBudgetLine(
   lineId: string,
 ): Promise<MoneyResult> {
   const principal = staffPrincipal(m, orgId, weddingId)
-  if (!principal) return { ok: false, reason: 'not-found' }
+  if (!principal) return fail('notFound')
 
   return withTenant(db, principal, async (tx): Promise<MoneyResult> => {
     const now = new Date()
@@ -278,6 +277,6 @@ export async function deleteBudgetLine(
         ),
       )
       .returning({ id: budgetLines.id })
-    return rows[0] ? { ok: true, id: lineId } : { ok: false, reason: 'line-not-found' }
+    return rows[0] ? ok({ id: lineId }) : fail('lineNotFound')
   })
 }

@@ -118,7 +118,7 @@ export async function startUpload(
     mime: signed.headers['Content-Type'],
     visibility,
   })
-  if (!created) return { ok: false, error: 'not_found' }
+  if (!created.ok) return { ok: false, error: 'not_found' }
 
   const { 'Content-Length': _length, ...headers } = signed.headers
   return { ok: true, fileId, url: signed.url, headers }
@@ -138,7 +138,7 @@ export async function confirmUpload(weddingId: unknown, fileId: unknown): Promis
     return { ok: false, error: 'not_found' }
   }
   const row = await confirmFile(getDb(), ctx.m, ctx.orgId, ctx.weddingId, fileId)
-  return row ? { ok: true } : { ok: false, error: 'not_found' }
+  return row.ok ? { ok: true } : { ok: false, error: 'not_found' }
 }
 
 export async function removeWeddingFile(weddingId: unknown, fileId: unknown): Promise<Done> {
@@ -146,7 +146,7 @@ export async function removeWeddingFile(weddingId: unknown, fileId: unknown): Pr
   if (!ctx || !isUuid(fileId)) {
     return { ok: false, error: 'not_found' }
   }
-  return (await removeFile(getDb(), ctx.m, ctx.orgId, ctx.weddingId, fileId))
+  return (await removeFile(getDb(), ctx.m, ctx.orgId, ctx.weddingId, fileId)).ok
     ? { ok: true }
     : { ok: false, error: 'not_found' }
 }
@@ -163,7 +163,7 @@ export async function renameWeddingFile(
   }
   const cleaned = cleanName(name)
   if (!cleaned) return { ok: false, error: 'invalid_name' }
-  return (await renameFile(getDb(), ctx.m, ctx.orgId, ctx.weddingId, fileId, cleaned))
+  return (await renameFile(getDb(), ctx.m, ctx.orgId, ctx.weddingId, fileId, cleaned)).ok
     ? { ok: true }
     : { ok: false, error: 'not_found' }
 }
@@ -177,7 +177,7 @@ export async function setWeddingFileVisibility(
   if (!ctx || !isUuid(fileId) || !isVisibility(visibility)) {
     return { ok: false, error: 'not_found' }
   }
-  return (await setFileVisibility(getDb(), ctx.m, ctx.orgId, ctx.weddingId, fileId, visibility))
+  return (await setFileVisibility(getDb(), ctx.m, ctx.orgId, ctx.weddingId, fileId, visibility)).ok
     ? { ok: true }
     : { ok: false, error: 'not_found' }
 }

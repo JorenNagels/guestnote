@@ -68,8 +68,8 @@ beforeEach(() => {
     updateWeddingVendor,
   ])
     f.mockResolvedValue(OK)
-  createVendorLink.mockResolvedValue({ kind: 'created', id: LINK })
-  revokeVendorLink.mockResolvedValue(true)
+  createVendorLink.mockResolvedValue({ ok: true, value: { id: LINK } })
+  revokeVendorLink.mockResolvedValue({ ok: true, value: null })
 })
 
 describe('every action', () => {
@@ -246,7 +246,7 @@ describe('createVendorLinkAction', () => {
   })
 
   it('relays a repo refusal and does not refresh', async () => {
-    createVendorLink.mockResolvedValue({ kind: 'forbidden' })
+    createVendorLink.mockResolvedValue({ ok: false, reason: 'forbidden' })
     expect(await createVendorLinkAction(WEDDING, VENDOR, undefined)).toEqual({
       ok: false,
       error: 'forbidden',
@@ -263,7 +263,7 @@ describe('revokeVendorLinkAction', () => {
   })
 
   it('reports false and does not refresh when nothing was revoked', async () => {
-    revokeVendorLink.mockResolvedValue(false)
+    revokeVendorLink.mockResolvedValue({ ok: false, reason: 'notFound' })
     expect(await revokeVendorLinkAction(WEDDING, LINK)).toEqual({ ok: false })
     expect(revalidatePath).not.toHaveBeenCalled()
   })

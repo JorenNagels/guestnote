@@ -44,8 +44,8 @@ beforeEach(() => {
   currentMemberships.mockResolvedValue(MEMBERSHIPS)
   currentOrgId.mockResolvedValue(ORG)
   currentOrgs.mockResolvedValue([{ id: ORG, name: 'Studio Wit', slug: 'wit' }])
-  createStaffInvite.mockResolvedValue({ kind: 'created', id: INVITE_ID })
-  revokeStaffInvite.mockResolvedValue(true)
+  createStaffInvite.mockResolvedValue({ ok: true, value: { id: INVITE_ID } })
+  revokeStaffInvite.mockResolvedValue({ ok: true, value: null })
   sendStaffInviteMail.mockResolvedValue({ ok: true, messageId: 'm1' })
 })
 
@@ -98,7 +98,7 @@ describe('inviteTeamMember', () => {
   it.each(['forbidden', 'duplicate', 'alreadyMember'] as const)(
     'passes the repo refusal %s through and sends no mail',
     async (kind) => {
-      createStaffInvite.mockResolvedValue({ kind })
+      createStaffInvite.mockResolvedValue({ ok: false, reason: kind })
       expect(await inviteTeamMember({ email: 'els@studiowit.be', role: 'member' })).toEqual({
         ok: false,
         reason: kind,
@@ -141,7 +141,7 @@ describe('revokeInvite', () => {
   })
 
   it('reports false and does not revalidate when nothing was deleted', async () => {
-    revokeStaffInvite.mockResolvedValue(false)
+    revokeStaffInvite.mockResolvedValue({ ok: false, reason: 'notFound' })
     expect(await revokeInvite(INVITE_ID)).toEqual({ ok: false })
     expect(revalidatePath).not.toHaveBeenCalled()
   })

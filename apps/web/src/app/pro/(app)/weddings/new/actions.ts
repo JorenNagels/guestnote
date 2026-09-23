@@ -42,8 +42,8 @@ export async function createWeddingAction(
     ...parsed.value,
     slugBase: slugFromName(parsed.value.coupleDisplayName),
   })
-  if (!created) return { form: 'failed', values }
+  if (!created.ok) return { form: 'failed', values }
 
   revalidatePath('/pro', 'layout')
-  redirect(app.wedding(created.id))
+  redirect(app.wedding(created.value.id))
 }

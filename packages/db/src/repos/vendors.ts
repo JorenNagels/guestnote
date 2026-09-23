@@ -10,6 +10,7 @@ import {
 import { weddings } from '../schema/weddings.ts'
 import { type Principal, type TenantDb, withTenant } from '../tenant.ts'
 import { type Memberships, principalForOrg, principalForWedding } from './memberships.ts'
+import { fail, ok, type Result } from './result.ts'
 import { staffPrincipal } from './staff-principal.ts'
 
 /**
@@ -72,13 +73,11 @@ export type WeddingVendorRow = {
   readonly activeLink: { readonly id: string; readonly expiresAt: Date } | null
 }
 
-export type VendorWriteResult<T = null> =
-  | { readonly ok: true; readonly value: T }
-  | { readonly ok: false; readonly reason: 'forbidden' | 'notFound' | 'duplicate' }
+export type VendorWriteResult<T = null> = Result<T, 'forbidden' | 'notFound' | 'duplicate'>
 
-const FORBIDDEN = { ok: false, reason: 'forbidden' } as const
-const NOT_FOUND = { ok: false, reason: 'notFound' } as const
-const DUPLICATE = { ok: false, reason: 'duplicate' } as const
+const FORBIDDEN = fail('forbidden')
+const NOT_FOUND = fail('notFound')
+const DUPLICATE = fail('duplicate')
 
 const VENDOR_COLUMNS = {
   id: vendors.id,
@@ -151,7 +150,7 @@ export async function createVendor(
   await withTenant(db, principal, async (tx) => {
     await tx.insert(vendors).values({ id, orgId, ...input })
   })
-  return { ok: true, value: { id } }
+  return ok({ id })
 }
 
 export async function updateVendor(
@@ -170,7 +169,7 @@ export async function updateVendor(
       .where(and(eq(vendors.id, vendorId), eq(vendors.orgId, orgId), isNull(vendors.deletedAt)))
       .returning({ id: vendors.id }),
   )
-  return changed.length === 0 ? NOT_FOUND : { ok: true, value: null }
+  return changed.length === 0 ? NOT_FOUND : ok(null)
 }
 
 /**
@@ -193,7 +192,7 @@ export async function archiveVendor(
       .where(and(eq(vendors.id, vendorId), eq(vendors.orgId, orgId), isNull(vendors.deletedAt)))
       .returning({ id: vendors.id }),
   )
-  return changed.length === 0 ? NOT_FOUND : { ok: true, value: null }
+  return changed.length === 0 ? NOT_FOUND : ok(null)
 }
 
 /**
@@ -319,7 +318,7 @@ export async function createVendorForWedding(
     await tx.insert(vendors).values({ id: vendorId, orgId, ...input })
     const id = newId()
     await tx.insert(weddingVendors).values({ id, orgId, weddingId, vendorId })
-    return { ok: true, value: { id, vendorId } } as const
+    return ok({ id, vendorId })
   })
 }
 
@@ -355,7 +354,7 @@ async function linkInTx(
 
   const id = newId()
   await tx.insert(weddingVendors).values({ id, orgId, weddingId, vendorId })
-  return { ok: true, value: { id } }
+  return ok({ id })
 }
 
 /**
@@ -390,7 +389,7 @@ export async function updateWeddingVendor(
       )
       .returning({ id: weddingVendors.id }),
   )
-  return changed.length === 0 ? NOT_FOUND : { ok: true, value: null }
+  return changed.length === 0 ? NOT_FOUND : ok(null)
 }
 
 /** Unlink. Soft, so budget lines and run sheet rows that point at the link keep their history. */
@@ -417,5 +416,5 @@ export async function removeWeddingVendor(
       )
       .returning({ id: weddingVendors.id }),
   )
-  return changed.length === 0 ? NOT_FOUND : { ok: true, value: null }
+  return changed.length === 0 ? NOT_FOUND : ok(null)
 }

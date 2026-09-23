@@ -40,10 +40,10 @@ beforeEach(() => {
   vi.clearAllMocks()
   currentMemberships.mockResolvedValue(MEMBERSHIPS)
   currentOrgId.mockResolvedValue('org-a')
-  updateWedding.mockResolvedValue({ id: WID })
-  createWeddingEvent.mockResolvedValue({ id: EID })
-  updateWeddingEvent.mockResolvedValue({ id: EID })
-  deleteWeddingEvent.mockResolvedValue(true)
+  updateWedding.mockResolvedValue({ ok: true, value: { id: WID } })
+  createWeddingEvent.mockResolvedValue({ ok: true, value: { id: EID } })
+  updateWeddingEvent.mockResolvedValue({ ok: true, value: { id: EID } })
+  deleteWeddingEvent.mockResolvedValue({ ok: true, value: null })
 })
 
 describe('updateWeddingAction', () => {
@@ -60,7 +60,7 @@ describe('updateWeddingAction', () => {
   })
 
   it('answers forbidden, not not-found, when the repo returns null', async () => {
-    updateWedding.mockResolvedValue(null)
+    updateWedding.mockResolvedValue({ ok: false, reason: 'notFound' })
     expect(await updateWeddingAction(WID, {}, form({ coupleDisplayName: 'Els' }))).toMatchObject({
       form: 'forbidden',
     })
@@ -116,11 +116,11 @@ describe('saveEventAction', () => {
   })
 
   it('says forbidden when the event is not on this wedding', async () => {
-    deleteWeddingEvent.mockResolvedValue(false)
+    deleteWeddingEvent.mockResolvedValue({ ok: false, reason: 'notFound' })
     expect(await saveEventAction(WID, {}, form({ eventId: EID, intent: 'remove' }))).toEqual({
       form: 'forbidden',
     })
-    updateWeddingEvent.mockResolvedValue(null)
+    updateWeddingEvent.mockResolvedValue({ ok: false, reason: 'notFound' })
     expect(
       await saveEventAction(WID, {}, form({ ...EVENT, eventId: EID, intent: 'save' })),
     ).toMatchObject({ form: 'forbidden' })

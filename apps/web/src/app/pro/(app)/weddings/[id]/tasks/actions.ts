@@ -58,9 +58,9 @@ export async function createTaskAction(
   const ctx = await who(weddingId)
   if (!ctx) return NOT_FOUND
   const task = await createTask(getDb(), ctx.memberships, ctx.orgId, weddingId, parsed.input)
-  if (!task) return NOT_FOUND
+  if (!task.ok) return NOT_FOUND
   refresh()
-  return { ok: true, taskId: task.id }
+  return { ok: true, taskId: task.value.id }
 }
 
 export async function updateTaskAction(
@@ -81,7 +81,7 @@ export async function updateTaskAction(
     taskId,
     parsed.input,
   )
-  if (!task) return NOT_FOUND
+  if (!task.ok) return NOT_FOUND
   refresh()
   return { ok: true }
 }
@@ -94,7 +94,7 @@ export async function setTaskDoneAction(
 ): Promise<TaskActionResult> {
   const ctx = await who(weddingId, taskId)
   if (!ctx) return NOT_FOUND
-  const task: TaskRow | null = await completeTask(
+  const task = await completeTask(
     getDb(),
     ctx.memberships,
     ctx.orgId,
@@ -102,7 +102,7 @@ export async function setTaskDoneAction(
     taskId,
     done === true,
   )
-  if (!task) return NOT_FOUND
+  if (!task.ok) return NOT_FOUND
   refresh()
   return { ok: true }
 }
@@ -122,7 +122,7 @@ export async function setTaskVisibilityAction(
   const task = await updateTask(getDb(), ctx.memberships, ctx.orgId, weddingId, taskId, {
     visibility: visibility === 'internal' ? 'internal' : 'shared',
   })
-  if (!task) return NOT_FOUND
+  if (!task.ok) return NOT_FOUND
   refresh()
   return { ok: true }
 }
@@ -138,7 +138,7 @@ export async function addCommentAction(
   const ctx = await who(weddingId, taskId)
   if (!ctx) return NOT_FOUND
   const comment = await addTaskComment(getDb(), ctx.memberships, ctx.orgId, weddingId, taskId, text)
-  if (!comment) return NOT_FOUND
+  if (!comment.ok) return NOT_FOUND
   refresh()
   return { ok: true }
 }

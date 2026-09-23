@@ -5,6 +5,7 @@ import { runSheetItems, weddingEvents } from '../schema/events.ts'
 import { vendorLinks, weddingVendors } from '../schema/vendors.ts'
 import { type Principal, withTenant } from '../tenant.ts'
 import { type Memberships, principalForOrg } from './memberships.ts'
+import { fail, ok, type Result } from './result.ts'
 
 /**
  * Slice S10 (spec 0003): the `link` principal's own repo file.
@@ -31,10 +32,7 @@ import { type Memberships, principalForOrg } from './memberships.ts'
  * vendor and nowhere in a query or a log line.
  */
 
-export type VendorLinkWriteResult =
-  | { readonly kind: 'created'; readonly id: string }
-  | { readonly kind: 'forbidden' }
-  | { readonly kind: 'notFound' }
+export type VendorLinkWriteResult = Result<{ readonly id: string }, 'forbidden' | 'notFound'>
 
 /**
  * What `resolve_vendor_link` (migration 0008) hands back. `status` is here for a future admin
@@ -124,7 +122,7 @@ export async function createVendorLink(
   input: { readonly tokenHash: string; readonly expiresAt: Date },
 ): Promise<VendorLinkWriteResult> {
   const principal = principalForOrg(m, orgId)
-  if (!principal) return { kind: 'forbidden' }
+  if (!principal) return fail('forbidden')
 
   return withTenant(db, principal, async (tx) => {
     const parent = await tx
@@ -139,7 +137,7 @@ export async function createVendorLink(
         ),
       )
     const wv = parent[0]
-    if (!wv) return { kind: 'notFound' }
+    if (!wv) return fail('notFound')
 
     await tx
       .update(vendorLinks)
@@ -155,7 +153,7 @@ export async function createVendorLink(
       tokenHash: input.tokenHash,
       expiresAt: input.expiresAt,
     })
-    return { kind: 'created', id }
+    return ok({ id })
   })
 }
 
@@ -163,7 +161,7 @@ export async function createVendorLink(
  * Revokes a link on `weddingId` -- a link id from another wedding of the same org matches
  * nothing, like `createVendorLink`'s parent read. Sets `revoked_at` rather than deleting -- 0006's `vendors.ts` schema comment:
  * "so 'this link was revoked on...' stays answerable" -- which is also why this returns
- * `false` on a link already revoked rather than treating it as already-done: a caller
+ * `notFound` on a link already revoked rather than treating it as already-done: a caller
  * re-revoking a live link and one clicking a stale button should not read as the same case
  * forever, even though neither is wrong to retry.
  */
@@ -173,9 +171,9 @@ export async function revokeVendorLink(
   orgId: string,
   weddingId: string,
   linkId: string,
-): Promise<boolean> {
+): Promise<Result<null, 'notFound'>> {
   const principal = principalForOrg(m, orgId)
-  if (!principal) return false
+  if (!principal) return fail('notFound')
 
   return withTenant(db, principal, async (tx) => {
     const gone = await tx
@@ -190,7 +188,7 @@ export async function revokeVendorLink(
         ),
       )
       .returning({ id: vendorLinks.id })
-    return gone.length > 0
+    return gone.length > 0 ? ok(null) : fail('notFound')
   })
 }
 

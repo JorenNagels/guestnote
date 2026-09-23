@@ -4,6 +4,7 @@ import { newId } from '../id.ts'
 import { taskTemplates, templateItems } from '../schema/templates.ts'
 import { type Principal, type TenantDb, withTenant } from '../tenant.ts'
 import { type Memberships, principalForOrg, principalForWedding } from './memberships.ts'
+import { fail, ok, type Result } from './result.ts'
 import { createTasks, type TaskAssigneeRole, type TaskVisibility } from './tasks.ts'
 
 /**
@@ -70,14 +71,12 @@ export type TemplateDetail = {
   readonly items: TemplateItemRow[]
 }
 
-export type TemplateWriteResult<T = null> =
-  | { readonly ok: true; readonly value: T }
-  | { readonly ok: false; readonly reason: 'forbidden' | 'notFound' | 'empty' | 'full' }
+export type TemplateWriteResult<T = null> = Result<T, 'forbidden' | 'notFound' | 'empty' | 'full'>
 
-const FORBIDDEN = { ok: false, reason: 'forbidden' } as const
-const NOT_FOUND = { ok: false, reason: 'notFound' } as const
-const EMPTY = { ok: false, reason: 'empty' } as const
-const FULL = { ok: false, reason: 'full' } as const
+const FORBIDDEN = fail('forbidden')
+const NOT_FOUND = fail('notFound')
+const EMPTY = fail('empty')
+const FULL = fail('full')
 
 /** The form's limit (`TEMPLATE_LIMITS.name` in the app), restated for the copy's name. */
 const MAX_NAME = 120
@@ -225,7 +224,7 @@ export async function createTemplate(
   await withTenant(db, principal, async (tx) => {
     await tx.insert(taskTemplates).values({ id, orgId, ...input })
   })
-  return { ok: true, value: { id } }
+  return ok({ id })
 }
 
 export async function updateTemplate(
@@ -250,7 +249,7 @@ export async function updateTemplate(
       )
       .returning({ id: taskTemplates.id }),
   )
-  return changed.length === 0 ? NOT_FOUND : { ok: true, value: null }
+  return changed.length === 0 ? NOT_FOUND : ok(null)
 }
 
 /**
@@ -280,7 +279,7 @@ export async function deleteTemplate(
       )
       .returning({ id: taskTemplates.id }),
   )
-  return changed.length === 0 ? NOT_FOUND : { ok: true, value: null }
+  return changed.length === 0 ? NOT_FOUND : ok(null)
 }
 
 /**
@@ -319,7 +318,7 @@ export async function duplicateTemplate(
         })),
       )
     }
-    return { ok: true, value: { id } } as const
+    return ok({ id })
   })
 }
 
@@ -351,7 +350,7 @@ export async function addTemplateItem(
       ...input,
       position: tail?.last == null ? 0 : tail.last + 1,
     })
-    return { ok: true, value: { id } } as const
+    return ok({ id })
   })
 }
 
@@ -378,7 +377,7 @@ export async function updateTemplateItem(
         ),
       )
       .returning({ id: templateItems.id })
-    return changed.length === 0 ? NOT_FOUND : ({ ok: true, value: null } as const)
+    return changed.length === 0 ? NOT_FOUND : ok(null)
   })
 }
 
@@ -404,7 +403,7 @@ export async function deleteTemplateItem(
         ),
       )
       .returning({ id: templateItems.id })
-    return gone.length === 0 ? NOT_FOUND : ({ ok: true, value: null } as const)
+    return gone.length === 0 ? NOT_FOUND : ok(null)
   })
 }
 
@@ -431,7 +430,7 @@ export async function moveTemplateItem(
     const to = direction === 'up' ? from - 1 : from + 1
     const a = items[from]
     const b = items[to]
-    if (!a || !b) return { ok: true, value: null } as const
+    if (!a || !b) return ok(null)
     const order = items.map((i) => i.id)
     order[from] = b.id
     order[to] = a.id
@@ -445,7 +444,7 @@ export async function moveTemplateItem(
         .set({ position, updatedAt: now })
         .where(and(eq(templateItems.id, id), eq(templateItems.orgId, orgId)))
     }
-    return { ok: true, value: null } as const
+    return ok(null)
   })
 }
 
@@ -486,5 +485,5 @@ export async function applyTemplate(
       due: { kind: 'offset', days: item.dueOffsetDays },
     })),
   )
-  return ids ? { ok: true, value: { count: ids.length } } : NOT_FOUND
+  return ids.ok ? ok({ count: ids.value.length }) : NOT_FOUND
 }

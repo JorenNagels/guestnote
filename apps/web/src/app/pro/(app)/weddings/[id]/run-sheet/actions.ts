@@ -31,8 +31,8 @@ import { isUuid } from '../../../../../../lib/uuid.ts'
 const RUN_SHEET = '/pro/weddings/[id]/run-sheet'
 
 function refusal(reason: RunSheetFailure): RunSheetError {
-  if (reason === 'event-not-found') return 'event'
-  if (reason === 'vendor-not-found') return 'vendor'
+  if (reason === 'eventNotFound') return 'event'
+  if (reason === 'vendorNotFound') return 'vendor'
   return 'notFound'
 }
 

@@ -75,7 +75,7 @@ beforeEach(() => {
   currentMemberships.mockResolvedValue(MEMBERSHIPS)
   currentOrgId.mockResolvedValue(ORG)
   storage.presignUpload.mockResolvedValue(SIGNED)
-  repo.createPendingFile.mockResolvedValue(true)
+  repo.createPendingFile.mockResolvedValue({ ok: true, value: null })
 })
 
 const input = { name: 'plan.png', mime: 'IMAGE/PNG', sizeBytes: 2048, visibility: 'shared' }
@@ -140,7 +140,7 @@ describe('startUpload', () => {
   })
 
   it('is not_found when the repository says the wedding is out of reach', async () => {
-    repo.createPendingFile.mockResolvedValue(false)
+    repo.createPendingFile.mockResolvedValue({ ok: false, reason: 'notFound' })
     expect(await startUpload('file', WEDDING, input)).toEqual({ ok: false, error: 'not_found' })
   })
 
@@ -185,22 +185,22 @@ describe('startUpload', () => {
 
 describe('confirmUpload / remove / rename / visibility', () => {
   it('confirm passes only ids, and maps null to not_found', async () => {
-    repo.confirmFile.mockResolvedValue({ id: FILE })
+    repo.confirmFile.mockResolvedValue({ ok: true, value: { id: FILE } })
     expect(await confirmUpload(WEDDING, FILE)).toEqual({ ok: true })
-    repo.confirmFile.mockResolvedValue(null)
+    repo.confirmFile.mockResolvedValue({ ok: false, reason: 'notFound' })
     expect(await confirmUpload(WEDDING, FILE)).toEqual({ ok: false, error: 'not_found' })
     expect(await confirmUpload(WEDDING, 'nope')).toEqual({ ok: false, error: 'not_found' })
   })
 
   it('remove maps false to not_found', async () => {
-    repo.removeFile.mockResolvedValue(true)
+    repo.removeFile.mockResolvedValue({ ok: true, value: null })
     expect(await removeWeddingFile(WEDDING, FILE)).toEqual({ ok: true })
-    repo.removeFile.mockResolvedValue(false)
+    repo.removeFile.mockResolvedValue({ ok: false, reason: 'notFound' })
     expect(await removeWeddingFile(WEDDING, FILE)).toEqual({ ok: false, error: 'not_found' })
   })
 
   it('rename cleans the name and refuses an empty one before the repository', async () => {
-    repo.renameFile.mockResolvedValue(true)
+    repo.renameFile.mockResolvedValue({ ok: true, value: null })
     expect(await renameWeddingFile(WEDDING, FILE, ' Menu\t')).toEqual({ ok: true })
     expect(repo.renameFile).toHaveBeenCalledWith(
       expect.anything(),
@@ -219,7 +219,7 @@ describe('confirmUpload / remove / rename / visibility', () => {
   })
 
   it('visibility only accepts the two values', async () => {
-    repo.setFileVisibility.mockResolvedValue(true)
+    repo.setFileVisibility.mockResolvedValue({ ok: true, value: null })
     expect(await setWeddingFileVisibility(WEDDING, FILE, 'internal')).toEqual({ ok: true })
     expect(await setWeddingFileVisibility(WEDDING, FILE, 'public')).toEqual({
       ok: false,

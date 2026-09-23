@@ -11,7 +11,7 @@ import {
   resolveMemberships,
   setFileVisibility,
 } from '../src/repos/index.ts'
-import { connect, F, type Harness, reseed } from './harness.ts'
+import { connect, F, type Harness, NOT_FOUND, reseed, unwrap } from './harness.ts'
 
 /**
  * `repos/files.ts` against a real Postgres, with the real policies (slice S5).
@@ -100,14 +100,17 @@ describe('listFiles', () => {
 describe('the pending lifecycle', () => {
   it('hides a row until it is confirmed, then shows it', async () => {
     const row = pending('image')
-    expect(await createPendingFile(h.db, owner, F.orgA, F.weddingA1, row)).toBe(true)
+    expect(await createPendingFile(h.db, owner, F.orgA, F.weddingA1, row)).toEqual({
+      ok: true,
+      value: null,
+    })
 
     expect(await getFile(h.db, owner, F.orgA, F.weddingA1, row.id)).toBeNull()
     expect(
       (await listFiles(h.db, owner, F.orgA, F.weddingA1, 'image'))?.some((f) => f.id === row.id),
     ).toBe(false)
 
-    const confirmed = await confirmFile(h.db, owner, F.orgA, F.weddingA1, row.id)
+    const confirmed = unwrap(await confirmFile(h.db, owner, F.orgA, F.weddingA1, row.id))
     expect(confirmed).toMatchObject({ id: row.id, kind: 'image', sizeBytes: 1234 })
     expect(
       (await listFiles(h.db, owner, F.orgA, F.weddingA1, 'image'))?.some((f) => f.id === row.id),
@@ -117,7 +120,7 @@ describe('the pending lifecycle', () => {
   it('refuses a confirm from anyone but the uploader', async () => {
     const row = pending()
     await createPendingFile(h.db, owner, F.orgA, F.weddingA1, row)
-    expect(await confirmFile(h.db, admin, F.orgA, F.weddingA1, row.id)).toBeNull()
+    expect(await confirmFile(h.db, admin, F.orgA, F.weddingA1, row.id)).toEqual(NOT_FOUND)
     expect(await getFile(h.db, owner, F.orgA, F.weddingA1, row.id)).toBeNull()
   })
 
@@ -125,9 +128,12 @@ describe('the pending lifecycle', () => {
     const row = pending()
     await createPendingFile(h.db, owner, F.orgA, F.weddingA1, row)
     await confirmFile(h.db, owner, F.orgA, F.weddingA1, row.id)
-    expect(await removeFile(h.db, owner, F.orgA, F.weddingA1, row.id)).toBe(true)
+    expect(await removeFile(h.db, owner, F.orgA, F.weddingA1, row.id)).toEqual({
+      ok: true,
+      value: null,
+    })
 
-    expect(await confirmFile(h.db, owner, F.orgA, F.weddingA1, row.id)).toBeNull()
+    expect(await confirmFile(h.db, owner, F.orgA, F.weddingA1, row.id)).toEqual(NOT_FOUND)
     expect(await getFile(h.db, owner, F.orgA, F.weddingA1, row.id)).toBeNull()
   })
 
@@ -135,18 +141,21 @@ describe('the pending lifecycle', () => {
     // The FK is plain, so without the parent read this insert would succeed with org A's
     // `org_id` and org B's wedding id.
     const row = { ...pending(), storageKey: `${F.orgA}/${F.weddingB1}/x` }
-    expect(await createPendingFile(h.db, owner, F.orgA, F.weddingB1, row)).toBe(false)
+    expect(await createPendingFile(h.db, owner, F.orgA, F.weddingB1, row)).toEqual(NOT_FOUND)
   })
 
   it('refuses a couple and an unassigned member the insert', async () => {
-    expect(await createPendingFile(h.db, couple, F.orgA, F.weddingA1, pending())).toBe(false)
-    expect(await createPendingFile(h.db, member, F.orgA, F.weddingA2, pending())).toBe(false)
+    expect(await createPendingFile(h.db, couple, F.orgA, F.weddingA1, pending())).toEqual(NOT_FOUND)
+    expect(await createPendingFile(h.db, member, F.orgA, F.weddingA2, pending())).toEqual(NOT_FOUND)
   })
 
   it('lets an assigned member upload to their own wedding', async () => {
     const row = pending()
-    expect(await createPendingFile(h.db, member, F.orgA, F.weddingA1, row)).toBe(true)
-    expect(await confirmFile(h.db, member, F.orgA, F.weddingA1, row.id)).not.toBeNull()
+    expect(await createPendingFile(h.db, member, F.orgA, F.weddingA1, row)).toEqual({
+      ok: true,
+      value: null,
+    })
+    expect(await confirmFile(h.db, member, F.orgA, F.weddingA1, row.id)).toMatchObject({ ok: true })
   })
 })
 
@@ -156,8 +165,14 @@ describe('renaming, visibility and removal', () => {
     await createPendingFile(h.db, owner, F.orgA, F.weddingA1, row)
     await confirmFile(h.db, owner, F.orgA, F.weddingA1, row.id)
 
-    expect(await renameFile(h.db, owner, F.orgA, F.weddingA1, row.id, 'Floor plan')).toBe(true)
-    expect(await setFileVisibility(h.db, owner, F.orgA, F.weddingA1, row.id, 'internal')).toBe(true)
+    expect(await renameFile(h.db, owner, F.orgA, F.weddingA1, row.id, 'Floor plan')).toEqual({
+      ok: true,
+      value: null,
+    })
+    expect(await setFileVisibility(h.db, owner, F.orgA, F.weddingA1, row.id, 'internal')).toEqual({
+      ok: true,
+      value: null,
+    })
     expect(await getFile(h.db, owner, F.orgA, F.weddingA1, row.id)).toMatchObject({
       name: 'Floor plan',
       visibility: 'internal',
@@ -167,24 +182,27 @@ describe('renaming, visibility and removal', () => {
   it('cannot rename a pending row, nor a row through the wrong wedding', async () => {
     const row = pending()
     await createPendingFile(h.db, owner, F.orgA, F.weddingA1, row)
-    expect(await renameFile(h.db, owner, F.orgA, F.weddingA1, row.id, 'x')).toBe(false)
+    expect(await renameFile(h.db, owner, F.orgA, F.weddingA1, row.id, 'x')).toEqual(NOT_FOUND)
 
     await confirmFile(h.db, owner, F.orgA, F.weddingA1, row.id)
-    expect(await renameFile(h.db, owner, F.orgA, F.weddingA2, row.id, 'x')).toBe(false)
-    expect(await removeFile(h.db, owner, F.orgA, F.weddingA2, row.id)).toBe(false)
+    expect(await renameFile(h.db, owner, F.orgA, F.weddingA2, row.id, 'x')).toEqual(NOT_FOUND)
+    expect(await removeFile(h.db, owner, F.orgA, F.weddingA2, row.id)).toEqual(NOT_FOUND)
   })
 
   it('removes once and reports the second attempt as nothing to do', async () => {
     const row = pending()
     await createPendingFile(h.db, owner, F.orgA, F.weddingA1, row)
     await confirmFile(h.db, owner, F.orgA, F.weddingA1, row.id)
-    expect(await removeFile(h.db, owner, F.orgA, F.weddingA1, row.id)).toBe(true)
-    expect(await removeFile(h.db, owner, F.orgA, F.weddingA1, row.id)).toBe(false)
+    expect(await removeFile(h.db, owner, F.orgA, F.weddingA1, row.id)).toEqual({
+      ok: true,
+      value: null,
+    })
+    expect(await removeFile(h.db, owner, F.orgA, F.weddingA1, row.id)).toEqual(NOT_FOUND)
   })
 
   it('refuses every write to a couple and to another org', async () => {
-    expect(await removeFile(h.db, couple, F.orgA, F.weddingA1, F.fileA1Shared)).toBe(false)
-    expect(await removeFile(h.db, ownerB, F.orgA, F.weddingA1, F.fileA1Shared)).toBe(false)
+    expect(await removeFile(h.db, couple, F.orgA, F.weddingA1, F.fileA1Shared)).toEqual(NOT_FOUND)
+    expect(await removeFile(h.db, ownerB, F.orgA, F.weddingA1, F.fileA1Shared)).toEqual(NOT_FOUND)
     expect(await getFile(h.db, owner, F.orgA, F.weddingA1, F.fileA1Shared)).not.toBeNull()
   })
 })

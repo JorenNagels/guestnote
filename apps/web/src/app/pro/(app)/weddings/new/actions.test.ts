@@ -41,7 +41,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   currentMemberships.mockResolvedValue(as('owner'))
   currentOrgId.mockResolvedValue(ORG)
-  createWedding.mockResolvedValue({ id: 'w-new' })
+  createWedding.mockResolvedValue({ ok: true, value: { id: 'w-new' } })
 })
 
 describe('createWeddingAction', () => {
@@ -110,7 +110,7 @@ describe('createWeddingAction', () => {
   })
 
   it('says it failed when the repo gives nothing back, and does not redirect', async () => {
-    createWedding.mockResolvedValue(null)
+    createWedding.mockResolvedValue({ ok: false, reason: 'notFound' })
     const state = await createWeddingAction({}, form({ coupleDisplayName: 'Marie' }))
     expect(state.form).toBe('failed')
     expect(redirect).not.toHaveBeenCalled()

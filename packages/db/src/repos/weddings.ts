@@ -5,6 +5,7 @@ import { tasks } from '../schema/tasks.ts'
 import { type WEDDING_STATUSES, weddings } from '../schema/weddings.ts'
 import { withTenant } from '../tenant.ts'
 import { type Memberships, principalForOrg, principalForWedding } from './memberships.ts'
+import { fail, ok, type Result } from './result.ts'
 import { staffPrincipal } from './staff-principal.ts'
 
 /**
@@ -230,7 +231,7 @@ export async function getWeddingDetail(
 const SLUG_ATTEMPTS = 5
 
 /**
- * Creates a wedding. **Owner and admin only** -- `null` for anyone else.
+ * Creates a wedding. **Owner and admin only** -- `notFound` for anyone else.
  *
  * That is `principalForOrg` and nothing subtler: it returns `null` for a `member`, and an
  * `assignedStaff` principal must be pinned to a wedding that does not exist yet, so there is
@@ -246,16 +247,16 @@ const SLUG_ATTEMPTS = 5
  * five characters of a UUIDv7, which are random, and the retry is per candidate, not per call.
  * Rejected: a pre-check `select` (blind to other orgs) and catching error 23505 (aborts the tx).
  *
- * Returns `null` too if every candidate was taken, which needs five collisions in a row.
+ * Returns `notFound` too if every candidate was taken, which needs five collisions in a row.
  */
 export async function createWedding(
   db: Db,
   m: Memberships,
   orgId: string,
   input: WeddingInput & { readonly slugBase: string },
-): Promise<WeddingSummary | null> {
+): Promise<Result<WeddingSummary, 'notFound'>> {
   const principal = principalForOrg(m, orgId)
-  if (!principal) return null
+  if (!principal) return fail('notFound')
 
   return withTenant(db, principal, async (tx) => {
     for (let attempt = 0; attempt < SLUG_ATTEMPTS; attempt++) {
@@ -278,14 +279,14 @@ export async function createWedding(
         })
         .onConflictDoNothing()
         .returning(SUMMARY)
-      if (rows[0]) return rows[0]
+      if (rows[0]) return ok(rows[0])
     }
-    return null
+    return fail('notFound')
   })
 }
 
 /**
- * Saves the editable fields of one wedding. `null` when it is not there or the caller may not
+ * Saves the editable fields of one wedding. `notFound` when it is not there or the caller may not
  * write it -- owner, admin, and a member assigned to it; never a couple or outside editor.
  *
  * The slug is not editable here: it is the guest site's address, and changing it is a decision
@@ -297,9 +298,9 @@ export async function updateWedding(
   orgId: string,
   weddingId: string,
   input: WeddingInput,
-): Promise<WeddingDetail | null> {
+): Promise<Result<WeddingDetail, 'notFound'>> {
   const principal = staffPrincipal(m, orgId, weddingId)
-  if (!principal) return null
+  if (!principal) return fail('notFound')
 
   const rows = await withTenant(db, principal, async (tx) =>
     tx
@@ -319,7 +320,7 @@ export async function updateWedding(
       .where(and(eq(weddings.id, weddingId), isNull(weddings.deletedAt)))
       .returning(DETAIL),
   )
-  return rows[0] ?? null
+  return rows[0] ? ok(rows[0]) : fail('notFound')
 }
 
 export type WeddingTaskCounts = {

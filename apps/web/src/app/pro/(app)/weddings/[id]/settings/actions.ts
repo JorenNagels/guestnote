@@ -45,7 +45,7 @@ export async function updateWeddingAction(
   if (!parsed.ok) return { errors: parsed.errors, values }
 
   const saved = await updateWedding(getDb(), memberships, orgId, weddingId, parsed.value)
-  if (!saved) return { form: 'forbidden', values }
+  if (!saved.ok) return { form: 'forbidden', values }
 
   revalidatePath('/pro', 'layout')
   return { notice: 'saved' }
@@ -73,7 +73,7 @@ export async function saveEventAction(
   if (formData.get('intent') === 'remove') {
     if (eventId === '') return {}
     const removed = await deleteWeddingEvent(getDb(), memberships, orgId, weddingId, eventId)
-    if (!removed) return { form: 'forbidden' }
+    if (!removed.ok) return { form: 'forbidden' }
     revalidatePath('/pro', 'layout')
     return { notice: 'removed' }
   }
@@ -86,7 +86,7 @@ export async function saveEventAction(
     eventId === ''
       ? await createWeddingEvent(getDb(), memberships, orgId, weddingId, parsed.value)
       : await updateWeddingEvent(getDb(), memberships, orgId, weddingId, eventId, parsed.value)
-  if (!saved) return { form: 'forbidden', values }
+  if (!saved.ok) return { form: 'forbidden', values }
 
   revalidatePath('/pro', 'layout')
   return { notice: 'saved' }
