@@ -1,7 +1,6 @@
 import { listAssignedTasks, listWeddings, principalForOrg } from '@guestnote/db'
 import Link from 'next/link'
 import { getFormatter, getTranslations } from 'next-intl/server'
-import { todayCivil } from '../../../components/tasks/buckets.ts'
 import { TasksIntl } from '../../../components/tasks/provider.tsx'
 import { orderWeddings, todaySections, weddingLoads } from '../../../components/today/sections.ts'
 import { TaskList } from '../../../components/today/task-list.tsx'
@@ -9,6 +8,7 @@ import { WeddingCard } from '../../../components/today/wedding-card.tsx'
 import { getDb } from '../../../lib/db.ts'
 import { currentMemberships, currentOrgId } from '../../../lib/principal.ts'
 import { app } from '../../../lib/routes.ts'
+import { todayCivil } from '../../../lib/tminus.ts'
 
 /**
  * Today: the dashboard root, across every wedding. Slice S8 of docs/specs/0003, P16 of

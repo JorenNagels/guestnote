@@ -10,7 +10,7 @@ import type { TaskRow } from '@guestnote/db'
  * Every function takes `today` as `YYYY-MM-DD` instead of reading a clock. A Lambda runs in UTC
  * and a laptop does not, so a clock read in here makes the same wedding disagree with itself
  * between staging and a dev machine (`lib/tminus.ts` argues the same for the sidebar
- * countdown). The page reads the clock once, with `todayCivil`, and passes it down.
+ * countdown). The page reads the clock once, with `lib/tminus.ts`'s `todayCivil`, and passes it down.
  *
  * Task DATES are UTC civil dates (`TaskRow.dueDate`); only "which day is it now" is Brussels.
  * Those two only disagree for the two hours around midnight, and then a task due "today" flips
@@ -27,18 +27,6 @@ export type Filter = (typeof FILTERS)[number]
 export const SOON_DAYS = 14
 
 const DAY_MS = 86_400_000
-
-const BRUSSELS_DAY = new Intl.DateTimeFormat('en-CA', {
-  timeZone: 'Europe/Brussels',
-  year: 'numeric',
-  month: '2-digit',
-  day: '2-digit',
-})
-
-/** Today as `YYYY-MM-DD` in Brussels. */
-export function todayCivil(now: Date = new Date()): string {
-  return BRUSSELS_DAY.format(now)
-}
 
 /** Whole days from `from` to `to`, both `YYYY-MM-DD`. Positive when `to` is later. */
 export function daysBetween(from: string, to: string): number {

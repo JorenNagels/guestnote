@@ -27,6 +27,11 @@ const BRUSSELS_DAY = new Intl.DateTimeFormat('en-CA', {
 
 const DAY_MS = 86_400_000
 
+/** Today as `YYYY-MM-DD` in Brussels. The one place that decides what "today" is. */
+export function todayCivil(now: Date = new Date()): string {
+  return BRUSSELS_DAY.format(now)
+}
+
 function civilMs(iso: string): number | null {
   const m = CIVIL_DATE.exec(iso)
   if (!m) return null
@@ -42,7 +47,7 @@ function civilMs(iso: string): number | null {
 export function daysUntil(weddingDate: string | null, now: Date = new Date()): number | null {
   if (weddingDate === null) return null
   const target = civilMs(weddingDate)
-  const today = civilMs(BRUSSELS_DAY.format(now))
+  const today = civilMs(todayCivil(now))
   if (target === null || today === null) return null
   return (target - today) / DAY_MS
 }

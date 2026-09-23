@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { daysUntil, formatTMinus } from './tminus.ts'
+import { daysUntil, formatTMinus, todayCivil } from './tminus.ts'
 
 /**
  * Noon UTC is 13:00 or 14:00 in Brussels, so every `now` below is the same civil day in both
@@ -52,5 +52,12 @@ describe('formatTMinus', () => {
     expect(formatTMinus(42)).toBe('T-42')
     expect(formatTMinus(0)).toBe('T-0')
     expect(formatTMinus(-3)).toBe('T+3')
+  })
+})
+
+describe('todayCivil', () => {
+  it('reads today in Brussels, not UTC', () => {
+    expect(todayCivil(new Date('2027-03-09T23:30:00Z'))).toBe('2027-03-10')
+    expect(todayCivil(new Date('2027-03-10T12:00:00Z'))).toBe('2027-03-10')
   })
 })

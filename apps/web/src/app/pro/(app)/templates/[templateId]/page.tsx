@@ -2,12 +2,12 @@ import { getTemplate, listWeddings } from '@guestnote/db'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
-import { todayCivil } from '../../../../../components/tasks/buckets.ts'
 import { TemplateEditor, type WeddingOption } from '../../../../../components/templates/editor.tsx'
 import { TemplatesIntl } from '../../../../../components/templates/intl.tsx'
 import { getDb } from '../../../../../lib/db.ts'
 import { currentMemberships, currentOrgId } from '../../../../../lib/principal.ts'
 import { app } from '../../../../../lib/routes.ts'
+import { todayCivil } from '../../../../../lib/tminus.ts'
 import { isUuid } from '../../../../../lib/uuid.ts'
 
 /**

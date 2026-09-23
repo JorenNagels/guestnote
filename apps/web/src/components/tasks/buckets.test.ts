@@ -6,7 +6,6 @@ import {
   filterCounts,
   groupTasks,
   parseFilter,
-  todayCivil,
 } from './buckets.ts'
 import { task } from './fixture.ts'
 
@@ -111,8 +110,4 @@ describe('dates', () => {
   })
 
   // 23:30 UTC on 9 March is 00:30 on 10 March in Brussels (CET, UTC+1): the planner's today.
-  it('reads today in Brussels, not UTC', () => {
-    expect(todayCivil(new Date('2027-03-09T23:30:00Z'))).toBe('2027-03-10')
-    expect(todayCivil(new Date('2027-03-10T12:00:00Z'))).toBe('2027-03-10')
-  })
 })
