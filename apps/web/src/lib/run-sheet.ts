@@ -99,6 +99,22 @@ export function splitDuration(minutes: number): { h: number; m: number } {
   return { h: Math.floor(minutes / 60), m: minutes % 60 }
 }
 
+/**
+ * The 15/30/60-minute reading of a length: "45 min", "1 u" or "1 u 30". The words are the
+ * caller's `minutes` / `hours` / `hoursMinutes` keys, so the planner's run sheet and the vendor
+ * link read the same in every locale. Typed as a plain function so a server `getTranslations`
+ * and a client `useTranslations` both fit.
+ */
+export function formatDuration(
+  minutes: number,
+  t: (key: 'minutes' | 'hours' | 'hoursMinutes', values: { h?: number; m?: number }) => string,
+): string {
+  const { h, m } = splitDuration(minutes)
+  if (h > 0 && m > 0) return t('hoursMinutes', { h, m })
+  if (h > 0) return t('hours', { h })
+  return t('minutes', { m })
+}
+
 export const RUN_SHEET_LIMITS = { title: 120, place: 120, maxDuration: DAY } as const
 
 /** What the item sheet posts. Everything is text: a Server Function argument is whatever the body said. */

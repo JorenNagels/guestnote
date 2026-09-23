@@ -1,6 +1,7 @@
 import type { WeddingDetail } from '@guestnote/db'
 import { Pill, type PillTone } from '@guestnote/ui/pill'
 import { getLocale, getTranslations } from 'next-intl/server'
+import { formatCivilDate } from '../../lib/civil-date.ts'
 import { daysUntil, formatTMinus } from '../../lib/tminus.ts'
 
 /**
@@ -16,17 +17,6 @@ const STATUS_TONE: Record<string, PillTone> = {
   draft: 'neutral',
   live: 'success',
   archived: 'neutral',
-}
-
-export function formatCivilDate(locale: string, iso: string): string {
-  // UTC on purpose, for the reason `weddings/[id]/page.tsx` gives: a civil date read as UTC
-  // midnight renders as the day before in any zone west of Greenwich if formatted locally.
-  return new Intl.DateTimeFormat(locale, {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(new Date(iso))
 }
 
 export async function WeddingHeader({

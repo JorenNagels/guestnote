@@ -3,11 +3,9 @@ import { Card } from '@guestnote/ui/card'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getLocale, getTranslations } from 'next-intl/server'
-import {
-  formatCivilDate,
-  WeddingHeader,
-} from '../../../../../components/wedding/wedding-header.tsx'
+import { WeddingHeader } from '../../../../../components/wedding/wedding-header.tsx'
 import { WeddingTabs } from '../../../../../components/wedding/wedding-tabs.tsx'
+import { formatCivilDate } from '../../../../../lib/civil-date.ts'
 import { getDb } from '../../../../../lib/db.ts'
 import { currentMemberships, currentOrgId } from '../../../../../lib/principal.ts'
 import { app } from '../../../../../lib/routes.ts'

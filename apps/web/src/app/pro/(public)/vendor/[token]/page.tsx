@@ -1,9 +1,9 @@
 import { getVendorLinkView, resolveVendorLinkByHash } from '@guestnote/db'
 import { getLocale, getTranslations } from 'next-intl/server'
-import { formatCivilDate } from '../../../../../components/wedding/wedding-header.tsx'
 import { hashBearerToken } from '../../../../../lib/bearer-token.ts'
+import { formatCivilDate } from '../../../../../lib/civil-date.ts'
 import { getDb } from '../../../../../lib/db.ts'
-import { splitDuration } from '../../../../../lib/run-sheet.ts'
+import { formatDuration } from '../../../../../lib/run-sheet.ts'
 
 /**
  * `app.guestnote.be/vendor/<token>` -- spec 0003, S10. The one screen a vendor with no
@@ -119,14 +119,6 @@ export default async function VendorLinkPage({ params }: { params: Promise<{ tok
       </div>
     </div>
   )
-}
-
-/** "45 min", "1 h" or "1 h 30" -- same three-shape reading `run-sheet-view.tsx` uses. */
-function formatDuration(minutes: number, t: Awaited<ReturnType<typeof getTranslations>>): string {
-  const { h, m } = splitDuration(minutes)
-  if (h > 0 && m > 0) return t('hoursMinutes', { h, m })
-  if (h > 0) return t('hours', { h })
-  return t('minutes', { m })
 }
 
 /** The one outcome that is not the vendor's own data: unknown, expired or revoked, all alike. */

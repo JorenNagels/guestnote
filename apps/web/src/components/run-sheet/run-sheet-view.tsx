@@ -10,27 +10,19 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { Fragment, useState, useTransition } from 'react'
 import { shiftRunSheetItem } from '../../app/pro/(app)/weddings/[id]/run-sheet/actions.ts'
+import { formatCivilDate } from '../../lib/civil-date.ts'
 import { app } from '../../lib/routes.ts'
 import {
   computeSchedule,
+  formatDuration,
   GAP_WARN_MIN,
   nextStartClock,
   type ScheduleRow,
-  splitDuration,
 } from '../../lib/run-sheet.ts'
-import { formatCivilDate } from '../wedding/wedding-header.tsx'
 import { ItemSheet } from './item-sheet.tsx'
 import { MoveButtons } from './move-buttons.tsx'
 
 type Translate = ReturnType<typeof useTranslations>
-
-/** The 15/30/60-minute reading of a length: "45 min", "1 u" or "1 u 30" (`list.hours*` per locale). */
-function formatDuration(minutes: number, list: Translate): string {
-  const { h, m } = splitDuration(minutes)
-  if (h > 0 && m > 0) return list('hoursMinutes', { h, m })
-  if (h > 0) return list('hours', { h })
-  return list('minutes', { m })
-}
 
 /**
  * The run sheet screen: an event picker (tabs when there is more than one), the chosen event's

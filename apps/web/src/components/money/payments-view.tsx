@@ -10,11 +10,12 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useState, useTransition } from 'react'
 import { markPaymentPaid } from '../../app/pro/(app)/weddings/[id]/payments/actions.ts'
+import { formatCivilDate } from '../../lib/civil-date.ts'
 import {
   civilDateOf,
   daysBetween,
   formatCents,
-  formatCivilDate,
+  moneyLocale,
   paymentState,
   paymentTotals,
 } from '../../lib/money.ts'
@@ -71,7 +72,11 @@ export function PaymentsView({
   const whenLabel = (p: PaymentRow): string => {
     if (p.paidAt) {
       return tw('paidOn', {
-        date: formatCivilDate(civilDateOf(p.paidAt, wedding.timezone), locale),
+        date: formatCivilDate(
+          moneyLocale(locale),
+          civilDateOf(p.paidAt, wedding.timezone),
+          'short',
+        ),
       })
     }
     const days = daysBetween(today, p.dueOn)
@@ -164,7 +169,7 @@ export function PaymentsView({
                 const payee = p.vendorName ?? p.lineLabel
                 // A payee often has a deposit and a balance, so the name a screen reader gets
                 // carries the due date: two buttons called "Edit payment to X" are not tellable apart.
-                const named = `${payee}, ${formatCivilDate(p.dueOn, locale)}`
+                const named = `${payee}, ${formatCivilDate(moneyLocale(locale), p.dueOn, 'short')}`
                 const late = state === 'overdue'
                 return (
                   <tr key={p.id}>
@@ -179,7 +184,7 @@ export function PaymentsView({
                         dateTime={p.dueOn}
                         className="block font-mono text-[12.5px] tabular-nums"
                       >
-                        {formatCivilDate(p.dueOn, locale)}
+                        {formatCivilDate(moneyLocale(locale), p.dueOn, 'short')}
                       </time>
                       <span
                         className={

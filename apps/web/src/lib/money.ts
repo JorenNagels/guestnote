@@ -58,20 +58,6 @@ export function formatCents(cents: number, weddingLocale: string): string {
   }).format(cents / 100)
 }
 
-/**
- * A civil date (`YYYY-MM-DD`), or the paid instant's date, in the wedding's zone.
- * `due_on` is a `date`: it is read as UTC midnight and formatted in UTC so no zone can move it
- * (the same reason `weddings/[id]/page.tsx` does this).
- */
-export function formatCivilDate(iso: string, weddingLocale: string): string {
-  return new Intl.DateTimeFormat(moneyLocale(weddingLocale), {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'UTC',
-  }).format(new Date(`${iso}T00:00:00Z`))
-}
-
 const FALLBACK_ZONE = 'Europe/Brussels'
 
 /**
