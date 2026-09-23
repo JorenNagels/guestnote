@@ -63,7 +63,7 @@ export function TemplateEditor({
   weddings: WeddingOption[]
   defaultWeddingId: string | null
 }) {
-  const t = useTranslations('app.s7')
+  const t = useTranslations('app.templates')
   const format = useFormatter()
   const router = useRouter()
   const [weddingId, setWeddingId] = useState(defaultWeddingId ?? '')
@@ -279,7 +279,7 @@ function ApplyPanel({
   onWedding: (id: string) => void
   hasItems: boolean
 }) {
-  const t = useTranslations('app.s7')
+  const t = useTranslations('app.templates')
   const format = useFormatter()
   const selectId = useId()
   const [pending, startTransition] = useTransition()
@@ -367,7 +367,7 @@ function ApplyPanel({
 }
 
 function AddItemForm({ templateId }: { templateId: string }) {
-  const t = useTranslations('app.s7')
+  const t = useTranslations('app.templates')
   const formId = useId()
   const title = useRef<HTMLInputElement>(null)
   const [values, setValues] = useState<ItemFormValues>(EMPTY_ITEM)
@@ -434,7 +434,7 @@ function ItemSheet({
   item: TemplateItemRow
   onClose: () => void
 }) {
-  const t = useTranslations('app.s7')
+  const t = useTranslations('app.templates')
   const formId = useId()
   const [values, setValues] = useState<ItemFormValues>(() => formFromItem(item))
   const [pending, startTransition] = useTransition()

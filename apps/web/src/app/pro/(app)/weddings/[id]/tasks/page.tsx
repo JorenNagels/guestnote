@@ -29,7 +29,7 @@ export default async function ChecklistPage({
     searchParams,
     currentMemberships(),
     currentOrgId(),
-    getTranslations('app.s2'),
+    getTranslations('app.tasks'),
   ])
   if (!memberships || !orgId || !isUuid(id)) notFound()
 

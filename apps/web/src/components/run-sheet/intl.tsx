@@ -8,14 +8,16 @@ import type { ReactNode } from 'react'
  * dies (measured for S4, 2026-09-21; `components/money/intl.tsx` has the story).
  *
  * Mounted in the route's `layout.tsx` and not the page, so `error.tsx` sits inside it as well:
- * an error boundary renders below the layout and above the page. Only `app.s9` is sent to the
- * browser. Not shared with the money slice's provider: that one carries `app.s4`, and a shared
+ * an error boundary renders below the layout and above the page. Only `app.runSheet` is sent to the
+ * browser. Not shared with the money slice's provider: that one carries `app.money`, and a shared
  * file is not this slice's to edit.
  */
 export async function RunSheetIntl({ children }: { children: ReactNode }) {
   const messages = await getMessages()
   const app = messages.app as Record<string, unknown> | undefined
   return (
-    <NextIntlClientProvider messages={{ app: { s9: app?.s9 } }}>{children}</NextIntlClientProvider>
+    <NextIntlClientProvider messages={{ app: { runSheet: app?.runSheet } }}>
+      {children}
+    </NextIntlClientProvider>
   )
 }

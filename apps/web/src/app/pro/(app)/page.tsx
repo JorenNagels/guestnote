@@ -37,7 +37,7 @@ export default async function TodayPage() {
   const [memberships, orgId, t, format] = await Promise.all([
     currentMemberships(),
     currentOrgId(),
-    getTranslations('app.s8'),
+    getTranslations('app.today'),
     getFormatter(),
   ])
 

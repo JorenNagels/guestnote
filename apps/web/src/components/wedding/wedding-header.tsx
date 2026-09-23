@@ -28,7 +28,7 @@ export async function WeddingHeader({
   eyebrow?: string
 }) {
   const [t, app, locale] = await Promise.all([
-    getTranslations('app.s1.header'),
+    getTranslations('app.weddingPages.header'),
     getTranslations('app.weddings.status'),
     getLocale(),
   ])

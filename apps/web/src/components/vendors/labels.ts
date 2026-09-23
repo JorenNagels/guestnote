@@ -7,7 +7,7 @@ import type { ManageLinkLabels, WeddingLabels } from './wedding-vendors-view.tsx
 /**
  * The client components take their copy as props, because the dashboard has no
  * `NextIntlClientProvider` and the shell set that convention (`ShellLabels`). These read the
- * `app.s3` catalogue on the server and hand plain strings across.
+ * `app.vendors` catalogue on the server and hand plain strings across.
  *
  * `raw` for the three templates that carry `{name}`: a formatted read throws for the missing
  * variable, and the browser fills it per row (the same trap `(app)/layout.tsx` records for the
@@ -84,7 +84,7 @@ export function directoryLabels(t: Translate): DirectoryLabels {
 }
 
 /**
- * `app.s10`'s catalogue, not `app.s3`'s -- S10 owns the "create/copy/revoke a signed link"
+ * `app.vendorLink`'s catalogue, not `app.vendors`'s -- S10 owns the "create/copy/revoke a signed link"
  * copy (spec 0003), including the `manageLink` block this vendor-detail sheet renders and
  * the `/vendor/[token]` page's own strings the rest of that file reads directly. Kept as its
  * own function, taking its own translator, rather than folded into `weddingLabels` reading

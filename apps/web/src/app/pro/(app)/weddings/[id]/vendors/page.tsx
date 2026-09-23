@@ -20,10 +20,10 @@ export default async function WeddingVendorsPage({ params }: { params: Promise<{
     params,
     currentMemberships(),
     currentOrgId(),
-    getTranslations('app.s3'),
+    getTranslations('app.vendors'),
     // `manageLink` (create/copy/revoke a signed link, spec 0003 S10) lives in S10's own
     // catalogue, not S3's -- see `labels.ts`'s `manageLinkLabels`.
-    getTranslations('app.s10'),
+    getTranslations('app.vendorLink'),
   ])
   if (!memberships || !orgId) notFound()
 

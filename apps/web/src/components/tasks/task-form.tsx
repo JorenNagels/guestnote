@@ -37,7 +37,7 @@ export function TaskForm({
   onDone: () => void
   onCancel: () => void
 }) {
-  const t = useTranslations('app.s2')
+  const t = useTranslations('app.tasks')
   const format = useFormatter()
   const uid = useId()
   const [values, setValues] = useState(initial)

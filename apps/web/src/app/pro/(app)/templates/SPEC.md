@@ -55,7 +55,7 @@ through S2's `createTasks` (`packages/db/src/repos/tasks.ts`), unchanged.
 
 ## Copy
 
-`app.s7.*` in `apps/web/messages/app/s7.{nl,en,fr}.json`. NL first. The heading reuses the sidebar word.
+`app.templates.*` in `apps/web/messages/app/templates.{nl,en,fr}.json`. NL first. The heading reuses the sidebar word.
 
 ## Done
 

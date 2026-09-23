@@ -24,7 +24,7 @@ export async function WeddingCard({
   load: WeddingLoad | undefined
 }) {
   const [t, shell, format, locale] = await Promise.all([
-    getTranslations('app.s8'),
+    getTranslations('app.today'),
     getTranslations('app.shell'),
     getFormatter(),
     getLocale(),

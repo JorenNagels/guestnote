@@ -32,8 +32,8 @@ export function PaymentSheet({
   lines: readonly PaymentLineOption[]
   onClose: () => void
 }) {
-  const t = useTranslations('app.s4.paymentForm')
-  const te = useTranslations('app.s4.errors')
+  const t = useTranslations('app.money.paymentForm')
+  const te = useTranslations('app.money.errors')
   const [lineId, setLineId] = useState(payment?.budgetLineId ?? '')
   const [dueOn, setDueOn] = useState(payment?.dueOn ?? today)
   const [amount, setAmount] = useState(payment ? centsToInput(payment.amountCents, locale) : '')

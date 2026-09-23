@@ -28,7 +28,7 @@ import { formatDuration } from '../../../../../lib/run-sheet.ts'
 export default async function VendorLinkPage({ params }: { params: Promise<{ token: string }> }) {
   const [{ token }, t, locale] = await Promise.all([
     params,
-    getTranslations('app.s10'),
+    getTranslations('app.vendorLink'),
     getLocale(),
   ])
 

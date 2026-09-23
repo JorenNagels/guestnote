@@ -16,7 +16,7 @@ import { getMailer } from './mailer.ts'
  * file every other slice imports; it reuses `getMailer()`, so it sends through the same
  * transport and writes to the same `mail_deliveries`.
  *
- * ## Copy is in the base catalogues, not `messages/app/s6.*`
+ * ## Copy is in the base catalogues, not `messages/app/team.*`
  *
  * `i18n/catalogue.ts` says mail copy stays under `email.*` in the three base files, because
  * this reads them without a request. `email.staffInvite` is there.

@@ -21,7 +21,7 @@ export default async function NewWeddingPage() {
   const [memberships, orgId, t, status] = await Promise.all([
     currentMemberships(),
     currentOrgId(),
-    getTranslations('app.s1'),
+    getTranslations('app.weddingPages'),
     getTranslations('app.weddings.status'),
   ])
   if (!memberships || !orgId) notFound()

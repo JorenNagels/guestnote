@@ -19,7 +19,7 @@ import { VisibilityTag } from './visibility-tag.tsx'
  * is that these lists are printed in black and white.
  */
 export function TaskRowView({ task, today }: { task: Task; today: string }) {
-  const t = useTranslations('app.s2')
+  const t = useTranslations('app.tasks')
   const format = useFormatter()
   const [failed, setFailed] = useState(false)
 

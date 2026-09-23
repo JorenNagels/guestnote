@@ -24,7 +24,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
     params,
     currentMemberships(),
     currentOrgId(),
-    getTranslations('app.s1'),
+    getTranslations('app.weddingPages'),
     getTranslations('app.weddings.status'),
     getTranslations('app.shell.nav'),
   ])

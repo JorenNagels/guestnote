@@ -47,8 +47,8 @@ export function ItemSheet({
   canMoveDown: boolean
   onClose: () => void
 }) {
-  const t = useTranslations('app.s9.sheet')
-  const te = useTranslations('app.s9.errors')
+  const t = useTranslations('app.runSheet.sheet')
+  const te = useTranslations('app.runSheet.errors')
   const [startsAt, setStartsAt] = useState(item?.startsAt ?? defaultStart)
   const [duration, setDuration] = useState(item ? String(item.durationMin) : '15')
   const [what, setWhat] = useState(item?.title ?? '')

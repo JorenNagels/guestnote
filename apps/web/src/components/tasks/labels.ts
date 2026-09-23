@@ -4,7 +4,7 @@ import { daysBetween, isOpen } from './buckets.ts'
 /**
  * Which message a task's due cell and rule line should use. Pure, so the branching is tested
  * without rendering; the components only turn a key into a string. Keys are relative to
- * `app.s2`.
+ * `app.tasks`.
  */
 export type LabelKey = { key: string; values?: { days: number } }
 

@@ -91,7 +91,7 @@ export async function deleteTemplateAction(templateId: string): Promise<EditResu
 export async function duplicateTemplateAction(templateId: string): Promise<DuplicateResult> {
   const ctx = await writer(templateId)
   if (!ctx) return FORBIDDEN
-  const t = await getTranslations('app.s7')
+  const t = await getTranslations('app.templates')
   // The source's name is read inside the repo's transaction; only the suffix is copy.
   const r = await duplicateTemplate(getDb(), ctx.m, ctx.orgId, templateId, t('copySuffix'))
   if (!r.ok) return { ok: false, error: r.reason }

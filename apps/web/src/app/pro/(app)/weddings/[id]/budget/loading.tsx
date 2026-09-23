@@ -2,7 +2,7 @@ import { getTranslations } from 'next-intl/server'
 
 /** The skeleton. `aria-busy` and a visible-to-AT word, because a grey box says nothing. */
 export default async function Loading() {
-  const t = await getTranslations('app.s4')
+  const t = await getTranslations('app.money')
   return (
     <div aria-busy="true" className="mx-auto max-w-5xl px-6 py-8">
       <p role="status" className="sr-only">

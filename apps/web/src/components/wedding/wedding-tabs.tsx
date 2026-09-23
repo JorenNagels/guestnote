@@ -98,7 +98,7 @@ export async function WeddingTabs({
   const [t, nav, s1] = await Promise.all([
     getTranslations('app.shell.nav'),
     getTranslations('app.nav'),
-    getTranslations('app.s1.tabs'),
+    getTranslations('app.weddingPages.tabs'),
   ])
   return (
     <WeddingTabsView

@@ -8,6 +8,6 @@ import { useTranslations } from 'next-intl'
  * be told the meaning of amber.
  */
 export function VisibilityTag({ visibility }: { visibility: TaskVisibility }) {
-  const t = useTranslations('app.s2.visibility')
+  const t = useTranslations('app.tasks.visibility')
   return <Pill tone={visibility === 'internal' ? 'warning' : 'info'}>{t(visibility)}</Pill>
 }

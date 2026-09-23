@@ -30,7 +30,7 @@ export default async function TemplatePage({
     params,
     currentMemberships(),
     currentOrgId(),
-    getTranslations('app.s7'),
+    getTranslations('app.templates'),
   ])
   if (!memberships || !orgId || !isUuid(templateId)) notFound()
 

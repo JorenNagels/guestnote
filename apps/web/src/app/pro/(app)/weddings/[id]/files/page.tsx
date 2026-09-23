@@ -20,7 +20,7 @@ import {
  * the same from here. Nothing is signed at render; a download mints its own URL on click.
  */
 export default async function FilesPage({ params }: { params: Promise<{ id: string }> }) {
-  const [{ id }, t, locale] = await Promise.all([params, getTranslations('app.s5'), getLocale()])
+  const [{ id }, t, locale] = await Promise.all([params, getTranslations('app.files'), getLocale()])
 
   const rows = await listWeddingFiles('file', id)
   if (!rows) notFound()

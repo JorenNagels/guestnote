@@ -31,7 +31,7 @@ export function Checklist({
   filter: Filter
   today: string
 }) {
-  const t = useTranslations('app.s2')
+  const t = useTranslations('app.tasks')
   const [adding, setAdding] = useState(false)
 
   const counts = filterCounts(tasks, today)

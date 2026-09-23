@@ -8,7 +8,7 @@ import type { WeddingEventInput, WeddingInput } from '@guestnote/db'
  * A Server Function is a POST, and its return value crosses to the client. Returning a
  * sentence would make the server pick the language and would put copy in an `actions.ts`
  * where no catalogue reaches it. So each failure is a short code, and
- * `wedding-form.tsx` maps the code to `app.s1.errors.*`. Rejected: throwing -- Next turns a
+ * `wedding-form.tsx` maps the code to `app.weddingPages.errors.*`. Rejected: throwing -- Next turns a
  * thrown error into a generic 500 page in production and the field the person got wrong is lost.
  *
  * ## Why this re-checks what the browser already checked

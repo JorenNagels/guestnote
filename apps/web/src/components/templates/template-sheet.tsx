@@ -29,7 +29,7 @@ type Props = {
  * route, not because this component pushes a row in.
  */
 export function TemplateSheet({ template, onSubmit, onDelete, onClose }: Props) {
-  const t = useTranslations('app.s7')
+  const t = useTranslations('app.templates')
   const formId = useId()
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)

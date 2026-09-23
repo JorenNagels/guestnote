@@ -12,7 +12,7 @@ import { confirmImageUpload, removeImage, renameImage, startImageUpload } from '
  * every wedding screen.
  */
 export default async function MoodboardPage({ params }: { params: Promise<{ id: string }> }) {
-  const [{ id }, t] = await Promise.all([params, getTranslations('app.s5')])
+  const [{ id }, t] = await Promise.all([params, getTranslations('app.files')])
 
   const tiles = await listWeddingImages(id)
   if (!tiles) notFound()

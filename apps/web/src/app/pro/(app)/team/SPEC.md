@@ -69,7 +69,7 @@ don't delete" rule.
 
 ## Copy
 
-Screen keys live in `apps/web/messages/app/s6.{nl,en,fr}.json` under `app.s6`. The invite MAIL copy is
+Screen keys live in `apps/web/messages/app/team.{nl,en,fr}.json` under `app.team`. The invite MAIL copy is
 `email.staffInvite` in the three base catalogues, because `lib/mailer.ts` and `lib/invite-mail.ts` read
 those without a request (`i18n/catalogue.ts`). NL first. No hard-coded strings.
 

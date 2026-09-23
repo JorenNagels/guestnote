@@ -24,9 +24,9 @@ import { type FormLabels, VendorForm } from './vendor-form.tsx'
 
 /**
  * Spec 0003, S10: create/copy/revoke a vendor's signed link. Read by `LinkSheet` alone, and
- * kept as its own type (not folded into `WeddingLabels`' flat shape) so `app.s10`'s catalogue
+ * kept as its own type (not folded into `WeddingLabels`' flat shape) so `app.vendorLink`'s catalogue
  * stays S10's file -- `catalogue.ts` merges one slice's JSON per key, and `WeddingLabels`
- * already reads `app.s3`.
+ * already reads `app.vendors`.
  */
 export type ManageLinkLabels = {
   title: string

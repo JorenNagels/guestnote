@@ -18,7 +18,7 @@ export default async function TemplatesPage() {
   const [memberships, orgId, t] = await Promise.all([
     currentMemberships(),
     currentOrgId(),
-    getTranslations('app.s7'),
+    getTranslations('app.templates'),
   ])
   if (!memberships || !orgId) notFound()
 

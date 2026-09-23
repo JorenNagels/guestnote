@@ -27,7 +27,7 @@ export function Comments({
   visibility: TaskVisibility
   comments: TaskCommentRow[]
 }) {
-  const t = useTranslations('app.s2')
+  const t = useTranslations('app.tasks')
   const format = useFormatter()
   const uid = useId()
   const [body, setBody] = useState('')

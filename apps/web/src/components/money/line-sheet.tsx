@@ -40,8 +40,8 @@ export function LineSheet({
   vendors: readonly VendorOption[]
   onClose: () => void
 }) {
-  const t = useTranslations('app.s4.lineForm')
-  const te = useTranslations('app.s4.errors')
+  const t = useTranslations('app.money.lineForm')
+  const te = useTranslations('app.money.errors')
   const [category, setCategory] = useState(line?.category ?? defaultCategory)
   const [label, setLabel] = useState(line?.label ?? '')
   const [estimate, setEstimate] = useState(line ? centsToInput(line.estimateCents, locale) : '')

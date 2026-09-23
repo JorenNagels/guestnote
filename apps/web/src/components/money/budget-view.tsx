@@ -41,7 +41,7 @@ export function BudgetView({
   payments: BudgetPayment[]
   vendors: VendorOption[]
 }) {
-  const t = useTranslations('app.s4.budget')
+  const t = useTranslations('app.money.budget')
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set())
   const [sheet, setSheet] = useState<SheetState>(null)
 

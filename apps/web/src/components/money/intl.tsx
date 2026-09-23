@@ -8,7 +8,7 @@ import type { ReactNode } from 'react'
  * finds no context and the page dies -- measured on the first browser run, 2026-09-21.
  *
  * It is mounted in each route's `layout.tsx` and not in the page, so `error.tsx` sits inside it
- * too: an error boundary renders BELOW the layout and ABOVE the page. Only `app.s4` is sent to
+ * too: an error boundary renders BELOW the layout and ABOVE the page. Only `app.money` is sent to
  * the browser; the other slices' copy would be dead weight in the payload. Rejected: a provider
  * in the shared `(app)/layout.tsx`, which this slice may not edit and which would ship every
  * slice's copy to every screen.
@@ -17,6 +17,8 @@ export async function MoneyIntl({ children }: { children: ReactNode }) {
   const messages = await getMessages()
   const app = messages.app as Record<string, unknown> | undefined
   return (
-    <NextIntlClientProvider messages={{ app: { s4: app?.s4 } }}>{children}</NextIntlClientProvider>
+    <NextIntlClientProvider messages={{ app: { money: app?.money } }}>
+      {children}
+    </NextIntlClientProvider>
   )
 }

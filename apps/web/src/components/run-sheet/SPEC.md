@@ -54,7 +54,7 @@ Nothing here contradicts spec 0003. Prototype range: `design-system/planner-prot
 
 ## Copy (NL first)
 
-Files: `apps/web/messages/app/s9.{nl,en,fr}.json`, under `app.s9`. No hard-coded strings.
+Files: `apps/web/messages/app/runSheet.{nl,en,fr}.json`, under `app.runSheet`. No hard-coded strings.
 NL headings: Draaiboek, Tijd, Duur, Wat gebeurt er, Wie, Waar, Onderdeel toevoegen, Overlap, Leegte.
 
 ## Done

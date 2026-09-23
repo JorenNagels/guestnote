@@ -2,7 +2,7 @@ import type { FilesLabels } from './files-screen.tsx'
 import type { MoodboardLabels } from './moodboard-screen.tsx'
 
 /**
- * Builds the two screens' label objects from `app.s5`.
+ * Builds the two screens' label objects from `app.files`.
  *
  * `raw`, never a formatted read: several strings are templates with a `{name}` the browser
  * fills per row, and a formatted `t()` with no value for it fails rather than returning the

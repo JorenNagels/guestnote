@@ -30,8 +30,8 @@ No loading state: the list is server-rendered by the layout.
 
 ## Copy
 
-`app.shell.*` in `apps/web/messages/app/shell.{nl,en,fr}.json`. Slices s1..s10 have empty files
-under the same directory, merged at `app.<slice>` by `i18n/catalogue.ts`. NL first.
+`app.shell.*` in `apps/web/messages/app/shell.{nl,en,fr}.json`. The feature files (`weddingPages`, `tasks`, ... `vendorLink`) sit
+in the same directory, merged at `app.<feature>` by `i18n/catalogue.ts`. NL first.
 
 ## Done
 

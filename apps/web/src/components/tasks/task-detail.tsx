@@ -33,7 +33,7 @@ export function TaskDetail({
   weddingDate: string | null
   today: string
 }) {
-  const t = useTranslations('app.s2')
+  const t = useTranslations('app.tasks')
   const format = useFormatter()
   const [editing, setEditing] = useState(false)
   const [error, setError] = useState<string | null>(null)

@@ -75,7 +75,7 @@ Compact density: nothing here sets its own row height; the strip uses `--control
 
 ## Copy
 
-NL first, in `apps/web/messages/app/s1.{nl,en,fr}.json` under `app.s1`. Errors are keys
+NL first, in `apps/web/messages/app/weddingPages.{nl,en,fr}.json` under `app.weddingPages`. Errors are keys
 (`required`, `tooLong`, `invalidDate`, `invalidNumber`, `invalidTime`, `invalidColor`, `forbidden`,
 `failed`) that the client maps to sentences, so a Server Function never returns prose.
 

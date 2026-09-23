@@ -48,7 +48,7 @@ Nothing here contradicts spec 0003. Prototype range: `design-system/planner-prot
 
 ## Copy (NL first)
 
-Files: `apps/web/messages/app/s4.{nl,en,fr}.json`, under `app.s4`. No hard-coded strings.
+Files: `apps/web/messages/app/money.{nl,en,fr}.json`, under `app.money`. No hard-coded strings.
 NL headings: Budget, Betalingen, Toegekend, Uitgegeven, Resterend, Betaalschema, Betaald, Openstaand,
 Achterstallig, Regel toevoegen, Betaling toevoegen, Markeer als betaald.
 
@@ -63,7 +63,7 @@ Achterstallig, Regel toevoegen, Betaling toevoegen, Markeer als betaald.
 ## Where the build differs from the plan above
 
 - The app has no `NextIntlClientProvider` above the routes, so each route has a `layout.tsx` that mounts
-  `components/money/intl.tsx` with only `app.s4`. It is in the layout and not the page so `error.tsx` is inside it.
+  `components/money/intl.tsx` with only `app.money`. It is in the layout and not the page so `error.tsx` is inside it.
 - The payment buttons' accessible names carry the due date ("Edit payment to X, 26 Jun 2027"): a payee
   with a deposit and a balance otherwise has two identical buttons.
 - Paid can be above Spent (a payment on a line with no actual yet), so the Total row can read above 100%.

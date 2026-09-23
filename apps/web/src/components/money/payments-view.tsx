@@ -46,10 +46,10 @@ export function PaymentsView({
   payments: PaymentRow[]
   lines: PaymentLineOption[]
 }) {
-  const t = useTranslations('app.s4.payments')
-  const ts = useTranslations('app.s4.status')
-  const tw = useTranslations('app.s4.when')
-  const te = useTranslations('app.s4.errors')
+  const t = useTranslations('app.money.payments')
+  const ts = useTranslations('app.money.status')
+  const tw = useTranslations('app.money.when')
+  const te = useTranslations('app.money.errors')
   const [sheet, setSheet] = useState<SheetState>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState<MoneyError | null>(null)

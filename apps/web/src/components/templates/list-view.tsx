@@ -25,7 +25,7 @@ export function TemplateList({
   templates: TemplateSummary[]
   canWrite: boolean
 }) {
-  const t = useTranslations('app.s7')
+  const t = useTranslations('app.templates')
   const router = useRouter()
   const [creating, setCreating] = useState(false)
 

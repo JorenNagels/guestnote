@@ -72,9 +72,9 @@ unauthenticated `(public)` layout beside `login` and `invite`)
 
 ## Copy
 
-`app.s10.*` in `apps/web/messages/app/s10.{nl,en,fr}.json`. NL first. `manageLink.*` is read by
-`labels.ts`'s `manageLinkLabels` from a second `getTranslations('app.s10')` call in
-`weddings/[id]/vendors/page.tsx`, since `weddingLabels` otherwise reads `app.s3`.
+`app.vendorLink.*` in `apps/web/messages/app/vendorLink.{nl,en,fr}.json`. NL first. `manageLink.*` is read by
+`labels.ts`'s `manageLinkLabels` from a second `getTranslations('app.vendorLink')` call in
+`weddings/[id]/vendors/page.tsx`, since `weddingLabels` otherwise reads `app.vendors`.
 
 ## Done
 

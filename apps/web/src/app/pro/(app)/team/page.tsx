@@ -36,7 +36,7 @@ export default async function TeamPage() {
     currentOrgId(),
     currentOrgs(),
     currentSession(),
-    getTranslations('app.s6'),
+    getTranslations('app.team'),
   ])
   const orgName = orgs.find((o) => o.id === orgId)?.name ?? ''
 
@@ -143,8 +143,8 @@ export default async function TeamPage() {
 
         <InviteForm copy={inviteCopy} invite={inviteTeamMember} />
 
-        <section aria-labelledby="s6-pending-title">
-          <h2 id="s6-pending-title" className="text-base font-semibold">
+        <section aria-labelledby="team-pending-title">
+          <h2 id="team-pending-title" className="text-base font-semibold">
             {t('pending.title')}
           </h2>
           {pendingRows.length === 0 ? (

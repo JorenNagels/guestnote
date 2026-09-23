@@ -24,7 +24,7 @@ export async function TaskList({
   tasks: readonly AssignedTaskRow[]
   today: string
 }) {
-  const t = await getTranslations('app.s8')
+  const t = await getTranslations('app.today')
   return (
     <section aria-labelledby={id} className="mt-7">
       <div className="mb-2 flex items-baseline justify-between gap-3">

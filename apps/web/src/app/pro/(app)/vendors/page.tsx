@@ -18,7 +18,7 @@ export default async function VendorsPage() {
   const [memberships, orgId, t] = await Promise.all([
     currentMemberships(),
     currentOrgId(),
-    getTranslations('app.s3'),
+    getTranslations('app.vendors'),
   ])
   if (!memberships || !orgId) notFound()
 

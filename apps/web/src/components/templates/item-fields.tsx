@@ -32,8 +32,8 @@ export function ItemFields({
   layout: 'row' | 'stack'
   titleRef?: Ref<HTMLInputElement>
 }) {
-  const t = useTranslations('app.s7.item')
-  const owner = useTranslations('app.s7.editor.owner')
+  const t = useTranslations('app.templates.item')
+  const owner = useTranslations('app.templates.editor.owner')
   const set = <K extends keyof ItemFormValues>(key: K, value: ItemFormValues[K]) =>
     onChange({ ...values, [key]: value })
 

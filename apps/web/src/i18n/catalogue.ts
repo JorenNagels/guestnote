@@ -15,7 +15,12 @@ import type { Locale } from '../lib/locales.ts'
  * a list, and a stray or half-written file would then be shipped by accident. The cost of the
  * list is one line per slice, and the test below fails if it is forgotten.
  *
- * ## Adding a slice
+ * ## Adding a file
+
+The file is named after the feature it holds copy for (`money`, `runSheet`), never after the
+build slice that introduced it: a slice number means nothing once the spec is closed.
+
+## Adding a slice
  *
  * Add its id to `SLICES` and create the three files. `i18n/messages.test.ts` fails when a file
  * exists that is not listed here (it would be silently unmerged: every key renders as its
@@ -29,16 +34,16 @@ import type { Locale } from '../lib/locales.ts'
  */
 export const SLICES = [
   'shell',
-  's1',
-  's2',
-  's3',
-  's4',
-  's5',
-  's6',
-  's7',
-  's8',
-  's9',
-  's10',
+  'weddingPages',
+  'tasks',
+  'vendors',
+  'money',
+  'files',
+  'team',
+  'templates',
+  'today',
+  'runSheet',
+  'vendorLink',
 ] as const
 
 export type Slice = (typeof SLICES)[number]
@@ -48,8 +53,9 @@ export type Slice = (typeof SLICES)[number]
  *
  * Throws on a collision with a key already in `app` rather than letting one side win: a slice
  * called `weddings` would silently replace the wedding list's own copy, in one locale or all
- * three depending on which files had it. Slice ids are `shell` and `s<n>`, so today this
- * cannot fire -- it is here for the day someone names a slice after a screen.
+ * three depending on which files had it. Slices are named after features, not build slices
+ * (they were `s1`..`s10` until the PR #1 review), which is exactly when this can fire -- and
+ * why the wedding screens are `weddingPages`, not `wedding` or `weddings`, both taken.
  */
 export function mergeSlices(
   base: AbstractIntlMessages,

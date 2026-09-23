@@ -29,7 +29,7 @@ export function CompleteBox({
   done: boolean
   onFail?: () => void
 }) {
-  const t = useTranslations('app.s2')
+  const t = useTranslations('app.tasks')
   const [optimistic, setOptimistic] = useOptimistic(done)
   const [, startTransition] = useTransition()
 

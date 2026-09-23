@@ -45,7 +45,7 @@ item "until P16 existed"; its amendments table records that it now does.
 
 ## Copy
 
-`apps/web/messages/app/s8.{nl,en,fr}.json` under `app.s8`. The row also reads `app.s2` (due labels, tick
+`apps/web/messages/app/today.{nl,en,fr}.json` under `app.today`. The row also reads `app.tasks` (due labels, tick
 box, visibility pill) and the cards read `app.shell.countdown`. NL first.
 
 ## Routes and shared files

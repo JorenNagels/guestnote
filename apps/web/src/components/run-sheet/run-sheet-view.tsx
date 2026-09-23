@@ -50,9 +50,9 @@ export function RunSheetView({
   items: RunSheetItem[]
   vendors: RunSheetVendor[]
 }) {
-  const t = useTranslations('app.s9')
-  const list = useTranslations('app.s9.list')
-  const ev = useTranslations('app.s9.event')
+  const t = useTranslations('app.runSheet')
+  const list = useTranslations('app.runSheet.list')
+  const ev = useTranslations('app.runSheet.event')
   const [sheetItem, setSheetItem] = useState<RunSheetItem | null | 'new'>(null)
   const [moveError, setMoveError] = useState(false)
   const [, startMove] = useTransition()

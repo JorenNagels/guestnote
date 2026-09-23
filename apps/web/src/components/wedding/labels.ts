@@ -3,7 +3,7 @@ import type { FieldError } from './parse.ts'
 /**
  * The words the two client forms need, gathered on the server and handed down as props --
  * the pattern `components/auth` uses, because no `NextIntlClientProvider` wraps this surface.
- * Each page builds them once from `getTranslations('app.s1')`.
+ * Each page builds them once from `getTranslations('app.weddingPages')`.
  */
 type T = (key: string) => string
 type TRaw = T & { raw: (key: string) => unknown }

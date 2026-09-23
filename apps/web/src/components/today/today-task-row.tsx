@@ -20,11 +20,11 @@ import { VisibilityTag } from '../tasks/visibility-tag.tsx'
  * action, and an internal task says so in words for the reason `VisibilityTag` gives.
  *
  * A shared task carries no tag at all: on a list where most rows are shared, a tag on every one
- * is noise, and the exception is what needs marking. Rows read `app.s2` -- mounted by
+ * is noise, and the exception is what needs marking. Rows read `app.tasks` -- mounted by
  * `TasksIntl` in the page, which is why this file has no provider of its own.
  */
 export function TodayTaskRow({ task, today }: { task: AssignedTaskRow; today: string }) {
-  const t = useTranslations('app.s2')
+  const t = useTranslations('app.tasks')
   const format = useFormatter()
   const [failed, setFailed] = useState(false)
 

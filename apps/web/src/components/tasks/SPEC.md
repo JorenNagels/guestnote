@@ -57,7 +57,7 @@ lines 692 to 941. Routes: `/weddings/<id>/tasks` and `/weddings/<id>/tasks/<task
 
 ## Copy
 
-`apps/web/messages/app/s2.{nl,en,fr}.json`, merged under `app.s2`. NL first.
+`apps/web/messages/app/tasks.{nl,en,fr}.json`, merged under `app.tasks`. NL first.
 
 ## Done
 

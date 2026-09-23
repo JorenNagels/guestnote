@@ -36,7 +36,7 @@ export default async function WeddingPage({ params }: { params: Promise<{ id: st
     params,
     currentMemberships(),
     currentOrgId(),
-    getTranslations('app.s1.overview'),
+    getTranslations('app.weddingPages.overview'),
     getLocale(),
   ])
 

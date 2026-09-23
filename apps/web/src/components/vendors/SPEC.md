@@ -47,7 +47,7 @@ per-wedding link (`wedding_vendors`).
 
 ## Copy
 
-`app.s3.*` in `apps/web/messages/app/s3.{nl,en,fr}.json`. NL first. The heading reuses `app.shell.nav.vendors`.
+`app.vendors.*` in `apps/web/messages/app/vendors.{nl,en,fr}.json`. NL first. The heading reuses `app.shell.nav.vendors`.
 
 ## Done
 

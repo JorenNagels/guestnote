@@ -40,7 +40,7 @@ Loading: the page is server-rendered; only the actions show a busy state.
 
 ## Copy
 
-`app.s5.*` in `apps/web/messages/app/s5.{nl,en,fr}.json`. NL first. Failures map one to one from
+`app.files.*` in `apps/web/messages/app/files.{nl,en,fr}.json`. NL first. Failures map one to one from
 `FileFailure` plus `network` and `upload_failed`.
 
 ## Done
