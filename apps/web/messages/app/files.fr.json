@@ -56,14 +56,14 @@
   "uploading": "Envoi en cours…",
   "dismiss": "Fermer",
   "errors": {
-    "not_found": "Introuvable. Il a peut-être déjà été supprimé.",
-    "invalid_name": "Saisissez un nom de 200 caractères au maximum.",
-    "invalid_size": "Ce fichier est vide ou sa taille est incorrecte.",
-    "too_large": "Ce fichier dépasse 25 Mo.",
-    "type_not_allowed": "Ce type de fichier ne peut pas être envoyé.",
+    "notFound": "Introuvable. Il a peut-être déjà été supprimé.",
+    "invalidName": "Saisissez un nom de 200 caractères au maximum.",
+    "invalidSize": "Ce fichier est vide ou sa taille est incorrecte.",
+    "tooLarge": "Ce fichier dépasse 25 Mo.",
+    "typeNotAllowed": "Ce type de fichier ne peut pas être envoyé.",
     "unavailable": "L’enregistrement est impossible pour le moment. Réessayez dans un instant.",
     "network": "Pas de connexion. Réessayez.",
-    "upload_failed": "L’envoi a échoué. Réessayez.",
+    "uploadFailed": "L’envoi a échoué. Réessayez.",
     "unknown": "Une erreur s’est produite. Réessayez."
   }
 }

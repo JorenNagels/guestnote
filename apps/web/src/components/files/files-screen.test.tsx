@@ -156,7 +156,7 @@ describe('row actions', () => {
   })
 
   it('shows a refusal on the row it came from and leaves the others clean', async () => {
-    actions.rename.mockResolvedValue({ ok: false, error: 'invalid_name' })
+    actions.rename.mockResolvedValue({ ok: false, error: 'invalidName' })
     view()
     fireEvent.click(screen.getByRole('button', { name: 'Rename Contract.pdf' }))
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
@@ -217,7 +217,7 @@ describe('upload', () => {
   })
 
   it('keeps a refused file listed with its reason until dismissed, and does not refresh', async () => {
-    actions.start.mockResolvedValue({ ok: false, error: 'type_not_allowed' })
+    actions.start.mockResolvedValue({ ok: false, error: 'typeNotAllowed' })
     view()
     await act(async () => choose([pdf()]))
 

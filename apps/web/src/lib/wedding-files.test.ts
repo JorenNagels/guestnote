@@ -121,33 +121,33 @@ describe('startUpload', () => {
   })
 
   it('creates nothing when the storage seam refuses', async () => {
-    storage.presignUpload.mockResolvedValue({ ok: false, failure: 'too_large', detail: 'x' })
-    expect(await startUpload('file', WEDDING, input)).toEqual({ ok: false, error: 'too_large' })
+    storage.presignUpload.mockResolvedValue({ ok: false, failure: 'tooLarge', detail: 'x' })
+    expect(await startUpload('file', WEDDING, input)).toEqual({ ok: false, error: 'tooLarge' })
     expect(repo.createPendingFile).not.toHaveBeenCalled()
   })
 
-  it('is not_found for a non-UUID wedding, without reading memberships', async () => {
+  it('is notFound for a non-UUID wedding, without reading memberships', async () => {
     expect(await startUpload('file', 'not-a-uuid', input)).toEqual({
       ok: false,
-      error: 'not_found',
+      error: 'notFound',
     })
     expect(storage.presignUpload).not.toHaveBeenCalled()
   })
 
-  it('is not_found when the user has no organisation', async () => {
+  it('is notFound when the user has no organisation', async () => {
     currentOrgId.mockResolvedValue(null)
-    expect(await startUpload('file', WEDDING, input)).toEqual({ ok: false, error: 'not_found' })
+    expect(await startUpload('file', WEDDING, input)).toEqual({ ok: false, error: 'notFound' })
   })
 
-  it('is not_found when the repository says the wedding is out of reach', async () => {
+  it('is notFound when the repository says the wedding is out of reach', async () => {
     repo.createPendingFile.mockResolvedValue({ ok: false, reason: 'notFound' })
-    expect(await startUpload('file', WEDDING, input)).toEqual({ ok: false, error: 'not_found' })
+    expect(await startUpload('file', WEDDING, input)).toEqual({ ok: false, error: 'notFound' })
   })
 
   it('refuses a bad name before signing anything', async () => {
     expect(await startUpload('file', WEDDING, { ...input, name: '  ' })).toEqual({
       ok: false,
-      error: 'invalid_name',
+      error: 'invalidName',
     })
     expect(storage.presignUpload).not.toHaveBeenCalled()
   })
@@ -155,7 +155,7 @@ describe('startUpload', () => {
   it('refuses a mime or size that is not the right type', async () => {
     expect(await startUpload('file', WEDDING, { ...input, sizeBytes: '2048' })).toEqual({
       ok: false,
-      error: 'invalid_size',
+      error: 'invalidSize',
     })
     expect(storage.presignUpload).not.toHaveBeenCalled()
   })
@@ -184,19 +184,19 @@ describe('startUpload', () => {
 })
 
 describe('confirmUpload / remove / rename / visibility', () => {
-  it('confirm passes only ids, and maps null to not_found', async () => {
+  it('confirm passes only ids, and maps null to notFound', async () => {
     repo.confirmFile.mockResolvedValue({ ok: true, value: { id: FILE } })
     expect(await confirmUpload(WEDDING, FILE)).toEqual({ ok: true })
     repo.confirmFile.mockResolvedValue({ ok: false, reason: 'notFound' })
-    expect(await confirmUpload(WEDDING, FILE)).toEqual({ ok: false, error: 'not_found' })
-    expect(await confirmUpload(WEDDING, 'nope')).toEqual({ ok: false, error: 'not_found' })
+    expect(await confirmUpload(WEDDING, FILE)).toEqual({ ok: false, error: 'notFound' })
+    expect(await confirmUpload(WEDDING, 'nope')).toEqual({ ok: false, error: 'notFound' })
   })
 
-  it('remove maps false to not_found', async () => {
+  it('remove maps false to notFound', async () => {
     repo.removeFile.mockResolvedValue({ ok: true, value: null })
     expect(await removeWeddingFile(WEDDING, FILE)).toEqual({ ok: true })
     repo.removeFile.mockResolvedValue({ ok: false, reason: 'notFound' })
-    expect(await removeWeddingFile(WEDDING, FILE)).toEqual({ ok: false, error: 'not_found' })
+    expect(await removeWeddingFile(WEDDING, FILE)).toEqual({ ok: false, error: 'notFound' })
   })
 
   it('rename cleans the name and refuses an empty one before the repository', async () => {
@@ -213,7 +213,7 @@ describe('confirmUpload / remove / rename / visibility', () => {
     repo.renameFile.mockClear()
     expect(await renameWeddingFile(WEDDING, FILE, '  ')).toEqual({
       ok: false,
-      error: 'invalid_name',
+      error: 'invalidName',
     })
     expect(repo.renameFile).not.toHaveBeenCalled()
   })
@@ -223,7 +223,7 @@ describe('confirmUpload / remove / rename / visibility', () => {
     expect(await setWeddingFileVisibility(WEDDING, FILE, 'internal')).toEqual({ ok: true })
     expect(await setWeddingFileVisibility(WEDDING, FILE, 'public')).toEqual({
       ok: false,
-      error: 'not_found',
+      error: 'notFound',
     })
     expect(repo.setFileVisibility).toHaveBeenCalledTimes(1)
   })

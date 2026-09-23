@@ -75,7 +75,7 @@ describe('presignUpload', () => {
       expect((await storage.presignUpload(upload({ sizeBytes: 5000 }))).ok).toBe(true)
       const over = await storage.presignUpload(upload({ sizeBytes: 5001 }))
 
-      expect(over).toMatchObject({ ok: false, failure: 'too_large' })
+      expect(over).toMatchObject({ ok: false, failure: 'tooLarge' })
       // Refused before signing: nothing was handed to the provider for the over-limit call.
       expect(puts).toHaveLength(1)
     })
@@ -86,15 +86,15 @@ describe('presignUpload', () => {
       expect((await storage.presignUpload(upload({ sizeBytes: DEFAULT_MAX_BYTES }))).ok).toBe(true)
       expect(
         await storage.presignUpload(upload({ sizeBytes: DEFAULT_MAX_BYTES + 1 })),
-      ).toMatchObject({ failure: 'too_large' })
+      ).toMatchObject({ failure: 'tooLarge' })
     })
 
     it.each([[0], [-1], [1.5], [Number.NaN], [Number.POSITIVE_INFINITY]])(
-      'refuses %s as invalid_size',
+      'refuses %s as invalidSize',
       async (sizeBytes) => {
         const { transport, puts } = fake()
         const result = await createStorage({ transport }).presignUpload(upload({ sizeBytes }))
-        expect(result).toMatchObject({ ok: false, failure: 'invalid_size' })
+        expect(result).toMatchObject({ ok: false, failure: 'invalidSize' })
         expect(puts).toHaveLength(0)
       },
     )
@@ -113,7 +113,7 @@ describe('presignUpload', () => {
       expect((await storage.presignUpload(upload({ kind: 'file' }))).ok).toBe(true)
       expect(await storage.presignUpload(upload({ kind: 'image' }))).toMatchObject({
         ok: false,
-        failure: 'type_not_allowed',
+        failure: 'typeNotAllowed',
       })
     })
 
@@ -134,7 +134,7 @@ describe('presignUpload', () => {
         for (const kind of ['file', 'image'] as const) {
           expect(await storage.presignUpload(upload({ kind, contentType }))).toMatchObject({
             ok: false,
-            failure: 'type_not_allowed',
+            failure: 'typeNotAllowed',
           })
         }
         expect(puts).toHaveLength(0)

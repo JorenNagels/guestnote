@@ -1,4 +1,4 @@
-import type { VendorInput, WeddingVendorStatus } from '@guestnote/db'
+import type { VendorInput, VendorWriteResult, WeddingVendorStatus } from '@guestnote/db'
 import { isUuid } from './uuid.ts'
 
 /**
@@ -75,3 +75,8 @@ export type VendorActionResult =
       readonly ok: false
       readonly error: 'invalid' | 'forbidden' | 'notFound' | 'duplicate'
     }
+
+/** A repo write's `Result` as the action's answer: the repo's reason IS the form's error key. */
+export function answer(r: VendorWriteResult<unknown>): VendorActionResult {
+  return r.ok ? { ok: true } : { ok: false, error: r.reason }
+}

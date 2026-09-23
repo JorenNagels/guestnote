@@ -68,7 +68,7 @@ export function createStorage(config: StorageConfig): Storage {
       if (!ALLOWED_CONTENT_TYPES[request.kind].includes(contentType)) {
         return {
           ok: false,
-          failure: 'type_not_allowed',
+          failure: 'typeNotAllowed',
           detail: `${contentType || '(none)'} is not accepted for kind ${request.kind}`,
         }
       }
@@ -76,14 +76,14 @@ export function createStorage(config: StorageConfig): Storage {
       if (!Number.isInteger(request.sizeBytes) || request.sizeBytes <= 0) {
         return {
           ok: false,
-          failure: 'invalid_size',
+          failure: 'invalidSize',
           detail: `size must be a positive whole number of bytes, got ${request.sizeBytes}`,
         }
       }
       if (request.sizeBytes > maxBytes) {
         return {
           ok: false,
-          failure: 'too_large',
+          failure: 'tooLarge',
           detail: `${request.sizeBytes} bytes is over the ${maxBytes} byte limit`,
         }
       }

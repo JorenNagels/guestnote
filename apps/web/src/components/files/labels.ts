@@ -12,28 +12,28 @@ import type { MoodboardLabels } from './moodboard-screen.tsx'
 export type Raw = (key: string) => unknown
 
 const ERROR_CODES = [
-  'not_found',
-  'invalid_name',
-  'invalid_size',
-  'too_large',
-  'type_not_allowed',
+  'notFound',
+  'invalidName',
+  'invalidSize',
+  'tooLarge',
+  'typeNotAllowed',
   'unavailable',
   'network',
-  'upload_failed',
+  'uploadFailed',
   'unknown',
 ] as const
 
 function errors(raw: Raw) {
   const s = (key: string) => String(raw(key))
   return {
-    not_found: s('errors.not_found'),
-    invalid_name: s('errors.invalid_name'),
-    invalid_size: s('errors.invalid_size'),
-    too_large: s('errors.too_large'),
-    type_not_allowed: s('errors.type_not_allowed'),
+    notFound: s('errors.notFound'),
+    invalidName: s('errors.invalidName'),
+    invalidSize: s('errors.invalidSize'),
+    tooLarge: s('errors.tooLarge'),
+    typeNotAllowed: s('errors.typeNotAllowed'),
     unavailable: s('errors.unavailable'),
     network: s('errors.network'),
-    upload_failed: s('errors.upload_failed'),
+    uploadFailed: s('errors.uploadFailed'),
     unknown: s('errors.unknown'),
   } satisfies Record<(typeof ERROR_CODES)[number], string>
 }

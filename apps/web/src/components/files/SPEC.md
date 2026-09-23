@@ -41,7 +41,7 @@ Loading: the page is server-rendered; only the actions show a busy state.
 ## Copy
 
 `app.files.*` in `apps/web/messages/app/files.{nl,en,fr}.json`. NL first. Failures map one to one from
-`FileFailure` plus `network` and `upload_failed`.
+`FileFailure` plus `network` and `uploadFailed`.
 
 ## Done
 

@@ -7,13 +7,13 @@ import {
   removeWeddingVendor,
   revokeVendorLink,
   updateWeddingVendor,
-  type VendorWriteResult,
 } from '@guestnote/db'
 import { revalidatePath } from 'next/cache'
 import { newBearerToken } from '../../../../../../lib/bearer-token.ts'
 import { getDb } from '../../../../../../lib/db.ts'
 import { currentCaller } from '../../../../../../lib/principal.ts'
 import {
+  answer,
   parseId,
   parseNotes,
   parseStatus,
@@ -49,10 +49,6 @@ async function context(weddingId: unknown) {
   const wid = parseId(weddingId)
   const c = wid ? await currentCaller() : null
   return c && wid ? { m: c.memberships, orgId: c.orgId, weddingId: wid } : null
-}
-
-function answer(r: VendorWriteResult<unknown>): VendorActionResult {
-  return r.ok ? { ok: true } : { ok: false, error: r.reason }
 }
 
 export async function addVendorToWedding(

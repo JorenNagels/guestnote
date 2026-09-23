@@ -51,14 +51,14 @@ describe('uploadFile', () => {
   })
 
   it('stops at a refusal: no PUT, no confirm', async () => {
-    const { deps: d, calls } = deps({ start: { ok: false, error: 'too_large' } })
-    expect(await uploadFile(file, opts, d)).toEqual({ ok: false, error: 'too_large' })
+    const { deps: d, calls } = deps({ start: { ok: false, error: 'tooLarge' } })
+    expect(await uploadFile(file, opts, d)).toEqual({ ok: false, error: 'tooLarge' })
     expect(calls).toEqual(['start'])
   })
 
   it('does not confirm when the PUT is refused', async () => {
     const { deps: d, calls } = deps({ put: async () => new Response(null, { status: 403 }) })
-    expect(await uploadFile(file, opts, d)).toEqual({ ok: false, error: 'upload_failed' })
+    expect(await uploadFile(file, opts, d)).toEqual({ ok: false, error: 'uploadFailed' })
     expect(calls).toEqual(['start', 'put'])
   })
 
@@ -72,8 +72,8 @@ describe('uploadFile', () => {
   })
 
   it('passes the confirm failure through', async () => {
-    const { deps: d } = deps({ confirm: { ok: false, error: 'not_found' } })
-    expect(await uploadFile(file, opts, d)).toEqual({ ok: false, error: 'not_found' })
+    const { deps: d } = deps({ confirm: { ok: false, error: 'notFound' } })
+    expect(await uploadFile(file, opts, d)).toEqual({ ok: false, error: 'notFound' })
   })
 })
 

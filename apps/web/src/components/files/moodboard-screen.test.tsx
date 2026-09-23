@@ -87,7 +87,7 @@ describe('caption', () => {
   })
 
   it('shows a refused caption beside its tile', async () => {
-    actions.rename.mockResolvedValue({ ok: false, error: 'invalid_name' })
+    actions.rename.mockResolvedValue({ ok: false, error: 'invalidName' })
     view()
     fireEvent.click(screen.getByRole('button', { name: 'Edit the caption of Peonies' }))
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))

@@ -1,16 +1,15 @@
 'use server'
 
-import {
-  archiveVendor,
-  createVendor,
-  updateVendor,
-  type VendorWriteResult,
-  vendorDirectoryAccess,
-} from '@guestnote/db'
+import { archiveVendor, createVendor, updateVendor, vendorDirectoryAccess } from '@guestnote/db'
 import { revalidatePath } from 'next/cache'
 import { getDb } from '../../../../lib/db.ts'
 import { currentCaller } from '../../../../lib/principal.ts'
-import { parseId, parseVendorInput, type VendorActionResult } from '../../../../lib/vendor-input.ts'
+import {
+  answer,
+  parseId,
+  parseVendorInput,
+  type VendorActionResult,
+} from '../../../../lib/vendor-input.ts'
 
 /**
  * The org vendor directory's writes. Each does its own authorization (a Server Function is a
@@ -38,10 +37,6 @@ async function writer() {
   const c = await currentCaller()
   if (!c || !vendorDirectoryAccess(c.memberships, c.orgId)?.canWrite) return null
   return { m: c.memberships, orgId: c.orgId }
-}
-
-function answer(r: VendorWriteResult<unknown>): VendorActionResult {
-  return r.ok ? { ok: true } : { ok: false, error: r.reason }
 }
 
 export async function createDirectoryVendor(input: unknown): Promise<VendorActionResult> {

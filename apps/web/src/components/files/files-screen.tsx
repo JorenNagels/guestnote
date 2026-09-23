@@ -113,7 +113,7 @@ export function FilesScreen({
     try {
       const result = await work()
       if (result === null) {
-        setRowErrors((e) => ({ ...e, [id]: message('not_found') }))
+        setRowErrors((e) => ({ ...e, [id]: message('notFound') }))
       } else if (typeof result === 'string') {
         navigate(result)
       } else if (!result.ok) {

@@ -27,7 +27,7 @@ import { isUuid } from './uuid.ts'
  * A Server Function is a POST to its own route (invariant 7), so nothing here trusts the page
  * that rendered the button. `currentMemberships()` is the fact and every argument that comes
  * from a client is an assertion. The repository then re-derives the principal from the
- * memberships and applies RLS, and answers `null` for "no access", which is `not_found` here:
+ * memberships and applies RLS, and answers `null` for "no access", which is `notFound` here:
  * the same 404-not-403 rule `getWedding` follows, so nothing distinguishes a wedding you may
  * not touch from one that does not exist.
  *
@@ -38,11 +38,11 @@ import { isUuid } from './uuid.ts'
  */
 
 export type FileFailure =
-  | 'not_found'
-  | 'invalid_name'
-  | 'invalid_size'
-  | 'too_large'
-  | 'type_not_allowed'
+  | 'notFound'
+  | 'invalidName'
+  | 'invalidSize'
+  | 'tooLarge'
+  | 'typeNotAllowed'
   | 'unavailable'
 
 export type StartUpload =
@@ -89,12 +89,12 @@ export async function startUpload(
   input: { name: unknown; mime: unknown; sizeBytes: unknown; visibility: unknown },
 ): Promise<StartUpload> {
   const ctx = await context(weddingId)
-  if (!ctx) return { ok: false, error: 'not_found' }
+  if (!ctx) return { ok: false, error: 'notFound' }
 
   const name = cleanName(input.name)
-  if (!name) return { ok: false, error: 'invalid_name' }
+  if (!name) return { ok: false, error: 'invalidName' }
   if (typeof input.mime !== 'string' || typeof input.sizeBytes !== 'number') {
-    return { ok: false, error: 'invalid_size' }
+    return { ok: false, error: 'invalidSize' }
   }
   const visibility: FileVisibility = isVisibility(input.visibility) ? input.visibility : 'shared'
 
@@ -118,7 +118,7 @@ export async function startUpload(
     mime: signed.headers['Content-Type'],
     visibility,
   })
-  if (!created.ok) return { ok: false, error: 'not_found' }
+  if (!created.ok) return { ok: false, error: 'notFound' }
 
   const { 'Content-Length': _length, ...headers } = signed.headers
   return { ok: true, fileId, url: signed.url, headers }
@@ -135,20 +135,20 @@ export async function startUpload(
 export async function confirmUpload(weddingId: unknown, fileId: unknown): Promise<Done> {
   const ctx = await context(weddingId)
   if (!ctx || !isUuid(fileId)) {
-    return { ok: false, error: 'not_found' }
+    return { ok: false, error: 'notFound' }
   }
   const row = await confirmFile(getDb(), ctx.m, ctx.orgId, ctx.weddingId, fileId)
-  return row.ok ? { ok: true } : { ok: false, error: 'not_found' }
+  return row.ok ? { ok: true } : { ok: false, error: 'notFound' }
 }
 
 export async function removeWeddingFile(weddingId: unknown, fileId: unknown): Promise<Done> {
   const ctx = await context(weddingId)
   if (!ctx || !isUuid(fileId)) {
-    return { ok: false, error: 'not_found' }
+    return { ok: false, error: 'notFound' }
   }
   return (await removeFile(getDb(), ctx.m, ctx.orgId, ctx.weddingId, fileId)).ok
     ? { ok: true }
-    : { ok: false, error: 'not_found' }
+    : { ok: false, error: 'notFound' }
 }
 
 /** A moodboard caption, and the Files screen's rename. Both are `files.name`. */
@@ -159,13 +159,13 @@ export async function renameWeddingFile(
 ): Promise<Done> {
   const ctx = await context(weddingId)
   if (!ctx || !isUuid(fileId)) {
-    return { ok: false, error: 'not_found' }
+    return { ok: false, error: 'notFound' }
   }
   const cleaned = cleanName(name)
-  if (!cleaned) return { ok: false, error: 'invalid_name' }
+  if (!cleaned) return { ok: false, error: 'invalidName' }
   return (await renameFile(getDb(), ctx.m, ctx.orgId, ctx.weddingId, fileId, cleaned)).ok
     ? { ok: true }
-    : { ok: false, error: 'not_found' }
+    : { ok: false, error: 'notFound' }
 }
 
 export async function setWeddingFileVisibility(
@@ -175,11 +175,11 @@ export async function setWeddingFileVisibility(
 ): Promise<Done> {
   const ctx = await context(weddingId)
   if (!ctx || !isUuid(fileId) || !isVisibility(visibility)) {
-    return { ok: false, error: 'not_found' }
+    return { ok: false, error: 'notFound' }
   }
   return (await setFileVisibility(getDb(), ctx.m, ctx.orgId, ctx.weddingId, fileId, visibility)).ok
     ? { ok: true }
-    : { ok: false, error: 'not_found' }
+    : { ok: false, error: 'notFound' }
 }
 
 /**

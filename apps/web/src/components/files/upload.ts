@@ -13,7 +13,7 @@ import type { Done, FileFailure, StartUpload } from '../../lib/wedding-files.ts'
  * header, which the browser sets itself from the body and refuses to be handed.
  */
 
-export type UploadError = FileFailure | 'network' | 'upload_failed'
+export type UploadError = FileFailure | 'network' | 'uploadFailed'
 
 export type UploadVisibility = 'shared' | 'internal'
 
@@ -49,7 +49,7 @@ export async function uploadFile(
     if (!started.ok) return { ok: false, error: started.error }
 
     const put = await send(started.url, { method: 'PUT', headers: started.headers, body: file })
-    if (!put.ok) return { ok: false, error: 'upload_failed' }
+    if (!put.ok) return { ok: false, error: 'uploadFailed' }
 
     const confirmed = await deps.confirm(started.fileId)
     if (!confirmed.ok) return { ok: false, error: confirmed.error }

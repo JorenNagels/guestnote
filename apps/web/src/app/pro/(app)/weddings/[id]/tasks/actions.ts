@@ -4,7 +4,6 @@ import {
   addTaskComment,
   completeTask,
   createTask,
-  type TaskRow,
   type TaskVisibility,
   updateTask,
 } from '@guestnote/db'

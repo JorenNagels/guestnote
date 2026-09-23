@@ -33,15 +33,15 @@ export type StorageScope = {
  * Why an upload was refused *before* anything was signed. Caller-facing: each one maps to a
  * sentence the planner can act on, so they are values and not exceptions.
  *
- *   - `invalid_size`     zero, negative or not an integer. An empty file is never a wanted upload.
- *   - `too_large`        over the configured limit.
- *   - `type_not_allowed` a content type outside the allow-list for this `kind`.
+ *   - `invalidSize`      zero, negative or not an integer. An empty file is never a wanted upload.
+ *   - `tooLarge`         over the configured limit.
+ *   - `typeNotAllowed`   a content type outside the allow-list for this `kind`.
  *   - `unavailable`      signing itself failed: no credentials, a bad region, anything unexpected.
  *
  * Misuse by the *programmer* -- a malformed id, a key outside the scope -- is a thrown error
  * instead, because no user can cause it and swallowing it into a result would hide a bug.
  */
-export type UploadFailure = 'invalid_size' | 'too_large' | 'type_not_allowed' | 'unavailable'
+export type UploadFailure = 'invalidSize' | 'tooLarge' | 'typeNotAllowed' | 'unavailable'
 
 export type UploadRequest = {
   readonly scope: StorageScope

@@ -3,14 +3,14 @@ import type { MoodboardLabels } from './moodboard-screen.tsx'
 
 /** English labels for the component tests, so an assertion reads as the sentence it checks. */
 const errors = {
-  not_found: 'Not found',
-  invalid_name: 'Bad name',
-  invalid_size: 'Bad size',
-  too_large: 'Too large',
-  type_not_allowed: 'Type not allowed',
+  notFound: 'Not found',
+  invalidName: 'Bad name',
+  invalidSize: 'Bad size',
+  tooLarge: 'Too large',
+  typeNotAllowed: 'Type not allowed',
   unavailable: 'Unavailable',
   network: 'No connection',
-  upload_failed: 'Upload failed',
+  uploadFailed: 'Upload failed',
   unknown: 'Something went wrong',
 }
 
