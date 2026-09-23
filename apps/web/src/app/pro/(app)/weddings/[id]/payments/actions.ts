@@ -7,12 +7,11 @@ import {
   setPaymentPaidAt,
   updatePayment,
 } from '@guestnote/db'
-import { getDb } from '../../../../../../lib/db.ts'
 import { paidInstant, parseCents, parseCivilDate } from '../../../../../../lib/money.ts'
 import { moneyError, revalidateMoney } from '../../../../../../lib/money-server.ts'
 import type { ActionResult } from '../../../../../../lib/money-types.ts'
-import { currentCaller } from '../../../../../../lib/principal.ts'
 import { isUuid } from '../../../../../../lib/uuid.ts'
+import { currentWeddingScope } from '../../../../../../lib/wedding-scope.ts'
 
 /**
  * The payment schedule's writes. Same rules as the budget's: each authorizes itself, and every
@@ -55,18 +54,17 @@ export async function savePayment(
   paymentId: string | null,
   values: PaymentFormValues,
 ): Promise<ActionResult> {
-  const caller = await currentCaller()
-  if (!caller || !isUuid(weddingId) || (paymentId !== null && !isUuid(paymentId))) {
+  const scope = await currentWeddingScope(weddingId)
+  if (!scope || (paymentId !== null && !isUuid(paymentId))) {
     return { ok: false, error: 'notFound' }
   }
   const read = readPayment(values)
   if ('error' in read) return { ok: false, error: read.error }
 
-  const db = getDb()
   const result =
     paymentId === null
-      ? await createPayment(db, caller.memberships, caller.orgId, weddingId, read.input)
-      : await updatePayment(db, caller.memberships, caller.orgId, weddingId, paymentId, read.input)
+      ? await createPayment(scope, read.input)
+      : await updatePayment(scope, paymentId, read.input)
   if (!result.ok) return { ok: false, error: moneyError(result.reason, true) }
   revalidateMoney()
   return { ok: true }
@@ -81,33 +79,20 @@ export async function markPaymentPaid(
   paymentId: string,
   paid: boolean,
 ): Promise<ActionResult> {
-  const caller = await currentCaller()
-  if (!caller || !isUuid(weddingId) || !isUuid(paymentId)) return { ok: false, error: 'notFound' }
+  const scope = await currentWeddingScope(weddingId)
+  if (!scope || !isUuid(paymentId)) return { ok: false, error: 'notFound' }
 
-  const result = await setPaymentPaidAt(
-    getDb(),
-    caller.memberships,
-    caller.orgId,
-    weddingId,
-    paymentId,
-    paid === true ? new Date() : null,
-  )
+  const result = await setPaymentPaidAt(scope, paymentId, paid === true ? new Date() : null)
   if (!result.ok) return { ok: false, error: moneyError(result.reason, false) }
   revalidateMoney()
   return { ok: true }
 }
 
 export async function removePayment(weddingId: string, paymentId: string): Promise<ActionResult> {
-  const caller = await currentCaller()
-  if (!caller || !isUuid(weddingId) || !isUuid(paymentId)) return { ok: false, error: 'notFound' }
+  const scope = await currentWeddingScope(weddingId)
+  if (!scope || !isUuid(paymentId)) return { ok: false, error: 'notFound' }
 
-  const result = await deletePayment(
-    getDb(),
-    caller.memberships,
-    caller.orgId,
-    weddingId,
-    paymentId,
-  )
+  const result = await deletePayment(scope, paymentId)
   if (!result.ok) return { ok: false, error: moneyError(result.reason, false) }
   revalidateMoney()
   return { ok: true }

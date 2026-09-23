@@ -1,12 +1,11 @@
 'use server'
 
 import { createBudgetLine, deleteBudgetLine, updateBudgetLine } from '@guestnote/db'
-import { getDb } from '../../../../../../lib/db.ts'
 import { cleanText, parseCents } from '../../../../../../lib/money.ts'
 import { moneyError, revalidateMoney } from '../../../../../../lib/money-server.ts'
 import type { ActionResult } from '../../../../../../lib/money-types.ts'
-import { currentCaller } from '../../../../../../lib/principal.ts'
 import { isUuid } from '../../../../../../lib/uuid.ts'
+import { currentWeddingScope } from '../../../../../../lib/wedding-scope.ts'
 
 /**
  * The budget's writes. Each does its own authorization (`currentCaller`, then the repo's
@@ -59,34 +58,27 @@ export async function saveBudgetLine(
   lineId: string | null,
   values: LineFormValues,
 ): Promise<ActionResult> {
-  const caller = await currentCaller()
-  if (!caller || !isUuid(weddingId) || (lineId !== null && !isUuid(lineId))) {
+  const scope = await currentWeddingScope(weddingId)
+  if (!scope || (lineId !== null && !isUuid(lineId))) {
     return { ok: false, error: 'notFound' }
   }
   const read = readLine(values)
   if ('error' in read) return { ok: false, error: read.error }
 
-  const db = getDb()
   const result =
     lineId === null
-      ? await createBudgetLine(db, caller.memberships, caller.orgId, weddingId, read.input)
-      : await updateBudgetLine(db, caller.memberships, caller.orgId, weddingId, lineId, read.input)
+      ? await createBudgetLine(scope, read.input)
+      : await updateBudgetLine(scope, lineId, read.input)
   if (!result.ok) return { ok: false, error: moneyError(result.reason, false) }
   revalidateMoney()
   return { ok: true }
 }
 
 export async function removeBudgetLine(weddingId: string, lineId: string): Promise<ActionResult> {
-  const caller = await currentCaller()
-  if (!caller || !isUuid(weddingId) || !isUuid(lineId)) return { ok: false, error: 'notFound' }
+  const scope = await currentWeddingScope(weddingId)
+  if (!scope || !isUuid(lineId)) return { ok: false, error: 'notFound' }
 
-  const result = await deleteBudgetLine(
-    getDb(),
-    caller.memberships,
-    caller.orgId,
-    weddingId,
-    lineId,
-  )
+  const result = await deleteBudgetLine(scope, lineId)
   if (!result.ok) return { ok: false, error: moneyError(result.reason, false) }
   revalidateMoney()
   return { ok: true }

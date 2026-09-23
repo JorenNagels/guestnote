@@ -14,11 +14,19 @@ const redirect = vi.fn((to: string) => {
   throw new Error(`REDIRECT ${to}`)
 })
 
-vi.mock('@guestnote/db', () => ({ createWedding: (...a: unknown[]) => createWedding(...a) }))
+vi.mock('@guestnote/db', async (orig) => ({
+  ...(await orig<typeof import('@guestnote/db')>()),
+  createWedding: (...a: unknown[]) => createWedding(...a),
+}))
 vi.mock('../../../../../lib/db.ts', () => ({ getDb: () => ({}) }))
 vi.mock('../../../../../lib/principal.ts', () => ({
   currentMemberships: () => currentMemberships(),
   currentOrgId: () => currentOrgId(),
+  // The real `currentCaller`, over the two mocks above.
+  currentCaller: async () => {
+    const [memberships, orgId] = [await currentMemberships(), await currentOrgId()]
+    return memberships && orgId ? { memberships, orgId } : null
+  },
 }))
 vi.mock('next/cache', () => ({ revalidatePath: (...a: unknown[]) => revalidatePath(...a) }))
 vi.mock('next/navigation', () => ({ redirect: (to: string) => redirect(to) }))

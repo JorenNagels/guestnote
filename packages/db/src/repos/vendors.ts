@@ -11,7 +11,7 @@ import { weddings } from '../schema/weddings.ts'
 import { type Principal, type TenantDb, withTenant } from '../tenant.ts'
 import { type Memberships, principalForOrg, principalForWedding } from './memberships.ts'
 import { fail, ok, type Result } from './result.ts'
-import { staffPrincipal } from './staff-principal.ts'
+import type { WeddingScope } from './scope.ts'
 
 /**
  * Slice S3 of docs/specs/0003-planner-app-screens.md: the org's vendor directory (`vendors`)
@@ -203,12 +203,10 @@ export async function archiveVendor(
  * `vendors.deleted_at`) and are absent from the picker (`directory` does).
  */
 export async function getWeddingVendors(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
 ): Promise<{ linked: WeddingVendorRow[]; directory: VendorRow[]; canCreate: boolean } | null> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+  const { db, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return null
 
   return withTenant(db, principal, async (tx) => {
@@ -275,13 +273,11 @@ export async function getWeddingVendors(
  * Re-adding a vendor that was removed works: the unique index is partial on `deleted_at`.
  */
 export async function addWeddingVendor(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
   vendorId: string,
 ): Promise<VendorWriteResult<{ id: string }>> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+  const { db, orgId, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return NOT_FOUND
   try {
     return await withTenant(db, principal, async (tx) => linkInTx(tx, orgId, weddingId, vendorId))
@@ -295,13 +291,11 @@ export async function addWeddingVendor(
 
 /** Create a directory vendor and link it in ONE transaction, so a half-done add cannot exist. */
 export async function createVendorForWedding(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
   input: VendorInput,
 ): Promise<VendorWriteResult<{ id: string; vendorId: string }>> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+  const { db, orgId, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return NOT_FOUND
   // A member can link but not create; RLS would refuse the insert anyway, with an error
   // instead of an answer.
@@ -363,14 +357,12 @@ async function linkInTx(
  * another tab. `notes: null` clears them.
  */
 export async function updateWeddingVendor(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
   linkId: string,
   patch: { readonly status?: WeddingVendorStatus; readonly notes?: string | null },
 ): Promise<VendorWriteResult> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+  const { db, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return NOT_FOUND
   const changed = await withTenant(db, principal, async (tx) =>
     tx
@@ -394,13 +386,11 @@ export async function updateWeddingVendor(
 
 /** Unlink. Soft, so budget lines and run sheet rows that point at the link keep their history. */
 export async function removeWeddingVendor(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
   linkId: string,
 ): Promise<VendorWriteResult> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+  const { db, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return NOT_FOUND
   const now = new Date()
   const changed = await withTenant(db, principal, async (tx) =>

@@ -41,6 +41,7 @@ export {
 } from './memberships.ts'
 export * from './payments.ts'
 export * from './run-sheet.ts'
+export { WeddingScope } from './scope.ts'
 export * from './tasks.ts'
 export * from './team.ts'
 export * from './templates.ts'

@@ -1,4 +1,4 @@
-import { getTask, getWedding, listTaskComments } from '@guestnote/db'
+import { getTask, getWedding, listTaskComments, WeddingScope } from '@guestnote/db'
 import { notFound } from 'next/navigation'
 import { Comments } from '../../../../../../../components/tasks/comments.tsx'
 import { TasksIntl } from '../../../../../../../components/tasks/provider.tsx'
@@ -27,12 +27,12 @@ export default async function TaskPage({
   ])
   if (!memberships || !orgId || !isUuid(id) || !isUuid(taskId)) notFound()
 
-  const db = getDb()
-  const wedding = await getWedding(db, memberships, orgId, id)
+  const scope = WeddingScope.of(getDb(), memberships, orgId, id)
+  const wedding = await getWedding(scope)
   if (!wedding) notFound()
-  const task = await getTask(db, memberships, orgId, id, taskId)
+  const task = await getTask(scope, taskId)
   if (!task) notFound()
-  const comments = await listTaskComments(db, memberships, orgId, id, taskId)
+  const comments = await listTaskComments(scope, taskId)
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">

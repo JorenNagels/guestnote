@@ -12,10 +12,9 @@ import {
   renameFile,
   setFileVisibility,
 } from '@guestnote/db'
-import { getDb } from './db.ts'
-import { currentCaller } from './principal.ts'
 import { getStorage } from './storage.ts'
 import { isUuid } from './uuid.ts'
+import { currentWeddingScope } from './wedding-scope.ts'
 
 /**
  * What the Files and Moodboard Server Functions do, once. Each route folder's `actions.ts` is a
@@ -68,11 +67,7 @@ export function cleanName(raw: unknown): string | null {
   return cleaned
 }
 
-async function context(weddingId: unknown) {
-  if (!isUuid(weddingId)) return null
-  const c = await currentCaller()
-  return c ? { m: c.memberships, orgId: c.orgId, weddingId } : null
-}
+const context = currentWeddingScope
 
 const isVisibility = (v: unknown): v is FileVisibility => v === 'shared' || v === 'internal'
 
@@ -108,7 +103,7 @@ export async function startUpload(
   })
   if (!signed.ok) return { ok: false, error: signed.failure }
 
-  const created = await createPendingFile(getDb(), ctx.m, ctx.orgId, ctx.weddingId, {
+  const created = await createPendingFile(ctx, {
     id: fileId,
     kind,
     name,
@@ -137,7 +132,7 @@ export async function confirmUpload(weddingId: unknown, fileId: unknown): Promis
   if (!ctx || !isUuid(fileId)) {
     return { ok: false, error: 'notFound' }
   }
-  const row = await confirmFile(getDb(), ctx.m, ctx.orgId, ctx.weddingId, fileId)
+  const row = await confirmFile(ctx, fileId)
   return row.ok ? { ok: true } : { ok: false, error: 'notFound' }
 }
 
@@ -146,9 +141,7 @@ export async function removeWeddingFile(weddingId: unknown, fileId: unknown): Pr
   if (!ctx || !isUuid(fileId)) {
     return { ok: false, error: 'notFound' }
   }
-  return (await removeFile(getDb(), ctx.m, ctx.orgId, ctx.weddingId, fileId)).ok
-    ? { ok: true }
-    : { ok: false, error: 'notFound' }
+  return (await removeFile(ctx, fileId)).ok ? { ok: true } : { ok: false, error: 'notFound' }
 }
 
 /** A moodboard caption, and the Files screen's rename. Both are `files.name`. */
@@ -163,7 +156,7 @@ export async function renameWeddingFile(
   }
   const cleaned = cleanName(name)
   if (!cleaned) return { ok: false, error: 'invalidName' }
-  return (await renameFile(getDb(), ctx.m, ctx.orgId, ctx.weddingId, fileId, cleaned)).ok
+  return (await renameFile(ctx, fileId, cleaned)).ok
     ? { ok: true }
     : { ok: false, error: 'notFound' }
 }
@@ -177,7 +170,7 @@ export async function setWeddingFileVisibility(
   if (!ctx || !isUuid(fileId) || !isVisibility(visibility)) {
     return { ok: false, error: 'notFound' }
   }
-  return (await setFileVisibility(getDb(), ctx.m, ctx.orgId, ctx.weddingId, fileId, visibility)).ok
+  return (await setFileVisibility(ctx, fileId, visibility)).ok
     ? { ok: true }
     : { ok: false, error: 'notFound' }
 }
@@ -194,7 +187,7 @@ export async function downloadUrl(weddingId: unknown, fileId: unknown): Promise<
   const ctx = await context(weddingId)
   if (!ctx || !isUuid(fileId)) return null
 
-  const row = await getFile(getDb(), ctx.m, ctx.orgId, ctx.weddingId, fileId)
+  const row = await getFile(ctx, fileId)
   if (!row) return null
 
   return signRow(ctx, row)
@@ -238,7 +231,7 @@ export async function listWeddingFiles(
 ): Promise<FileRow[] | null> {
   const ctx = await context(weddingId)
   if (!ctx) return null
-  return listFiles(getDb(), ctx.m, ctx.orgId, ctx.weddingId, kind)
+  return listFiles(ctx, kind)
 }
 
 export type ImageTile = FileRow & {
@@ -256,7 +249,7 @@ export type ImageTile = FileRow & {
 export async function listWeddingImages(weddingId: unknown): Promise<ImageTile[] | null> {
   const ctx = await context(weddingId)
   if (!ctx) return null
-  const rows = await listFiles(getDb(), ctx.m, ctx.orgId, ctx.weddingId, 'image')
+  const rows = await listFiles(ctx, 'image')
   if (!rows) return null
 
   return Promise.all(rows.map(async (row) => ({ ...row, url: await signRow(ctx, row) })))

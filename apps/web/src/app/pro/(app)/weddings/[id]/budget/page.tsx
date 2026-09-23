@@ -1,4 +1,4 @@
-import { getBudget } from '@guestnote/db'
+import { getBudget, WeddingScope } from '@guestnote/db'
 import { notFound } from 'next/navigation'
 import { BudgetView } from '../../../../../../components/money/budget-view.tsx'
 import { getDb } from '../../../../../../lib/db.ts'
@@ -19,7 +19,8 @@ export default async function BudgetPage({ params }: { params: Promise<{ id: str
   ])
   if (!memberships || !orgId || !isUuid(id)) notFound()
 
-  const data = await getBudget(getDb(), memberships, orgId, id)
+  const scope = WeddingScope.of(getDb(), memberships, orgId, id)
+  const data = await getBudget(scope)
   if (!data) notFound()
 
   return (

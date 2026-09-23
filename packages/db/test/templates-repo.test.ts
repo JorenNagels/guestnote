@@ -14,6 +14,7 @@ import {
   resolveMemberships,
   updateTemplate,
   updateTemplateItem,
+  WeddingScope,
 } from '../src/repos/index.ts'
 import { connect, F, type Harness, reseed, seedExec } from './harness.ts'
 
@@ -271,7 +272,7 @@ describe('editing', () => {
 
 describe('applying is a copy', () => {
   const tasksOf = async (wedding: string) =>
-    (await listTasks(h.db, owner, F.orgA, wedding)).filter(
+    (await listTasks(WeddingScope.of(h.db, owner, F.orgA, wedding))).filter(
       (t) => t.title.includes('venue contract') || t.title.includes('fee schedule'),
     )
 
@@ -298,7 +299,7 @@ describe('applying is a copy', () => {
     await deleteTemplateItem(h.db, owner, F.orgA, F.templateA, F.itemAInternal)
     await deleteTemplate(h.db, owner, F.orgA, F.templateA)
 
-    const after = await listTasks(h.db, owner, F.orgA, F.weddingA1)
+    const after = await listTasks(WeddingScope.of(h.db, owner, F.orgA, F.weddingA1))
     expect(await tasksOf(F.weddingA1)).toEqual(before)
     expect(after.some((t) => t.title === 'Renamed' || t.title === 'Added later')).toBe(false)
   })
@@ -333,7 +334,7 @@ describe('applying is a copy', () => {
   })
 
   it('applies nothing to a wedding of another org, or for a template of another org', async () => {
-    const before = (await listTasks(h.db, owner, F.orgA, F.weddingA1)).length
+    const before = (await listTasks(WeddingScope.of(h.db, owner, F.orgA, F.weddingA1))).length
     expect(await applyTemplate(h.db, owner, F.orgA, F.templateA, F.weddingB1)).toEqual({
       ok: false,
       reason: 'notFound',
@@ -346,7 +347,7 @@ describe('applying is a copy', () => {
       ok: false,
       reason: 'notFound',
     })
-    expect((await listTasks(h.db, owner, F.orgA, F.weddingA1)).length).toBe(before)
+    expect((await listTasks(WeddingScope.of(h.db, owner, F.orgA, F.weddingA1))).length).toBe(before)
   })
 
   it('lets an assigned member apply to their wedding and to no other', async () => {

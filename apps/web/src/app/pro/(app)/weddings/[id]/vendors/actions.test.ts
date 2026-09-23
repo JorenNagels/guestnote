@@ -102,7 +102,10 @@ describe('every action', () => {
 describe('addVendorToWedding', () => {
   it('links and refreshes the wedding page only', async () => {
     expect(await addVendorToWedding(WEDDING, VENDOR)).toEqual({ ok: true })
-    expect(addWeddingVendor).toHaveBeenCalledWith({}, expect.anything(), ORG, WEDDING, VENDOR)
+    expect(addWeddingVendor).toHaveBeenCalledWith(
+      expect.objectContaining({ orgId: ORG, weddingId: WEDDING }),
+      VENDOR,
+    )
     expect(revalidatePath).toHaveBeenCalledWith('/pro/weddings/[id]/vendors', 'page')
     expect(revalidatePath).not.toHaveBeenCalledWith('/pro/vendors')
   })
@@ -146,9 +149,13 @@ describe('setWeddingVendorStatus', () => {
   /** The select must not carry notes: it would overwrite an edit made in another tab. */
   it('forwards the status and no notes key', async () => {
     await setWeddingVendorStatus(WEDDING, LINK, 'booked')
-    expect(updateWeddingVendor).toHaveBeenCalledWith({}, expect.anything(), ORG, WEDDING, LINK, {
-      status: 'booked',
-    })
+    expect(updateWeddingVendor).toHaveBeenCalledWith(
+      expect.objectContaining({ orgId: ORG, weddingId: WEDDING }),
+      LINK,
+      {
+        status: 'booked',
+      },
+    )
   })
 
   it('refuses a status outside the list', async () => {
@@ -163,10 +170,14 @@ describe('setWeddingVendorStatus', () => {
 describe('saveWeddingVendor', () => {
   it('forwards status and notes, an empty note as null', async () => {
     await saveWeddingVendor(WEDDING, LINK, 'quoted', '  ')
-    expect(updateWeddingVendor).toHaveBeenCalledWith({}, expect.anything(), ORG, WEDDING, LINK, {
-      status: 'quoted',
-      notes: null,
-    })
+    expect(updateWeddingVendor).toHaveBeenCalledWith(
+      expect.objectContaining({ orgId: ORG, weddingId: WEDDING }),
+      LINK,
+      {
+        status: 'quoted',
+        notes: null,
+      },
+    )
   })
 
   it('refuses a non-string note', async () => {
@@ -181,7 +192,10 @@ describe('saveWeddingVendor', () => {
 describe('removeVendorFromWedding', () => {
   it('unlinks by link id', async () => {
     expect(await removeVendorFromWedding(WEDDING, LINK)).toEqual({ ok: true })
-    expect(removeWeddingVendor).toHaveBeenCalledWith({}, expect.anything(), ORG, WEDDING, LINK)
+    expect(removeWeddingVendor).toHaveBeenCalledWith(
+      expect.objectContaining({ orgId: ORG, weddingId: WEDDING }),
+      LINK,
+    )
   })
 
   it('refuses a malformed link id', async () => {
@@ -201,10 +215,7 @@ describe('createVendorLinkAction', () => {
     expect(out.token).toMatch(/^[A-Za-z0-9_-]{40,}$/)
     expect(new Date(out.expiresAt).getTime()).toBeGreaterThan(Date.now())
 
-    const [, , , , , input] = createVendorLink.mock.calls[0] as [
-      unknown,
-      unknown,
-      unknown,
+    const [, , input] = createVendorLink.mock.calls[0] as [
       unknown,
       unknown,
       { tokenHash: string; expiresAt: Date },
@@ -217,12 +228,12 @@ describe('createVendorLinkAction', () => {
 
   it('defaults the expiry to 30 days, and honours an explicit one within the cap', async () => {
     await createVendorLinkAction(WEDDING, VENDOR, undefined)
-    const defaultInput = createVendorLink.mock.calls[0]?.[5] as { expiresAt: Date }
+    const defaultInput = createVendorLink.mock.calls[0]?.[2] as { expiresAt: Date }
     expect(defaultInput.expiresAt.getTime()).toBeGreaterThan(Date.now() + 29 * 86_400_000)
 
     createVendorLink.mockClear()
     await createVendorLinkAction(WEDDING, VENDOR, '5')
-    const customInput = createVendorLink.mock.calls[0]?.[5] as { expiresAt: Date }
+    const customInput = createVendorLink.mock.calls[0]?.[2] as { expiresAt: Date }
     expect(customInput.expiresAt.getTime()).toBeLessThan(Date.now() + 6 * 86_400_000)
   })
 
@@ -258,7 +269,10 @@ describe('createVendorLinkAction', () => {
 describe('revokeVendorLinkAction', () => {
   it('revokes and refreshes', async () => {
     expect(await revokeVendorLinkAction(WEDDING, LINK)).toEqual({ ok: true })
-    expect(revokeVendorLink).toHaveBeenCalledWith({}, expect.anything(), ORG, WEDDING, LINK)
+    expect(revokeVendorLink).toHaveBeenCalledWith(
+      expect.objectContaining({ orgId: ORG, weddingId: WEDDING }),
+      LINK,
+    )
     expect(revalidatePath).toHaveBeenCalledWith('/pro/weddings/[id]/vendors', 'page')
   })
 

@@ -17,7 +17,8 @@ const currentOrgs = vi.fn()
 
 vi.mock('next/cache', () => ({ revalidatePath: (...a: unknown[]) => revalidatePath(...a) }))
 vi.mock('next-intl/server', () => ({ getLocale: async () => 'fr' }))
-vi.mock('@guestnote/db', () => ({
+vi.mock('@guestnote/db', async (orig) => ({
+  ...(await orig<typeof import('@guestnote/db')>()),
   createStaffInvite: (...a: unknown[]) => createStaffInvite(...a),
   revokeStaffInvite: (...a: unknown[]) => revokeStaffInvite(...a),
 }))

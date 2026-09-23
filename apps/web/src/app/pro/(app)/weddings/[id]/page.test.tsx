@@ -57,7 +57,8 @@ const notFound = vi.fn(() => {
   throw new Error('NEXT_NOT_FOUND')
 })
 
-vi.mock('@guestnote/db', () => ({
+vi.mock('@guestnote/db', async (orig) => ({
+  ...(await orig<typeof import('@guestnote/db')>()),
   getWeddingDetail: (...a: unknown[]) => getWeddingDetail(...a),
   getWeddingTaskCounts: (...a: unknown[]) => getWeddingTaskCounts(...a),
   listWeddingEvents: (...a: unknown[]) => listWeddingEvents(...a),
@@ -66,6 +67,11 @@ vi.mock('../../../../../lib/db.ts', () => ({ getDb: () => ({}) }))
 vi.mock('../../../../../lib/principal.ts', () => ({
   currentMemberships: () => currentMemberships(),
   currentOrgId: () => currentOrgId(),
+  // The real `currentCaller`, over the two mocks above.
+  currentCaller: async () => {
+    const [memberships, orgId] = [await currentMemberships(), await currentOrgId()]
+    return memberships && orgId ? { memberships, orgId } : null
+  },
 }))
 vi.mock('next/navigation', () => ({ notFound: () => notFound() }))
 vi.mock('../../../../../components/wedding/wedding-header.tsx', async (orig) => ({

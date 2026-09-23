@@ -1,14 +1,12 @@
 import { and, asc, eq, isNull } from 'drizzle-orm'
-import type { Db } from '../client.ts'
 import { newId } from '../id.ts'
 import { budgetLines, payments } from '../schema/money.ts'
 import { vendors, weddingVendors } from '../schema/vendors.ts'
 import { weddings } from '../schema/weddings.ts'
 import type { TenantDb } from '../tenant.ts'
 import { withTenant } from '../tenant.ts'
-import type { Memberships } from './memberships.ts'
 import { fail, ok, type Result } from './result.ts'
-import { staffPrincipal } from './staff-principal.ts'
+import type { WeddingScope } from './scope.ts'
 
 /**
  * Slice S4 of docs/specs/0003-planner-app-screens.md: the budget's lines.
@@ -101,13 +99,9 @@ export async function readMoneyContext(
 }
 
 /** Everything the budget screen draws, or `null` for a 404. One transaction. */
-export async function getBudget(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
-): Promise<BudgetData | null> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+export async function getBudget(scope: WeddingScope): Promise<BudgetData | null> {
+  const { db, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return null
 
   return withTenant(db, principal, async (tx) => {
@@ -180,13 +174,11 @@ async function vendorExists(tx: TenantDb, weddingId: string, weddingVendorId: st
 }
 
 export async function createBudgetLine(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
   input: BudgetLineInput,
 ): Promise<MoneyResult> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+  const { db, orgId, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return fail('notFound')
 
   return withTenant(db, principal, async (tx): Promise<MoneyResult> => {
@@ -210,14 +202,12 @@ export async function createBudgetLine(
 }
 
 export async function updateBudgetLine(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
   lineId: string,
   input: BudgetLineInput,
 ): Promise<MoneyResult> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+  const { db, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return fail('notFound')
 
   return withTenant(db, principal, async (tx): Promise<MoneyResult> => {
@@ -254,14 +244,9 @@ export async function updateBudgetLine(
  * alone on purpose: both reads join through the line, so they vanish with it and come back if the
  * line is ever restored. Hard-deleting the line would cascade and destroy a paid history.
  */
-export async function deleteBudgetLine(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
-  lineId: string,
-): Promise<MoneyResult> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+export async function deleteBudgetLine(scope: WeddingScope, lineId: string): Promise<MoneyResult> {
+  const { db, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return fail('notFound')
 
   return withTenant(db, principal, async (tx): Promise<MoneyResult> => {

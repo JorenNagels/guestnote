@@ -1,12 +1,10 @@
 import { and, asc, eq, isNull, sql } from 'drizzle-orm'
-import type { Db } from '../client.ts'
 import { newId } from '../id.ts'
 import { weddingEvents } from '../schema/events.ts'
 import { weddings } from '../schema/weddings.ts'
 import { withTenant } from '../tenant.ts'
-import type { Memberships } from './memberships.ts'
 import { fail, ok, type Result } from './result.ts'
-import { staffPrincipal } from './staff-principal.ts'
+import type { WeddingScope } from './scope.ts'
 
 /**
  * Slice S1 of docs/specs/0003-planner-app-screens.md: the events of one wedding.
@@ -61,13 +59,9 @@ function toEvent(row: Row): WeddingEvent {
  * S9 lists events for the run sheet and must apply the same filter: a removed event keeps its
  * run sheet items, on purpose, so removing an event is undoable.
  */
-export async function listWeddingEvents(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
-): Promise<WeddingEvent[]> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+export async function listWeddingEvents(scope: WeddingScope): Promise<WeddingEvent[]> {
+  const { db, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return []
 
   const rows = await withTenant(db, principal, async (tx) =>
@@ -99,13 +93,11 @@ export async function listWeddingEvents(
  * wedding under this principal is what proves it is ours.
  */
 export async function createWeddingEvent(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
   input: WeddingEventInput,
 ): Promise<Result<WeddingEvent, 'notFound'>> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+  const { db, orgId, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return fail('notFound')
 
   return withTenant(db, principal, async (tx) => {
@@ -140,14 +132,12 @@ export async function createWeddingEvent(
 
 /** `notFound` when the event is not on this wedding, is removed, or the caller has no standing. */
 export async function updateWeddingEvent(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
   eventId: string,
   input: WeddingEventInput,
 ): Promise<Result<WeddingEvent, 'notFound'>> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+  const { db, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return fail('notFound')
 
   const rows = await withTenant(db, principal, async (tx) =>
@@ -177,13 +167,11 @@ export async function updateWeddingEvent(
 
 /** Soft delete. `ok` when a row was removed. */
 export async function deleteWeddingEvent(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
   eventId: string,
 ): Promise<Result<null, 'notFound'>> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+  const { db, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return fail('notFound')
 
   const rows = await withTenant(db, principal, async (tx) =>

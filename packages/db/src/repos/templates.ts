@@ -5,6 +5,7 @@ import { taskTemplates, templateItems } from '../schema/templates.ts'
 import { type Principal, type TenantDb, withTenant } from '../tenant.ts'
 import { type Memberships, principalForOrg, principalForWedding } from './memberships.ts'
 import { fail, ok, type Result } from './result.ts'
+import { WeddingScope } from './scope.ts'
 import { createTasks, type TaskAssigneeRole, type TaskVisibility } from './tasks.ts'
 
 /**
@@ -474,10 +475,7 @@ export async function applyTemplate(
   if (items.length === 0) return EMPTY
 
   const ids = await createTasks(
-    db,
-    m,
-    orgId,
-    weddingId,
+    WeddingScope.of(db, m, orgId, weddingId),
     items.map((item) => ({
       title: item.title,
       visibility: item.visibility,

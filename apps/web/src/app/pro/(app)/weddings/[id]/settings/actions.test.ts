@@ -12,7 +12,8 @@ const currentMemberships = vi.fn()
 const currentOrgId = vi.fn()
 const revalidatePath = vi.fn()
 
-vi.mock('@guestnote/db', () => ({
+vi.mock('@guestnote/db', async (orig) => ({
+  ...(await orig<typeof import('@guestnote/db')>()),
   updateWedding: (...a: unknown[]) => updateWedding(...a),
   createWeddingEvent: (...a: unknown[]) => createWeddingEvent(...a),
   updateWeddingEvent: (...a: unknown[]) => updateWeddingEvent(...a),
@@ -22,6 +23,11 @@ vi.mock('../../../../../../lib/db.ts', () => ({ getDb: () => ({}) }))
 vi.mock('../../../../../../lib/principal.ts', () => ({
   currentMemberships: () => currentMemberships(),
   currentOrgId: () => currentOrgId(),
+  // The real `currentCaller`, over the two mocks above.
+  currentCaller: async () => {
+    const [memberships, orgId] = [await currentMemberships(), await currentOrgId()]
+    return memberships && orgId ? { memberships, orgId } : null
+  },
 }))
 vi.mock('next/cache', () => ({ revalidatePath: (...a: unknown[]) => revalidatePath(...a) }))
 
@@ -54,8 +60,8 @@ describe('updateWeddingAction', () => {
       form({ coupleDisplayName: 'Els', notes: 'x', status: 'live', color: '#206560' }),
     )
     expect(state).toEqual({ notice: 'saved' })
-    expect(updateWedding.mock.calls[0]?.slice(2, 4)).toEqual(['org-a', WID])
-    expect(updateWedding.mock.calls[0]?.[4]).toMatchObject({ status: 'live', notes: 'x' })
+    expect(updateWedding.mock.calls[0]?.[0]).toMatchObject({ orgId: 'org-a', weddingId: WID })
+    expect(updateWedding.mock.calls[0]?.[1]).toMatchObject({ status: 'live', notes: 'x' })
     expect(revalidatePath).toHaveBeenCalledWith('/pro', 'layout')
   })
 
@@ -104,14 +110,16 @@ describe('saveEventAction', () => {
 
   it('updates when there is one, scoped to this wedding', async () => {
     await saveEventAction(WID, {}, form({ ...EVENT, eventId: EID, intent: 'save' }))
-    expect(updateWeddingEvent.mock.calls[0]?.slice(2, 5)).toEqual(['org-a', WID, EID])
+    expect(updateWeddingEvent.mock.calls[0]?.[0]).toMatchObject({ orgId: 'org-a', weddingId: WID })
+    expect(updateWeddingEvent.mock.calls[0]?.[1]).toBe(EID)
     expect(createWeddingEvent).not.toHaveBeenCalled()
   })
 
   it('removes on intent=remove, and does not validate the fields of a row being removed', async () => {
     const state = await saveEventAction(WID, {}, form({ eventId: EID, intent: 'remove' }))
     expect(state).toEqual({ notice: 'removed' })
-    expect(deleteWeddingEvent.mock.calls[0]?.slice(2, 5)).toEqual(['org-a', WID, EID])
+    expect(deleteWeddingEvent.mock.calls[0]?.[0]).toMatchObject({ orgId: 'org-a', weddingId: WID })
+    expect(deleteWeddingEvent.mock.calls[0]?.[1]).toBe(EID)
     expect(updateWeddingEvent).not.toHaveBeenCalled()
   })
 

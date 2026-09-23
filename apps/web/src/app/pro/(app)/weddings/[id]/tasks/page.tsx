@@ -1,4 +1,4 @@
-import { getWedding, listTasks } from '@guestnote/db'
+import { getWedding, listTasks, WeddingScope } from '@guestnote/db'
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { parseFilter } from '../../../../../../components/tasks/buckets.ts'
@@ -33,10 +33,10 @@ export default async function ChecklistPage({
   ])
   if (!memberships || !orgId || !isUuid(id)) notFound()
 
-  const db = getDb()
-  const wedding = await getWedding(db, memberships, orgId, id)
+  const scope = WeddingScope.of(getDb(), memberships, orgId, id)
+  const wedding = await getWedding(scope)
   if (!wedding) notFound()
-  const tasks = await listTasks(db, memberships, orgId, id)
+  const tasks = await listTasks(scope)
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-8">

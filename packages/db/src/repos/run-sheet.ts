@@ -1,13 +1,11 @@
 import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
-import type { Db } from '../client.ts'
 import { newId } from '../id.ts'
 import { runSheetItems, weddingEvents } from '../schema/events.ts'
 import { vendors, weddingVendors } from '../schema/vendors.ts'
 import { weddings } from '../schema/weddings.ts'
 import { type TenantDb, withTenant } from '../tenant.ts'
-import type { Memberships } from './memberships.ts'
 import { fail, ok, type Result } from './result.ts'
-import { staffPrincipal } from './staff-principal.ts'
+import type { WeddingScope } from './scope.ts'
 
 /**
  * Slice S9 of docs/specs/0003-planner-app-screens.md: the run sheet, one list of items per event.
@@ -121,12 +119,10 @@ const ORDER = [asc(runSheetItems.position), asc(runSheetItems.startsAt), asc(run
  * an event restores its sheet (S1's `listWeddingEvents` says the same from its side).
  */
 export async function getRunSheet(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
 ): Promise<{ items: RunSheetItem[]; vendors: RunSheetVendor[] } | null> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+  const { db, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return null
 
   return withTenant(db, principal, async (tx) => {
@@ -258,14 +254,12 @@ async function writeOrder(
 const positions = (slots: readonly Slot[]) => new Map(slots.map((s) => [s.id, s.position]))
 
 export async function createRunSheetItem(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
   eventId: string,
   input: RunSheetInput,
 ): Promise<RunSheetResult> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+  const { db, orgId, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return fail('notFound')
 
   return withTenant(db, principal, async (tx) => {
@@ -310,14 +304,12 @@ export async function createRunSheetItem(
  * bare `HH:MM` would drag it back in front of the evening. Other edits never move it.
  */
 export async function updateRunSheetItem(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
   itemId: string,
   input: RunSheetInput,
 ): Promise<RunSheetResult> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+  const { db, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return fail('notFound')
 
   return withTenant(db, principal, async (tx) => {
@@ -376,13 +368,11 @@ export async function updateRunSheetItem(
 
 /** Hard delete: the table has no `deleted_at`, and a run sheet line is cheap to type again. */
 export async function deleteRunSheetItem(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
   itemId: string,
 ): Promise<RunSheetResult> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+  const { db, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return fail('notFound')
 
   const rows = await withTenant(db, principal, async (tx) =>
@@ -400,14 +390,12 @@ export async function deleteRunSheetItem(
  * order, which is what makes a tie in `position` (the seed's, all zero) move one step and not none.
  */
 export async function moveRunSheetItem(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
   itemId: string,
   direction: 'up' | 'down',
 ): Promise<RunSheetResult> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+  const { db, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return fail('notFound')
 
   return withTenant(db, principal, async (tx) => {

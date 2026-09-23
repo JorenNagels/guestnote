@@ -8,6 +8,7 @@ import {
   type RunSheetInput,
   resolveMemberships,
   updateRunSheetItem,
+  WeddingScope,
 } from '../src/repos/index.ts'
 import { connect, F, type Harness, reseed, seedExec } from './harness.ts'
 
@@ -40,7 +41,7 @@ const input = (over: Partial<RunSheetInput> = {}): RunSheetInput => ({
 })
 
 async function titles(m: Memberships, weddingId: string = A1): Promise<string[]> {
-  const data = await getRunSheet(h.db, m, F.orgA, weddingId)
+  const data = await getRunSheet(WeddingScope.of(h.db, m, F.orgA, weddingId))
   return (data?.items ?? []).map((i) => i.title)
 }
 
@@ -63,7 +64,7 @@ afterAll(async () => {
 
 describe('getRunSheet', () => {
   it("reads one wedding's items and its vendors, with the time cut to HH:MM", async () => {
-    const data = await getRunSheet(h.db, owner, F.orgA, A1)
+    const data = await getRunSheet(WeddingScope.of(h.db, owner, F.orgA, A1))
     expect(data?.items).toHaveLength(1)
     expect(data?.items[0]).toMatchObject({
       id: F.runItemA1,
@@ -76,9 +77,9 @@ describe('getRunSheet', () => {
   })
 
   it('is null for a wedding the caller cannot see: another org, unassigned member, couple', async () => {
-    expect(await getRunSheet(h.db, otherOrgOwner, F.orgA, A1)).toBeNull()
-    expect(await getRunSheet(h.db, member, F.orgA, A2)).toBeNull()
-    expect(await getRunSheet(h.db, couple, F.orgA, A1)).toBeNull()
+    expect(await getRunSheet(WeddingScope.of(h.db, otherOrgOwner, F.orgA, A1))).toBeNull()
+    expect(await getRunSheet(WeddingScope.of(h.db, member, F.orgA, A2))).toBeNull()
+    expect(await getRunSheet(WeddingScope.of(h.db, couple, F.orgA, A1))).toBeNull()
   })
 
   it('reads for an assigned member', async () => {
@@ -95,32 +96,30 @@ describe('getRunSheet', () => {
 
 describe('createRunSheetItem', () => {
   it('places the item where the clock says', async () => {
-    await createRunSheetItem(h.db, owner, F.orgA, A1, F.eventA1, input({ startsAt: '16:30' }))
     await createRunSheetItem(
-      h.db,
-      owner,
-      F.orgA,
-      A1,
+      WeddingScope.of(h.db, owner, F.orgA, A1),
+      F.eventA1,
+      input({ startsAt: '16:30' }),
+    )
+    await createRunSheetItem(
+      WeddingScope.of(h.db, owner, F.orgA, A1),
       F.eventA1,
       input({ startsAt: '15:00', title: 'Arrival' }),
     )
     expect(await titles(owner)).toEqual(['Arrival', 'Ceremony', 'Drinks'])
-    const data = await getRunSheet(h.db, owner, F.orgA, A1)
+    const data = await getRunSheet(WeddingScope.of(h.db, owner, F.orgA, A1))
     expect(data?.items.map((i) => i.position)).toEqual([0, 1, 2])
   })
 
   it('refuses an event of a sibling wedding, even for the org-wide owner', async () => {
-    const r = await createRunSheetItem(h.db, owner, F.orgA, A1, F.eventA2, input())
+    const r = await createRunSheetItem(WeddingScope.of(h.db, owner, F.orgA, A1), F.eventA2, input())
     expect(r).toEqual({ ok: false, reason: 'eventNotFound' })
     expect(await titles(owner, A2)).toEqual(['First dance'])
   })
 
   it('refuses a vendor link of a sibling wedding', async () => {
     const r = await createRunSheetItem(
-      h.db,
-      owner,
-      F.orgA,
-      A1,
+      WeddingScope.of(h.db, owner, F.orgA, A1),
       F.eventA1,
       input({ weddingVendorId: F.wedVendorA2 }),
     )
@@ -130,86 +129,84 @@ describe('createRunSheetItem', () => {
 
   it("accepts this wedding's vendor and names it", async () => {
     await createRunSheetItem(
-      h.db,
-      owner,
-      F.orgA,
-      A1,
+      WeddingScope.of(h.db, owner, F.orgA, A1),
       F.eventA1,
       input({ weddingVendorId: F.wedVendorA1 }),
     )
-    const data = await getRunSheet(h.db, owner, F.orgA, A1)
+    const data = await getRunSheet(WeddingScope.of(h.db, owner, F.orgA, A1))
     expect(data?.items.find((i) => i.title === 'Drinks')?.vendorName).toBe('Traiteur A')
   })
 
   it('writes nothing for a caller with no standing', async () => {
     const none = { ok: false, reason: 'notFound' }
-    expect(await createRunSheetItem(h.db, couple, F.orgA, A1, F.eventA1, input())).toEqual(none)
-    expect(await createRunSheetItem(h.db, member, F.orgA, A2, F.eventA2, input())).toEqual(none)
-    expect(await createRunSheetItem(h.db, otherOrgOwner, F.orgA, A1, F.eventA1, input())).toEqual(
-      none,
-    )
+    expect(
+      await createRunSheetItem(WeddingScope.of(h.db, couple, F.orgA, A1), F.eventA1, input()),
+    ).toEqual(none)
+    expect(
+      await createRunSheetItem(WeddingScope.of(h.db, member, F.orgA, A2), F.eventA2, input()),
+    ).toEqual(none)
+    expect(
+      await createRunSheetItem(
+        WeddingScope.of(h.db, otherOrgOwner, F.orgA, A1),
+        F.eventA1,
+        input(),
+      ),
+    ).toEqual(none)
     expect(await titles(owner)).toEqual(['Ceremony'])
   })
 })
 
 describe('updateRunSheetItem', () => {
   it('will not touch an item of a sibling wedding, even for the org-wide owner', async () => {
-    const r = await updateRunSheetItem(h.db, owner, F.orgA, A1, F.runItemA2, input())
+    const r = await updateRunSheetItem(
+      WeddingScope.of(h.db, owner, F.orgA, A1),
+      F.runItemA2,
+      input(),
+    )
     expect(r).toEqual({ ok: false, reason: 'itemNotFound' })
     expect(await titles(owner, A2)).toEqual(['First dance'])
   })
 
   it('refuses a new vendor from a sibling wedding but keeps an unchanged one that was removed', async () => {
     const bad = await updateRunSheetItem(
-      h.db,
-      owner,
-      F.orgA,
-      A1,
+      WeddingScope.of(h.db, owner, F.orgA, A1),
       F.runItemA1,
       input({ weddingVendorId: F.wedVendorA2 }),
     )
     expect(bad).toEqual({ ok: false, reason: 'vendorNotFound' })
 
     await updateRunSheetItem(
-      h.db,
-      owner,
-      F.orgA,
-      A1,
+      WeddingScope.of(h.db, owner, F.orgA, A1),
       F.runItemA1,
       input({ startsAt: '15:30', weddingVendorId: F.wedVendorA1 }),
     )
     await seedExec(`update wedding_vendors set deleted_at = now() where id = $1`, [F.wedVendorA1])
     const again = await updateRunSheetItem(
-      h.db,
-      owner,
-      F.orgA,
-      A1,
+      WeddingScope.of(h.db, owner, F.orgA, A1),
       F.runItemA1,
       input({ startsAt: '15:30', title: 'Ceremony, outside', weddingVendorId: F.wedVendorA1 }),
     )
     expect(again.ok).toBe(true)
-    const data = await getRunSheet(h.db, owner, F.orgA, A1)
+    const data = await getRunSheet(WeddingScope.of(h.db, owner, F.orgA, A1))
     expect(data?.items[0]?.vendorName).toBe('Traiteur A')
     expect(data?.vendors).toEqual([])
   })
 
   it('re-places the item when its time changes, and not when only its title does', async () => {
-    await createRunSheetItem(h.db, owner, F.orgA, A1, F.eventA1, input({ startsAt: '17:00' }))
+    await createRunSheetItem(
+      WeddingScope.of(h.db, owner, F.orgA, A1),
+      F.eventA1,
+      input({ startsAt: '17:00' }),
+    )
     await updateRunSheetItem(
-      h.db,
-      owner,
-      F.orgA,
-      A1,
+      WeddingScope.of(h.db, owner, F.orgA, A1),
       F.runItemA1,
       input({ startsAt: '18:00', title: 'Ceremony' }),
     )
     expect(await titles(owner)).toEqual(['Drinks', 'Ceremony'])
 
     await updateRunSheetItem(
-      h.db,
-      owner,
-      F.orgA,
-      A1,
+      WeddingScope.of(h.db, owner, F.orgA, A1),
       F.runItemA1,
       input({ startsAt: '18:00', title: 'Ceremony (renamed)' }),
     )
@@ -218,34 +215,25 @@ describe('updateRunSheetItem', () => {
 
   it('leaves an item after midnight where it is', async () => {
     await createRunSheetItem(
-      h.db,
-      owner,
-      F.orgA,
-      A1,
+      WeddingScope.of(h.db, owner, F.orgA, A1),
       F.eventA1,
       input({ startsAt: '21:00', title: 'Dance' }),
     )
     await createRunSheetItem(
-      h.db,
-      owner,
-      F.orgA,
-      A1,
+      WeddingScope.of(h.db, owner, F.orgA, A1),
       F.eventA1,
       input({ startsAt: '01:00', title: 'Last song' }),
     )
     // The 01:00 lands first (the clock cannot tell it from a morning item); the planner moves it.
     expect(await titles(owner)).toEqual(['Last song', 'Ceremony', 'Dance'])
-    const last = (await getRunSheet(h.db, owner, F.orgA, A1))?.items[0]?.id ?? ''
-    await moveRunSheetItem(h.db, owner, F.orgA, A1, last, 'down')
-    await moveRunSheetItem(h.db, owner, F.orgA, A1, last, 'down')
+    const last = (await getRunSheet(WeddingScope.of(h.db, owner, F.orgA, A1)))?.items[0]?.id ?? ''
+    await moveRunSheetItem(WeddingScope.of(h.db, owner, F.orgA, A1), last, 'down')
+    await moveRunSheetItem(WeddingScope.of(h.db, owner, F.orgA, A1), last, 'down')
     expect(await titles(owner)).toEqual(['Ceremony', 'Dance', 'Last song'])
 
     // Now after midnight: editing its time to 01:30 must not drag it back to the front.
     await updateRunSheetItem(
-      h.db,
-      owner,
-      F.orgA,
-      A1,
+      WeddingScope.of(h.db, owner, F.orgA, A1),
       last,
       input({ startsAt: '01:30', title: 'Last song' }),
     )
@@ -253,7 +241,11 @@ describe('updateRunSheetItem', () => {
   })
 
   it('refuses a caller with no standing', async () => {
-    const r = await updateRunSheetItem(h.db, couple, F.orgA, A1, F.runItemA1, input())
+    const r = await updateRunSheetItem(
+      WeddingScope.of(h.db, couple, F.orgA, A1),
+      F.runItemA1,
+      input(),
+    )
     expect(r).toEqual({ ok: false, reason: 'notFound' })
     expect(await titles(owner)).toEqual(['Ceremony'])
   })
@@ -261,17 +253,25 @@ describe('updateRunSheetItem', () => {
 
 describe('moveRunSheetItem', () => {
   it('swaps with the neighbour, and does nothing past either end', async () => {
-    await createRunSheetItem(h.db, owner, F.orgA, A1, F.eventA1, input({ startsAt: '17:00' }))
+    await createRunSheetItem(
+      WeddingScope.of(h.db, owner, F.orgA, A1),
+      F.eventA1,
+      input({ startsAt: '17:00' }),
+    )
     expect(await titles(owner)).toEqual(['Ceremony', 'Drinks'])
 
-    await moveRunSheetItem(h.db, owner, F.orgA, A1, F.runItemA1, 'down')
+    await moveRunSheetItem(WeddingScope.of(h.db, owner, F.orgA, A1), F.runItemA1, 'down')
     expect(await titles(owner)).toEqual(['Drinks', 'Ceremony'])
 
-    const end = await moveRunSheetItem(h.db, owner, F.orgA, A1, F.runItemA1, 'down')
+    const end = await moveRunSheetItem(
+      WeddingScope.of(h.db, owner, F.orgA, A1),
+      F.runItemA1,
+      'down',
+    )
     expect(end.ok).toBe(true)
     expect(await titles(owner)).toEqual(['Drinks', 'Ceremony'])
 
-    await moveRunSheetItem(h.db, owner, F.orgA, A1, F.runItemA1, 'up')
+    await moveRunSheetItem(WeddingScope.of(h.db, owner, F.orgA, A1), F.runItemA1, 'up')
     expect(await titles(owner)).toEqual(['Ceremony', 'Drinks'])
   })
 
@@ -283,29 +283,37 @@ describe('moveRunSheetItem', () => {
       [F.orgA, A1, F.eventA1],
     )
     expect(await titles(owner)).toEqual(['Ceremony', 'Photos'])
-    await moveRunSheetItem(h.db, owner, F.orgA, A1, '99999999-0000-0000-0000-0000000000c1', 'up')
+    await moveRunSheetItem(
+      WeddingScope.of(h.db, owner, F.orgA, A1),
+      '99999999-0000-0000-0000-0000000000c1',
+      'up',
+    )
     expect(await titles(owner)).toEqual(['Photos', 'Ceremony'])
   })
 
   it('will not move an item of a sibling wedding', async () => {
-    const r = await moveRunSheetItem(h.db, owner, F.orgA, A1, F.runItemA2, 'up')
+    const r = await moveRunSheetItem(WeddingScope.of(h.db, owner, F.orgA, A1), F.runItemA2, 'up')
     expect(r).toEqual({ ok: false, reason: 'itemNotFound' })
   })
 })
 
 describe('deleteRunSheetItem', () => {
   it('deletes the row', async () => {
-    const r = await deleteRunSheetItem(h.db, owner, F.orgA, A1, F.runItemA1)
+    const r = await deleteRunSheetItem(WeddingScope.of(h.db, owner, F.orgA, A1), F.runItemA1)
     expect(r.ok).toBe(true)
     expect(await titles(owner)).toEqual([])
   })
 
   it('will not delete an item of a sibling wedding, or for a caller with no standing', async () => {
-    expect(await deleteRunSheetItem(h.db, owner, F.orgA, A1, F.runItemA2)).toEqual({
-      ok: false,
-      reason: 'itemNotFound',
-    })
-    expect(await deleteRunSheetItem(h.db, couple, F.orgA, A1, F.runItemA1)).toEqual({
+    expect(await deleteRunSheetItem(WeddingScope.of(h.db, owner, F.orgA, A1), F.runItemA2)).toEqual(
+      {
+        ok: false,
+        reason: 'itemNotFound',
+      },
+    )
+    expect(
+      await deleteRunSheetItem(WeddingScope.of(h.db, couple, F.orgA, A1), F.runItemA1),
+    ).toEqual({
       ok: false,
       reason: 'notFound',
     })

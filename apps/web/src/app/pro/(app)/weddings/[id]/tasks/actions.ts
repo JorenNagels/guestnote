@@ -8,10 +8,9 @@ import {
   updateTask,
 } from '@guestnote/db'
 import { revalidatePath } from 'next/cache'
-import { getDb } from '../../../../../../lib/db.ts'
-import { currentCaller } from '../../../../../../lib/principal.ts'
 import { COMMENT_MAX, parseTaskForm, type TaskFormError } from '../../../../../../lib/task-form.ts'
 import { isUuid } from '../../../../../../lib/uuid.ts'
+import { currentWeddingScope } from '../../../../../../lib/wedding-scope.ts'
 
 /**
  * The checklist's writes. Slice S2 of docs/specs/0003.
@@ -41,8 +40,8 @@ export type TaskActionResult = { ok: true } | { ok: false; error: TaskActionErro
 const TASKS_TREE = '/pro/weddings/[id]/tasks'
 const refresh = () => revalidatePath(TASKS_TREE, 'layout')
 
-async function who(...ids: string[]) {
-  return ids.every(isUuid) ? currentCaller() : null
+async function who(weddingId: string, ...ids: string[]) {
+  return ids.every(isUuid) ? currentWeddingScope(weddingId) : null
 }
 
 const NOT_FOUND = { ok: false, error: 'notFound' } as const
@@ -56,7 +55,7 @@ export async function createTaskAction(
 
   const ctx = await who(weddingId)
   if (!ctx) return NOT_FOUND
-  const task = await createTask(getDb(), ctx.memberships, ctx.orgId, weddingId, parsed.input)
+  const task = await createTask(ctx, parsed.input)
   if (!task.ok) return NOT_FOUND
   refresh()
   return { ok: true, taskId: task.value.id }
@@ -72,14 +71,7 @@ export async function updateTaskAction(
 
   const ctx = await who(weddingId, taskId)
   if (!ctx) return NOT_FOUND
-  const task = await updateTask(
-    getDb(),
-    ctx.memberships,
-    ctx.orgId,
-    weddingId,
-    taskId,
-    parsed.input,
-  )
+  const task = await updateTask(ctx, taskId, parsed.input)
   if (!task.ok) return NOT_FOUND
   refresh()
   return { ok: true }
@@ -93,14 +85,7 @@ export async function setTaskDoneAction(
 ): Promise<TaskActionResult> {
   const ctx = await who(weddingId, taskId)
   if (!ctx) return NOT_FOUND
-  const task = await completeTask(
-    getDb(),
-    ctx.memberships,
-    ctx.orgId,
-    weddingId,
-    taskId,
-    done === true,
-  )
+  const task = await completeTask(ctx, taskId, done === true)
   if (!task.ok) return NOT_FOUND
   refresh()
   return { ok: true }
@@ -118,7 +103,7 @@ export async function setTaskVisibilityAction(
 ): Promise<TaskActionResult> {
   const ctx = await who(weddingId, taskId)
   if (!ctx) return NOT_FOUND
-  const task = await updateTask(getDb(), ctx.memberships, ctx.orgId, weddingId, taskId, {
+  const task = await updateTask(ctx, taskId, {
     visibility: visibility === 'internal' ? 'internal' : 'shared',
   })
   if (!task.ok) return NOT_FOUND
@@ -136,7 +121,7 @@ export async function addCommentAction(
 
   const ctx = await who(weddingId, taskId)
   if (!ctx) return NOT_FOUND
-  const comment = await addTaskComment(getDb(), ctx.memberships, ctx.orgId, weddingId, taskId, text)
+  const comment = await addTaskComment(ctx, taskId, text)
   if (!comment.ok) return NOT_FOUND
   refresh()
   return { ok: true }

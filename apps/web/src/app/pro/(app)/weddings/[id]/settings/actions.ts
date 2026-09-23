@@ -7,11 +7,10 @@ import {
   updateWeddingEvent,
 } from '@guestnote/db'
 import { revalidatePath } from 'next/cache'
-import { getDb } from '../../../../../../lib/db.ts'
-import { currentMemberships, currentOrgId } from '../../../../../../lib/principal.ts'
 import { isUuid } from '../../../../../../lib/uuid.ts'
 import { echoValues, type FormState } from '../../../../../../lib/wedding-form-state.ts'
 import { parseEventForm, parseWeddingForm } from '../../../../../../lib/wedding-parse.ts'
+import { currentWeddingScope } from '../../../../../../lib/wedding-scope.ts'
 
 const WEDDING_FIELDS = [
   'coupleDisplayName',
@@ -37,14 +36,14 @@ export async function updateWeddingAction(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const [memberships, orgId] = await Promise.all([currentMemberships(), currentOrgId()])
-  if (!memberships || !orgId || !isUuid(weddingId)) return { form: 'forbidden' }
+  const scope = await currentWeddingScope(weddingId)
+  if (!scope) return { form: 'forbidden' }
 
   const values = echoValues(formData, WEDDING_FIELDS)
   const parsed = parseWeddingForm(formData)
   if (!parsed.ok) return { errors: parsed.errors, values }
 
-  const saved = await updateWedding(getDb(), memberships, orgId, weddingId, parsed.value)
+  const saved = await updateWedding(scope, parsed.value)
   if (!saved.ok) return { form: 'forbidden', values }
 
   revalidatePath('/pro', 'layout')
@@ -63,8 +62,8 @@ export async function saveEventAction(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const [memberships, orgId] = await Promise.all([currentMemberships(), currentOrgId()])
-  if (!memberships || !orgId || !isUuid(weddingId)) return { form: 'forbidden' }
+  const scope = await currentWeddingScope(weddingId)
+  if (!scope) return { form: 'forbidden' }
 
   const eventIdRaw = formData.get('eventId')
   const eventId = typeof eventIdRaw === 'string' ? eventIdRaw : ''
@@ -72,7 +71,7 @@ export async function saveEventAction(
 
   if (formData.get('intent') === 'remove') {
     if (eventId === '') return {}
-    const removed = await deleteWeddingEvent(getDb(), memberships, orgId, weddingId, eventId)
+    const removed = await deleteWeddingEvent(scope, eventId)
     if (!removed.ok) return { form: 'forbidden' }
     revalidatePath('/pro', 'layout')
     return { notice: 'removed' }
@@ -84,8 +83,8 @@ export async function saveEventAction(
 
   const saved =
     eventId === ''
-      ? await createWeddingEvent(getDb(), memberships, orgId, weddingId, parsed.value)
-      : await updateWeddingEvent(getDb(), memberships, orgId, weddingId, eventId, parsed.value)
+      ? await createWeddingEvent(scope, parsed.value)
+      : await updateWeddingEvent(scope, eventId, parsed.value)
   if (!saved.ok) return { form: 'forbidden', values }
 
   revalidatePath('/pro', 'layout')

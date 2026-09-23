@@ -1,4 +1,4 @@
-import { getWeddingDetail, listWeddingEvents } from '@guestnote/db'
+import { getWeddingDetail, listWeddingEvents, WeddingScope } from '@guestnote/db'
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { EventsEditor } from '../../../../../../components/wedding/events-editor.tsx'
@@ -32,10 +32,10 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
   // and the planner would get a 500 for a mistyped URL.
   if (!memberships || !orgId || !isUuid(id)) notFound()
 
-  const db = getDb()
-  const wedding = await getWeddingDetail(db, memberships, orgId, id)
+  const scope = WeddingScope.of(getDb(), memberships, orgId, id)
+  const wedding = await getWeddingDetail(scope)
   if (!wedding) notFound()
-  const events = await listWeddingEvents(db, memberships, orgId, id)
+  const events = await listWeddingEvents(scope)
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">

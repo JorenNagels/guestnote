@@ -10,8 +10,6 @@ import {
 } from '@guestnote/db'
 import { revalidatePath } from 'next/cache'
 import { newBearerToken } from '../../../../../../lib/bearer-token.ts'
-import { getDb } from '../../../../../../lib/db.ts'
-import { currentCaller } from '../../../../../../lib/principal.ts'
 import {
   answer,
   parseId,
@@ -24,6 +22,7 @@ import {
   DEFAULT_VENDOR_LINK_TTL_DAYS,
   MAX_VENDOR_LINK_TTL_DAYS,
 } from '../../../../../../lib/vendor-link-token.ts'
+import { currentWeddingScope } from '../../../../../../lib/wedding-scope.ts'
 
 /**
  * One wedding's vendor list: link, create-and-link, status, notes, unlink.
@@ -45,11 +44,7 @@ function refresh(alsoDirectory = false) {
   if (alsoDirectory) revalidatePath(VENDORS)
 }
 
-async function context(weddingId: unknown) {
-  const wid = parseId(weddingId)
-  const c = wid ? await currentCaller() : null
-  return c && wid ? { m: c.memberships, orgId: c.orgId, weddingId: wid } : null
-}
+const context = currentWeddingScope
 
 export async function addVendorToWedding(
   weddingId: unknown,
@@ -59,7 +54,7 @@ export async function addVendorToWedding(
   const vid = parseId(vendorId)
   if (!ctx) return { ok: false, error: 'notFound' }
   if (!vid) return { ok: false, error: 'invalid' }
-  const r = await addWeddingVendor(getDb(), ctx.m, ctx.orgId, ctx.weddingId, vid)
+  const r = await addWeddingVendor(ctx, vid)
   if (r.ok) refresh()
   return answer(r)
 }
@@ -72,7 +67,7 @@ export async function createVendorOnWedding(
   if (!ctx) return { ok: false, error: 'notFound' }
   const parsed = parseVendorInput(input)
   if (!parsed) return { ok: false, error: 'invalid' }
-  const r = await createVendorForWedding(getDb(), ctx.m, ctx.orgId, ctx.weddingId, parsed)
+  const r = await createVendorForWedding(ctx, parsed)
   if (r.ok) refresh(true)
   return answer(r)
 }
@@ -88,7 +83,7 @@ export async function setWeddingVendorStatus(
   const id = parseId(linkId)
   const s = parseStatus(status)
   if (!id || !s) return { ok: false, error: 'invalid' }
-  const r = await updateWeddingVendor(getDb(), ctx.m, ctx.orgId, ctx.weddingId, id, { status: s })
+  const r = await updateWeddingVendor(ctx, id, { status: s })
   if (r.ok) refresh()
   return answer(r)
 }
@@ -106,7 +101,7 @@ export async function saveWeddingVendor(
   const s = parseStatus(status)
   const n = parseNotes(notes)
   if (!id || !s || !n) return { ok: false, error: 'invalid' }
-  const r = await updateWeddingVendor(getDb(), ctx.m, ctx.orgId, ctx.weddingId, id, {
+  const r = await updateWeddingVendor(ctx, id, {
     status: s,
     notes: n.value,
   })
@@ -122,7 +117,7 @@ export async function removeVendorFromWedding(
   if (!ctx) return { ok: false, error: 'notFound' }
   const id = parseId(linkId)
   if (!id) return { ok: false, error: 'invalid' }
-  const r = await removeWeddingVendor(getDb(), ctx.m, ctx.orgId, ctx.weddingId, id)
+  const r = await removeWeddingVendor(ctx, id)
   if (r.ok) refresh()
   return answer(r)
 }
@@ -155,7 +150,7 @@ export async function createVendorLinkAction(
 
   const { token, tokenHash } = newBearerToken()
   const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000)
-  const r = await createVendorLink(getDb(), ctx.m, ctx.orgId, ctx.weddingId, id, {
+  const r = await createVendorLink(ctx, id, {
     tokenHash,
     expiresAt,
   })
@@ -172,7 +167,7 @@ export async function revokeVendorLinkAction(
   if (!ctx) return { ok: false }
   const id = parseId(linkId)
   if (!id) return { ok: false }
-  const gone = await revokeVendorLink(getDb(), ctx.m, ctx.orgId, ctx.weddingId, id)
+  const gone = await revokeVendorLink(ctx, id)
   if (gone.ok) refresh()
   return { ok: gone.ok }
 }

@@ -1,4 +1,4 @@
-import { getWedding, getWeddingVendors } from '@guestnote/db'
+import { getWedding, getWeddingVendors, WeddingScope } from '@guestnote/db'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
@@ -27,11 +27,8 @@ export default async function WeddingVendorsPage({ params }: { params: Promise<{
   ])
   if (!memberships || !orgId) notFound()
 
-  const db = getDb()
-  const [wedding, data] = await Promise.all([
-    getWedding(db, memberships, orgId, id),
-    getWeddingVendors(db, memberships, orgId, id),
-  ])
+  const scope = WeddingScope.of(getDb(), memberships, orgId, id)
+  const [wedding, data] = await Promise.all([getWedding(scope), getWeddingVendors(scope)])
   if (!wedding || !data) notFound()
 
   return (

@@ -1,4 +1,9 @@
-import { getWeddingDetail, getWeddingTaskCounts, listWeddingEvents } from '@guestnote/db'
+import {
+  getWeddingDetail,
+  getWeddingTaskCounts,
+  listWeddingEvents,
+  WeddingScope,
+} from '@guestnote/db'
 import { Card } from '@guestnote/ui/card'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -44,13 +49,13 @@ export default async function WeddingPage({ params }: { params: Promise<{ id: st
   // and the planner would get a 500 for a mistyped URL.
   if (!memberships || !orgId || !isUuid(id)) notFound()
 
-  const db = getDb()
-  const wedding = await getWeddingDetail(db, memberships, orgId, id)
+  const scope = WeddingScope.of(getDb(), memberships, orgId, id)
+  const wedding = await getWeddingDetail(scope)
   if (!wedding) notFound()
 
   const [counts, events] = await Promise.all([
-    getWeddingTaskCounts(db, memberships, orgId, id),
-    listWeddingEvents(db, memberships, orgId, id),
+    getWeddingTaskCounts(scope),
+    listWeddingEvents(scope),
   ])
 
   const days = daysUntil(wedding.weddingDate)

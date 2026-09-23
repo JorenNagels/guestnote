@@ -13,6 +13,7 @@ import { weddings } from '../schema/weddings.ts'
 import { withTenant } from '../tenant.ts'
 import { type Memberships, principalForOrg } from './memberships.ts'
 import { fail, ok, type Result } from './result.ts'
+import type { WeddingScope } from './scope.ts'
 import { staffPrincipal } from './staff-principal.ts'
 
 /**
@@ -270,13 +271,9 @@ async function weddingDateOf(tx: TenantDb, weddingId: string): Promise<string | 
 // ------------------------------------------------------------------------ reads ----
 
 /** Every live task of one wedding, in `compareTasks` order. `[]` when the caller may not see it. */
-export async function listTasks(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
-): Promise<TaskRow[]> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+export async function listTasks(scope: WeddingScope): Promise<TaskRow[]> {
+  const { db, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return []
 
   const rows = await withTenant(db, principal, (tx) =>
@@ -287,14 +284,9 @@ export async function listTasks(
   return rows.map(toRow).sort(compareTasks)
 }
 
-export async function getTask(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
-  taskId: string,
-): Promise<TaskRow | null> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+export async function getTask(scope: WeddingScope, taskId: string): Promise<TaskRow | null> {
+  const { db, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return null
   const found = await withTenant(db, principal, (tx) => loadTask(tx, weddingId, taskId))
   return found?.task ?? null
@@ -367,16 +359,13 @@ function assigneeFor(
  * One task, or `notFound` when the wedding is not reachable. Title is trimmed and must survive it.
  */
 export async function createTask(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
   input: TaskInput,
 ): Promise<Result<TaskRow, 'notFound'>> {
-  const created = await createTasks(db, m, orgId, weddingId, [input])
+  const created = await createTasks(scope, [input])
   const id = created.ok ? created.value[0] : undefined
   if (!id) return fail('notFound')
-  const task = await getTask(db, m, orgId, weddingId, id)
+  const task = await getTask(scope, id)
   return task ? ok(task) : fail('notFound')
 }
 
@@ -388,13 +377,11 @@ export async function createTask(
  * half-applied.
  */
 export async function createTasks(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
   items: readonly TaskInput[],
 ): Promise<Result<string[], 'notFound'>> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+  const { db, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return fail('notFound')
   if (items.length === 0) return ok([])
 
@@ -432,14 +419,12 @@ export async function createTasks(
  * Flipping `visibility` needs nothing more: `tasks_propagate_visibility` moves the comments.
  */
 export async function updateTask(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
   taskId: string,
   patch: TaskPatch,
 ): Promise<Result<TaskRow, 'notFound'>> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+  const { db, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return fail('notFound')
 
   return withTenant(db, principal, async (tx) => {
@@ -480,14 +465,12 @@ export async function updateTask(
  * comes back as `open`, which is the honest answer, not a remembered one.
  */
 export async function completeTask(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
   taskId: string,
   done: boolean,
 ): Promise<Result<TaskRow, 'notFound'>> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+  const { db, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return fail('notFound')
 
   return withTenant(db, principal, async (tx) => {
@@ -535,13 +518,11 @@ const toComment = (r: {
 
 /** A task's thread, oldest first. `[]` for an unreachable wedding and for a thread with nobody in it. */
 export async function listTaskComments(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
   taskId: string,
 ): Promise<TaskCommentRow[]> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+  const { db, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return []
 
   const rows = await withTenant(db, principal, (tx) =>
@@ -568,14 +549,12 @@ export async function listTaskComments(
  * trigger; the values written here only satisfy NOT NULL.
  */
 export async function addTaskComment(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
   taskId: string,
   body: string,
 ): Promise<Result<TaskCommentRow, 'notFound'>> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+  const { db, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return fail('notFound')
   const text = body.trim()
   if (!text) throw new RangeError('tasks: a comment needs a body')

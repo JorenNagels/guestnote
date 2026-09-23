@@ -1,14 +1,12 @@
 import { and, asc, eq, isNull, sql } from 'drizzle-orm'
-import type { Db } from '../client.ts'
 import { newId } from '../id.ts'
 import { budgetLines, payments } from '../schema/money.ts'
 import { vendors, weddingVendors } from '../schema/vendors.ts'
 import type { TenantDb } from '../tenant.ts'
 import { withTenant } from '../tenant.ts'
 import { type MoneyContext, type MoneyResult, readMoneyContext } from './budget.ts'
-import type { Memberships } from './memberships.ts'
 import { fail, ok } from './result.ts'
-import { staffPrincipal } from './staff-principal.ts'
+import type { WeddingScope } from './scope.ts'
 
 /**
  * Slice S4 of docs/specs/0003-planner-app-screens.md: the payment schedule.
@@ -54,13 +52,9 @@ export type PaymentInput = {
 }
 
 /** Payments in due-date order, and the lines to pick from. `null` is a 404. One transaction. */
-export async function getPayments(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
-): Promise<PaymentsData | null> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+export async function getPayments(scope: WeddingScope): Promise<PaymentsData | null> {
+  const { db, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return null
 
   return withTenant(db, principal, async (tx) => {
@@ -117,13 +111,11 @@ async function lineExists(tx: TenantDb, weddingId: string, lineId: string) {
 }
 
 export async function createPayment(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
   input: PaymentInput,
 ): Promise<MoneyResult> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+  const { db, orgId, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return fail('notFound')
 
   return withTenant(db, principal, async (tx): Promise<MoneyResult> => {
@@ -146,14 +138,12 @@ export async function createPayment(
 }
 
 export async function updatePayment(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
   paymentId: string,
   input: PaymentInput,
 ): Promise<MoneyResult> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+  const { db, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return fail('notFound')
 
   return withTenant(db, principal, async (tx): Promise<MoneyResult> => {
@@ -178,14 +168,12 @@ export async function updatePayment(
 
 /** The quick toggle: `paidAt` is an instant to mark paid, or `null` to mark unpaid. */
 export async function setPaymentPaidAt(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
   paymentId: string,
   paidAt: Date | null,
 ): Promise<MoneyResult> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+  const { db, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return fail('notFound')
 
   return withTenant(db, principal, async (tx): Promise<MoneyResult> => {
@@ -199,14 +187,9 @@ export async function setPaymentPaidAt(
 }
 
 /** Hard delete: a payment is a schedule entry, and "the history of what was owed" is the line's. */
-export async function deletePayment(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
-  paymentId: string,
-): Promise<MoneyResult> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+export async function deletePayment(scope: WeddingScope, paymentId: string): Promise<MoneyResult> {
+  const { db, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return fail('notFound')
 
   return withTenant(db, principal, async (tx): Promise<MoneyResult> => {

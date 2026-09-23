@@ -17,7 +17,8 @@ const currentMemberships = vi.fn()
 const currentOrgId = vi.fn()
 const revalidatePath = vi.fn()
 
-vi.mock('@guestnote/db', () => ({
+vi.mock('@guestnote/db', async (orig) => ({
+  ...(await orig<typeof import('@guestnote/db')>()),
   addTaskComment: (...a: unknown[]) => addTaskComment(...a),
   completeTask: (...a: unknown[]) => completeTask(...a),
   createTask: (...a: unknown[]) => createTask(...a),
@@ -108,10 +109,7 @@ describe('createTaskAction', () => {
     const result = await createTaskAction(WEDDING, { ...FORM, title: '  Book the DJ ', notes: ' ' })
     expect(result).toEqual({ ok: true, taskId: TASK })
     expect(createTask).toHaveBeenCalledWith(
-      { db: true },
-      MEMBERSHIPS,
-      'org-1',
-      WEDDING,
+      expect.objectContaining({ m: MEMBERSHIPS, orgId: 'org-1', weddingId: WEDDING }),
       expect.objectContaining({ title: 'Book the DJ', notes: null, due: { kind: 'none' } }),
     )
     expect(revalidatePath).toHaveBeenCalledWith('/pro/weddings/[id]/tasks', 'layout')
@@ -137,10 +135,7 @@ describe('updateTaskAction', () => {
   it('sends the parsed form and revalidates', async () => {
     expect(await updateTaskAction(WEDDING, TASK, FORM)).toEqual({ ok: true })
     expect(updateTask).toHaveBeenCalledWith(
-      { db: true },
-      MEMBERSHIPS,
-      'org-1',
-      WEDDING,
+      expect.objectContaining({ m: MEMBERSHIPS, orgId: 'org-1', weddingId: WEDDING }),
       TASK,
       expect.objectContaining({ title: 'Book the DJ' }),
     )
@@ -157,20 +152,14 @@ describe('setTaskDoneAction', () => {
   it('completes only for a literal true', async () => {
     await setTaskDoneAction(WEDDING, TASK, true)
     expect(completeTask).toHaveBeenLastCalledWith(
-      { db: true },
-      MEMBERSHIPS,
-      'org-1',
-      WEDDING,
+      expect.objectContaining({ m: MEMBERSHIPS, orgId: 'org-1', weddingId: WEDDING }),
       TASK,
       true,
     )
     // The wire can send a string; "false" is truthy in JS and must not complete anything.
     await setTaskDoneAction(WEDDING, TASK, 'false' as unknown as boolean)
     expect(completeTask).toHaveBeenLastCalledWith(
-      { db: true },
-      MEMBERSHIPS,
-      'org-1',
-      WEDDING,
+      expect.objectContaining({ m: MEMBERSHIPS, orgId: 'org-1', weddingId: WEDDING }),
       TASK,
       false,
     )
@@ -180,13 +169,21 @@ describe('setTaskDoneAction', () => {
 describe('setTaskVisibilityAction', () => {
   it('sends only the visibility, and folds an unknown value to shared', async () => {
     await setTaskVisibilityAction(WEDDING, TASK, 'internal')
-    expect(updateTask).toHaveBeenLastCalledWith({ db: true }, MEMBERSHIPS, 'org-1', WEDDING, TASK, {
-      visibility: 'internal',
-    })
+    expect(updateTask).toHaveBeenLastCalledWith(
+      expect.objectContaining({ m: MEMBERSHIPS, orgId: 'org-1', weddingId: WEDDING }),
+      TASK,
+      {
+        visibility: 'internal',
+      },
+    )
     await setTaskVisibilityAction(WEDDING, TASK, 'secret' as never)
-    expect(updateTask).toHaveBeenLastCalledWith({ db: true }, MEMBERSHIPS, 'org-1', WEDDING, TASK, {
-      visibility: 'shared',
-    })
+    expect(updateTask).toHaveBeenLastCalledWith(
+      expect.objectContaining({ m: MEMBERSHIPS, orgId: 'org-1', weddingId: WEDDING }),
+      TASK,
+      {
+        visibility: 'shared',
+      },
+    )
   })
 })
 
@@ -201,10 +198,7 @@ describe('addCommentAction', () => {
   it('trims the body and revalidates', async () => {
     expect(await addCommentAction(WEDDING, TASK, '  hello  ')).toEqual({ ok: true })
     expect(addTaskComment).toHaveBeenCalledWith(
-      { db: true },
-      MEMBERSHIPS,
-      'org-1',
-      WEDDING,
+      expect.objectContaining({ m: MEMBERSHIPS, orgId: 'org-1', weddingId: WEDDING }),
       TASK,
       'hello',
     )

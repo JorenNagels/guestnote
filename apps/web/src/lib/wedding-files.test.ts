@@ -22,7 +22,8 @@ const storage = { presignUpload: vi.fn(), presignDownload: vi.fn() }
 const currentMemberships = vi.fn()
 const currentOrgId = vi.fn()
 
-vi.mock('@guestnote/db', () => ({
+vi.mock('@guestnote/db', async (orig) => ({
+  ...(await orig<typeof import('@guestnote/db')>()),
   confirmFile: (...a: unknown[]) => repo.confirmFile(...a),
   createPendingFile: (...a: unknown[]) => repo.createPendingFile(...a),
   getFile: (...a: unknown[]) => repo.getFile(...a),
@@ -112,10 +113,7 @@ describe('startUpload', () => {
     )
     // The row carries the type the URL was signed for, not the raw `IMAGE/PNG` that arrived.
     expect(repo.createPendingFile).toHaveBeenCalledWith(
-      expect.anything(),
-      MEMBERSHIPS,
-      ORG,
-      WEDDING,
+      expect.objectContaining({ m: MEMBERSHIPS, orgId: ORG, weddingId: WEDDING }),
       expect.objectContaining({ kind: 'image', mime: 'image/png', storageKey: KEY }),
     )
   })
@@ -163,10 +161,7 @@ describe('startUpload', () => {
   it('treats an unknown visibility as shared, never as a way to skip the field', async () => {
     await startUpload('file', WEDDING, { ...input, visibility: 'public' })
     expect(repo.createPendingFile).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
-      ORG,
-      WEDDING,
+      expect.objectContaining({ orgId: ORG, weddingId: WEDDING }),
       expect.objectContaining({ visibility: 'shared' }),
     )
   })
@@ -174,10 +169,7 @@ describe('startUpload', () => {
   it('keeps internal when asked', async () => {
     await startUpload('file', WEDDING, { ...input, visibility: 'internal' })
     expect(repo.createPendingFile).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.anything(),
-      ORG,
-      WEDDING,
+      expect.objectContaining({ orgId: ORG, weddingId: WEDDING }),
       expect.objectContaining({ visibility: 'internal' }),
     )
   })
@@ -203,10 +195,7 @@ describe('confirmUpload / remove / rename / visibility', () => {
     repo.renameFile.mockResolvedValue({ ok: true, value: null })
     expect(await renameWeddingFile(WEDDING, FILE, ' Menu\t')).toEqual({ ok: true })
     expect(repo.renameFile).toHaveBeenCalledWith(
-      expect.anything(),
-      MEMBERSHIPS,
-      ORG,
-      WEDDING,
+      expect.objectContaining({ m: MEMBERSHIPS, orgId: ORG, weddingId: WEDDING }),
       FILE,
       'Menu',
     )

@@ -1,4 +1,4 @@
-import { getRunSheet, getWedding, listWeddingEvents } from '@guestnote/db'
+import { getRunSheet, getWedding, listWeddingEvents, WeddingScope } from '@guestnote/db'
 import { notFound } from 'next/navigation'
 import { getLocale } from 'next-intl/server'
 import { RunSheetView } from '../../../../../../components/run-sheet/run-sheet-view.tsx'
@@ -31,11 +31,11 @@ export default async function RunSheetPage({
   ])
   if (!memberships || !orgId || !isUuid(id)) notFound()
 
-  const db = getDb()
+  const scope = WeddingScope.of(getDb(), memberships, orgId, id)
   const [wedding, events, sheet] = await Promise.all([
-    getWedding(db, memberships, orgId, id),
-    listWeddingEvents(db, memberships, orgId, id),
-    getRunSheet(db, memberships, orgId, id),
+    getWedding(scope),
+    listWeddingEvents(scope),
+    getRunSheet(scope),
   ])
   if (!wedding || !sheet) notFound()
 

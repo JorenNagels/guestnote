@@ -4,8 +4,9 @@ import { newId } from '../id.ts'
 import { runSheetItems, weddingEvents } from '../schema/events.ts'
 import { vendorLinks, weddingVendors } from '../schema/vendors.ts'
 import { type Principal, withTenant } from '../tenant.ts'
-import { type Memberships, principalForOrg } from './memberships.ts'
+import { principalForOrg } from './memberships.ts'
 import { fail, ok, type Result } from './result.ts'
+import type { WeddingScope } from './scope.ts'
 
 /**
  * Slice S10 (spec 0003): the `link` principal's own repo file.
@@ -114,13 +115,11 @@ async function rowsOf<T>(pending: Promise<unknown>): Promise<T[]> {
  * `expiresAt` arrive already computed, the same split `createStaffInvite` uses.
  */
 export async function createVendorLink(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
   weddingVendorId: string,
   input: { readonly tokenHash: string; readonly expiresAt: Date },
 ): Promise<VendorLinkWriteResult> {
+  const { db, m, orgId, weddingId } = scope
   const principal = principalForOrg(m, orgId)
   if (!principal) return fail('forbidden')
 
@@ -166,12 +165,10 @@ export async function createVendorLink(
  * forever, even though neither is wrong to retry.
  */
 export async function revokeVendorLink(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
   linkId: string,
 ): Promise<Result<null, 'notFound'>> {
+  const { db, m, orgId, weddingId } = scope
   const principal = principalForOrg(m, orgId)
   if (!principal) return fail('notFound')
 

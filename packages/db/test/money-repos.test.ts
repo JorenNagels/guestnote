@@ -11,6 +11,7 @@ import {
   setPaymentPaidAt,
   updateBudgetLine,
   updatePayment,
+  WeddingScope,
 } from '../src/repos/index.ts'
 import { AS, asPrincipal, connect, F, type Harness, reseed } from './harness.ts'
 
@@ -64,7 +65,7 @@ afterAll(async () => {
 
 describe('getBudget', () => {
   it("reads one wedding's lines, with the wedding's zone and locale", async () => {
-    const data = await getBudget(h.db, owner, F.orgA, A1)
+    const data = await getBudget(WeddingScope.of(h.db, owner, F.orgA, A1))
     expect(data?.lines.map((l) => l.id)).toEqual([F.budgetLineA1])
     expect(data?.lines[0]?.estimateCents).toBe(1_176_000)
     expect(data?.wedding).toMatchObject({ timezone: 'Europe/Brussels', locale: 'nl' })
@@ -72,52 +73,55 @@ describe('getBudget', () => {
   })
 
   it("lists only this wedding's vendors in the picker", async () => {
-    const data = await getBudget(h.db, owner, F.orgA, A1)
+    const data = await getBudget(WeddingScope.of(h.db, owner, F.orgA, A1))
     expect(data?.vendors.map((v) => v.id)).toEqual([F.wedVendorA1])
   })
 
   it('is null for a wedding the caller cannot see: another org, unassigned member, couple', async () => {
-    expect(await getBudget(h.db, otherOrgOwner, F.orgA, A1)).toBeNull()
-    expect(await getBudget(h.db, otherOrgOwner, F.orgB, A1)).toBeNull()
-    expect(await getBudget(h.db, member, F.orgA, A2)).toBeNull()
+    expect(await getBudget(WeddingScope.of(h.db, otherOrgOwner, F.orgA, A1))).toBeNull()
+    expect(await getBudget(WeddingScope.of(h.db, otherOrgOwner, F.orgB, A1))).toBeNull()
+    expect(await getBudget(WeddingScope.of(h.db, member, F.orgA, A2))).toBeNull()
     // A couple is refused by the repo AND by the policy; `staffPrincipal` is the repo's half.
-    expect(await getBudget(h.db, couple, F.orgA, A1)).toBeNull()
+    expect(await getBudget(WeddingScope.of(h.db, couple, F.orgA, A1))).toBeNull()
   })
 
   it('reads for an assigned member', async () => {
-    expect((await getBudget(h.db, member, F.orgA, A1))?.lines).toHaveLength(1)
+    expect((await getBudget(WeddingScope.of(h.db, member, F.orgA, A1)))?.lines).toHaveLength(1)
   })
 })
 
 describe('createBudgetLine', () => {
   it('inserts, and the line reads back', async () => {
-    const r = await createBudgetLine(h.db, owner, F.orgA, A1, line)
+    const r = await createBudgetLine(WeddingScope.of(h.db, owner, F.orgA, A1), line)
     expect(r.ok).toBe(true)
-    const data = await getBudget(h.db, owner, F.orgA, A1)
+    const data = await getBudget(WeddingScope.of(h.db, owner, F.orgA, A1))
     expect(data?.lines.map((l) => l.label)).toEqual(['Dinner', 'DJ'])
   })
 
   it('refuses a vendor that belongs to a sibling wedding', async () => {
-    const r = await createBudgetLine(h.db, owner, F.orgA, A1, {
+    const r = await createBudgetLine(WeddingScope.of(h.db, owner, F.orgA, A1), {
       ...line,
       weddingVendorId: F.wedVendorA2,
     })
     expect(r).toEqual({ ok: false, reason: 'vendorNotFound' })
-    expect((await getBudget(h.db, owner, F.orgA, A1))?.lines).toHaveLength(1)
+    expect((await getBudget(WeddingScope.of(h.db, owner, F.orgA, A1)))?.lines).toHaveLength(1)
   })
 
   it("accepts this wedding's vendor, and names it on the line", async () => {
-    await createBudgetLine(h.db, owner, F.orgA, A1, { ...line, weddingVendorId: F.wedVendorA1 })
-    const data = await getBudget(h.db, owner, F.orgA, A1)
+    await createBudgetLine(WeddingScope.of(h.db, owner, F.orgA, A1), {
+      ...line,
+      weddingVendorId: F.wedVendorA1,
+    })
+    const data = await getBudget(WeddingScope.of(h.db, owner, F.orgA, A1))
     expect(data?.lines.find((l) => l.label === 'DJ')?.vendorName).toBe('Traiteur A')
   })
 
   it('writes nothing for a caller with no standing', async () => {
-    expect(await createBudgetLine(h.db, couple, F.orgA, A1, line)).toEqual({
+    expect(await createBudgetLine(WeddingScope.of(h.db, couple, F.orgA, A1), line)).toEqual({
       ok: false,
       reason: 'notFound',
     })
-    expect(await createBudgetLine(h.db, member, F.orgA, A2, line)).toEqual({
+    expect(await createBudgetLine(WeddingScope.of(h.db, member, F.orgA, A2), line)).toEqual({
       ok: false,
       reason: 'notFound',
     })
@@ -126,30 +130,37 @@ describe('createBudgetLine', () => {
 
 describe('updateBudgetLine and deleteBudgetLine', () => {
   it('will not touch a line of a sibling wedding, even for the org-wide owner', async () => {
-    const r = await updateBudgetLine(h.db, owner, F.orgA, A1, F.budgetLineA2, line)
+    const r = await updateBudgetLine(WeddingScope.of(h.db, owner, F.orgA, A1), F.budgetLineA2, line)
     expect(r).toEqual({ ok: false, reason: 'lineNotFound' })
-    expect((await getBudget(h.db, owner, F.orgA, A2))?.lines[0]?.label).toBe('Dinner')
+    expect((await getBudget(WeddingScope.of(h.db, owner, F.orgA, A2)))?.lines[0]?.label).toBe(
+      'Dinner',
+    )
 
-    const d = await deleteBudgetLine(h.db, owner, F.orgA, A1, F.budgetLineA2)
+    const d = await deleteBudgetLine(WeddingScope.of(h.db, owner, F.orgA, A1), F.budgetLineA2)
     expect(d).toEqual({ ok: false, reason: 'lineNotFound' })
-    expect((await getBudget(h.db, owner, F.orgA, A2))?.lines).toHaveLength(1)
+    expect((await getBudget(WeddingScope.of(h.db, owner, F.orgA, A2)))?.lines).toHaveLength(1)
   })
 
   it('updates in place, and can clear the actual', async () => {
-    await updateBudgetLine(h.db, owner, F.orgA, A1, F.budgetLineA1, {
+    await updateBudgetLine(WeddingScope.of(h.db, owner, F.orgA, A1), F.budgetLineA1, {
       ...line,
       actualCents: 1_200_000,
     })
-    await updateBudgetLine(h.db, owner, F.orgA, A1, F.budgetLineA1, { ...line, actualCents: null })
-    const l = (await getBudget(h.db, owner, F.orgA, A1))?.lines[0]
+    await updateBudgetLine(WeddingScope.of(h.db, owner, F.orgA, A1), F.budgetLineA1, {
+      ...line,
+      actualCents: null,
+    })
+    const l = (await getBudget(WeddingScope.of(h.db, owner, F.orgA, A1)))?.lines[0]
     expect(l).toMatchObject({ label: 'DJ', estimateCents: 180_000, actualCents: null })
   })
 
   it('hides a deleted line and its payments from both screens, and keeps the payment row', async () => {
-    expect((await deleteBudgetLine(h.db, owner, F.orgA, A1, F.budgetLineA1)).ok).toBe(true)
-    expect((await getBudget(h.db, owner, F.orgA, A1))?.lines).toEqual([])
-    expect((await getBudget(h.db, owner, F.orgA, A1))?.payments).toEqual([])
-    expect((await getPayments(h.db, owner, F.orgA, A1))?.payments).toEqual([])
+    expect(
+      (await deleteBudgetLine(WeddingScope.of(h.db, owner, F.orgA, A1), F.budgetLineA1)).ok,
+    ).toBe(true)
+    expect((await getBudget(WeddingScope.of(h.db, owner, F.orgA, A1)))?.lines).toEqual([])
+    expect((await getBudget(WeddingScope.of(h.db, owner, F.orgA, A1)))?.payments).toEqual([])
+    expect((await getPayments(WeddingScope.of(h.db, owner, F.orgA, A1)))?.payments).toEqual([])
     // Not destroyed: the row is still there for a restore.
     const rows = await asPrincipal(h, AS.staffA, 'select 1 from payments where id = $1', [
       F.paymentA1,
@@ -167,13 +178,13 @@ describe('payments', () => {
   }
 
   it('lists unpaid before paid, each by due date', async () => {
-    await createPayment(h.db, owner, F.orgA, A1, {
+    await createPayment(WeddingScope.of(h.db, owner, F.orgA, A1), {
       ...pay,
       dueOn: '2027-01-01',
       paidAt: new Date(),
     })
-    await createPayment(h.db, owner, F.orgA, A1, pay)
-    const data = await getPayments(h.db, owner, F.orgA, A1)
+    await createPayment(WeddingScope.of(h.db, owner, F.orgA, A1), pay)
+    const data = await getPayments(WeddingScope.of(h.db, owner, F.orgA, A1))
     expect(data?.payments.map((p) => [p.dueOn, p.paidAt !== null])).toEqual([
       ['2027-01-15', false],
       ['2027-07-24', false],
@@ -184,40 +195,57 @@ describe('payments', () => {
   })
 
   it('refuses a line of a sibling wedding on create and on update', async () => {
-    const c = await createPayment(h.db, owner, F.orgA, A1, { ...pay, budgetLineId: F.budgetLineA2 })
+    const c = await createPayment(WeddingScope.of(h.db, owner, F.orgA, A1), {
+      ...pay,
+      budgetLineId: F.budgetLineA2,
+    })
     expect(c).toEqual({ ok: false, reason: 'lineNotFound' })
-    const u = await updatePayment(h.db, owner, F.orgA, A1, F.paymentA1, {
+    const u = await updatePayment(WeddingScope.of(h.db, owner, F.orgA, A1), F.paymentA1, {
       ...pay,
       budgetLineId: F.budgetLineA2,
     })
     expect(u).toEqual({ ok: false, reason: 'lineNotFound' })
-    expect((await getPayments(h.db, owner, F.orgA, A1))?.payments).toHaveLength(1)
+    expect((await getPayments(WeddingScope.of(h.db, owner, F.orgA, A1)))?.payments).toHaveLength(1)
   })
 
   it('will not mark, edit or delete a payment of a sibling wedding', async () => {
-    expect(await setPaymentPaidAt(h.db, owner, F.orgA, A1, F.paymentA2, new Date())).toEqual({
+    expect(
+      await setPaymentPaidAt(WeddingScope.of(h.db, owner, F.orgA, A1), F.paymentA2, new Date()),
+    ).toEqual({
       ok: false,
       reason: 'paymentNotFound',
     })
-    expect((await updatePayment(h.db, owner, F.orgA, A1, F.paymentA2, pay)).ok).toBe(false)
-    expect((await deletePayment(h.db, owner, F.orgA, A1, F.paymentA2)).ok).toBe(false)
-    expect((await getPayments(h.db, owner, F.orgA, A2))?.payments[0]?.paidAt).toBeNull()
-    expect((await getPayments(h.db, owner, F.orgA, A2))?.payments).toHaveLength(1)
+    expect(
+      (await updatePayment(WeddingScope.of(h.db, owner, F.orgA, A1), F.paymentA2, pay)).ok,
+    ).toBe(false)
+    expect((await deletePayment(WeddingScope.of(h.db, owner, F.orgA, A1), F.paymentA2)).ok).toBe(
+      false,
+    )
+    expect(
+      (await getPayments(WeddingScope.of(h.db, owner, F.orgA, A2)))?.payments[0]?.paidAt,
+    ).toBeNull()
+    expect((await getPayments(WeddingScope.of(h.db, owner, F.orgA, A2)))?.payments).toHaveLength(1)
   })
 
   it('marks paid, then unpaid, then deletes', async () => {
     const at = new Date('2027-01-08T09:00:00Z')
-    await setPaymentPaidAt(h.db, owner, F.orgA, A1, F.paymentA1, at)
-    expect((await getPayments(h.db, owner, F.orgA, A1))?.payments[0]?.paidAt).toEqual(at)
-    await setPaymentPaidAt(h.db, owner, F.orgA, A1, F.paymentA1, null)
-    expect((await getPayments(h.db, owner, F.orgA, A1))?.payments[0]?.paidAt).toBeNull()
-    expect((await deletePayment(h.db, owner, F.orgA, A1, F.paymentA1)).ok).toBe(true)
-    expect((await getPayments(h.db, owner, F.orgA, A1))?.payments).toEqual([])
+    await setPaymentPaidAt(WeddingScope.of(h.db, owner, F.orgA, A1), F.paymentA1, at)
+    expect(
+      (await getPayments(WeddingScope.of(h.db, owner, F.orgA, A1)))?.payments[0]?.paidAt,
+    ).toEqual(at)
+    await setPaymentPaidAt(WeddingScope.of(h.db, owner, F.orgA, A1), F.paymentA1, null)
+    expect(
+      (await getPayments(WeddingScope.of(h.db, owner, F.orgA, A1)))?.payments[0]?.paidAt,
+    ).toBeNull()
+    expect((await deletePayment(WeddingScope.of(h.db, owner, F.orgA, A1), F.paymentA1)).ok).toBe(
+      true,
+    )
+    expect((await getPayments(WeddingScope.of(h.db, owner, F.orgA, A1)))?.payments).toEqual([])
   })
 
   it('is null or refused for a couple and for an unassigned member', async () => {
-    expect(await getPayments(h.db, couple, F.orgA, A1)).toBeNull()
-    expect(await getPayments(h.db, member, F.orgA, A2)).toBeNull()
-    expect((await createPayment(h.db, member, F.orgA, A2, pay)).ok).toBe(false)
+    expect(await getPayments(WeddingScope.of(h.db, couple, F.orgA, A1))).toBeNull()
+    expect(await getPayments(WeddingScope.of(h.db, member, F.orgA, A2))).toBeNull()
+    expect((await createPayment(WeddingScope.of(h.db, member, F.orgA, A2), pay)).ok).toBe(false)
   })
 })

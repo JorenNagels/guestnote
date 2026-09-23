@@ -8,14 +8,13 @@ import {
   updateRunSheetItem,
 } from '@guestnote/db'
 import { revalidatePath } from 'next/cache'
-import { getDb } from '../../../../../../lib/db.ts'
-import { currentCaller } from '../../../../../../lib/principal.ts'
 import {
   parseRunSheetForm,
   type RunSheetActionResult,
   type RunSheetError,
 } from '../../../../../../lib/run-sheet.ts'
 import { isUuid } from '../../../../../../lib/uuid.ts'
+import { currentWeddingScope } from '../../../../../../lib/wedding-scope.ts'
 
 /**
  * The run sheet's writes. Each resolves the caller itself and hands the repo memberships, from
@@ -42,18 +41,17 @@ export async function saveRunSheetItem(
   itemId: string | null,
   values: unknown,
 ): Promise<RunSheetActionResult> {
-  const c = await currentCaller()
-  if (!c || !isUuid(weddingId) || (itemId !== null && !isUuid(itemId))) {
+  const scope = await currentWeddingScope(weddingId)
+  if (!scope || (itemId !== null && !isUuid(itemId))) {
     return { ok: false, error: 'notFound' }
   }
   const read = parseRunSheetForm(values)
   if ('error' in read) return { ok: false, error: read.error }
 
-  const db = getDb()
   const result =
     itemId === null
-      ? await createRunSheetItem(db, c.memberships, c.orgId, weddingId, read.eventId, read.input)
-      : await updateRunSheetItem(db, c.memberships, c.orgId, weddingId, itemId, read.input)
+      ? await createRunSheetItem(scope, read.eventId, read.input)
+      : await updateRunSheetItem(scope, itemId, read.input)
   if (!result.ok) return { ok: false, error: refusal(result.reason) }
   revalidatePath(RUN_SHEET, 'page')
   return { ok: true }
@@ -63,10 +61,10 @@ export async function removeRunSheetItem(
   weddingId: string,
   itemId: string,
 ): Promise<RunSheetActionResult> {
-  const c = await currentCaller()
-  if (!c || !isUuid(weddingId) || !isUuid(itemId)) return { ok: false, error: 'notFound' }
+  const scope = await currentWeddingScope(weddingId)
+  if (!scope || !isUuid(itemId)) return { ok: false, error: 'notFound' }
 
-  const result = await deleteRunSheetItem(getDb(), c.memberships, c.orgId, weddingId, itemId)
+  const result = await deleteRunSheetItem(scope, itemId)
   if (!result.ok) return { ok: false, error: refusal(result.reason) }
   revalidatePath(RUN_SHEET, 'page')
   return { ok: true }
@@ -77,18 +75,11 @@ export async function shiftRunSheetItem(
   itemId: string,
   direction: 'up' | 'down',
 ): Promise<RunSheetActionResult> {
-  const c = await currentCaller()
-  if (!c || !isUuid(weddingId) || !isUuid(itemId)) return { ok: false, error: 'notFound' }
+  const scope = await currentWeddingScope(weddingId)
+  if (!scope || !isUuid(itemId)) return { ok: false, error: 'notFound' }
   if (direction !== 'up' && direction !== 'down') return { ok: false, error: 'failed' }
 
-  const result = await moveRunSheetItem(
-    getDb(),
-    c.memberships,
-    c.orgId,
-    weddingId,
-    itemId,
-    direction,
-  )
+  const result = await moveRunSheetItem(scope, itemId, direction)
   if (!result.ok) return { ok: false, error: refusal(result.reason) }
   revalidatePath(RUN_SHEET, 'page')
   return { ok: true }

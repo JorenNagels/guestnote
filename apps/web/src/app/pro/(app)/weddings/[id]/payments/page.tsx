@@ -1,4 +1,4 @@
-import { getPayments } from '@guestnote/db'
+import { getPayments, WeddingScope } from '@guestnote/db'
 import { notFound } from 'next/navigation'
 import { PaymentsView } from '../../../../../../components/money/payments-view.tsx'
 import { getDb } from '../../../../../../lib/db.ts'
@@ -21,7 +21,8 @@ export default async function PaymentsPage({ params }: { params: Promise<{ id: s
   ])
   if (!memberships || !orgId || !isUuid(id)) notFound()
 
-  const data = await getPayments(getDb(), memberships, orgId, id)
+  const scope = WeddingScope.of(getDb(), memberships, orgId, id)
+  const data = await getPayments(scope)
   if (!data) notFound()
 
   return (

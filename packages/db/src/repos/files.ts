@@ -1,12 +1,10 @@
 import { and, desc, eq, isNull, sql } from 'drizzle-orm'
-import type { Db } from '../client.ts'
 import { users } from '../schema/auth.ts'
 import { files } from '../schema/files.ts'
 import { weddings } from '../schema/weddings.ts'
 import { withTenant } from '../tenant.ts'
-import type { Memberships } from './memberships.ts'
 import { fail, ok, type Result } from './result.ts'
-import { staffPrincipal } from './staff-principal.ts'
+import type { WeddingScope } from './scope.ts'
 
 /**
  * The Files screen and the moodboard (spec 0003, slice S5). One table, two screens: `kind`
@@ -87,14 +85,9 @@ function toRow(r: Selected): FileRow {
  * org-wide and so sees every wedding's files; it is redundant for an assigned member, whose
  * pinned GUC already narrows it. The same split `getWedding` describes.
  */
-export async function listFiles(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
-  kind: FileKind,
-): Promise<FileRow[] | null> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+export async function listFiles(scope: WeddingScope, kind: FileKind): Promise<FileRow[] | null> {
+  const { db, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return null
 
   const rows = await withTenant(db, principal, async (tx) =>
@@ -109,14 +102,9 @@ export async function listFiles(
 }
 
 /** One confirmed file, or `null`. What a download reads before it mints a URL. */
-export async function getFile(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
-  fileId: string,
-): Promise<FileRow | null> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+export async function getFile(scope: WeddingScope, fileId: string): Promise<FileRow | null> {
+  const { db, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return null
 
   const rows = await withTenant(db, principal, async (tx) =>
@@ -151,13 +139,11 @@ export type PendingFileInput = {
  * `uploaded_by` is the caller, taken from the memberships and never from the input.
  */
 export async function createPendingFile(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
   input: PendingFileInput,
 ): Promise<Result<null, 'notFound'>> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+  const { db, m, orgId, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return fail('notFound')
 
   return withTenant(db, principal, async (tx) => {
@@ -195,13 +181,11 @@ export async function createPendingFile(
  * `created_at`) and cannot be used on somebody else's half-finished upload.
  */
 export async function confirmFile(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
   fileId: string,
 ): Promise<Result<FileRow, 'notFound'>> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+  const { db, m, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return fail('notFound')
 
   const changed = await withTenant(db, principal, async (tx) =>
@@ -219,31 +203,25 @@ export async function confirmFile(
       .returning({ id: files.id }),
   )
   if (changed.length === 0) return fail('notFound')
-  const row = await getFile(db, m, orgId, weddingId, fileId)
+  const row = await getFile(scope, fileId)
   return row ? ok(row) : fail('notFound')
 }
 
 /** The Files screen's caption and the moodboard's. `notFound` when nothing was changed. */
 export async function renameFile(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
   fileId: string,
   name: string,
 ): Promise<Result<null, 'notFound'>> {
-  return updateConfirmed(db, m, orgId, weddingId, fileId, { name })
+  return updateConfirmed(scope, fileId, { name })
 }
 
 export async function setFileVisibility(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
   fileId: string,
   visibility: FileVisibility,
 ): Promise<Result<null, 'notFound'>> {
-  return updateConfirmed(db, m, orgId, weddingId, fileId, { visibility })
+  return updateConfirmed(scope, fileId, { visibility })
 }
 
 /**
@@ -251,24 +229,19 @@ export async function setFileVisibility(
  * (`packages/storage/README.md`), so a lifecycle rule or a job removes it, not this.
  */
 export async function removeFile(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
   fileId: string,
 ): Promise<Result<null, 'notFound'>> {
-  return updateConfirmed(db, m, orgId, weddingId, fileId, { deletedAt: new Date() })
+  return updateConfirmed(scope, fileId, { deletedAt: new Date() })
 }
 
 async function updateConfirmed(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
   fileId: string,
   set: { name?: string; visibility?: FileVisibility; deletedAt?: Date },
 ): Promise<Result<null, 'notFound'>> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+  const { db, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return fail('notFound')
 
   const changed = await withTenant(db, principal, async (tx) =>

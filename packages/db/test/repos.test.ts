@@ -5,6 +5,7 @@ import {
   listWeddings,
   type Memberships,
   resolveMemberships,
+  WeddingScope,
 } from '../src/repos/index.ts'
 import { asPrincipal, connect, F, type Harness, reseed, seedExec } from './harness.ts'
 
@@ -279,19 +280,23 @@ describe('getWedding', () => {
    */
   it('resolves a wedding for an owner, via the org-wide principal', async () => {
     const m = await resolveMemberships(h.db, F.staffA)
-    const w = await getWedding(h.db, m, F.orgA, F.weddingA1)
+    const w = await getWedding(WeddingScope.of(h.db, m, F.orgA, F.weddingA1))
     expect(w?.coupleDisplayName).toBe('A One')
   })
 
   it('resolves the other wedding in the org for an owner too', async () => {
     const m = await resolveMemberships(h.db, F.staffA)
-    expect((await getWedding(h.db, m, F.orgA, F.weddingA2))?.coupleDisplayName).toBe('A Two')
+    expect(
+      (await getWedding(WeddingScope.of(h.db, m, F.orgA, F.weddingA2)))?.coupleDisplayName,
+    ).toBe('A Two')
   })
 
   /** The member path: `assignedStaff`, which pins `app.wedding_id`. */
   it('resolves an assigned wedding for a member', async () => {
     const m = await resolveMemberships(h.db, MEMBER)
-    expect((await getWedding(h.db, m, F.orgA, F.weddingA1))?.coupleDisplayName).toBe('A One')
+    expect(
+      (await getWedding(WeddingScope.of(h.db, m, F.orgA, F.weddingA1)))?.coupleDisplayName,
+    ).toBe('A One')
   })
 
   /**
@@ -301,7 +306,7 @@ describe('getWedding', () => {
    */
   it('returns null for a wedding in their org that the member is not assigned to', async () => {
     const m = await resolveMemberships(h.db, MEMBER)
-    expect(await getWedding(h.db, m, F.orgA, F.weddingA2)).toBeNull()
+    expect(await getWedding(WeddingScope.of(h.db, m, F.orgA, F.weddingA2))).toBeNull()
   })
 
   /**
@@ -311,7 +316,7 @@ describe('getWedding', () => {
    */
   it('returns null for a wedding in another org', async () => {
     const m = await resolveMemberships(h.db, F.staffA)
-    expect(await getWedding(h.db, m, F.orgB, F.weddingB1)).toBeNull()
+    expect(await getWedding(WeddingScope.of(h.db, m, F.orgB, F.weddingB1))).toBeNull()
   })
 
   /**
@@ -324,7 +329,7 @@ describe('getWedding', () => {
    */
   it('returns null for a foreign wedding id inside the caller own org', async () => {
     const m = await resolveMemberships(h.db, F.staffA)
-    expect(await getWedding(h.db, m, F.orgA, F.weddingB1)).toBeNull()
+    expect(await getWedding(WeddingScope.of(h.db, m, F.orgA, F.weddingB1))).toBeNull()
   })
 
   /** The soft-delete filter, uncovered until 2026-08-20. Seed pool writes, reseed restores. */
@@ -332,7 +337,7 @@ describe('getWedding', () => {
     await seedExec(`update weddings set deleted_at = now() where id = $1`, [F.weddingA2])
     try {
       const m = await resolveMemberships(h.db, F.staffA)
-      expect(await getWedding(h.db, m, F.orgA, F.weddingA2)).toBeNull()
+      expect(await getWedding(WeddingScope.of(h.db, m, F.orgA, F.weddingA2))).toBeNull()
     } finally {
       await reseed()
     }
@@ -340,12 +345,16 @@ describe('getWedding', () => {
 
   it('returns null for a wedding that does not exist, indistinguishably', async () => {
     const m = await resolveMemberships(h.db, F.staffA)
-    expect(await getWedding(h.db, m, F.orgA, '00000000-0000-0000-0000-000000000000')).toBeNull()
+    expect(
+      await getWedding(WeddingScope.of(h.db, m, F.orgA, '00000000-0000-0000-0000-000000000000')),
+    ).toBeNull()
   })
 
   it('gives a couple their own wedding and not the other one', async () => {
     const m = await resolveMemberships(h.db, F.coupleA1)
-    expect((await getWedding(h.db, m, F.orgA, F.weddingA1))?.coupleDisplayName).toBe('A One')
-    expect(await getWedding(h.db, m, F.orgA, F.weddingA2)).toBeNull()
+    expect(
+      (await getWedding(WeddingScope.of(h.db, m, F.orgA, F.weddingA1)))?.coupleDisplayName,
+    ).toBe('A One')
+    expect(await getWedding(WeddingScope.of(h.db, m, F.orgA, F.weddingA2))).toBeNull()
   })
 })

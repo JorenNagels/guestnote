@@ -13,7 +13,8 @@ const resolveVendorLinkByHash = vi.fn()
 const getVendorLinkView = vi.fn()
 const DB = { marker: 'the-db' }
 
-vi.mock('@guestnote/db', () => ({
+vi.mock('@guestnote/db', async (orig) => ({
+  ...(await orig<typeof import('@guestnote/db')>()),
   resolveVendorLinkByHash: (...a: unknown[]) => resolveVendorLinkByHash(...a),
   getVendorLinkView: (...a: unknown[]) => getVendorLinkView(...a),
 }))

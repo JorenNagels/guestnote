@@ -6,7 +6,7 @@ import { type WEDDING_STATUSES, weddings } from '../schema/weddings.ts'
 import { withTenant } from '../tenant.ts'
 import { type Memberships, principalForOrg, principalForWedding } from './memberships.ts'
 import { fail, ok, type Result } from './result.ts'
-import { staffPrincipal } from './staff-principal.ts'
+import type { WeddingScope } from './scope.ts'
 
 /**
  * The wedding list, which is the first read in this application to go through
@@ -151,12 +151,8 @@ export async function listWeddings(
  * (not 403 -- don't confirm the wedding exists)", and distinguishing the two in the
  * return type would put the leak back one layer up.
  */
-export async function getWedding(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
-): Promise<WeddingSummary | null> {
+export async function getWedding(scope: WeddingScope): Promise<WeddingSummary | null> {
+  const { db, m, orgId, weddingId } = scope
   const principal = principalForOrg(m, orgId) ?? principalForWedding(m, orgId, weddingId)
   if (!principal) return null
 
@@ -209,13 +205,9 @@ const DETAIL = {
  * an unassigned member's -- and for a `couple` or outside `editor`, who can read the row under
  * RLS and must not read the notes (`staffPrincipal` says why). Same 404 for all of them.
  */
-export async function getWeddingDetail(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
-): Promise<WeddingDetail | null> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+export async function getWeddingDetail(scope: WeddingScope): Promise<WeddingDetail | null> {
+  const { db, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return null
 
   const rows = await withTenant(db, principal, async (tx) =>
@@ -293,13 +285,11 @@ export async function createWedding(
  * with consequences outside the planner app.
  */
 export async function updateWedding(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
+  scope: WeddingScope,
   input: WeddingInput,
 ): Promise<Result<WeddingDetail, 'notFound'>> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+  const { db, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return fail('notFound')
 
   const rows = await withTenant(db, principal, async (tx) =>
@@ -340,13 +330,9 @@ export type WeddingTaskCounts = {
  * Counting in SQL, not by fetching rows: a wedding has hundreds of tasks and the overview
  * wants four numbers.
  */
-export async function getWeddingTaskCounts(
-  db: Db,
-  m: Memberships,
-  orgId: string,
-  weddingId: string,
-): Promise<WeddingTaskCounts> {
-  const principal = staffPrincipal(m, orgId, weddingId)
+export async function getWeddingTaskCounts(scope: WeddingScope): Promise<WeddingTaskCounts> {
+  const { db, weddingId } = scope
+  const principal = scope.principal
   if (!principal) return { total: 0, open: 0, done: 0, overdue: 0 }
 
   const rows = await withTenant(db, principal, async (tx) =>
