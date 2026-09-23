@@ -4,12 +4,13 @@ import { createBudgetLine, deleteBudgetLine, updateBudgetLine } from '@guestnote
 import type { ActionResult } from '../../../../../../components/money/types.ts'
 import { getDb } from '../../../../../../lib/db.ts'
 import { cleanText, parseCents } from '../../../../../../lib/money.ts'
-import { moneyCaller, moneyError, revalidateMoney } from '../../../../../../lib/money-server.ts'
+import { moneyError, revalidateMoney } from '../../../../../../lib/money-server.ts'
 import { reportSilentFailure } from '../../../../../../lib/observability.ts'
+import { currentCaller } from '../../../../../../lib/principal.ts'
 import { isUuid } from '../../../../../../lib/uuid.ts'
 
 /**
- * The budget's writes. Each does its own authorization (`moneyCaller`, then the repo's
+ * The budget's writes. Each does its own authorization (`currentCaller`, then the repo's
  * `staffPrincipal`), because a Server Function is a POST to its own route and the layout's
  * session gate never runs for it.
  *
@@ -59,7 +60,7 @@ export async function saveBudgetLine(
   lineId: string | null,
   values: LineFormValues,
 ): Promise<ActionResult> {
-  const caller = await moneyCaller()
+  const caller = await currentCaller()
   if (!caller || !isUuid(weddingId) || (lineId !== null && !isUuid(lineId))) {
     return { ok: false, error: 'notFound' }
   }
@@ -89,7 +90,7 @@ export async function saveBudgetLine(
 }
 
 export async function removeBudgetLine(weddingId: string, lineId: string): Promise<ActionResult> {
-  const caller = await moneyCaller()
+  const caller = await currentCaller()
   if (!caller || !isUuid(weddingId) || !isUuid(lineId)) return { ok: false, error: 'notFound' }
 
   try {

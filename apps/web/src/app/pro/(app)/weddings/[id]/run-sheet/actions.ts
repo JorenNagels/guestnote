@@ -10,7 +10,7 @@ import {
 import { revalidatePath } from 'next/cache'
 import { getDb } from '../../../../../../lib/db.ts'
 import { reportSilentFailure } from '../../../../../../lib/observability.ts'
-import { currentMemberships, currentOrgId } from '../../../../../../lib/principal.ts'
+import { currentCaller } from '../../../../../../lib/principal.ts'
 import {
   parseRunSheetForm,
   type RunSheetActionResult,
@@ -31,11 +31,6 @@ import { isUuid } from '../../../../../../lib/uuid.ts'
 /** The route file's path, not the URL the planner sees: `(app)/actions.ts` says why. */
 const RUN_SHEET = '/pro/weddings/[id]/run-sheet'
 
-async function caller() {
-  const [memberships, orgId] = await Promise.all([currentMemberships(), currentOrgId()])
-  return memberships && orgId ? { memberships, orgId } : null
-}
-
 function refusal(reason: RunSheetFailure): RunSheetError {
   if (reason === 'event-not-found') return 'event'
   if (reason === 'vendor-not-found') return 'vendor'
@@ -48,7 +43,7 @@ export async function saveRunSheetItem(
   itemId: string | null,
   values: unknown,
 ): Promise<RunSheetActionResult> {
-  const c = await caller()
+  const c = await currentCaller()
   if (!c || !isUuid(weddingId) || (itemId !== null && !isUuid(itemId))) {
     return { ok: false, error: 'notFound' }
   }
@@ -74,7 +69,7 @@ export async function removeRunSheetItem(
   weddingId: string,
   itemId: string,
 ): Promise<RunSheetActionResult> {
-  const c = await caller()
+  const c = await currentCaller()
   if (!c || !isUuid(weddingId) || !isUuid(itemId)) return { ok: false, error: 'notFound' }
 
   try {
@@ -93,7 +88,7 @@ export async function shiftRunSheetItem(
   itemId: string,
   direction: 'up' | 'down',
 ): Promise<RunSheetActionResult> {
-  const c = await caller()
+  const c = await currentCaller()
   if (!c || !isUuid(weddingId) || !isUuid(itemId)) return { ok: false, error: 'notFound' }
   if (direction !== 'up' && direction !== 'down') return { ok: false, error: 'failed' }
 

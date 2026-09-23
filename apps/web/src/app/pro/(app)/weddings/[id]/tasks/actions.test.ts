@@ -28,6 +28,11 @@ vi.mock('../../../../../../lib/db.ts', () => ({ getDb: () => ({ db: true }) }))
 vi.mock('../../../../../../lib/principal.ts', () => ({
   currentMemberships: () => currentMemberships(),
   currentOrgId: () => currentOrgId(),
+  // The real `currentCaller`, over the two mocks above.
+  currentCaller: async () => {
+    const [memberships, orgId] = [await currentMemberships(), await currentOrgId()]
+    return memberships && orgId ? { memberships, orgId } : null
+  },
 }))
 
 const {

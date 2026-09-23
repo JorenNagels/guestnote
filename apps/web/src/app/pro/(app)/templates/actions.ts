@@ -3,7 +3,7 @@
 import { createTemplate, templateAccess } from '@guestnote/db'
 import { revalidatePath } from 'next/cache'
 import { getDb } from '../../../../lib/db.ts'
-import { currentMemberships, currentOrgId } from '../../../../lib/principal.ts'
+import { currentCaller } from '../../../../lib/principal.ts'
 import { parseTemplateInput, type TemplateActionError } from '../../../../lib/template-input.ts'
 
 /**
@@ -28,10 +28,12 @@ export async function createTemplateAction(input: unknown): Promise<CreateTempla
   const parsed = parseTemplateInput(input)
   if (!parsed.ok) return { ok: false, error: parsed.error }
 
-  const [m, orgId] = await Promise.all([currentMemberships(), currentOrgId()])
-  if (!m || !orgId || !templateAccess(m, orgId)?.canWrite) return { ok: false, error: 'forbidden' }
+  const c = await currentCaller()
+  if (!c || !templateAccess(c.memberships, c.orgId)?.canWrite) {
+    return { ok: false, error: 'forbidden' }
+  }
 
-  const r = await createTemplate(getDb(), m, orgId, parsed.input)
+  const r = await createTemplate(getDb(), c.memberships, c.orgId, parsed.input)
   if (!r.ok) return { ok: false, error: r.reason }
   revalidatePath('/pro/templates', 'layout')
   return { ok: true, id: r.value.id }

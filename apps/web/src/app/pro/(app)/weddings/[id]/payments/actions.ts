@@ -10,8 +10,9 @@ import {
 import type { ActionResult } from '../../../../../../components/money/types.ts'
 import { getDb } from '../../../../../../lib/db.ts'
 import { paidInstant, parseCents, parseCivilDate } from '../../../../../../lib/money.ts'
-import { moneyCaller, moneyError, revalidateMoney } from '../../../../../../lib/money-server.ts'
+import { moneyError, revalidateMoney } from '../../../../../../lib/money-server.ts'
 import { reportSilentFailure } from '../../../../../../lib/observability.ts'
+import { currentCaller } from '../../../../../../lib/principal.ts'
 import { isUuid } from '../../../../../../lib/uuid.ts'
 
 /**
@@ -55,7 +56,7 @@ export async function savePayment(
   paymentId: string | null,
   values: PaymentFormValues,
 ): Promise<ActionResult> {
-  const caller = await moneyCaller()
+  const caller = await currentCaller()
   if (!caller || !isUuid(weddingId) || (paymentId !== null && !isUuid(paymentId))) {
     return { ok: false, error: 'notFound' }
   }
@@ -93,7 +94,7 @@ export async function markPaymentPaid(
   paymentId: string,
   paid: boolean,
 ): Promise<ActionResult> {
-  const caller = await moneyCaller()
+  const caller = await currentCaller()
   if (!caller || !isUuid(weddingId) || !isUuid(paymentId)) return { ok: false, error: 'notFound' }
 
   try {
@@ -115,7 +116,7 @@ export async function markPaymentPaid(
 }
 
 export async function removePayment(weddingId: string, paymentId: string): Promise<ActionResult> {
-  const caller = await moneyCaller()
+  const caller = await currentCaller()
   if (!caller || !isUuid(weddingId) || !isUuid(paymentId)) return { ok: false, error: 'notFound' }
 
   try {

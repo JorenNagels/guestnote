@@ -15,7 +15,7 @@ import {
 import { revalidatePath } from 'next/cache'
 import { getTranslations } from 'next-intl/server'
 import { getDb } from '../../../../../lib/db.ts'
-import { currentMemberships, currentOrgId } from '../../../../../lib/principal.ts'
+import { currentCaller } from '../../../../../lib/principal.ts'
 import {
   parseItemInput,
   parseTemplateInput,
@@ -58,9 +58,9 @@ const refresh = () => revalidatePath('/pro/templates', 'layout')
 
 async function writer(...ids: unknown[]) {
   if (!ids.every(isUuid)) return null
-  const [m, orgId] = await Promise.all([currentMemberships(), currentOrgId()])
-  if (!m || !orgId || !templateAccess(m, orgId)?.canWrite) return null
-  return { m, orgId }
+  const c = await currentCaller()
+  if (!c || !templateAccess(c.memberships, c.orgId)?.canWrite) return null
+  return { m: c.memberships, orgId: c.orgId }
 }
 
 const FORBIDDEN = { ok: false, error: 'forbidden' } as const
@@ -143,10 +143,10 @@ export async function applyTemplateAction(
   weddingId: string,
 ): Promise<ApplyResult> {
   if (!isUuid(templateId) || !isUuid(weddingId)) return { ok: false, error: 'notFound' }
-  const [m, orgId] = await Promise.all([currentMemberships(), currentOrgId()])
-  if (!m || !orgId) return { ok: false, error: 'notFound' }
+  const c = await currentCaller()
+  if (!c) return { ok: false, error: 'notFound' }
 
-  const r = await applyTemplate(getDb(), m, orgId, templateId, weddingId)
+  const r = await applyTemplate(getDb(), c.memberships, c.orgId, templateId, weddingId)
   if (!r.ok) return { ok: false, error: r.reason }
   // The wedding's overview shows task counts and the checklist shows the tasks themselves.
   revalidatePath('/pro/weddings/[id]', 'layout')

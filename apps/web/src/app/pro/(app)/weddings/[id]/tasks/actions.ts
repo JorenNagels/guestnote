@@ -15,7 +15,7 @@ import {
   type TaskFormError,
 } from '../../../../../../components/tasks/form.ts'
 import { getDb } from '../../../../../../lib/db.ts'
-import { currentMemberships, currentOrgId } from '../../../../../../lib/principal.ts'
+import { currentCaller } from '../../../../../../lib/principal.ts'
 import { isUuid } from '../../../../../../lib/uuid.ts'
 
 /**
@@ -48,9 +48,7 @@ const TASKS_TREE = '/pro/weddings/[id]/tasks'
 const refresh = () => revalidatePath(TASKS_TREE, 'layout')
 
 async function who(...ids: string[]) {
-  if (!ids.every(isUuid)) return null
-  const [memberships, orgId] = await Promise.all([currentMemberships(), currentOrgId()])
-  return memberships && orgId ? { memberships, orgId } : null
+  return ids.every(isUuid) ? currentCaller() : null
 }
 
 const NOT_FOUND = { ok: false, error: 'notFound' } as const

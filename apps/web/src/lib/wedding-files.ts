@@ -13,7 +13,7 @@ import {
   setFileVisibility,
 } from '@guestnote/db'
 import { getDb } from './db.ts'
-import { currentMemberships, currentOrgId } from './principal.ts'
+import { currentCaller } from './principal.ts'
 import { getStorage } from './storage.ts'
 import { isUuid } from './uuid.ts'
 
@@ -70,9 +70,8 @@ export function cleanName(raw: unknown): string | null {
 
 async function context(weddingId: unknown) {
   if (!isUuid(weddingId)) return null
-  const [m, orgId] = await Promise.all([currentMemberships(), currentOrgId()])
-  if (!m || !orgId) return null
-  return { m, orgId, weddingId }
+  const c = await currentCaller()
+  return c ? { m: c.memberships, orgId: c.orgId, weddingId } : null
 }
 
 const isVisibility = (v: unknown): v is FileVisibility => v === 'shared' || v === 'internal'

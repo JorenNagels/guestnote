@@ -12,7 +12,7 @@ import {
 import { revalidatePath } from 'next/cache'
 import { newBearerToken } from '../../../../../../lib/bearer-token.ts'
 import { getDb } from '../../../../../../lib/db.ts'
-import { currentMemberships, currentOrgId } from '../../../../../../lib/principal.ts'
+import { currentCaller } from '../../../../../../lib/principal.ts'
 import {
   parseId,
   parseNotes,
@@ -46,10 +46,9 @@ function refresh(alsoDirectory = false) {
 }
 
 async function context(weddingId: unknown) {
-  const [m, orgId] = await Promise.all([currentMemberships(), currentOrgId()])
   const wid = parseId(weddingId)
-  if (!m || !orgId || !wid) return null
-  return { m, orgId, weddingId: wid }
+  const c = wid ? await currentCaller() : null
+  return c && wid ? { m: c.memberships, orgId: c.orgId, weddingId: wid } : null
 }
 
 function answer(r: VendorWriteResult<unknown>): VendorActionResult {

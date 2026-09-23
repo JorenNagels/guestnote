@@ -9,7 +9,7 @@ import {
 } from '@guestnote/db'
 import { revalidatePath } from 'next/cache'
 import { getDb } from '../../../../lib/db.ts'
-import { currentMemberships, currentOrgId } from '../../../../lib/principal.ts'
+import { currentCaller } from '../../../../lib/principal.ts'
 import { parseId, parseVendorInput, type VendorActionResult } from '../../../../lib/vendor-input.ts'
 
 /**
@@ -35,10 +35,9 @@ function refresh() {
 }
 
 async function writer() {
-  const [m, orgId] = await Promise.all([currentMemberships(), currentOrgId()])
-  if (!m || !orgId) return null
-  if (!vendorDirectoryAccess(m, orgId)?.canWrite) return null
-  return { m, orgId }
+  const c = await currentCaller()
+  if (!c || !vendorDirectoryAccess(c.memberships, c.orgId)?.canWrite) return null
+  return { m: c.memberships, orgId: c.orgId }
 }
 
 function answer(r: VendorWriteResult<unknown>): VendorActionResult {
