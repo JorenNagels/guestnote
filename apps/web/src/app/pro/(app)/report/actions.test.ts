@@ -10,8 +10,9 @@ const currentSession = vi.fn()
 const currentMemberships = vi.fn()
 const currentOrgId = vi.fn()
 
+let userAgent = 'Mozilla/5.0 (iPhone)'
 vi.mock('next/headers', () => ({
-  headers: async () => new Headers({ 'user-agent': 'Mozilla/5.0 (iPhone)' }),
+  headers: async () => new Headers({ 'user-agent': userAgent }),
 }))
 vi.mock('next-intl/server', () => ({ getLocale: async () => 'nl' }))
 vi.mock('../../../../lib/observability.ts', () => ({
@@ -30,6 +31,7 @@ let sendReport: typeof import('./actions.ts').sendReport
 
 beforeEach(async () => {
   vi.clearAllMocks()
+  userAgent = 'Mozilla/5.0 (iPhone)'
   // A fresh module per case: the rate-limit window lives in module state.
   vi.resetModules()
   ;({ sendReport } = await import('./actions.ts'))
@@ -173,6 +175,24 @@ describe('sendReport', () => {
     expect(reportFeedback.mock.calls[2]?.[0].tags.weddingId).toBe('none')
   })
 
+  it('drops the fragment, anchors the wedding id to the start, and clamps the user agent', async () => {
+    await sendReport(form({ message: 'x', page: '/weddings/x/budget#row' }))
+    expect(reportFeedback.mock.calls[0]?.[0].tags.page).toBe('/weddings/x/budget')
+
+    await sendReport(form({ message: 'x', page: `/settings/weddings/${WEDDING}` }))
+    expect(reportFeedback.mock.calls[1]?.[0].tags.weddingId).toBe('none')
+
+    userAgent = 'U'.repeat(300)
+    await sendReport(form({ message: 'x' }))
+    expect(reportFeedback.mock.calls[2]?.[0].tags.userAgent).toHaveLength(200)
+  })
+
+  it('ignores an empty file field -- a form with no screenshot picked still sends one', async () => {
+    const empty = new File([], '', { type: 'application/octet-stream' })
+    expect(await sendReport(form({ message: 'x', screenshot: empty }))).toEqual({ ok: true })
+    expect(reportFeedback.mock.calls[0]?.[0].attachment).toBeUndefined()
+  })
+
   it('names the reporter by email when they have no name yet', async () => {
     currentSession.mockResolvedValue({ userId: 'u1', email: 'ilse@studiowit.be', name: null })
     await sendReport(form({ message: 'x' }))
@@ -196,7 +216,8 @@ describe('sendReport', () => {
     expect(await sendReport(form({ message: 'someone else' }))).toEqual({ ok: true })
 
     currentSession.mockResolvedValue({ userId: 'u1', email: 'ilse@studiowit.be', name: 'Ilse' })
-    now.mockReturnValue(1_000_000 + 60 * 60 * 1000 + 1)
+    // Exactly an hour: the window is `< WINDOW_MS`, so the first send has expired by now.
+    now.mockReturnValue(1_000_000 + 60 * 60 * 1000)
     expect(await sendReport(form({ message: 'an hour later' }))).toEqual({ ok: true })
     now.mockRestore()
   })

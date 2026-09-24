@@ -1063,6 +1063,9 @@ describe('the demo banner and "Report a problem" (spec 0005)', () => {
     expect(screen.queryByRole('button', { name: 'Afmelden' })).toBeNull()
   })
 
+  // The dialog's own `canReport &&` mount guard is not what this discriminates: without an
+  // inbox `openReport` is undefined, so `reporting` can never become true and the guard is
+  // unreachable (mutation sweep, 2026-09-24). The entry points below are the real gate.
   it('offers no way to report when there is no inbox, but still says demo', () => {
     renderShell({ banner: 'demo', canReport: false })
     const banner = screen.getByRole('region', { name: 'DEMO' })

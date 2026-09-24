@@ -85,6 +85,41 @@ describe('ReportDialog', () => {
     expect(screen.getByLabelText('Wat gebeurde er?')).toHaveValue('Nog eens')
   })
 
+  it('clears the last refusal while resending, and marks the text invalid when it was empty', async () => {
+    sendReport.mockResolvedValueOnce({ ok: false, reason: 'empty' })
+    render(<ReportDialog open onClose={() => {}} labels={LABELS} />)
+    await send()
+    expect(screen.getByLabelText('Wat gebeurde er?')).toHaveAttribute('aria-invalid', 'true')
+
+    sendReport.mockReturnValueOnce(new Promise(() => {}))
+    fireEvent.change(screen.getByLabelText('Wat gebeurde er?'), { target: { value: 'x' } })
+    await send()
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('forgets the previous screenshot when a new pick fails, and the previous error when one succeeds', async () => {
+    const good = new Blob([new Uint8Array([9])], { type: 'image/jpeg' })
+    const pick = async (name: string) =>
+      act(async () => {
+        fireEvent.change(screen.getByLabelText('Schermafbeelding'), {
+          target: { files: [new File([new Uint8Array(10)], name, { type: 'image/png' })] },
+        })
+      })
+    render(<ReportDialog open onClose={() => {}} labels={LABELS} />)
+
+    shrinkScreenshot.mockResolvedValueOnce(null)
+    await pick('bad.png')
+    shrinkScreenshot.mockResolvedValueOnce(good)
+    await pick('good.png')
+    expect(screen.queryByRole('alert')).toBeNull()
+
+    shrinkScreenshot.mockResolvedValueOnce(null)
+    await pick('bad-again.png')
+    fireEvent.change(screen.getByLabelText('Wat gebeurde er?'), { target: { value: 'x' } })
+    await send()
+    expect(sentBody().get('screenshot')).toBeNull()
+  })
+
   it('files a report as a bug unless told otherwise', async () => {
     render(<ReportDialog open onClose={() => {}} labels={LABELS} />)
     fireEvent.change(screen.getByLabelText('Wat gebeurde er?'), { target: { value: 'x' } })
@@ -103,6 +138,9 @@ describe('ReportDialog', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('E-TOOLARGE')
   })
 
+  // The input's `value = ''` reset in the Remove handler cannot be seen here: `fireEvent.change`
+  // stubs `files`, so jsdom's `value` never holds the file to begin with (mutation sweep,
+  // 2026-09-24, inferred rather than measured). What this pins is that nothing is sent.
   it('removes a picked screenshot, so it is not sent', async () => {
     shrinkScreenshot.mockResolvedValue(new Blob([new Uint8Array([9])], { type: 'image/jpeg' }))
     render(<ReportDialog open onClose={() => {}} labels={LABELS} />)

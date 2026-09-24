@@ -10,6 +10,10 @@ describe('resolveBillingMode', () => {
     expect(resolveBillingMode(undefined)).toEqual({ on: false })
   })
 
+  it('does not read an empty string as demo -- env.ts folds that to unset before it gets here', () => {
+    expect(() => resolveBillingMode('')).toThrow(/not a real date/)
+  })
+
   it('is on from the given civil date', () => {
     expect(resolveBillingMode('2026-11-01')).toEqual({ on: true, from: '2026-11-01' })
   })
