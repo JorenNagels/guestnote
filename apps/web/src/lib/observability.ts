@@ -28,23 +28,47 @@ import { scrub } from './scrub.ts'
  *
  * That is the same shape invariant 5 states for Better Auth and the AWS SDK, and the same
  * shape `packages/core`'s `report` callback uses one layer down. Three vendors, one file
- * each, and none of them reachable from a component. The cost is a mutable module-level
- * slot, which is the price of a seam that must not be imported.
+ * each, and none of them reachable from a component. The cost is process-global mutable
+ * state: a registry on `globalThis` that any module can reach by its key. Why it is not a
+ * module `let` is in the section on the slots below.
  */
 
 type Reporter = (message: string, context: Record<string, unknown>) => void
 
 /**
- * Null until `instrumentation.ts` installs one, and null forever when there is no DSN.
+ * ## The slots live on `globalThis`, not in this module
  *
- * A no-op default rather than a queue: an event raised before `register()` runs is an event
- * from a request that cannot exist yet, and buffering would mean deciding how much to hold
- * and when to drop it. Losing nothing real is worth more than the machinery.
+ * Next bundles `instrumentation.ts` separately from the app's server components, so each side
+ * gets its OWN copy of this module: a `let` here, set by `register()`, was never seen by a page
+ * or a Server Function. Found 2026-09-24 when the "Report a problem" button stayed hidden
+ * with a real DSN set -- `feedbackAvailable()` read the page bundle's still-null slot -- and the
+ * fix was read back the same day in `next dev`: the button showed and a report reached the
+ * inbox. The same split implies `reportSilentFailure` has been reaching CloudWatch only, never
+ * Sentry, for as long as the reporter slot has existed; that is inferred from the split, not
+ * read back from Sentry's history.
+ *
+ * `Symbol.for` rather than a string property: it is the one key both copies can compute, and it
+ * cannot collide with, or be enumerated alongside, anything else on `globalThis`. The cost is
+ * that anything knowing the key can overwrite a reporter. Rejected: importing the SDK here,
+ * which this file's header rules out. **No test can see the split** -- Vitest loads one copy of
+ * this module -- so `observability.test.ts` pins only that a fresh module copy reads the slot a
+ * previous copy set, which is the property the split needs.
+ *
+ * Each slot is null until `instrumentation.ts` installs it, and null forever without a DSN. A
+ * no-op default rather than a queue: an event raised before `register()` runs is an event from
+ * a request that cannot exist yet, and buffering would mean deciding how much to hold and when
+ * to drop it. Losing nothing real is worth more than the machinery.
  */
-let reporter: Reporter | null = null
+type Slots = { reporter: Reporter | null; feedback: FeedbackReporter | null }
+const SLOTS = Symbol.for('guestnote.observability')
+function slots(): Slots {
+  const g = globalThis as { [SLOTS]?: Slots }
+  g[SLOTS] ??= { reporter: null, feedback: null }
+  return g[SLOTS]
+}
 
 export function setReporter(next: Reporter | null): void {
-  reporter = next
+  slots().reporter = next
 }
 
 /**
@@ -74,5 +98,49 @@ export function reportSilentFailure(message: string, context: Record<string, unk
   // days about the very failure this file exists to make visible.
   console.warn(`[silent-failure] ${message}`, safe)
 
-  reporter?.(message, safe)
+  slots().reporter?.(message, safe)
+}
+
+/**
+ * A report a planner chose to send: "Report a problem" (spec 0005). Plain data, so nothing
+ * here names the vendor that receives it.
+ */
+export type Feedback = {
+  category: 'bug' | 'idea' | 'question'
+  message: string
+  name: string
+  email: string
+  /** Searchable in the inbox: org, wedding, page, locale. Scrubbed like any other context. */
+  tags: Record<string, string>
+  attachment?: { filename: string; contentType: string; data: Uint8Array } | undefined
+}
+
+/** Resolves whether the report is known to have left the process. */
+type FeedbackReporter = (feedback: Feedback) => Promise<boolean>
+
+/**
+ * Null until `instrumentation.ts` installs one, and null forever without a DSN -- which is
+ * exactly when `feedbackAvailable()` is false and the entry points are not rendered. Same
+ * pushed-in shape as `setReporter`, for the same reason: this file must not import the SDK.
+ */
+export function setFeedbackReporter(next: FeedbackReporter | null): void {
+  slots().feedback = next
+}
+
+export function feedbackAvailable(): boolean {
+  return slots().feedback !== null
+}
+
+/**
+ * Hand a report to the inbox. Resolves false when there is nowhere to send it or it did not
+ * leave in time, so the caller can say so rather than thank the planner for a report that went
+ * nowhere. Awaited, because the reporter flushes: see `instrumentation.ts`.
+ *
+ * The message itself is NOT scrubbed: it is what the planner typed for us to read, and the
+ * scrubber matches on key names, which a free-text body does not have. The tags are.
+ */
+export async function reportFeedback(feedback: Feedback): Promise<boolean> {
+  const feedbackReporter = slots().feedback
+  if (!feedbackReporter) return false
+  return feedbackReporter({ ...feedback, tags: scrub(feedback.tags) as Record<string, string> })
 }

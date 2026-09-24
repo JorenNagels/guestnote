@@ -218,6 +218,27 @@ const schema = z.object({
     .string()
     .optional()
     .transform((v) => (v ? v : undefined)),
+
+  /**
+   * The day billing starts, `YYYY-MM-DD`. **Unset means the product is a free demo**, and that
+   * is the safe value by omission (invariant 6): an environment that forgets it shows the demo
+   * banner and locks nobody out of a wedding, where the opposite default would put every studio
+   * on a clock nobody announced. `lib/billing-mode.ts` is the only reader.
+   *
+   * A date rather than `enabled`, because the trial of every studio created during the demo
+   * counts from this day (spec 0005, "Trial"), so the switch and the day it happened cannot
+   * disagree. Empty is folded into unset for the reason `GUESTNOTE_FILES_BUCKET` gives.
+   */
+  GUESTNOTE_BILLING_FROM: z
+    .string()
+    .optional()
+    .transform((v) => (v ? v : undefined))
+    .pipe(
+      z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/, 'must be YYYY-MM-DD')
+        .optional(),
+    ),
 })
 
 const parsed = schema.safeParse(process.env)
@@ -254,5 +275,7 @@ export const env = {
   // template leaves behind) is folded into "not set" by the schema, because a bucket named
   // nothing is not a value and failing the whole app at import over it would be out of scale.
   filesBucket: parsed.data.GUESTNOTE_FILES_BUCKET,
+  // `undefined` is demo mode, and `lib/billing-mode.ts` is where that is decided.
+  billingFrom: parsed.data.GUESTNOTE_BILLING_FROM,
   devPort: parsed.data.PORT,
 } as const

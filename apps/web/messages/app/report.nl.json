@@ -1,0 +1,26 @@
+{
+  "menu": "Een probleem melden",
+  "title": "Een probleem melden",
+  "close": "Sluiten",
+  "category": "Soort",
+  "categories": {
+    "bug": "Fout",
+    "idea": "Idee",
+    "question": "Vraag"
+  },
+  "message": "Wat gebeurde er?",
+  "screenshot": "Schermafbeelding toevoegen (optioneel)",
+  "removeScreenshot": "Verwijderen",
+  "send": "Versturen",
+  "sending": "Versturen…",
+  "sent": "Bedankt, we hebben het. We antwoorden per e-mail als we meer moeten weten.",
+  "errors": {
+    "forbidden": "Je kunt vanaf hier geen melding versturen.",
+    "empty": "Schrijf kort wat er gebeurde.",
+    "tooLong": "Dat is te lang. Hou het onder 4000 tekens.",
+    "badScreenshot": "Die schermafbeelding konden we niet gebruiken. Verstuur zonder, of kies een andere.",
+    "tooLarge": "Die afbeelding is te groot, ook verkleind. Verstuur zonder, of kies een kleinere.",
+    "rateLimited": "Je hebt er net een paar gestuurd. Probeer het over een uur opnieuw.",
+    "unavailable": "Dat is niet aangekomen. Probeer het zo meteen opnieuw."
+  }
+}

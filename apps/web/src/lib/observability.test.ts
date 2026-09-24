@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { Feedback } from './observability.ts'
 import { REDACTED } from './scrub.ts'
 
 /**
@@ -15,7 +16,8 @@ import { REDACTED } from './scrub.ts'
  * scrubbing *happened on the vendor path*, and a stubbed `scrub` would assert only that a
  * function was called.
  */
-const { reportSilentFailure, setReporter } = await import('./observability.ts')
+const { feedbackAvailable, reportFeedback, reportSilentFailure, setFeedbackReporter, setReporter } =
+  await import('./observability.ts')
 
 afterEach(() => {
   setReporter(null)
@@ -75,5 +77,74 @@ describe('reportSilentFailure', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {})
 
     expect(() => reportSilentFailure('boom', { a: 1 })).not.toThrow()
+  })
+})
+
+describe('reportFeedback', () => {
+  const base = {
+    category: 'bug' as const,
+    message: 'The budget total is off by one cent, code 194720 in my notes',
+    name: 'Ilse',
+    email: 'ilse@studiowit.be',
+    tags: { page: '/weddings/x/budget', otp: '194720' },
+  }
+
+  afterEach(() => setFeedbackReporter(null))
+
+  it('resolves false and sends nothing when no inbox is installed', async () => {
+    expect(feedbackAvailable()).toBe(false)
+    expect(await reportFeedback(base)).toBe(false)
+  })
+
+  it('is available once an inbox is installed', () => {
+    setFeedbackReporter(async () => true)
+    expect(feedbackAvailable()).toBe(true)
+  })
+
+  it('scrubs the tags and nothing else -- the message, the reply address and the attachment go as given', async () => {
+    // `email` is a redacted key in `scrub.ts`, so scrubbing the whole object instead of the tags
+    // would turn the address we reply to into [redacted]. This is the assertion that sees it.
+    const reporter = vi.fn(async (_feedback: Feedback) => true)
+    setFeedbackReporter(reporter)
+    const attachment = { filename: 's.jpeg', contentType: 'image/jpeg', data: new Uint8Array([1]) }
+
+    expect(await reportFeedback({ ...base, attachment })).toBe(true)
+    expect(reporter.mock.calls[0]?.[0]).toEqual({
+      ...base,
+      attachment,
+      tags: { page: '/weddings/x/budget', otp: REDACTED },
+    })
+  })
+
+  it('passes on a reporter that could not deliver in time', async () => {
+    setFeedbackReporter(async () => false)
+    expect(await reportFeedback(base)).toBe(false)
+  })
+})
+
+/**
+ * The two-bundle split itself cannot be reproduced here: Vitest loads one copy of this module,
+ * and Next loads two (`observability.ts`, "The slots live on `globalThis`"). What this pins is
+ * the property the fix relies on -- a second, fresh copy of the module reads what the first copy
+ * installed. A module `let` fails it; the `globalThis` registry passes.
+ */
+describe('a second copy of the module', () => {
+  afterEach(() => {
+    setReporter(null)
+    setFeedbackReporter(null)
+  })
+
+  it('sees the reporters the first copy installed', async () => {
+    const reporter = vi.fn()
+    setReporter(reporter)
+    setFeedbackReporter(async () => true)
+
+    vi.resetModules()
+    const fresh = await import('./observability.ts')
+
+    expect(fresh.feedbackAvailable()).toBe(true)
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    fresh.reportSilentFailure('from the other bundle', {})
+    expect(reporter).toHaveBeenCalledWith('from the other bundle', {})
   })
 })

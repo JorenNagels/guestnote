@@ -88,6 +88,12 @@ The code built to stop the next eleven-day silence was the least-tested code in 
 because every sweep so far had been aimed at the thing the tests were written for. All
 eleven now have assertions that fail when the code breaks.
 
+*Correction 2026-09-24: the assertions were right, and the vendor half of it still never ran.
+Next bundles `instrumentation.ts` separately from the app, so each held its own copy of
+`lib/observability.ts`, and the Sentry reporter was installed only in the copy nothing called.
+CloudWatch had every event; Sentry, by inference from the split, had none of them. Fixed by
+keeping the reporter slots on `globalThis` (spec 0005); `observability.ts` has the detail.*
+
 Two deliberately-defensive branches are documented as unreachable rather than papered over:
 the marketing `/api/` guard in `proxy.ts` (subsumed by the unknown-locale guard three lines
 later) and `boundEmail ?? email` in `auth-flow.tsx` (the state is already seeded from

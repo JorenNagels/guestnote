@@ -123,6 +123,10 @@ stop and ask. The rest are held by convention alone, which is why they are writt
    crosses any seam — everything returns plain data. That is what keeps a provider swap a
    bounded job, and what stops the AWS SDK being dragged into a bundle by a stray import. All
    the bans are in `biome.json` *and* in `no-unsafe-imports.test.ts`.
+   **A vendor pushed in from `instrumentation.ts` must be handed over on `globalThis`**, not
+   through a module `let`: Next bundles that file separately from the app, so each side has
+   its own copy of every module. `lib/observability.ts` found this 2026-09-24, after Sentry had
+   silently received nothing from it since 2026-09-01.
 
 6. **`apps/web/src/env.ts` is the only reader of *configuration*,** and `packages/*` reads no
    environment at all — config arrives as arguments. The single exception is `NODE_ENV`, in

@@ -8,6 +8,8 @@ import type { Locale } from '../../lib/locales.ts'
 import type { Density, NavState, Theme } from '../../lib/prefs.ts'
 import { app } from '../../lib/routes.ts'
 import { type EnrollmentLabels, EnrollmentPrompt } from '../auth/enrollment-prompt.tsx'
+import { DemoBanner } from '../banners/demo-banner.tsx'
+import { ReportDialog, type ReportLabels } from '../report/report-dialog.tsx'
 import { AccountMenu } from './account-menu.tsx'
 import {
   BudgetIcon,
@@ -66,6 +68,8 @@ export type ShellLabels = {
   enroll: EnrollmentLabels
   /** The words before the product name in the footer; the name itself is not translated. */
   poweredBy: string
+  demoBanner: { pill: string; body: string; ask: string; action: string }
+  report: ReportLabels
 }
 
 /**
@@ -126,6 +130,8 @@ export function Shell({
   locale,
   theme,
   density,
+  banner,
+  canReport,
   labels,
   children,
 }: {
@@ -146,10 +152,21 @@ export function Shell({
   locale: Locale
   theme: Theme
   density: Density
+  /**
+   * The one strip above the page (spec 0005): `demo` while billing is off. One slot, not a
+   * stack -- at most one banner shows, and the layout decides which.
+   */
+  banner: 'demo' | null
+  /** Whether "Report a problem" has an inbox to send to. False without a Sentry DSN. */
+  canReport: boolean
   labels: ShellLabels
   children: ReactNode
 }) {
   const [nav, setNav] = useState<NavState>(initialNav)
+  // Here and not in the menu: the banner's "Report it" and the account menu's row open the
+  // same dialog, and the menu unmounts its panel on close.
+  const [reporting, setReporting] = useState(false)
+  const openReport = canReport ? () => setReporting(true) : undefined
   const [drawer, setDrawer] = useState(false)
   const [, startTransition] = useTransition()
   const pathname = usePathname()
@@ -351,6 +368,7 @@ export function Shell({
         locale={locale}
         theme={theme}
         density={density}
+        onReport={openReport}
         labels={labels.account}
       />
     </nav>
@@ -394,7 +412,17 @@ export function Shell({
 
         {/* `inert` while the drawer is open: it takes the whole region out of the tab order
             and out of the accessibility tree in one attribute, which is the focus trap. */}
-        <main className="min-w-0 flex-1">{children}</main>
+        <main className="min-w-0 flex-1">
+          {banner === 'demo' ? (
+            <DemoBanner labels={labels.demoBanner} onReport={openReport} />
+          ) : null}
+          {children}
+        </main>
+
+        {/* Mounted only while open: unmounting is how the dialog resets, see its own comment. */}
+        {canReport && reporting ? (
+          <ReportDialog open onClose={() => setReporting(false)} labels={labels.report} />
+        ) : null}
 
         {/* The post-login passkey offer, and the reason it is a sibling of `<main>` INSIDE
             this column rather than a sibling of the column: the column is what carries

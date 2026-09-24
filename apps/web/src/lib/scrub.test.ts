@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { REDACTED, scrub, scrubEvent } from './scrub.ts'
+import { REDACTED, scrub, scrubEvent, stripFeedbackRequest } from './scrub.ts'
 
 /**
  * The scrubber, which is the one file here where being wrong sends a credential to a third
@@ -146,5 +146,32 @@ describe('scrubEvent', () => {
       request: { url: 'https://app.guestnote.be/login' },
     } as Record<string, unknown>)
     expect((out.request as { url: string }).url).toBe('https://app.guestnote.be/login')
+  })
+})
+
+describe('stripFeedbackRequest', () => {
+  const feedback = {
+    type: 'feedback',
+    request: {
+      url: 'http://app.guestnote.localhost:3000/weddings/x',
+      headers: { cookie: '__Host-guestnote.session_token=abc' },
+      cookies: { '__Host-guestnote.session_token': 'abc' },
+    },
+    contexts: { feedback: { message: 'x', contact_email: 'ilse@studiowit.be' } },
+  }
+
+  it('drops the whole request from a feedback event, cookie and all', () => {
+    const out = stripFeedbackRequest(feedback)
+    expect(out).not.toHaveProperty('request')
+    expect(JSON.stringify(out)).not.toContain('session_token')
+  })
+
+  it('keeps the reply address the planner gave us', () => {
+    expect(stripFeedbackRequest(feedback).contexts.feedback.contact_email).toBe('ilse@studiowit.be')
+  })
+
+  it('leaves every other event type alone -- those go through beforeSend', () => {
+    const error = { request: feedback.request }
+    expect(stripFeedbackRequest(error)).toBe(error)
   })
 })

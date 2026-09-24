@@ -6,8 +6,10 @@ import type { ReactNode } from 'react'
 import { Shell, type ShellWedding } from '../../../components/nav/shell.tsx'
 import { apexOrigin } from '../../../lib/app-url.ts'
 import { getAuth } from '../../../lib/auth.ts'
+import { billingMode } from '../../../lib/billing-mode.ts'
 import { getDb } from '../../../lib/db.ts'
 import { DEFAULT_LOCALE, isLocale } from '../../../lib/locales.ts'
+import { feedbackAvailable } from '../../../lib/observability.ts'
 import {
   DENSITY_COOKIE,
   NAV_COOKIE,
@@ -55,8 +57,8 @@ export default async function AppShellLayout({ children }: { children: ReactNode
   const session = await getAuth().getSession(requestHeaders)
   if (!session) redirect(app.loginAfterExpiry())
 
-  const [orgId, orgs, memberships, store, locale, t, shellT, authT, hasPasskey] = await Promise.all(
-    [
+  const [orgId, orgs, memberships, store, locale, t, shellT, authT, bannerT, reportT, hasPasskey] =
+    await Promise.all([
       currentOrgId(),
       currentOrgs(),
       currentMemberships(),
@@ -65,6 +67,8 @@ export default async function AppShellLayout({ children }: { children: ReactNode
       getTranslations('app'),
       getTranslations('app.shell'),
       getTranslations('auth'),
+      getTranslations('app.banners'),
+      getTranslations('app.report'),
       /**
        * Whether this user already holds a passkey -- the half of the enrollment offer's gate
        * that only the server can answer, and the one rung 2 of sign-in could never ask.
@@ -81,8 +85,7 @@ export default async function AppShellLayout({ children }: { children: ReactNode
        * something that silently does nothing to the people who least need it.
        */
       getAuth().hasPasskey(requestHeaders),
-    ],
-  )
+    ])
 
   const current = orgs.find((o) => o.id === orgId)
   if (!orgId || !current) return children
@@ -115,6 +118,11 @@ export default async function AppShellLayout({ children }: { children: ReactNode
       locale={isLocale(locale) ? locale : DEFAULT_LOCALE}
       theme={parseTheme(store.get(THEME_COOKIE)?.value)}
       density={parseDensity(store.get(DENSITY_COOKIE)?.value)}
+      // Spec 0005: while billing is off the product is a demo and says so on every page. The
+      // trial banner will take this slot once billing is on ("Trial banner"); until it is
+      // built, billing on shows no banner at all.
+      banner={billingMode().on ? null : 'demo'}
+      canReport={feedbackAvailable()}
       labels={{
         nav: t('nav.label'),
         weddings: t('weddings.title'),
@@ -157,6 +165,7 @@ export default async function AppShellLayout({ children }: { children: ReactNode
           density: t('account.density'),
           densityComfortable: t('account.densityComfortable'),
           densityCompact: t('account.densityCompact'),
+          report: reportT('menu'),
           signOut: t('signOut'),
         },
         // Reused verbatim from the sign-in surface rather than duplicated under `app.*`:
@@ -179,6 +188,37 @@ export default async function AppShellLayout({ children }: { children: ReactNode
           dateUnknown: t('weddings.dateUnknown'),
         },
         poweredBy: shellT('footer.poweredBy'),
+        demoBanner: {
+          pill: bannerT('demo.pill'),
+          body: bannerT('demo.body'),
+          ask: bannerT('demo.ask'),
+          action: bannerT('demo.action'),
+        },
+        report: {
+          title: reportT('title'),
+          close: reportT('close'),
+          category: reportT('category'),
+          categories: {
+            bug: reportT('categories.bug'),
+            idea: reportT('categories.idea'),
+            question: reportT('categories.question'),
+          },
+          message: reportT('message'),
+          screenshot: reportT('screenshot'),
+          removeScreenshot: reportT('removeScreenshot'),
+          send: reportT('send'),
+          sending: reportT('sending'),
+          sent: reportT('sent'),
+          errors: {
+            forbidden: reportT('errors.forbidden'),
+            empty: reportT('errors.empty'),
+            tooLong: reportT('errors.tooLong'),
+            badScreenshot: reportT('errors.badScreenshot'),
+            tooLarge: reportT('errors.tooLarge'),
+            rateLimited: reportT('errors.rateLimited'),
+            unavailable: reportT('errors.unavailable'),
+          },
+        },
       }}
     >
       {children}

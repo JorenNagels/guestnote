@@ -1,0 +1,26 @@
+{
+  "menu": "Report a problem",
+  "title": "Report a problem",
+  "close": "Close",
+  "category": "Kind",
+  "categories": {
+    "bug": "Bug",
+    "idea": "Idea",
+    "question": "Question"
+  },
+  "message": "What happened?",
+  "screenshot": "Add a screenshot (optional)",
+  "removeScreenshot": "Remove",
+  "send": "Send",
+  "sending": "Sending…",
+  "sent": "Thanks — it’s with us. We’ll reply by email if we need to know more.",
+  "errors": {
+    "forbidden": "You can’t send a report from here.",
+    "empty": "Write a line about what happened.",
+    "tooLong": "That’s too long. Keep it under 4000 characters.",
+    "badScreenshot": "We couldn’t use that screenshot. Send without it, or pick another.",
+    "tooLarge": "That image is too large even when shrunk. Send without it, or pick a smaller one.",
+    "rateLimited": "You’ve just sent a few. Try again in an hour.",
+    "unavailable": "That didn’t arrive. Try again in a moment."
+  }
+}

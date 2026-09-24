@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/nextjs'
 import { env } from './env.ts'
-import { setReporter } from './lib/observability.ts'
-import { scrubEvent } from './lib/scrub.ts'
+import { setFeedbackReporter, setReporter } from './lib/observability.ts'
+import { scrubEvent, stripFeedbackRequest } from './lib/scrub.ts'
 
 /**
  * Server-side error reporting. Next calls `register()` once per runtime, before any request.
@@ -106,6 +106,43 @@ export async function register(): Promise<void> {
       fingerprint: [message],
       extra: context,
     })
+  })
+
+  /**
+   * "Report a problem" (spec 0005) lands in Sentry's User Feedback inbox, which has the
+   * resolved/unresolved state a bug list needs and emails on a new item -- rejected: GitHub
+   * Issues, because the repository is public and every report would be published with the
+   * planner's address on it. Server-side `captureFeedback`, so no browser SDK is shipped;
+   * `env.ts` argues why that matters.
+   *
+   * The reporter's name and email go on the feedback, not on the event's `user`: they are what
+   * the planner typed into a form addressed to us, which is not the `sendDefaultPii` default
+   * above changing its mind.
+   */
+  // Registered after `init`, so it runs after the request integration that attaches the
+  // cookie-carrying request: client processors run in registration order. `lib/scrub.ts`
+  // says why feedback events need this and `beforeSend` does not reach them.
+  Sentry.getClient()?.addEventProcessor(stripFeedbackRequest)
+
+  setFeedbackReporter(async (feedback) => {
+    Sentry.captureFeedback(
+      {
+        message: feedback.message,
+        name: feedback.name,
+        email: feedback.email,
+        ...(feedback.tags.page ? { url: feedback.tags.page } : {}),
+        tags: { ...feedback.tags, category: feedback.category },
+      },
+      feedback.attachment ? { attachments: [feedback.attachment] } : undefined,
+    )
+    // Flushed before the Server Function answers, not left to the SDK's background queue:
+    // Lambda freezes the process the moment the response is sent, and a queued envelope then
+    // leaves on the next invocation or never. Two seconds bounds how long "Send" can hang on a
+    // slow ingest; `false` means it had not left by then, and the planner is told to retry.
+    // `true` means the queue drained, NOT that Sentry accepted it: measured 2026-09-24 in `next dev`
+    // against an unroutable DSN, which still resolved `true`. A rejected report is lost without a word;
+    // the planner has the email thread to fall back on.
+    return Sentry.flush(2000)
   })
 }
 

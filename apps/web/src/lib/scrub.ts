@@ -140,3 +140,23 @@ export function scrubEvent<T extends Record<string, unknown>>(event: T): T {
   }
   return scrubbed
 }
+
+/**
+ * The event processor for "Report a problem" feedback events (spec 0005), which `scrubEvent`
+ * never sees: Sentry runs `beforeSend` on error events only (`event.type === undefined`, read in
+ * `@sentry/core` 10.72.0 `client.js`), and a feedback event is `type: 'feedback'`. Its request
+ * integration still copies the incoming request onto it, and with `sendDefaultPii: false` that
+ * copy keeps the `Cookie` header -- the session token -- because the deny list there filters
+ * IP-style headers only. Found by review 2026-09-24, before any deploy.
+ *
+ * So the request goes, whole, rather than being scrubbed: a feedback event needs none of it (the
+ * page it came from is its own `url` field), and running the full `scrubEvent` here instead
+ * would also redact `contexts.feedback.contact_email` -- the `email` key rule -- which is the
+ * address the planner asked us to reply to. Other event types pass through untouched; they have
+ * `beforeSend`.
+ */
+export function stripFeedbackRequest<T extends { type?: unknown; request?: unknown }>(event: T): T {
+  if (event.type !== 'feedback' || !('request' in event)) return event
+  const { request: _dropped, ...rest } = event
+  return rest as T
+}

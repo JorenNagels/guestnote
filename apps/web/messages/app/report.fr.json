@@ -1,0 +1,26 @@
+{
+  "menu": "Signaler un problème",
+  "title": "Signaler un problème",
+  "close": "Fermer",
+  "category": "Type",
+  "categories": {
+    "bug": "Bug",
+    "idea": "Idée",
+    "question": "Question"
+  },
+  "message": "Que s’est-il passé ?",
+  "screenshot": "Ajouter une capture d’écran (facultatif)",
+  "removeScreenshot": "Retirer",
+  "send": "Envoyer",
+  "sending": "Envoi…",
+  "sent": "Merci, c’est bien reçu. Nous répondrons par e-mail si nous avons besoin de précisions.",
+  "errors": {
+    "forbidden": "Vous ne pouvez pas envoyer de signalement d’ici.",
+    "empty": "Décrivez en une ligne ce qui s’est passé.",
+    "tooLong": "C’est trop long. Restez sous 4000 caractères.",
+    "badScreenshot": "Cette capture est inutilisable. Envoyez sans, ou choisissez-en une autre.",
+    "tooLarge": "Cette image reste trop lourde une fois réduite. Envoyez sans, ou choisissez-en une plus petite.",
+    "rateLimited": "Vous venez d’en envoyer plusieurs. Réessayez dans une heure.",
+    "unavailable": "L’envoi n’a pas abouti. Réessayez dans un instant."
+  }
+}

@@ -44,6 +44,8 @@ export const SLICES = [
   'today',
   'runSheet',
   'vendorLink',
+  'banners',
+  'report',
 ] as const
 
 export type Slice = (typeof SLICES)[number]

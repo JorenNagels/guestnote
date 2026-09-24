@@ -60,6 +60,11 @@ vi.mock('../../app/pro/(app)/actions.ts', () => ({
   signOut: vi.fn(),
 }))
 
+const sendReport = vi.fn()
+vi.mock('../../app/pro/(app)/report/actions.ts', () => ({
+  sendReport: (...a: unknown[]) => sendReport(...a),
+}))
+
 vi.mock('../auth/actions.ts', () => ({
   setLocale: (...a: unknown[]) => setLocale(...a),
   beginPasskeyEnrollment: vi.fn(),
@@ -127,6 +132,7 @@ const LABELS: ShellLabels = {
     density: 'Dichtheid',
     densityComfortable: 'Ruim',
     densityCompact: 'Compact',
+    report: 'Een probleem melden',
     signOut: 'Afmelden',
   },
   palette: {
@@ -144,6 +150,28 @@ const LABELS: ShellLabels = {
     confirm: 'ENROLL-CONFIRM',
     dismiss: 'ENROLL-DISMISS',
     busy: 'ENROLL-BUSY',
+  },
+  demoBanner: { pill: 'DEMO', body: 'DEMO-BODY', ask: 'DEMO-ASK', action: 'Meld het' },
+  report: {
+    title: 'REPORT-TITLE',
+    close: 'Sluiten',
+    category: 'Soort',
+    categories: { bug: 'Fout', idea: 'Idee', question: 'Vraag' },
+    message: 'Wat gebeurde er?',
+    screenshot: 'Schermafbeelding',
+    removeScreenshot: 'Verwijderen',
+    send: 'Versturen',
+    sending: 'Versturen…',
+    sent: 'REPORT-SENT',
+    errors: {
+      forbidden: 'E-FORBIDDEN',
+      empty: 'E-EMPTY',
+      tooLong: 'E-TOOLONG',
+      badScreenshot: 'E-BADSHOT',
+      tooLarge: 'E-TOOLARGE',
+      rateLimited: 'E-RATE',
+      unavailable: 'E-UNAVAILABLE',
+    },
   },
 }
 
@@ -163,6 +191,8 @@ function shellTree(over: Partial<Parameters<typeof Shell>[0]> = {}) {
       locale="nl"
       theme="light"
       density="comfortable"
+      banner={null}
+      canReport={false}
       labels={LABELS}
       {...over}
     >
@@ -979,6 +1009,68 @@ describe('the phone drawer', () => {
     })
     // Deleting the derived `seenPath !== pathname` block leaves every other case green.
     expect(screen.queryByRole('dialog', { name: 'Hoofdnavigatie' })).not.toBeInTheDocument()
+  })
+})
+
+describe('the demo banner and "Report a problem" (spec 0005)', () => {
+  const openAccount = () => fireEvent.click(screen.getByRole('button', { name: /Joren Nagels/ }))
+
+  it('shows the demo banner above the page, inside main, when the layout asks for it', () => {
+    renderShell({ banner: 'demo', canReport: true })
+    const banner = screen.getByRole('region', { name: 'DEMO' })
+    expect(banner).toHaveTextContent('DEMO-BODY DEMO-ASK')
+    expect(banner.closest('main')).not.toBeNull()
+  })
+
+  it('shows no banner when there is none to show', () => {
+    renderShell({ banner: null })
+    expect(screen.queryByRole('region', { name: 'DEMO' })).toBeNull()
+  })
+
+  it('opens the report dialog from the banner and from the account menu', () => {
+    renderShell({ banner: 'demo', canReport: true })
+    fireEvent.click(screen.getByRole('button', { name: 'Meld het' }))
+    expect(screen.getByRole('dialog', { name: 'REPORT-TITLE' })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Sluiten' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+
+    openAccount()
+    fireEvent.click(screen.getByRole('button', { name: 'Een probleem melden' }))
+    expect(screen.getByRole('dialog', { name: 'REPORT-TITLE' })).toBeInTheDocument()
+  })
+
+  it('starts a reopened dialog empty, even after a send -- closing unmounts it', async () => {
+    sendReport.mockResolvedValue({ ok: true })
+    renderShell({ banner: 'demo', canReport: true })
+    fireEvent.click(screen.getByRole('button', { name: 'Meld het' }))
+    fireEvent.change(screen.getByLabelText('Wat gebeurde er?'), { target: { value: 'kapot' } })
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Versturen' }))
+    })
+    expect(screen.getByRole('status')).toHaveTextContent('REPORT-SENT')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Sluiten' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Meld het' }))
+    expect(screen.getByLabelText('Wat gebeurde er?')).toHaveValue('')
+    expect(screen.getByRole('button', { name: 'Versturen' })).toBeInTheDocument()
+  })
+
+  it('offers the menu row without a banner, and closes the menu when it opens the dialog', () => {
+    renderShell({ banner: null, canReport: true })
+    openAccount()
+    fireEvent.click(screen.getByRole('button', { name: 'Een probleem melden' }))
+    expect(screen.getByRole('dialog', { name: 'REPORT-TITLE' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Afmelden' })).toBeNull()
+  })
+
+  it('offers no way to report when there is no inbox, but still says demo', () => {
+    renderShell({ banner: 'demo', canReport: false })
+    const banner = screen.getByRole('region', { name: 'DEMO' })
+    expect(banner).toHaveTextContent('DEMO-BODY')
+    expect(banner).not.toHaveTextContent('DEMO-ASK')
+    expect(screen.queryByRole('button', { name: 'Meld het' })).toBeNull()
+    openAccount()
+    expect(screen.queryByRole('button', { name: 'Een probleem melden' })).toBeNull()
   })
 })
 

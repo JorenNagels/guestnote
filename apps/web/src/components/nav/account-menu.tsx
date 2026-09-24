@@ -43,6 +43,7 @@ export function AccountMenu({
   locale,
   theme,
   density,
+  onReport,
   labels,
 }: {
   name: string | null
@@ -51,6 +52,8 @@ export function AccountMenu({
   locale: Locale
   theme: Theme
   density: Density
+  /** Absent when there is no inbox (`SENTRY_DSN` unset): the row is then not rendered at all. */
+  onReport?: (() => void) | undefined
   labels: {
     account: string
     language: string
@@ -60,6 +63,7 @@ export function AccountMenu({
     density: string
     densityComfortable: string
     densityCompact: string
+    report: string
     signOut: string
   }
 }) {
@@ -166,6 +170,16 @@ export function AccountMenu({
           ))}
 
           <MenuSeparator />
+          {onReport ? (
+            <MenuRow
+              onClick={() => {
+                close()
+                onReport()
+              }}
+            >
+              <span className="min-w-0 flex-1">{labels.report}</span>
+            </MenuRow>
+          ) : null}
           {/* A form, not a button calling the action: `signOut` redirects, and a redirect
               thrown from inside a transition is swallowed. `weddings/page.tsx` used to carry
               the precedent and this change deleted it, so this is the precedent now -- and

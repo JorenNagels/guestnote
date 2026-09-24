@@ -360,6 +360,9 @@ metered per event rather than per issue — an unbounded loop disables the obser
 whole feature was instrumented to provide. Mitigated in the meantime by a per-process cap of
 50 vendor events (`CEREMONY_REPORT_BUDGET`); the CloudWatch sink is deliberately left
 uncapped, because it is the one that still works when Sentry does not.
+*(Correction 2026-09-24: until that day CloudWatch was the only sink that worked at all -- the
+Sentry reporter was installed in a copy of `lib/observability.ts` the app never called. See the
+comment there, and spec 0005. The budget argument holds from now on.)*
 
 **One thing this feature changes about the gap, added 2026-08-31 after review.**
 `beginPasskeySignIn` is the first of these Server Functions that runs **without anyone
