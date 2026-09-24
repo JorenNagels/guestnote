@@ -4,7 +4,7 @@ import { Button, LinkButton } from '@guestnote/ui/button'
 import { InlineError } from '@guestnote/ui/inline-error'
 import { Sheet } from '@guestnote/ui/sheet'
 import { usePathname } from 'next/navigation'
-import { useId, useRef, useState, useTransition } from 'react'
+import { useEffect, useId, useRef, useState, useTransition } from 'react'
 import { type ReportFailure, sendReport } from '../../app/pro/(app)/report/actions.ts'
 import {
   REPORT_CATEGORIES,
@@ -20,6 +20,8 @@ export type ReportLabels = {
   categories: Record<ReportCategory, string>
   message: string
   screenshot: string
+  chooseScreenshot: string
+  screenshotAdded: string
   removeScreenshot: string
   send: string
   sending: string
@@ -111,11 +113,15 @@ export function ReportDialog({
             <legend className="mb-2 text-sm font-medium">{labels.category}</legend>
             <div className="flex flex-wrap gap-2">
               {REPORT_CATEGORIES.map((value) => (
+                // A pill, with the radio itself visually hidden: the native dot was the same
+                // unstyled-widget problem as the file input. Still a real radio group, so arrow
+                // keys move between them; the ring follows keyboard focus.
                 <label
                   key={value}
-                  className="has-[:checked]:border-foreground has-[:checked]:font-semibold border-input flex h-9 cursor-pointer items-center gap-2 rounded-[var(--radius)] border px-3 text-sm"
+                  className="has-[:checked]:border-foreground has-[:checked]:bg-muted has-[:checked]:font-semibold has-[:focus-visible]:outline-ring border-input flex h-9 cursor-pointer items-center rounded-[var(--radius)] border px-3 text-sm outline-offset-2 has-[:focus-visible]:outline-2"
                 >
                   <input
+                    className="sr-only"
                     type="radio"
                     name="category"
                     value={value}
@@ -144,31 +150,52 @@ export function ReportDialog({
             />
           </div>
 
+          {/* The Files screen's upload pattern (`components/files/upload-zone.tsx`): a real
+              button opens a visually hidden input. The native control was the first version,
+              and it rendered as unstyled "Choose File / No file chosen" text in dark mode --
+              a browser widget no token reaches. */}
           <div>
-            <label htmlFor={ids.shot} className="mb-1.5 block text-sm font-medium">
+            <span id={ids.shot} className="mb-1.5 block text-sm font-medium">
               {labels.screenshot}
-            </label>
+            </span>
+            <div className="border-input rounded-[var(--radius)] border border-dashed p-3">
+              {shot ? (
+                <div className="flex items-center gap-3">
+                  <Thumbnail blob={shot} />
+                  <span className="min-w-0 flex-1 truncate text-sm">{labels.screenshotAdded}</span>
+                  <LinkButton
+                    onClick={() => {
+                      setShot(null)
+                      if (fileInput.current) fileInput.current.value = ''
+                    }}
+                  >
+                    {labels.removeScreenshot}
+                  </LinkButton>
+                </div>
+              ) : (
+                // `w-fit` on a wrapper: `Button` is `w-full` and `cx` does not merge classes.
+                <div className="w-fit">
+                  <Button
+                    variant="secondary"
+                    className="h-9 px-3"
+                    aria-describedby={shotError ? ids.shotError : undefined}
+                    onClick={() => fileInput.current?.click()}
+                  >
+                    {labels.chooseScreenshot}
+                  </Button>
+                </div>
+              )}
+            </div>
             <input
-              id={ids.shot}
               ref={fileInput}
               type="file"
               accept="image/*"
-              aria-invalid={shotError || undefined}
-              aria-describedby={shotError ? ids.shotError : undefined}
+              tabIndex={-1}
+              aria-hidden="true"
+              data-testid="screenshot-input"
+              className="sr-only"
               onChange={(e) => void pick(e.target.files?.[0])}
-              className="text-sm"
             />
-            {shot ? (
-              <LinkButton
-                className="ml-3"
-                onClick={() => {
-                  setShot(null)
-                  if (fileInput.current) fileInput.current.value = ''
-                }}
-              >
-                {labels.removeScreenshot}
-              </LinkButton>
-            ) : null}
             {shotError ? (
               <InlineError id={ids.shotError}>{labels.errors.tooLarge}</InlineError>
             ) : null}
@@ -178,5 +205,29 @@ export function ReportDialog({
         </div>
       )}
     </Sheet>
+  )
+}
+
+/**
+ * A preview of the shrunk screenshot, so the planner sees what will be sent. The object URL is
+ * revoked when the blob changes or the dialog unmounts. Guarded because jsdom has no
+ * `URL.createObjectURL`; there the preview is simply absent.
+ */
+function Thumbnail({ blob }: { blob: Blob }) {
+  const [src, setSrc] = useState<string | null>(null)
+  useEffect(() => {
+    if (typeof URL.createObjectURL !== 'function') return
+    const url = URL.createObjectURL(blob)
+    setSrc(url)
+    return () => URL.revokeObjectURL(url)
+  }, [blob])
+  if (!src) return null
+  return (
+    // biome-ignore lint/performance/noImgElement: a local blob URL, which next/image cannot optimise
+    <img
+      src={src}
+      alt=""
+      className="border-border size-12 shrink-0 rounded-[calc(var(--radius)-2px)] border object-cover"
+    />
   )
 }

@@ -159,6 +159,8 @@ const LABELS: ShellLabels = {
     categories: { bug: 'Fout', idea: 'Idee', question: 'Vraag' },
     message: 'Wat gebeurde er?',
     screenshot: 'Schermafbeelding',
+    chooseScreenshot: 'Kies een afbeelding',
+    screenshotAdded: 'Toegevoegd',
     removeScreenshot: 'Verwijderen',
     send: 'Versturen',
     sending: 'Versturen…',

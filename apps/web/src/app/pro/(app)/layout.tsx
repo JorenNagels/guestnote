@@ -205,6 +205,8 @@ export default async function AppShellLayout({ children }: { children: ReactNode
           },
           message: reportT('message'),
           screenshot: reportT('screenshot'),
+          chooseScreenshot: reportT('chooseScreenshot'),
+          screenshotAdded: reportT('screenshotAdded'),
           removeScreenshot: reportT('removeScreenshot'),
           send: reportT('send'),
           sending: reportT('sending'),

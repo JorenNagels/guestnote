@@ -9,7 +9,9 @@
     "question": "Question"
   },
   "message": "Que s’est-il passé ?",
-  "screenshot": "Ajouter une capture d’écran (facultatif)",
+  "screenshot": "Capture d’écran (facultatif)",
+  "chooseScreenshot": "Choisir une image",
+  "screenshotAdded": "Capture ajoutée",
   "removeScreenshot": "Retirer",
   "send": "Envoyer",
   "sending": "Envoi…",

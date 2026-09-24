@@ -9,7 +9,9 @@
     "question": "Vraag"
   },
   "message": "Wat gebeurde er?",
-  "screenshot": "Schermafbeelding toevoegen (optioneel)",
+  "screenshot": "Schermafbeelding (optioneel)",
+  "chooseScreenshot": "Kies een afbeelding",
+  "screenshotAdded": "Schermafbeelding toegevoegd",
   "removeScreenshot": "Verwijderen",
   "send": "Versturen",
   "sending": "Versturen…",

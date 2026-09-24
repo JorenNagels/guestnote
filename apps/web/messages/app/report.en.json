@@ -9,7 +9,9 @@
     "question": "Question"
   },
   "message": "What happened?",
-  "screenshot": "Add a screenshot (optional)",
+  "screenshot": "Screenshot (optional)",
+  "chooseScreenshot": "Choose an image",
+  "screenshotAdded": "Screenshot added",
   "removeScreenshot": "Remove",
   "send": "Send",
   "sending": "Sending…",

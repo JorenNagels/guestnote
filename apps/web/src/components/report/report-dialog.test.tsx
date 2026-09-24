@@ -25,6 +25,8 @@ const LABELS: ReportLabels = {
   categories: { bug: 'Fout', idea: 'Idee', question: 'Vraag' },
   message: 'Wat gebeurde er?',
   screenshot: 'Schermafbeelding',
+  chooseScreenshot: 'Kies een afbeelding',
+  screenshotAdded: 'Toegevoegd',
   removeScreenshot: 'Verwijderen',
   send: 'Versturen',
   sending: 'Versturen…',
@@ -101,7 +103,7 @@ describe('ReportDialog', () => {
     const good = new Blob([new Uint8Array([9])], { type: 'image/jpeg' })
     const pick = async (name: string) =>
       act(async () => {
-        fireEvent.change(screen.getByLabelText('Schermafbeelding'), {
+        fireEvent.change(screen.getByTestId('screenshot-input'), {
           target: { files: [new File([new Uint8Array(10)], name, { type: 'image/png' })] },
         })
       })
@@ -133,7 +135,7 @@ describe('ReportDialog', () => {
     render(<ReportDialog open onClose={() => {}} labels={LABELS} />)
     const heic = new File([new Uint8Array(10)], 'a.heic', { type: 'image/heic' })
     await act(async () => {
-      fireEvent.change(screen.getByLabelText('Schermafbeelding'), { target: { files: [heic] } })
+      fireEvent.change(screen.getByTestId('screenshot-input'), { target: { files: [heic] } })
     })
     expect(screen.getByRole('alert')).toHaveTextContent('E-TOOLARGE')
   })
@@ -146,7 +148,7 @@ describe('ReportDialog', () => {
     render(<ReportDialog open onClose={() => {}} labels={LABELS} />)
     const png = new File([new Uint8Array(10)], 'a.png', { type: 'image/png' })
     await act(async () => {
-      fireEvent.change(screen.getByLabelText('Schermafbeelding'), { target: { files: [png] } })
+      fireEvent.change(screen.getByTestId('screenshot-input'), { target: { files: [png] } })
     })
     fireEvent.click(screen.getByRole('button', { name: 'Verwijderen' }))
     fireEvent.change(screen.getByLabelText('Wat gebeurde er?'), { target: { value: 'x' } })
@@ -160,7 +162,7 @@ describe('ReportDialog', () => {
     render(<ReportDialog open onClose={() => {}} labels={LABELS} />)
     const original = new File([new Uint8Array(5000)], 'shot.png', { type: 'image/png' })
     await act(async () => {
-      fireEvent.change(screen.getByLabelText('Schermafbeelding'), { target: { files: [original] } })
+      fireEvent.change(screen.getByTestId('screenshot-input'), { target: { files: [original] } })
     })
     fireEvent.change(screen.getByLabelText('Wat gebeurde er?'), { target: { value: 'x' } })
     await send()
@@ -175,7 +177,7 @@ describe('ReportDialog', () => {
     render(<ReportDialog open onClose={() => {}} labels={LABELS} />)
     const huge = new File([new Uint8Array(10)], 'huge.png', { type: 'image/png' })
     await act(async () => {
-      fireEvent.change(screen.getByLabelText('Schermafbeelding'), { target: { files: [huge] } })
+      fireEvent.change(screen.getByTestId('screenshot-input'), { target: { files: [huge] } })
     })
     expect(screen.getByRole('alert')).toHaveTextContent('E-TOOLARGE')
 
