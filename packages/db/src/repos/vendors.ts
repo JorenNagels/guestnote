@@ -1,6 +1,7 @@
 import { and, asc, eq, gt, isNull, sql } from 'drizzle-orm'
 import type { Db } from '../client.ts'
 import { newId } from '../id.ts'
+import { budgetLines, payments } from '../schema/money.ts'
 import {
   vendorLinks,
   vendors,
@@ -71,6 +72,13 @@ export type WeddingVendorRow = {
    * this field could make say the wrong thing.
    */
   readonly activeLink: { readonly id: string; readonly expiresAt: Date } | null
+  /**
+   * Unpaid payments on budget lines that name this vendor: their sum in cents, and how many.
+   * Joined, never stored, for the reason `schema/money.ts` gives for every total -- so the
+   * vendor list and the payments ledger cannot disagree.
+   */
+  readonly outstandingCents: number
+  readonly openPayments: number
 }
 
 export type VendorWriteResult<T = null> = Result<T, 'forbidden' | 'notFound' | 'duplicate'>
@@ -202,19 +210,35 @@ export async function archiveVendor(
  * Archived vendors still appear on a wedding that linked them (the join does not filter
  * `vendors.deleted_at`) and are absent from the picker (`directory` does).
  */
-export async function getWeddingVendors(
-  scope: WeddingScope,
-): Promise<{ linked: WeddingVendorRow[]; directory: VendorRow[]; canCreate: boolean } | null> {
+export async function getWeddingVendors(scope: WeddingScope): Promise<{
+  linked: WeddingVendorRow[]
+  directory: VendorRow[]
+  canCreate: boolean
+  /** The wedding's `locale_default`, which decides how the amounts above are written. */
+  locale: string
+} | null> {
   const { db, weddingId } = scope
   const principal = scope.principal
   if (!principal) return null
 
   return withTenant(db, principal, async (tx) => {
-    const wedding = await tx
-      .select({ id: weddings.id })
+    const [wedding] = await tx
+      .select({ id: weddings.id, locale: weddings.localeDefault })
       .from(weddings)
       .where(and(eq(weddings.id, weddingId), isNull(weddings.deletedAt)))
-    if (wedding.length === 0) return null
+    if (!wedding) return null
+
+    // Correlated subqueries rather than a join plus `group by`: the left join to `vendor_links`
+    // below is already one-to-at-most-one, and grouping the whole row set to fold payments in
+    // would fan out over it. `budget_lines.wedding_id` is named because the foreign keys are
+    // plain (spec 0003): a line in another wedding pointing at this link must not count here.
+    // Deleted lines drop out, as they do from the ledger. RLS applies inside the subquery too.
+    const unpaid = sql`from ${payments}
+      inner join ${budgetLines} on ${budgetLines.id} = ${payments.budgetLineId}
+      where ${budgetLines.weddingVendorId} = ${weddingVendors.id}
+        and ${budgetLines.weddingId} = ${weddingVendors.weddingId}
+        and ${budgetLines.deletedAt} is null
+        and ${payments.paidAt} is null`
 
     const linked = await tx
       .select({
@@ -228,6 +252,10 @@ export async function getWeddingVendors(
         notes: weddingVendors.notes,
         activeLinkId: vendorLinks.id,
         activeLinkExpiresAt: vendorLinks.expiresAt,
+        // `sum` of an int is a bigint, which the driver returns as a string.
+        outstandingCents:
+          sql<number>`(select coalesce(sum(${payments.amountCents}), 0) ${unpaid})`.mapWith(Number),
+        openPayments: sql<number>`(select count(*) ${unpaid})`.mapWith(Number),
       })
       .from(weddingVendors)
       .innerJoin(vendors, eq(vendors.id, weddingVendors.vendorId))
@@ -264,6 +292,7 @@ export async function getWeddingVendors(
       ),
       directory,
       canCreate: principal.kind === 'orgStaff',
+      locale: wedding.locale,
     }
   })
 }

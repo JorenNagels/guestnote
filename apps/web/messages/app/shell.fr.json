@@ -28,5 +28,8 @@
     "title": "Bientôt disponible",
     "body": "Cet écran est encore en construction."
   },
-  "loading": "Chargement…"
+  "loading": "Chargement…",
+  "footer": {
+    "poweredBy": "Propulsé par"
+  }
 }

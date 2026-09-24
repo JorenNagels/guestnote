@@ -30,7 +30,11 @@ per-wedding link (`wedding_vendors`).
   if either is not found. FKs are plain; RLS alone does not stop a link to another org's vendor.
 - A vendor is on a wedding once. A second Add says so; it does not create a duplicate row.
 - Empty text fields are stored as `null`. Name and category are required.
-- Payments per vendor (the prototype's last column) are S4's join. Not built here.
+- Payments per vendor (the prototype's last column) were left for S4's join, which never took them.
+  Built 2026-09-24: an **Openstaand** column on the wedding list, the sum and count of unpaid payments
+  on budget lines that name this vendor link (`getWeddingVendors`, correlated subqueries, lines of
+  another wedding and deleted lines excluded). A dash when nothing is open. Formatted in the wedding's
+  `locale_default`, as the budget and payments screens do.
 
 ## States
 

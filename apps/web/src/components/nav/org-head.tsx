@@ -20,7 +20,8 @@ export type OrgOption = { id: string; name: string; slug: string }
  * ## Guestnote's own mark is not here
  *
  * The org owns the top of the sidebar and the account owns the foot; the product's wordmark
- * appears on login and on marketing and nowhere inside the signed-in app. This is sold to
+ * appears on login, on marketing, and -- since 2026-09-24 -- once as a "powered by" line in
+ * the page footer, below the org's own name (`shell.tsx`). Never up here: this is sold to
  * planners who brand their own service, so putting our mark above theirs, in their
  * workspace, is the wrong hierarchy. The spec names the two rejected layouts.
  */

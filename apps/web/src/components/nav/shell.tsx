@@ -64,6 +64,8 @@ export type ShellLabels = {
   account: Parameters<typeof AccountMenu>[0]['labels']
   palette: PaletteLabels
   enroll: EnrollmentLabels
+  /** The words before the product name in the footer; the name itself is not translated. */
+  poweredBy: string
 }
 
 /**
@@ -119,6 +121,7 @@ export function Shell({
   weddings,
   user,
   offerPasskey,
+  productHref,
   initialNav,
   locale,
   theme,
@@ -137,6 +140,8 @@ export function Shell({
    * half -- see `enrollment-prompt.tsx`, which owns the other two gates.
    */
   offerPasskey: boolean
+  /** The apex origin, for the footer's product link. Resolved on the server from `env.ts`. */
+  productHref: string
   initialNav: NavState
   locale: Locale
   theme: Theme
@@ -410,6 +415,31 @@ export function Shell({
             <EnrollmentPrompt labels={labels.enroll} />
           </Suspense>
         ) : null}
+
+        {/* The one place the product names itself inside the workspace, and it reverses part
+            of `docs/specs/0001`: that spec kept our mark out of the signed-in app entirely,
+            because planners brand their own service. Decided 2026-09-24 from the planner
+            prototype: a quiet "powered by" line UNDER the org's own name, at the foot of the
+            page, keeps the hierarchy the spec was protecting -- the org is still the first
+            and largest name on every screen -- while the sidebar stays ours-free, which
+            `shell.test.tsx` still asserts.
+
+            `target="_blank"`: the link leaves the dashboard for marketing, and a planner
+            half-way through a form should not lose it to a click on the fine print. */}
+        <footer className="border-border text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-2.5 border-t px-4 py-2 text-[0.6875rem] print:hidden">
+          <span className="min-w-0 truncate">{org.name}</span>
+          <a
+            href={productHref}
+            target="_blank"
+            rel="noopener"
+            className="hover:text-foreground focus-visible:outline-ring ml-auto inline-flex items-center gap-1.5 rounded-sm outline-none focus-visible:outline-2"
+          >
+            {/* The explicit space: JSX drops the newline, and the link's accessible name
+                would read "doorGuestnote" -- the gap class spaces it for the eye only. */}
+            {labels.poweredBy}{' '}
+            <span className="text-foreground font-semibold tracking-[-0.005em]">Guestnote</span>
+          </a>
+        </footer>
       </div>
 
       {drawer ? (

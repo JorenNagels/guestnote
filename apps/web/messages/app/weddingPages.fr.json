@@ -22,6 +22,11 @@
       "lateNone": "Rien en retard",
       "lateSome": "{count} en retard"
     },
+    "tasks": {
+      "title": "Prochaines tâches",
+      "open": "Ouvrir la checklist",
+      "empty": "Aucune tâche ouverte."
+    },
     "events": {
       "title": "Prochains moments",
       "empty": "Aucun moment prévu pour l'instant. Ajoutez-les dans les paramètres.",

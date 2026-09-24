@@ -55,6 +55,7 @@ export default async function WeddingVendorsPage({ params }: { params: Promise<{
         linked={data.linked}
         directory={data.directory}
         canCreate={data.canCreate}
+        locale={data.locale}
         labels={weddingLabels(t, t10)}
       />
     </div>

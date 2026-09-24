@@ -6,6 +6,7 @@ import {
   deletePayment,
   getBudget,
   getPayments,
+  getWeddingVendors,
   type Memberships,
   resolveMemberships,
   setPaymentPaidAt,
@@ -13,7 +14,7 @@ import {
   updatePayment,
   WeddingScope,
 } from '../src/repos/index.ts'
-import { AS, asPrincipal, connect, F, type Harness, reseed } from './harness.ts'
+import { AS, asPrincipal, connect, F, type Harness, reseed, seedExec } from './harness.ts'
 
 /**
  * Slice S4: the budget and payment repos, through the real policies.
@@ -247,5 +248,74 @@ describe('payments', () => {
     expect(await getPayments(WeddingScope.of(h.db, couple, F.orgA, A1))).toBeNull()
     expect(await getPayments(WeddingScope.of(h.db, member, F.orgA, A2))).toBeNull()
     expect((await createPayment(WeddingScope.of(h.db, member, F.orgA, A2), pay)).ok).toBe(false)
+  })
+})
+
+describe("getWeddingVendors' outstanding amounts", () => {
+  const scope = () => WeddingScope.of(h.db, owner, F.orgA, A1)
+  const outstanding = async () => {
+    const v = (await getWeddingVendors(scope()))?.linked.find((l) => l.id === F.wedVendorA1)
+    return [v?.outstandingCents, v?.openPayments]
+  }
+
+  it('is zero for a vendor no budget line names', async () => {
+    expect(await outstanding()).toEqual([0, 0])
+    // Not the column default: 'nl' would pass for a hard-coded locale too.
+    await seedExec("update weddings set locale_default = 'fr' where id = $1", [A1])
+    expect((await getWeddingVendors(scope()))?.locale).toBe('fr')
+  })
+
+  it("sums the vendor's unpaid payments and leaves the paid ones out", async () => {
+    await updateBudgetLine(scope(), F.budgetLineA1, {
+      category: 'Catering',
+      label: 'Dinner',
+      estimateCents: 1_176_000,
+      actualCents: null,
+      weddingVendorId: F.wedVendorA1,
+    })
+    await createPayment(scope(), {
+      budgetLineId: F.budgetLineA1,
+      dueOn: '2027-01-15',
+      amountCents: 100_000,
+      paidAt: null,
+    })
+    await createPayment(scope(), {
+      budgetLineId: F.budgetLineA1,
+      dueOn: '2027-01-01',
+      amountCents: 70_000,
+      paidAt: new Date(),
+    })
+    // The seeded 5 040,00 plus the new 1 000,00; the paid 700,00 is not outstanding.
+    expect(await outstanding()).toEqual([604_000, 2])
+  })
+
+  /**
+   * The foreign keys are plain, so a line in the SIBLING wedding can name this wedding's vendor
+   * link -- the repo's parent read refuses it, which is why the row is written straight through
+   * the owner's org-wide principal here. Its payment must not count on A1.
+   */
+  it("does not count a sibling wedding's line that points at this vendor", async () => {
+    const hit = await asPrincipal(
+      h,
+      AS.staffA,
+      'update budget_lines set wedding_vendor_id = $1 where id = $2 returning id',
+      [F.wedVendorA1, F.budgetLineA2],
+    )
+    // The write must have landed, or `[0, 0]` below is the empty-table pass.
+    expect(hit).toHaveLength(1)
+    expect(await outstanding()).toEqual([0, 0])
+  })
+
+  it('drops a deleted line, as the ledger does', async () => {
+    await updateBudgetLine(scope(), F.budgetLineA1, {
+      category: 'Catering',
+      label: 'Dinner',
+      estimateCents: 1_176_000,
+      actualCents: null,
+      weddingVendorId: F.wedVendorA1,
+    })
+    expect(await outstanding()).toEqual([504_000, 1])
+    await deleteBudgetLine(scope(), F.budgetLineA1)
+    expect(await outstanding()).toEqual([0, 0])
   })
 })

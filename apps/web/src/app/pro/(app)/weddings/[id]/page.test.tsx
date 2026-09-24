@@ -48,6 +48,7 @@ afterAll(() => {
 const getWeddingDetail = vi.fn()
 const getWeddingTaskCounts = vi.fn()
 const listWeddingEvents = vi.fn()
+const listTasks = vi.fn()
 const currentMemberships = vi.fn()
 const currentOrgId = vi.fn()
 const notFound = vi.fn(() => {
@@ -62,6 +63,7 @@ vi.mock('@guestnote/db', async (orig) => ({
   getWeddingDetail: (...a: unknown[]) => getWeddingDetail(...a),
   getWeddingTaskCounts: (...a: unknown[]) => getWeddingTaskCounts(...a),
   listWeddingEvents: (...a: unknown[]) => listWeddingEvents(...a),
+  listTasks: (...a: unknown[]) => listTasks(...a),
 }))
 vi.mock('../../../../../lib/db.ts', () => ({ getDb: () => ({}) }))
 vi.mock('../../../../../lib/principal.ts', () => ({
@@ -83,6 +85,14 @@ vi.mock('../../../../../components/wedding/wedding-header.tsx', async (orig) => 
 vi.mock('../../../../../components/wedding/wedding-tabs.tsx', () => ({
   WeddingTabs: ({ current }: { current: string }) => <nav data-current={current} />,
 }))
+// `TasksIntl` is async and the row is a client component reading `app.tasks`; both have their
+// own tests. Stubbed to the title, which is all this page decides: WHICH tasks, in what order.
+vi.mock('../../../../../components/tasks/provider.tsx', () => ({
+  TasksIntl: ({ children }: { children: React.ReactNode }) => children,
+}))
+vi.mock('../../../../../components/tasks/task-row.tsx', () => ({
+  TaskRowView: ({ task }: { task: { title: string } }) => <li>{task.title}</li>,
+}))
 vi.mock('next-intl/server', () => ({
   getLocale: async () => 'nl',
   getTranslations: async () => (key: string, values?: Record<string, unknown>) =>
@@ -98,6 +108,9 @@ vi.mock('next-intl/server', () => ({
       'events.empty': 'Nog geen momenten',
       'events.noTime': 'Tijdstip nog open',
       'notes.title': 'Interne notities',
+      'tasks.title': 'Volgende taken',
+      'tasks.open': 'Naar de checklist',
+      'tasks.empty': 'Geen openstaande taken.',
     })[key] ?? (values ? `${key} ${JSON.stringify(values)}` : key),
 }))
 
@@ -129,6 +142,7 @@ beforeEach(() => {
   getWeddingDetail.mockResolvedValue(WEDDING)
   getWeddingTaskCounts.mockResolvedValue(COUNTS)
   listWeddingEvents.mockResolvedValue([])
+  listTasks.mockResolvedValue([])
 })
 afterEach(() => vi.useRealTimers())
 
@@ -215,6 +229,36 @@ describe('a wedding the principal can see', () => {
     await renderPage()
     expect(screen.getByText('Interne notities')).toBeInTheDocument()
     expect(screen.getByText('Gluten-vrije taart')).toBeInTheDocument()
+  })
+})
+
+describe('the next tasks', () => {
+  // `listTasks` returns the checklist's order already; the page must keep it, not re-sort.
+  it('says there are none, and still links to the checklist', async () => {
+    await renderPage()
+    expect(screen.getByText('Geen openstaande taken.')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Naar de checklist' })).toHaveAttribute(
+      'href',
+      `/weddings/${WID}/tasks`,
+    )
+  })
+
+  it('shows the first five open ones in the order the checklist uses, and no done ones', async () => {
+    // Not alphabetical, by title or id: a re-sort in the page would reorder these and fail.
+    const named = (id: string, title: string, status = 'open') => ({ id, title, status })
+    listTasks.mockResolvedValue([
+      named('t9', 'Zaal', 'done'),
+      named('t5', 'Muziek'),
+      named('t1', 'Bloemen', 'in_progress'),
+      named('t8', 'Taart'),
+      named('t2', 'Catering'),
+      named('t7', 'Auto'),
+      named('t3', 'Fotograaf'),
+    ])
+    await renderPage()
+    const list = screen.getByRole('heading', { name: 'Volgende taken' }).closest('section')
+    const titles = Array.from(list?.querySelectorAll('li') ?? []).map((li) => li.textContent)
+    expect(titles).toEqual(['Muziek', 'Bloemen', 'Taart', 'Catering', 'Auto'])
   })
 })
 

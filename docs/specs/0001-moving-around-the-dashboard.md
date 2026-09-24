@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-20 · **Status:** Built 2026-08-21
 **Shipped across four commits:** `75cd541` the database, `c61ad3c` the cookie and org seam,
-`5efc96a` a review fix, and the chrome. **Amended twice — read §Amendments before trusting
+`5efc96a` a review fix, and the chrome. **Amended five times — read §Amendments before trusting
 any section below it,** because several decisions here were reversed by the build and the
 reversals are the interesting part.
 **Phase:** M3, the authenticated shell — promised by name in `apps/web/src/app/pro/layout.tsx:25`
@@ -96,6 +96,14 @@ the literal first description of this feature, and given up because this is sold
 brand their own service. Putting our mark above Studio Vero's, inside Studio Vero's workspace,
 is the wrong hierarchy. Also rejected: org at the top with the account menu moved top-right,
 which keeps neither menu buried but pays for a header band above every page.
+
+> **Amended 2026-09-24.** "Nowhere" no longer holds. The planner prototype
+> (`design-system/planner-prototype`) put a footer under every page: the org's name, then a
+> quiet "Powered by Guestnote" linking to the apex, and the user chose to build it. The hierarchy
+> this section protects survives — the org is still the first and largest name on every screen,
+> and the sidebar still carries no Guestnote mark, which `shell.test.tsx` asserts — but the
+> product now names itself once, at the foot, after the org's name. The heading above is kept
+> as written so the reversal is visible.
 
 **The org mark is initials on a tinted square, derived from `organizations.name`.**
 `organizations.brand` is untyped nullable `jsonb` with no shape, no upload path and no reader
@@ -331,7 +339,8 @@ screen at `apps/web/src/components/auth/auth-flow.tsx:339` through its `onSelect
 
 ## Amendments
 
-Two rounds. The first was before any code; the second is what the build actually did, and it
+Five rounds (the count said "two" until 2026-09-24, three rounds after it stopped being true). The
+first was before any code; the second is what the build actually did, and it
 is recorded here rather than only in source comments because the spec is meant to be the
 contract, not the loser of an argument it never heard.
 
@@ -376,6 +385,12 @@ contract, not the loser of an argument it never heard.
 
 Nav labels for the new items live in `apps/web/messages/app/shell.{nl,en,fr}.json`, merged at
 `app.shell` by `i18n/catalogue.ts`.
+
+### 2026-09-24, the product footer
+
+| Spec said | Now | Why |
+|---|---|---|
+| Guestnote's wordmark appears "nowhere inside the signed-in app" | A footer on every dashboard page: the org's name, then "Mogelijk gemaakt door **Guestnote**" linking to the apex, in a new tab (`components/nav/shell.tsx`) | Drawn in the planner prototype and chosen by the user. The org is still the first and largest name on every screen and the sidebar carries no mark (`shell.test.tsx`); the product names itself once, after the org, at the foot. The inline note under "The organisation heads the sidebar" says the same where the old rule is stated. |
 
 Dead keys removed rather than left: `app.palette.close` (threaded through the layout and
 rendered nowhere) and `app.wedding.notFound` (authored for a message `notFound()` must never

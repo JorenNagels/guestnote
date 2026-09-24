@@ -28,5 +28,8 @@
     "title": "Coming soon",
     "body": "This screen is still being built."
   },
-  "loading": "Loading…"
+  "loading": "Loading…",
+  "footer": {
+    "poweredBy": "Powered by"
+  }
 }

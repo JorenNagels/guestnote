@@ -85,6 +85,7 @@ vi.mock('../auth/passkey.ts', () => ({
 const { Shell } = await import('./shell.tsx')
 
 const LABELS: ShellLabels = {
+  poweredBy: 'Mogelijk gemaakt door',
   nav: 'Hoofdnavigatie',
   weddings: 'Bruiloften',
   today: 'Vandaag',
@@ -157,6 +158,7 @@ function shellTree(over: Partial<Parameters<typeof Shell>[0]> = {}) {
       weddings={[]}
       user={{ name: 'Joren Nagels', email: 'joren@example.test' }}
       offerPasskey={false}
+      productHref="https://guestnote.example"
       initialNav="expanded"
       locale="nl"
       theme="light"
@@ -205,17 +207,34 @@ describe('the sidebar', () => {
   })
 
   /**
-   * Guestnote's own wordmark appears on login and on marketing and nowhere in the
-   * signed-in app -- this is sold to planners who brand their own service, so our mark
-   * above theirs in their workspace is the wrong hierarchy. Asserted because it is the kind
-   * of decision a later "add the logo to the sidebar" commit undoes without noticing.
+   * Guestnote's own wordmark stays out of the planner's navigation -- this is sold to
+   * planners who brand their own service, so our mark above theirs in their workspace is the
+   * wrong hierarchy. Since 2026-09-24 the product does name itself once, in the footer under
+   * the org's name (next test); this one was narrowed from the whole shell to the sidebar
+   * then, and still exists because "add the logo to the sidebar" is the commit it stops.
    */
-  it('does not put the product name in the planner.s workspace', () => {
+  it('does not put the product name in the sidebar', () => {
     renderShell()
+    const nav = screen.getByRole('navigation', { name: 'Hoofdnavigatie' })
     // Both forms: the "add the logo to the sidebar" commit this exists to stop would arrive
     // as an <svg role="img" aria-label> or an <img alt>, neither of which is a text node.
-    expect(screen.queryByText(/guestnote/i)).not.toBeInTheDocument()
-    expect(screen.queryByRole('img', { name: /guestnote/i })).toBeNull()
+    expect(within(nav).queryByText(/guestnote/i)).not.toBeInTheDocument()
+    expect(within(nav).queryByRole('img', { name: /guestnote/i })).toBeNull()
+  })
+
+  it('names the org and then, once and below it, the product, in the footer', () => {
+    renderShell()
+    const footer = screen.getByRole('contentinfo')
+    expect(within(footer).getByText('Studio A')).toBeInTheDocument()
+    const link = within(footer).getByRole('link', { name: 'Mogelijk gemaakt door Guestnote' })
+    expect(link).toHaveAttribute('href', 'https://guestnote.example')
+    // A new tab, so a click on the fine print does not throw away a half-filled form.
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(link).toHaveAttribute('rel', 'noopener')
+    // Once, as text, and never as a mark anywhere in the shell -- the phone header is outside the
+    // sidebar landmark, so the sidebar test alone would let a logo in there.
+    expect(screen.getAllByText(/guestnote/i)).toHaveLength(1)
+    expect(screen.queryAllByRole('img', { name: /guestnote/i })).toHaveLength(0)
   })
 
   it('falls back to the email when the user has no name yet', () => {

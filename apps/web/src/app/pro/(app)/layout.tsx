@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { getLocale, getTranslations } from 'next-intl/server'
 import type { ReactNode } from 'react'
 import { Shell, type ShellWedding } from '../../../components/nav/shell.tsx'
+import { apexOrigin } from '../../../lib/app-url.ts'
 import { getAuth } from '../../../lib/auth.ts'
 import { getDb } from '../../../lib/db.ts'
 import { DEFAULT_LOCALE, isLocale } from '../../../lib/locales.ts'
@@ -105,6 +106,7 @@ export default async function AppShellLayout({ children }: { children: ReactNode
       weddings={weddings.map(toShellWedding)}
       user={{ name: session.name, email: session.email }}
       offerPasskey={getAuth().passkeysAvailable() && !hasPasskey}
+      productHref={apexOrigin()}
       initialNav={parseNavState(store.get(NAV_COOKIE)?.value)}
       // Narrowed through `isLocale`, not cast. `getLocale()` is typed `string`, and
       // next-intl can only ever return a configured locale -- but `as Locale` was a bare
@@ -176,6 +178,7 @@ export default async function AppShellLayout({ children }: { children: ReactNode
           loading: t('palette.loading'),
           dateUnknown: t('weddings.dateUnknown'),
         },
+        poweredBy: shellT('footer.poweredBy'),
       }}
     >
       {children}

@@ -11,6 +11,7 @@ import {
   createVendorOnWedding,
   setWeddingVendorStatus,
 } from '../../app/pro/(app)/weddings/[id]/vendors/actions.ts'
+import { formatCents } from '../../lib/money.ts'
 import { VENDOR_STATUSES, type VendorActionResult } from '../../lib/vendor-input.ts'
 import { type ErrorLabels, errorText, Monogram, SELECT_CLASS, SmallButton } from './controls.tsx'
 import { STATUS_TONE, type StatusLabels, type VendorStatus } from './status.tsx'
@@ -33,6 +34,11 @@ export type WeddingLabels = {
   colCategory: string
   colContact: string
   colStatus: string
+  /** The unpaid payments on this vendor's budget lines -- the prototype's last column. */
+  colOutstanding: string
+  openOne: string
+  /** Template with `{count}`, filled here for the same reason as `statusAria`. */
+  openOther: string
   colActions: string
   /** Templates with `{name}`, filled here: a function cannot cross the server boundary. */
   statusAria: string
@@ -73,12 +79,15 @@ export function WeddingVendorsView({
   linked,
   directory,
   canCreate,
+  locale,
   labels,
 }: {
   weddingId: string
   linked: WeddingVendorRow[]
   directory: VendorRow[]
   canCreate: boolean
+  /** The wedding's own locale: amounts are written the way the budget and payments write them. */
+  locale: string
   labels: WeddingLabels
 }) {
   const [editing, setEditing] = useState<WeddingVendorRow | null>(null)
@@ -112,6 +121,7 @@ export function WeddingVendorsView({
               <TableHeaderCell>{labels.colCategory}</TableHeaderCell>
               <TableHeaderCell>{labels.colContact}</TableHeaderCell>
               <TableHeaderCell>{labels.colStatus}</TableHeaderCell>
+              <TableHeaderCell className="text-right">{labels.colOutstanding}</TableHeaderCell>
               <TableHeaderCell className="text-right">{labels.colActions}</TableHeaderCell>
             </tr>
           </TableHead>
@@ -121,6 +131,7 @@ export function WeddingVendorsView({
                 key={v.id}
                 weddingId={weddingId}
                 vendor={v}
+                locale={locale}
                 labels={labels}
                 onEdit={() => setEditing(v)}
               />
@@ -221,11 +232,13 @@ function AddRow({
 function Row({
   weddingId,
   vendor,
+  locale,
   labels,
   onEdit,
 }: {
   weddingId: string
   vendor: WeddingVendorRow
+  locale: string
   labels: WeddingLabels
   onEdit: () => void
 }) {
@@ -294,6 +307,24 @@ function Row({
           </select>
         </Pill>
         {message && <InlineError>{message}</InlineError>}
+      </TableCell>
+      <TableCell className="text-right">
+        {/* A dash and not "€ 0,00" for a vendor with nothing open: most rows on a real wedding
+            are that, and a column of zeros hides the two that are not. */}
+        {vendor.openPayments === 0 ? (
+          <span className="text-muted-foreground">–</span>
+        ) : (
+          <>
+            <span className="block font-mono text-sm whitespace-nowrap tabular-nums">
+              {formatCents(vendor.outstandingCents, locale)}
+            </span>
+            <span className="text-muted-foreground block text-xs whitespace-nowrap">
+              {vendor.openPayments === 1
+                ? labels.openOne
+                : labels.openOther.replace('{count}', String(vendor.openPayments))}
+            </span>
+          </>
+        )}
       </TableCell>
       <TableCell className="text-right">
         <SmallButton aria-label={labels.editAria.replace('{name}', vendor.name)} onClick={onEdit}>

@@ -1,6 +1,7 @@
 import {
   getWeddingDetail,
   getWeddingTaskCounts,
+  listTasks,
   listWeddingEvents,
   WeddingScope,
 } from '@guestnote/db'
@@ -8,13 +9,15 @@ import { Card } from '@guestnote/ui/card'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getLocale, getTranslations } from 'next-intl/server'
+import { TasksIntl } from '../../../../../components/tasks/provider.tsx'
+import { TaskRowView } from '../../../../../components/tasks/task-row.tsx'
 import { WeddingHeader } from '../../../../../components/wedding/wedding-header.tsx'
 import { WeddingTabs } from '../../../../../components/wedding/wedding-tabs.tsx'
 import { formatCivilDate } from '../../../../../lib/civil-date.ts'
 import { getDb } from '../../../../../lib/db.ts'
 import { currentMemberships, currentOrgId } from '../../../../../lib/principal.ts'
 import { app } from '../../../../../lib/routes.ts'
-import { daysUntil } from '../../../../../lib/tminus.ts'
+import { daysUntil, todayCivil } from '../../../../../lib/tminus.ts'
 import { isUuid } from '../../../../../lib/uuid.ts'
 
 /**
@@ -35,6 +38,11 @@ import { isUuid } from '../../../../../lib/uuid.ts'
  * does not list them, so it does not reach into a table another slice is about to define reads for.
  */
 const NEXT_EVENTS = 5
+/**
+ * The prototype's "next five tasks". Five and not the checklist's first bucket: the overview is
+ * where a planner lands, and a list that can run to forty rows pushes the events off the screen.
+ */
+const NEXT_TASKS = 5
 
 export default async function WeddingPage({ params }: { params: Promise<{ id: string }> }) {
   const [{ id }, memberships, orgId, t, locale] = await Promise.all([
@@ -53,10 +61,18 @@ export default async function WeddingPage({ params }: { params: Promise<{ id: st
   const wedding = await getWeddingDetail(scope)
   if (!wedding) notFound()
 
-  const [counts, events] = await Promise.all([
+  // The whole list and not a `limit 5` query: `listTasks` already exists, is ordered by the one
+  // `compareTasks` the checklist uses, and derives `dueDate` from the offset -- a SQL limit would
+  // have to re-derive that order in SQL and could disagree with the checklist about which five
+  // come first. Cost: every live task row of one wedding on each overview render, which for a
+  // real wedding is tens to low hundreds.
+  const [counts, events, tasks] = await Promise.all([
     getWeddingTaskCounts(scope),
     listWeddingEvents(scope),
+    listTasks(scope),
   ])
+  const nextTasks = tasks.filter((task) => task.status !== 'done').slice(0, NEXT_TASKS)
+  const today = todayCivil()
 
   const days = daysUntil(wedding.weddingDate)
   const upcoming = events.filter((e) => (daysUntil(e.startsOn) ?? -1) >= 0)
@@ -102,6 +118,38 @@ export default async function WeddingPage({ params }: { params: Promise<{ id: st
               sub={wedding.headcount === null ? t('stats.guestsUnknown') : t('stats.guestsKnown')}
             />
           </dl>
+
+          <section aria-labelledby="tasks-h" className="mb-6">
+            <div className="mb-2 flex items-baseline justify-between gap-3">
+              <h2 id="tasks-h" className="text-[15px] font-semibold tracking-tight">
+                {t('tasks.title')}
+              </h2>
+              <Link
+                href={app.weddingTasks(id)}
+                className="text-primary text-xs underline underline-offset-[3px]"
+              >
+                {t('tasks.open')}
+              </Link>
+            </div>
+            {nextTasks.length === 0 ? (
+              <Card>
+                <p className="text-muted-foreground text-sm">{t('tasks.empty')}</p>
+              </Card>
+            ) : (
+              // The checklist's own row, tick box included: ticking one here is the same write
+              // through the same action, and its `refresh()` re-renders this page, so the
+              // finished task leaves and the sixth moves up.
+              <Card as="div" padding="none">
+                <TasksIntl>
+                  <ul className="m-0 list-none p-0">
+                    {nextTasks.map((task) => (
+                      <TaskRowView key={task.id} task={task} today={today} />
+                    ))}
+                  </ul>
+                </TasksIntl>
+              </Card>
+            )}
+          </section>
 
           <section aria-labelledby="events-h">
             <div className="mb-2 flex items-baseline justify-between gap-3">

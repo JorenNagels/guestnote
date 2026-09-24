@@ -22,6 +22,11 @@
       "lateNone": "Niets te laat",
       "lateSome": "{count} te laat"
     },
+    "tasks": {
+      "title": "Volgende taken",
+      "open": "Naar de checklist",
+      "empty": "Geen openstaande taken."
+    },
     "events": {
       "title": "Volgende momenten",
       "empty": "Nog geen momenten op de planning. Voeg ze toe bij de instellingen.",

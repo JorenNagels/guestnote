@@ -28,5 +28,8 @@
     "title": "Binnenkort",
     "body": "Dit scherm is nog in aanbouw."
   },
-  "loading": "Laden…"
+  "loading": "Laden…",
+  "footer": {
+    "poweredBy": "Mogelijk gemaakt door"
+  }
 }

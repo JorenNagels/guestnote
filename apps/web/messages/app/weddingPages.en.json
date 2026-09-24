@@ -22,6 +22,11 @@
       "lateNone": "Nothing late",
       "lateSome": "{count} late"
     },
+    "tasks": {
+      "title": "Next tasks",
+      "open": "Open the checklist",
+      "empty": "No open tasks."
+    },
     "events": {
       "title": "Next events",
       "empty": "No events planned yet. Add them in settings.",

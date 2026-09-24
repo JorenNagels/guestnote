@@ -33,7 +33,8 @@ wedding 448-545 of `design-system/planner-prototype/Guestnote Planner.dc.html`.
   total with a bar, guests), the next events (from today on, five at most), and the internal notes
   when there are any. Task counts read `tasks` where `deleted_at is null`; *late* is an open task
   with `due_at` in the past (a template task with only an offset has no instant yet, so it is not
-  counted). The "next five tasks" list of the prototype is **not** built: S2 owns the tasks repo.
+  counted). The "next five tasks" list of the prototype was left for S2, which owns the tasks repo;
+  it is built since 2026-09-24 (see "Built, and where it differs").
 - **New wedding** `/weddings/new`: couple, main day, venue, guests, colour, stage (default Concept).
   Owner/admin only; anyone else sees a plain sentence. On success: redirect to the overview. The
   slug is made from the couple name (`marie-en-thomas`), reserved words and names under three
@@ -92,6 +93,10 @@ NL first, in `apps/web/messages/app/weddingPages.{nl,en,fr}.json` under `app.wed
 - "Geen kleur" is a link that appears only once a colour is set; a saved wedding can go back to none.
 - Event rows: one form each, so saving one never touches another. The blank row remounts after an
   add; typing into it before the add has finished is lost.
+- **Next tasks** (added 2026-09-24): the first five open tasks in the checklist's own order
+  (`listTasks`, `compareTasks`), drawn with the checklist's `TaskRowView`, so ticking one is the
+  same write and the page refresh pulls the sixth up. Sits above the events. Empty: "Geen
+  openstaande taken." with the checklist link still there.
 - Not built: the prototype's Sections cards (the strip replaces them), People, Sharing, After the day.
 
 ## Done
