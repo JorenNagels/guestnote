@@ -21,16 +21,21 @@ lines 692 to 941. Routes: `/weddings/<id>/tasks` and `/weddings/<id>/tasks/<task
 - **Form fields:** title (required, 200), notes (optional, 4000), owner (Planner or Couple),
   visibility (Shared with couple or Internal only), due (see below).
 - **Due date has two modes**, and only these two:
-  - *Counts from the wedding day*: the planner types a number of days and picks before or after. We
-    store `due_offset_days` (negative is before). The date is derived from `weddings.wedding_date`
-    in UTC. The form previews the resolved date. With no wedding date the mode still saves, and the
+  - *Counts from a day* (was "Counts from the wedding day" until spec 0004): the planner types a
+    number of days and picks before or after. We store `due_offset_days` (negative is before). The
+    date is derived from `weddings.wedding_date`, or the anchor event's `starts_on` (spec 0004), in UTC. The form previews the resolved date. With no wedding date the mode still saves, and the
     row says "Geen huwelijksdatum" until one is set.
   - *A fixed date*: stored as `due_at` at 12:00 UTC, `due_offset_days` null. It stays put if the
     wedding moves.
   - We also write `due_at` for offset tasks (12:00 UTC of the resolved day, the seed's convention)
-    so the `(org_id, due_at)` index serves S8. **Reads never trust it**: `dueDate` on a `TaskRow`
-    comes from the offset when there is one. If S1 changes `wedding_date`, offset tasks stay right
-    on screen and their stored `due_at` is stale until next edit. Open issue, reported to the caller.
+    so the `(org_id, due_at)` index serves S8. **Reads prefer the offset**: `dueDate` on a `TaskRow`
+    comes from the offset when there is one. (This said "reads never trust it" until 2026-09-24:
+    since spec 0004 an anchored task whose event the reader cannot see falls back to `due_at`.) ~~If S1 changes `wedding_date`, offset tasks stay right
+    on screen and their stored `due_at` is stale until next edit.~~ Closed 2026-09-24 by spec 0004:
+    every write that moves a date rewrites `due_at` in the same transaction (`refreshTaskDueAt`).
+  - **Since 2026-09-24 (spec 0004)** an offset can count from an event instead of the wedding day:
+    a "Telt vanaf" select beside the days field, `tasks.anchor_event_id`. The detail's rule names
+    it ("14 dagen voor Burgerlijk"); the list, Today and the overview show only the date.
 - **Side by side:** the detail page's Due row shows the resolved date and, next to it, the rule
   ("14 dagen voor de trouwdag"). The list shows the date and a relative label ("3 dagen te laat").
 - **Internal / shared** toggle changes `visibility`. The database trigger moves the comments with it.
@@ -88,5 +93,5 @@ lines 692 to 941. Routes: `/weddings/<id>/tasks` and `/weddings/<id>/tasks/<task
 - A `weddingMember` (couple, outside editor) is refused by every repo function here on purpose;
   the couple's own reader belongs to the couple-portal spec.
 - Two-line rows are taller than compact `--row-h` (32px), so compact density only trims padding.
-- Open issue (also above): `due_at` on an offset task goes stale if S1 changes `wedding_date`;
-  reads ignore it, S8's `(org_id, due_at)` index does not.
+- ~~Open issue: `due_at` on an offset task goes stale if S1 changes `wedding_date`.~~ Closed
+  2026-09-24 by spec 0004 (see above).

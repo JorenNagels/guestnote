@@ -43,7 +43,10 @@
     "before": "{days, plural, one {# day before the wedding} other {# days before the wedding}}",
     "after": "{days, plural, one {# day after the wedding} other {# days after the wedding}}",
     "onDay": "On the wedding day",
-    "fixed": "Fixed date"
+    "fixed": "Fixed date",
+    "anchorBefore": "{days, plural, one {# day before {anchor}} other {# days before {anchor}}}",
+    "anchorAfter": "{days, plural, one {# day after {anchor}} other {# days after {anchor}}}",
+    "anchorOnDay": "On {anchor}"
   },
   "visibility": {
     "shared": "Shared with couple",
@@ -59,14 +62,17 @@
     "visibility": "Visibility",
     "dueHeading": "Due",
     "dueNone": "No date",
-    "dueOffset": "Counts from the wedding day",
+    "dueOffset": "Counts from a day",
     "dueDate": "A fixed date",
     "date": "Date",
     "offsetDays": "Number of days",
-    "before": "Before the wedding",
-    "after": "After the wedding",
+    "before": "Before",
+    "after": "After",
+    "anchor": "Counts from",
+    "anchorMain": "Wedding day",
+    "anchorNoEvents": "Add moments in settings to count from another day.",
     "fixedHint": "Stays put if the wedding moves.",
-    "offsetHint": "Moves with the wedding.",
+    "offsetHint": "Moves when that day moves.",
     "previewDate": "Falls on {date}",
     "previewNoWeddingDate": "No wedding date: the date appears once you set one.",
     "save": "Save task",
@@ -80,7 +86,8 @@
     "date": "Pick a valid date.",
     "comment": "Write a comment of at most 4000 characters.",
     "notFound": "This task no longer exists.",
-    "failed": "That did not work. Try again."
+    "failed": "That did not work. Try again.",
+    "anchorGone": "That moment no longer exists. Pick another day."
   },
   "detail": {
     "back": "Back to the checklist",

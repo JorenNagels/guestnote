@@ -8,8 +8,9 @@ import { cx } from './cx.ts'
  * that holds raw hex, because a wedding's colour is data the planner chose, not a token.
  *
  * They are the six dot colours from the prototype (teal, gold, clay, sky, moss, plum). A
- * colour is only ever a dot or a stripe -- never text, never a ground behind text
- * (spec 0003) -- so there is no contrast rule an arbitrary custom pick could fail. Not
+ * colour is a dot or a stripe -- never text, and a ground behind text only as the run sheet's 12%
+ * mix into the card (spec 0004), whose ceiling keeps AA for any hex -- so there is no contrast
+ * rule an arbitrary custom pick could fail. Not
  * checked against the dark ground; a dark-theme dot may want a lighter step later.
  */
 export const COLOR_PRESETS = [

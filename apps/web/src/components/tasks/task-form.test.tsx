@@ -15,7 +15,12 @@ const { TaskForm } = await import('./task-form.tsx')
 const onDone = vi.fn()
 const onCancel = vi.fn()
 const form = (
-  props: { weddingDate?: string | null; initial?: TaskFormValues; taskId?: string } = {},
+  props: {
+    weddingDate?: string | null
+    initial?: TaskFormValues
+    taskId?: string
+    events?: { id: string; label: string; startsOn: string }[]
+  } = {},
 ) =>
   render(
     <WithMessages>
@@ -24,6 +29,7 @@ const form = (
         taskId={props.taskId}
         weddingDate={props.weddingDate === undefined ? '2027-06-12' : props.weddingDate}
         initial={props.initial ?? EMPTY_FORM}
+        events={props.events ?? []}
         onDone={onDone}
         onCancel={onCancel}
       />
@@ -69,17 +75,17 @@ describe('TaskForm', () => {
 
   it('previews the resolved date next to an offset', () => {
     form()
-    fireEvent.click(screen.getByRole('radio', { name: 'Telt af van de trouwdag' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Telt af van een dag' }))
     type('Aantal dagen', '14')
     // 2027-06-12 minus 14 days.
     expect(screen.getByText('Valt op 29 mei 2027')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('radio', { name: 'Na de trouwdag' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Erna' }))
     expect(screen.getByText(/Valt op 26 jun/)).toBeInTheDocument()
   })
 
   it('says there is no date to resolve when the wedding has none', () => {
     form({ weddingDate: null })
-    fireEvent.click(screen.getByRole('radio', { name: 'Telt af van de trouwdag' }))
+    fireEvent.click(screen.getByRole('radio', { name: 'Telt af van een dag' }))
     type('Aantal dagen', '14')
     expect(screen.getByText(/Geen huwelijksdatum: de datum verschijnt/)).toBeInTheDocument()
   })
@@ -107,5 +113,41 @@ describe('TaskForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Annuleren' }))
     expect(onCancel).toHaveBeenCalled()
     expect(createTaskAction).not.toHaveBeenCalled()
+  })
+
+  describe('counting from another day (spec 0004)', () => {
+    const civil = { id: 'e1', label: 'Burgerlijk', startsOn: '2027-06-01' }
+    const offset = { ...EMPTY_FORM, title: 'Papers', dueKind: 'offset', offsetDays: '14' } as const
+
+    it('offers the main day and each event, and previews the date from the chosen one', () => {
+      form({ initial: offset, events: [civil] })
+      const select = screen.getByLabelText('Telt vanaf') as HTMLSelectElement
+      expect(Array.from(select.options).map((o) => o.value)).toEqual(['', 'e1'])
+      // 14 days before 12 June is 29 May; before 1 June it is 18 May.
+      expect(screen.getByText(/29 mei 2027/)).toBeTruthy()
+      fireEvent.change(select, { target: { value: 'e1' } })
+      expect(screen.getByText(/18 mei 2027/)).toBeTruthy()
+    })
+
+    it('sends the chosen event with the rest of the form', async () => {
+      form({ initial: offset, events: [civil] })
+      fireEvent.change(screen.getByLabelText('Telt vanaf'), { target: { value: 'e1' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Taak bewaren' }))
+      await waitFor(() => expect(onDone).toHaveBeenCalled())
+      expect(createTaskAction).toHaveBeenCalledWith('w1', { ...offset, anchorEventId: 'e1' })
+    })
+
+    it('says where to add days when the wedding has no events', () => {
+      form({ initial: offset })
+      expect(screen.getByText(/Voeg momenten toe in de instellingen/)).toBeTruthy()
+    })
+
+    it('shows the removed-event error from the action and keeps the form', async () => {
+      createTaskAction.mockResolvedValue({ ok: false, error: 'anchorGone' })
+      form({ initial: offset, events: [civil] })
+      fireEvent.click(screen.getByRole('button', { name: 'Taak bewaren' }))
+      expect(await screen.findByText(/Dat moment bestaat niet meer/)).toBeTruthy()
+      expect(onDone).not.toHaveBeenCalled()
+    })
   })
 })

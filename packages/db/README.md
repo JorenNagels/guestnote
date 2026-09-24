@@ -163,6 +163,16 @@ must pick it up before this ships.
   `vendor-links-repo.test.ts` covers `resolve_vendor_link`'s status transitions and the repo's
   parent-read guard on create.
 
+### Migration 0009: task anchors and run-sheet owners
+
+Spec 0004. **598 passed on the local tier, 2026-09-24** (the Neon tier passed 593 the same day, before commit review added five cases); applied to Neon `dev` over the unpooled
+endpoint, **not yet to staging or production**. Two nullable columns, no policy change:
+`tasks.anchor_event_id` (with `tasks_anchor_needs_offset`) and `run_sheet_items.owner_user_id`.
+`refreshTaskDueAt` (`repos/task-due-refresh.ts`, not in the barrel) rewrites `due_at` in the same
+transaction as every date write, which closes the stale-`due_at` note in `task-dates.ts`. The
+Neon tier shares its database with the dev server, so running it wipes the dev seed: rerun
+`npm run db:seed -- <you>` afterwards.
+
 ## Applying a migration
 
 **Use the loop above, not `npm run db:migrate`.**

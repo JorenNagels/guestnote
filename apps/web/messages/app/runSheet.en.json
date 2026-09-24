@@ -49,6 +49,8 @@
     "vendor": "Who owns it",
     "vendorNone": "Planner, no vendor",
     "vendorEmpty": "No vendors on this wedding yet. Add them under Vendors.",
+    "owner": "Responsible",
+    "ownerNone": "Nobody",
     "vendorRemoved": "{name} (no longer on this wedding)",
     "order": "Order",
     "moveUp": "Up",
@@ -70,7 +72,8 @@
     "place": "That is too long for a place. Keep it under 120 characters.",
     "vendor": "Choose a vendor from the list.",
     "notFound": "This item or this wedding no longer exists. Refresh the page.",
-    "failed": "Saving did not work. Nothing was changed. Try again in a moment."
+    "failed": "Saving did not work. Nothing was changed. Try again in a moment.",
+    "owner": "Pick someone from the team working on this wedding."
   },
   "error": {
     "title": "The run sheet could not be loaded",

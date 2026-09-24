@@ -1,10 +1,17 @@
-import { getTask, getWedding, listTaskComments, WeddingScope } from '@guestnote/db'
+import {
+  getTask,
+  getWedding,
+  listTaskComments,
+  listWeddingEvents,
+  WeddingScope,
+} from '@guestnote/db'
 import { notFound } from 'next/navigation'
 import { Comments } from '../../../../../../../components/tasks/comments.tsx'
 import { TasksIntl } from '../../../../../../../components/tasks/provider.tsx'
 import { TaskDetail } from '../../../../../../../components/tasks/task-detail.tsx'
 import { getDb } from '../../../../../../../lib/db.ts'
 import { currentMemberships, currentOrgId } from '../../../../../../../lib/principal.ts'
+import { anchorOption } from '../../../../../../../lib/task-form.ts'
 import { todayCivil } from '../../../../../../../lib/tminus.ts'
 import { isUuid } from '../../../../../../../lib/uuid.ts'
 
@@ -32,12 +39,20 @@ export default async function TaskPage({
   if (!wedding) notFound()
   const task = await getTask(scope, taskId)
   if (!task) notFound()
-  const comments = await listTaskComments(scope, taskId)
+  const [comments, events] = await Promise.all([
+    listTaskComments(scope, taskId),
+    listWeddingEvents(scope),
+  ])
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-8">
       <TasksIntl>
-        <TaskDetail task={task} weddingDate={wedding.weddingDate} today={todayCivil()} />
+        <TaskDetail
+          task={task}
+          weddingDate={wedding.weddingDate}
+          events={events.map(anchorOption)}
+          today={todayCivil()}
+        />
         <Comments weddingId={id} taskId={taskId} visibility={task.visibility} comments={comments} />
       </TasksIntl>
     </div>

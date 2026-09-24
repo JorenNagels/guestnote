@@ -1,4 +1,5 @@
 import type { TaskAssigneeRole, TaskDue, TaskInput, TaskVisibility } from '@guestnote/db'
+import { isUuid } from './uuid.ts'
 
 /**
  * The task form's values, and the one parser that turns them into a repo input.
@@ -23,11 +24,23 @@ export type TaskFormValues = {
   /** A whole number as typed, always non-negative. The direction is `offsetDirection`. */
   offsetDays: string
   offsetDirection: 'before' | 'after'
+  /** The event the offset counts from, `''` for the main wedding day (spec 0004). */
+  anchorEventId: string
   /** `YYYY-MM-DD`, from an `<input type="date">`. */
   date: string
 }
 
-export type TaskFormError = 'title' | 'notes' | 'offset' | 'date'
+export type TaskFormError = 'title' | 'notes' | 'offset' | 'date' | 'anchorGone'
+
+/** One entry in the "Telt vanaf" select: a live event of this wedding. */
+export type TaskAnchorOption = { id: string; label: string; startsOn: string }
+
+/** An event as the select needs it: three fields, so the client payload carries no venue or time. */
+export const anchorOption = (e: TaskAnchorOption): TaskAnchorOption => ({
+  id: e.id,
+  label: e.label,
+  startsOn: e.startsOn,
+})
 
 export const EMPTY_FORM: TaskFormValues = {
   title: '',
@@ -37,6 +50,7 @@ export const EMPTY_FORM: TaskFormValues = {
   dueKind: 'none',
   offsetDays: '',
   offsetDirection: 'before',
+  anchorEventId: '',
   date: '',
 }
 
@@ -71,7 +85,13 @@ export function parseTaskForm(
       v.offsetDirection === 'after' ? 'after' : 'before',
     )
     if (days === null) return { ok: false, error: 'offset' }
-    due = { kind: 'offset', days }
+    // Only the shape is checked here; whether it is a live event of THIS wedding is the repo's
+    // parent read, which is the check that holds for a hand-built POST.
+    const anchor = typeof v.anchorEventId === 'string' ? v.anchorEventId.trim() : ''
+    // A malformed id would reach Postgres as a uuid cast error and come back a 500; it is no
+    // event this wedding has, which is what `anchorGone` already says.
+    if (anchor !== '' && !isUuid(anchor)) return { ok: false, error: 'anchorGone' }
+    due = { kind: 'offset', days, anchorEventId: anchor === '' ? null : anchor }
   } else if (v.dueKind === 'date') {
     if (typeof v.date !== 'string' || !isCivilDate(v.date)) return { ok: false, error: 'date' }
     due = { kind: 'date', date: v.date }
@@ -98,6 +118,7 @@ export function formFromTask(task: {
   visibility: TaskVisibility
   assigneeRole: TaskAssigneeRole | null
   dueOffsetDays: number | null
+  anchorEventId?: string | null
   dueDate: string | null
 }): TaskFormValues {
   const base: TaskFormValues = {
@@ -113,6 +134,7 @@ export function formFromTask(task: {
       dueKind: 'offset',
       offsetDays: String(Math.abs(task.dueOffsetDays)),
       offsetDirection: task.dueOffsetDays > 0 ? 'after' : 'before',
+      anchorEventId: task.anchorEventId ?? '',
     }
   }
   if (task.dueDate !== null) return { ...base, dueKind: 'date', date: task.dueDate }

@@ -39,6 +39,21 @@ describe('resolveTaskDueDate', () => {
     expect(resolveTaskDueDate({ dueOffsetDays: null, dueAt: null }, '2027-07-31')).toBeNull()
   })
 
+  it('counts an anchored offset from the anchor date', () => {
+    const task = { dueOffsetDays: -14, dueAt: stale, anchorEventId: 'e1' }
+    expect(resolveTaskDueDate(task, '2027-07-31', '2027-07-30')).toBe('2027-07-16')
+  })
+
+  /**
+   * The couple's case (spec 0004): they cannot read `wedding_events`, so the anchor's date never
+   * arrives. `due_at` is kept current on write; the main date would be the wrong day.
+   */
+  it('falls back to due_at, not the main date, when the anchor date is unreadable', () => {
+    const fresh = new Date('2027-07-16T12:00:00Z')
+    const task = { dueOffsetDays: -14, dueAt: fresh, anchorEventId: 'e1' }
+    expect(resolveTaskDueDate(task, '2027-07-31', null)).toBe('2027-07-16')
+  })
+
   it('treats an offset of zero as an offset, not as absent', () => {
     expect(resolveTaskDueDate({ dueOffsetDays: 0, dueAt: stale }, '2027-07-31')).toBe('2027-07-31')
   })
@@ -49,6 +64,7 @@ describe('taskDueColumns', () => {
     expect(taskDueColumns({ kind: 'offset', days: -30 }, '2027-07-31')).toEqual({
       dueOffsetDays: -30,
       dueAt: new Date('2027-07-01T12:00:00Z'),
+      anchorEventId: null,
     })
   })
 
@@ -56,6 +72,7 @@ describe('taskDueColumns', () => {
     expect(taskDueColumns({ kind: 'date', date: '2027-02-28' }, '2027-07-31')).toEqual({
       dueOffsetDays: null,
       dueAt: new Date('2027-02-28T12:00:00Z'),
+      anchorEventId: null,
     })
   })
 
@@ -63,7 +80,27 @@ describe('taskDueColumns', () => {
     expect(taskDueColumns({ kind: 'none' }, '2027-07-31')).toEqual({
       dueOffsetDays: null,
       dueAt: null,
+      anchorEventId: null,
     })
+  })
+
+  it('counts an anchored offset from the anchor date, not the wedding date', () => {
+    expect(
+      taskDueColumns(
+        { kind: 'offset', days: -14, anchorEventId: 'e1' },
+        '2027-07-31',
+        '2027-07-30',
+      ),
+    ).toEqual({
+      dueOffsetDays: -14,
+      dueAt: new Date('2027-07-16T12:00:00Z'),
+      anchorEventId: 'e1',
+    })
+  })
+
+  it('clears the anchor when the due becomes a fixed date or none', () => {
+    expect(taskDueColumns({ kind: 'date', date: '2027-02-28' }, null).anchorEventId).toBeNull()
+    expect(taskDueColumns({ kind: 'none' }, null).anchorEventId).toBeNull()
   })
 
   it('rejects a fractional or absurd offset before it reaches the database', () => {

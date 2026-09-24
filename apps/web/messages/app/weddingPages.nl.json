@@ -44,7 +44,7 @@
     "couple": "Koppel",
     "couplePlaceholder": "Marie & Thomas",
     "date": "Hoofddag",
-    "dateHint": "Elke taak telt vanaf deze dag. Leeg laten mag: een bruiloft zonder datum krijgt later een.",
+    "dateHint": "De checklist telt standaard vanaf deze dag. Leeg laten mag: een bruiloft zonder datum krijgt later een.",
     "venue": "Locatie",
     "venuePlaceholder": "Nog niet geboekt",
     "guests": "Gasten",
@@ -73,7 +73,7 @@
   },
   "events": {
     "title": "Momenten",
-    "hint": "De hoofddag hierboven is de dag waar de checklist van telt. Momenten zijn de extra dagen: de burgerlijke trouw van vorige week, de brunch de ochtend erna.",
+    "hint": "De hoofddag hierboven is de dag waar de checklist standaard van telt. Momenten zijn de extra dagen: de burgerlijke trouw van vorige week, de brunch de ochtend erna. Een taak kan ook vanaf een moment tellen.",
     "label": "Naam",
     "labelPlaceholder": "Receptie",
     "date": "Datum",
@@ -83,7 +83,9 @@
     "add": "Moment toevoegen",
     "remove": "Verwijderen",
     "saved": "Moment opgeslagen.",
-    "empty": "Nog geen momenten."
+    "empty": "Nog geen momenten.",
+    "anchoredOne": "1 taak telt vanaf dit moment en gaat bij verwijderen terug naar de hoofddag.",
+    "anchoredOther": "{count} taken tellen vanaf dit moment en gaan bij verwijderen terug naar de hoofddag."
   },
   "new": {
     "eyebrow": "Nieuwe bruiloft",

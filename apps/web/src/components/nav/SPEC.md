@@ -16,7 +16,7 @@ under "2026-09-21, by spec 0003".
 - The row of the wedding you are inside is `aria-current="true"` with a stripe in its colour and
   the eight sections beneath it: Overzicht (exact), Checklist, Budget, Betalingen, Leveranciers,
   Draaiboek, Bestanden, Moodboard (prefix). A wedding that is not in the list gets no sections.
-- Colour is a dot or a stripe, never text and never behind text (spec 0003).
+- Colour is a dot or a stripe, never text and never behind text (spec 0003) -- except the viewer's own run-sheet rows, 12% into `--card` (spec 0004, 2026-09-24).
 - Rail: initials chip per wedding, aria-label on every target. Phone: the same sidebar in the drawer.
 - The middle of the sidebar scrolls; collapse and account stay put.
 - Every route in `lib/routes.ts` has a `page.tsx`. Unbuilt screens render `ComingSoon`; the owning

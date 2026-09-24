@@ -63,8 +63,9 @@ export const weddings = pgTable(
     /**
      * `#RRGGBB`, upper-case, or null. The server upper-cases before writing; the CHECK is
      * what makes a lower-case or 3-digit value a write error instead of a stored surprise.
-     * A dot or a stripe, never text and never a background behind text, so no contrast rule
-     * applies to an arbitrary hex (spec 0003).
+     * A dot or a stripe, never text and never a background behind text (spec 0003) -- with one
+     * exception, the viewer's own run-sheet rows, where it is mixed 12% into `--card`, a ceiling
+     * chosen so text contrast holds for any hex (spec 0004, `run-sheet-view.tsx`).
      */
     color: text('color'),
     timezone: text('timezone').notNull().default('Europe/Brussels'),

@@ -43,7 +43,10 @@
     "before": "{days, plural, one {# jour avant le mariage} other {# jours avant le mariage}}",
     "after": "{days, plural, one {# jour après le mariage} other {# jours après le mariage}}",
     "onDay": "Le jour du mariage",
-    "fixed": "Date fixe"
+    "fixed": "Date fixe",
+    "anchorBefore": "{days, plural, one {# jour avant {anchor}} other {# jours avant {anchor}}}",
+    "anchorAfter": "{days, plural, one {# jour après {anchor}} other {# jours après {anchor}}}",
+    "anchorOnDay": "Le jour de {anchor}"
   },
   "visibility": {
     "shared": "Partagé avec le couple",
@@ -59,14 +62,17 @@
     "visibility": "Visibilité",
     "dueHeading": "Échéance",
     "dueNone": "Sans date",
-    "dueOffset": "Compte à partir du jour du mariage",
+    "dueOffset": "Compte à partir d'un jour",
     "dueDate": "Une date fixe",
     "date": "Date",
     "offsetDays": "Nombre de jours",
-    "before": "Avant le mariage",
-    "after": "Après le mariage",
+    "before": "Avant",
+    "after": "Après",
+    "anchor": "Compte à partir de",
+    "anchorMain": "Jour du mariage",
+    "anchorNoEvents": "Ajoutez des moments dans les réglages pour compter à partir d'un autre jour.",
     "fixedHint": "Reste en place si le mariage est déplacé.",
-    "offsetHint": "Suit le mariage s'il est déplacé.",
+    "offsetHint": "Suit ce jour s'il est déplacé.",
     "previewDate": "Tombe le {date}",
     "previewNoWeddingDate": "Pas de date de mariage : la date apparaîtra dès que vous en fixez une.",
     "save": "Enregistrer la tâche",
@@ -80,7 +86,8 @@
     "date": "Choisissez une date valide.",
     "comment": "Écrivez un commentaire de 4000 caractères au plus.",
     "notFound": "Cette tâche n'existe plus.",
-    "failed": "Cela n'a pas fonctionné. Réessayez."
+    "failed": "Cela n'a pas fonctionné. Réessayez.",
+    "anchorGone": "Ce moment n'existe plus. Choisissez un autre jour."
   },
   "detail": {
     "back": "Retour à la checklist",

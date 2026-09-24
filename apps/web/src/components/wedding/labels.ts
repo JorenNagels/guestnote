@@ -52,6 +52,9 @@ export type EventsLabels = {
   readonly saving: string
   readonly saved: string
   readonly empty: string
+  /** Beside Remove on an event tasks count from (spec 0004). `anchoredOther` carries `{count}`. */
+  readonly anchoredOne: string
+  readonly anchoredOther: string
   readonly errors: ErrorLabels
 }
 
@@ -112,7 +115,7 @@ export function weddingFormLabels(t: TRaw, status: T, submit: string): WeddingFo
   }
 }
 
-export function eventsLabels(t: T): EventsLabels {
+export function eventsLabels(t: TRaw): EventsLabels {
   return {
     title: t('events.title'),
     hint: t('events.hint'),
@@ -127,6 +130,9 @@ export function eventsLabels(t: T): EventsLabels {
     saving: t('form.saving'),
     saved: t('events.saved'),
     empty: t('events.empty'),
+    anchoredOne: t('events.anchoredOne'),
+    // `raw`: a formatted read throws for the `{count}` the row fills in.
+    anchoredOther: String(t.raw('events.anchoredOther')),
     errors: errorLabels(t),
   }
 }

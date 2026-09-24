@@ -44,7 +44,7 @@
     "couple": "Couple",
     "couplePlaceholder": "Marie & Thomas",
     "date": "Jour principal",
-    "dateHint": "Chaque tâche compte à partir de ce jour. Le laisser vide est permis : un mariage sans date en reçoit une plus tard.",
+    "dateHint": "Par défaut, la checklist compte à partir de ce jour. Le laisser vide est permis : un mariage sans date en reçoit une plus tard.",
     "venue": "Lieu",
     "venuePlaceholder": "Pas encore réservé",
     "guests": "Invités",
@@ -73,7 +73,7 @@
   },
   "events": {
     "title": "Moments",
-    "hint": "Le jour principal ci-dessus est celui à partir duquel la checklist compte. Les moments sont les jours en plus : le mariage civil de la semaine passée, le brunch du lendemain matin.",
+    "hint": "Le jour principal ci-dessus est celui à partir duquel la checklist compte par défaut. Les moments sont les jours en plus : le mariage civil de la semaine passée, le brunch du lendemain matin. Une tâche peut aussi compter à partir d'un moment.",
     "label": "Nom",
     "labelPlaceholder": "Réception",
     "date": "Date",
@@ -83,7 +83,9 @@
     "add": "Ajouter un moment",
     "remove": "Supprimer",
     "saved": "Moment enregistré.",
-    "empty": "Pas encore de moments."
+    "empty": "Pas encore de moments.",
+    "anchoredOne": "1 tâche compte à partir de ce moment et revient au jour principal si vous le supprimez.",
+    "anchoredOther": "{count} tâches comptent à partir de ce moment et reviennent au jour principal si vous le supprimez."
   },
   "new": {
     "eyebrow": "Nouveau mariage",

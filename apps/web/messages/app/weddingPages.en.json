@@ -44,7 +44,7 @@
     "couple": "Couple",
     "couplePlaceholder": "Marie & Thomas",
     "date": "Main day",
-    "dateHint": "Every task counts from this day. Leaving it empty is fine: a wedding with no date gets one later.",
+    "dateHint": "The checklist counts from this day by default. Leaving it empty is fine: a wedding with no date gets one later.",
     "venue": "Venue",
     "venuePlaceholder": "Not booked yet",
     "guests": "Guests",
@@ -73,7 +73,7 @@
   },
   "events": {
     "title": "Events",
-    "hint": "The main day above is the day the checklist counts from. Events are the extra days: the civil ceremony last week, the brunch the morning after.",
+    "hint": "The main day above is the day the checklist counts from by default. Events are the extra days: the civil ceremony last week, the brunch the morning after. A task can also count from an event.",
     "label": "Name",
     "labelPlaceholder": "Reception",
     "date": "Date",
@@ -83,7 +83,9 @@
     "add": "Add event",
     "remove": "Remove",
     "saved": "Event saved.",
-    "empty": "No events yet."
+    "empty": "No events yet.",
+    "anchoredOne": "1 task counts from this event and goes back to the main day if you remove it.",
+    "anchoredOther": "{count} tasks count from this event and go back to the main day if you remove it."
   },
   "new": {
     "eyebrow": "New wedding",

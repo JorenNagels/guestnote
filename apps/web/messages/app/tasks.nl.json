@@ -43,7 +43,10 @@
     "before": "{days, plural, one {# dag voor de trouwdag} other {# dagen voor de trouwdag}}",
     "after": "{days, plural, one {# dag na de trouwdag} other {# dagen na de trouwdag}}",
     "onDay": "Op de trouwdag",
-    "fixed": "Vaste datum"
+    "fixed": "Vaste datum",
+    "anchorBefore": "{days, plural, one {# dag voor {anchor}} other {# dagen voor {anchor}}}",
+    "anchorAfter": "{days, plural, one {# dag na {anchor}} other {# dagen na {anchor}}}",
+    "anchorOnDay": "Op {anchor}"
   },
   "visibility": {
     "shared": "Gedeeld met koppel",
@@ -59,14 +62,17 @@
     "visibility": "Zichtbaarheid",
     "dueHeading": "Deadline",
     "dueNone": "Geen datum",
-    "dueOffset": "Telt af van de trouwdag",
+    "dueOffset": "Telt af van een dag",
     "dueDate": "Vaste datum",
     "date": "Datum",
     "offsetDays": "Aantal dagen",
-    "before": "Voor de trouwdag",
-    "after": "Na de trouwdag",
+    "before": "Ervoor",
+    "after": "Erna",
+    "anchor": "Telt vanaf",
+    "anchorMain": "Trouwdag",
+    "anchorNoEvents": "Voeg momenten toe in de instellingen om vanaf een andere dag te tellen.",
     "fixedHint": "Blijft staan als de bruiloft verschuift.",
-    "offsetHint": "Schuift mee als de bruiloft verschuift.",
+    "offsetHint": "Schuift mee als die dag verschuift.",
     "previewDate": "Valt op {date}",
     "previewNoWeddingDate": "Geen huwelijksdatum: de datum verschijnt zodra je er een instelt.",
     "save": "Taak bewaren",
@@ -80,7 +86,8 @@
     "date": "Kies een geldige datum.",
     "comment": "Schrijf een reactie van hoogstens 4000 tekens.",
     "notFound": "Deze taak bestaat niet meer.",
-    "failed": "Dat is niet gelukt. Probeer het opnieuw."
+    "failed": "Dat is niet gelukt. Probeer het opnieuw.",
+    "anchorGone": "Dat moment bestaat niet meer. Kies een andere dag."
   },
   "detail": {
     "back": "Terug naar de checklist",

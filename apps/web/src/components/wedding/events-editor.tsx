@@ -26,10 +26,13 @@ type Action = (prev: FormState, formData: FormData) => Promise<FormState>
 export function EventsEditor({
   action,
   events,
+  anchored = {},
   labels,
 }: {
   action: Action
   events: readonly WeddingEvent[]
+  /** Live tasks counting from each event, by id (spec 0004). */
+  anchored?: Readonly<Record<string, number>>
   labels: EventsLabels
 }) {
   return (
@@ -41,9 +44,21 @@ export function EventsEditor({
           <p className="text-muted-foreground text-sm">{labels.empty}</p>
         ) : null}
         {events.map((e) => (
-          <EventRow key={e.id} action={action} event={e} labels={labels} />
+          <EventRow
+            key={e.id}
+            action={action}
+            event={e}
+            anchored={anchored[e.id] ?? 0}
+            labels={labels}
+          />
         ))}
-        <EventRow key={`new-${events.length}`} action={action} event={null} labels={labels} />
+        <EventRow
+          key={`new-${events.length}`}
+          action={action}
+          event={null}
+          anchored={0}
+          labels={labels}
+        />
       </div>
     </Card>
   )
@@ -52,10 +67,12 @@ export function EventsEditor({
 function EventRow({
   action,
   event,
+  anchored,
   labels,
 }: {
   action: Action
   event: WeddingEvent | null
+  anchored: number
   labels: EventsLabels
 }) {
   const [state, submit, pending] = useActionState(action, EMPTY_FORM_STATE)
@@ -146,6 +163,15 @@ function EventRow({
               {labels.remove}
             </Button>
           </div>
+        ) : null}
+        {/* Said before the click, not after: Remove has no confirm step, and what it does to
+            these tasks (they fall back to the main day) is not visible from this page. */}
+        {event && anchored > 0 ? (
+          <p className="text-muted-foreground text-xs">
+            {anchored === 1
+              ? labels.anchoredOne
+              : labels.anchoredOther.replace('{count}', String(anchored))}
+          </p>
         ) : null}
         {state.notice === 'saved' ? (
           <p role="status" className="text-muted-foreground text-sm">

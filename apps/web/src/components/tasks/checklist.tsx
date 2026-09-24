@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { app } from '../../lib/routes.ts'
-import { EMPTY_FORM } from '../../lib/task-form.ts'
+import { EMPTY_FORM, type TaskAnchorOption } from '../../lib/task-form.ts'
 import { FILTERS, type Filter, filterCounts, groupTasks } from './buckets.ts'
 import { TaskForm } from './task-form.tsx'
 import { TaskRowView } from './task-row.tsx'
@@ -21,12 +21,15 @@ import { TaskRowView } from './task-row.tsx'
 export function Checklist({
   weddingId,
   weddingDate,
+  events = [],
   tasks,
   filter,
   today,
 }: {
   weddingId: string
   weddingDate: string | null
+  /** What a new task may count from besides the main day (spec 0004). */
+  events?: readonly TaskAnchorOption[]
   tasks: TaskRow[]
   filter: Filter
   today: string
@@ -74,6 +77,7 @@ export function Checklist({
         <TaskForm
           weddingId={weddingId}
           weddingDate={weddingDate}
+          events={events}
           initial={EMPTY_FORM}
           onDone={() => setAdding(false)}
           onCancel={() => setAdding(false)}

@@ -1,6 +1,6 @@
 'use client'
 
-import type { RunSheetItem, RunSheetVendor, WeddingEvent } from '@guestnote/db'
+import type { RunSheetItem, RunSheetOwner, RunSheetVendor, WeddingEvent } from '@guestnote/db'
 import { Button } from '@guestnote/ui/button'
 import { Card } from '@guestnote/ui/card'
 import { cx } from '@guestnote/ui/cx'
@@ -19,10 +19,39 @@ import {
   nextStartClock,
   type ScheduleRow,
 } from '../../lib/run-sheet.ts'
+import { safeColor } from '../nav/wedding-row.tsx'
 import { ItemSheet } from './item-sheet.tsx'
 import { MoveButtons } from './move-buttons.tsx'
 
 type Translate = ReturnType<typeof useTranslations>
+
+/**
+ * The tint on a row the viewer owns (spec 0004), which amends spec 0003's "never a background
+ * behind text" for this one use. 12% is chosen as the largest mix that keeps `--muted-foreground`
+ * at AA for any hex the native input allows: the worst cases, pure black on the light card and
+ * pure white on the dark one, compute to 4.91:1 and 5.09:1 (7.05 and 7.03 on the plain card;
+ * computed from `design-system/tokens.css` by script in commit review, 2026-09-24, not measured in
+ * a browser). 15% drops the light case to 4.46:1 and fails. Do not raise it without re-running
+ * that check. No colour set: `--muted`, the neutral tint.
+ *
+ * A custom property and not `style.background`, so the `print:` reset in the class can win -- an
+ * inline background would beat any class, and a sheet printed for the venue is black and white.
+ */
+function ownTint(color: string | null): React.CSSProperties {
+  const hex = safeColor(color)
+  return {
+    '--row-tint': hex ? `color-mix(in oklab, ${hex} 12%, var(--card))` : 'var(--muted)',
+  } as React.CSSProperties
+}
+const TINTED = 'bg-[var(--row-tint)] print:bg-transparent'
+
+/**
+ * Who a row is for: the vendor who does it and the staff member who answers for it, both when
+ * there are both; "Planner" when neither is named, as before owners existed.
+ */
+function whoOf(item: RunSheetItem, planner: string): string {
+  return [item.vendorName, item.ownerName].filter((x) => x).join(' · ') || planner
+}
 
 /**
  * The run sheet screen: an event picker (tabs when there is more than one), the chosen event's
@@ -41,6 +70,9 @@ export function RunSheetView({
   selectedEventId,
   items,
   vendors,
+  owners = [],
+  viewerId = null,
+  color = null,
 }: {
   weddingId: string
   coupleName: string
@@ -49,6 +81,12 @@ export function RunSheetView({
   selectedEventId: string | null
   items: RunSheetItem[]
   vendors: RunSheetVendor[]
+  /** Who the viewer may name as a row's owner (spec 0004). */
+  owners?: RunSheetOwner[]
+  /** The signed-in user: their own rows are tinted. */
+  viewerId?: string | null
+  /** The wedding's `#RRGGBB`, the tint's hue. */
+  color?: string | null
 }) {
   const t = useTranslations('app.runSheet')
   const list = useTranslations('app.runSheet.list')
@@ -59,6 +97,8 @@ export function RunSheetView({
 
   const selectedEvent = events.find((e) => e.id === selectedEventId) ?? null
   const schedule = computeSchedule(items)
+  const tint = ownTint(color)
+  const mine = (item: RunSheetItem) => viewerId !== null && item.ownerUserId === viewerId
   const base = app.weddingRunSheet(weddingId)
 
   const move = (itemId: string, direction: 'up' | 'down') => {
@@ -194,7 +234,10 @@ export function RunSheetView({
                       {schedule.map((row, i) => (
                         <Fragment key={row.item.id}>
                           {i > 0 && <DesktopWarning row={row} list={list} />}
-                          <tr>
+                          <tr
+                            className={mine(row.item) ? TINTED : undefined}
+                            style={mine(row.item) ? tint : undefined}
+                          >
                             <TableCell className="font-mono text-[13px] font-semibold tabular-nums">
                               {row.item.startsAt}
                               <DayMark day={row.startDay} label={list('nextDay')} />
@@ -206,7 +249,7 @@ export function RunSheetView({
                               <span className="block truncate">{row.item.title}</span>
                             </TableCell>
                             <TableCell className="text-muted-foreground truncate text-[12.5px]">
-                              {row.item.vendorName ?? list('planner')}
+                              {whoOf(row.item, list('planner'))}
                             </TableCell>
                             <TableCell className="text-muted-foreground truncate text-[12.5px]">
                               {row.item.place ?? ''}
@@ -242,7 +285,11 @@ export function RunSheetView({
                     own buttons there (SPEC), so the row stays uncluttered. */}
                 <ul className="border-border bg-card divide-y overflow-hidden rounded-[var(--radius)] border md:hidden">
                   {schedule.map((row, i) => (
-                    <li key={row.item.id}>
+                    <li
+                      key={row.item.id}
+                      className={mine(row.item) ? TINTED : undefined}
+                      style={mine(row.item) ? tint : undefined}
+                    >
                       {i > 0 && <PhoneWarning row={row} list={list} />}
                       <button
                         type="button"
@@ -257,7 +304,7 @@ export function RunSheetView({
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-[15px]">{row.item.title}</span>
                           <span className="text-muted-foreground mt-0.5 block truncate text-[13px]">
-                            {row.item.vendorName ?? list('planner')}
+                            {whoOf(row.item, list('planner'))}
                             {row.item.place ? ` · ${row.item.place}` : ''}
                           </span>
                         </span>
@@ -278,6 +325,7 @@ export function RunSheetView({
           item={sheetItem === 'new' ? null : sheetItem}
           defaultStart={nextStartClock(items)}
           vendors={vendors}
+          owners={owners}
           canMoveUp={editingIndex > 0}
           canMoveDown={editingIndex !== -1 && editingIndex < items.length - 1}
           onClose={() => setSheetItem(null)}

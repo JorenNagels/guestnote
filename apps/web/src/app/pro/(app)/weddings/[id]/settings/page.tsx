@@ -1,4 +1,9 @@
-import { getWeddingDetail, listWeddingEvents, WeddingScope } from '@guestnote/db'
+import {
+  anchoredTaskCounts,
+  getWeddingDetail,
+  listWeddingEvents,
+  WeddingScope,
+} from '@guestnote/db'
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { EventsEditor } from '../../../../../../components/wedding/events-editor.tsx'
@@ -35,7 +40,10 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
   const scope = WeddingScope.of(getDb(), memberships, orgId, id)
   const wedding = await getWeddingDetail(scope)
   if (!wedding) notFound()
-  const events = await listWeddingEvents(scope)
+  const [events, anchored] = await Promise.all([
+    listWeddingEvents(scope),
+    anchoredTaskCounts(scope),
+  ])
 
   return (
     <div className="mx-auto max-w-5xl px-6 py-8">
@@ -61,6 +69,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
         <EventsEditor
           action={saveEventAction.bind(null, id)}
           events={events}
+          anchored={anchored}
           labels={eventsLabels(t)}
         />
       </div>

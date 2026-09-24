@@ -1,11 +1,14 @@
 import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { newId } from '../id.ts'
+import { users } from '../schema/auth.ts'
 import { runSheetItems, weddingEvents } from '../schema/events.ts'
+import { orgMembers } from '../schema/orgs.ts'
 import { vendors, weddingVendors } from '../schema/vendors.ts'
-import { weddings } from '../schema/weddings.ts'
-import { type TenantDb, withTenant } from '../tenant.ts'
+import { weddingMembers, weddings } from '../schema/weddings.ts'
+import { type MembershipPrincipal, type TenantDb, withTenant } from '../tenant.ts'
 import { fail, ok, type Result } from './result.ts'
 import type { WeddingScope } from './scope.ts'
+import { personName } from './tasks.ts'
 
 /**
  * Slice S9 of docs/specs/0003-planner-app-screens.md: the run sheet, one list of items per event.
@@ -43,7 +46,16 @@ export type RunSheetItem = {
   readonly weddingVendorId: string | null
   /** The vendor's directory name, even if the vendor was later removed from the wedding. */
   readonly vendorName: string | null
+  /** The staff member who answers for the row (spec 0004), and their name or address. */
+  readonly ownerUserId: string | null
+  readonly ownerName: string | null
   readonly position: number
+}
+
+/** One entry in the owner picker: a staff member who may own a row on this wedding. */
+export type RunSheetOwner = {
+  readonly id: string
+  readonly name: string
 }
 
 /** One entry in the vendor picker. `id` is the `wedding_vendors` id. */
@@ -61,9 +73,19 @@ export type RunSheetInput = {
   readonly title: string
   readonly place: string | null
   readonly weddingVendorId: string | null
+  /**
+   * A `users` id from `getRunSheet`'s `owners`, or null. Absent means none on create and
+   * unchanged on update, so a caller that knows nothing of owners never clears one.
+   */
+  readonly ownerUserId?: string | null
 }
 
-export type RunSheetFailure = 'notFound' | 'eventNotFound' | 'vendorNotFound' | 'itemNotFound'
+export type RunSheetFailure =
+  | 'notFound'
+  | 'eventNotFound'
+  | 'vendorNotFound'
+  | 'itemNotFound'
+  | 'ownerNotFound'
 
 export type RunSheetResult = Result<{ readonly id: string }, RunSheetFailure>
 
@@ -102,6 +124,7 @@ const COLUMNS = {
   title: runSheetItems.title,
   place: runSheetItems.place,
   weddingVendorId: runSheetItems.weddingVendorId,
+  ownerUserId: runSheetItems.ownerUserId,
   position: runSheetItems.position,
 }
 
@@ -120,7 +143,7 @@ const ORDER = [asc(runSheetItems.position), asc(runSheetItems.startsAt), asc(run
  */
 export async function getRunSheet(
   scope: WeddingScope,
-): Promise<{ items: RunSheetItem[]; vendors: RunSheetVendor[] } | null> {
+): Promise<{ items: RunSheetItem[]; vendors: RunSheetVendor[]; owners: RunSheetOwner[] } | null> {
   const { db, weddingId } = scope
   const principal = scope.principal
   if (!principal) return null
@@ -133,7 +156,7 @@ export async function getRunSheet(
     if (wedding.length === 0) return null
 
     const rows = await tx
-      .select({ ...COLUMNS, vendorName: vendors.name })
+      .select({ ...COLUMNS, vendorName: vendors.name, ownerName: personName })
       .from(runSheetItems)
       .innerJoin(
         weddingEvents,
@@ -141,6 +164,7 @@ export async function getRunSheet(
       )
       .leftJoin(weddingVendors, eq(weddingVendors.id, runSheetItems.weddingVendorId))
       .leftJoin(vendors, eq(vendors.id, weddingVendors.vendorId))
+      .leftJoin(users, eq(users.id, runSheetItems.ownerUserId))
       .where(eq(runSheetItems.weddingId, weddingId))
       .orderBy(...ORDER)
 
@@ -160,8 +184,68 @@ export async function getRunSheet(
     return {
       items: rows.map((r) => ({ ...r, startsAt: r.startsAt.slice(0, 5) })),
       vendors: options,
+      owners: await eligibleOwners(tx, principal, weddingId),
     }
   })
+}
+
+/**
+ * Who may own a row on this wedding, as far as THIS caller can know (spec 0004).
+ *
+ * Owner or admin: the org's owners and admins, plus every `member` with a `wedding_members` row on
+ * this wedding -- readable to them through 0007's `org_staff_read`, the join `listTeam` makes.
+ * A `member`: themselves only. Their transaction is pinned and RLS lets them read no one else's
+ * membership, so a list of colleagues is not something this principal can build, and the spec
+ * settled on "themselves or nobody" rather than a new policy or a definer function to get one.
+ * That is about the picker only: the sheet itself names every row's owner, `users` having no
+ * policy, the same exposure `tasks.assigneeName` already has within one wedding.
+ */
+async function eligibleOwners(
+  tx: TenantDb,
+  principal: MembershipPrincipal,
+  weddingId: string,
+): Promise<RunSheetOwner[]> {
+  if (principal.kind === 'weddingMember') return []
+  if (principal.kind === 'assignedStaff') {
+    const me = await tx
+      .select({ id: users.id, name: personName })
+      .from(users)
+      .where(eq(users.id, principal.userId))
+    return me.map((r) => ({ id: r.id, name: r.name ?? '' }))
+  }
+  const rows = await tx
+    .selectDistinct({ id: users.id, name: personName })
+    .from(orgMembers)
+    .innerJoin(users, eq(users.id, orgMembers.userId))
+    .leftJoin(
+      weddingMembers,
+      and(eq(weddingMembers.userId, orgMembers.userId), eq(weddingMembers.weddingId, weddingId)),
+    )
+    .where(
+      and(
+        eq(orgMembers.orgId, principal.orgId),
+        sql`(${orgMembers.role} in ('owner', 'admin') or ${weddingMembers.userId} is not null)`,
+      ),
+    )
+  return rows
+    .map((r) => ({ id: r.id, name: r.name ?? '' }))
+    .sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id))
+}
+
+/**
+ * Whether `ownerUserId` may be written on a row of this wedding. `null` always may: nobody owns it.
+ * The same set the picker showed, read again under the same transaction, because a Server
+ * Function's arguments are whatever the client sent.
+ */
+async function ownerAllowed(
+  tx: TenantDb,
+  principal: MembershipPrincipal,
+  weddingId: string,
+  ownerUserId: string | null,
+): Promise<boolean> {
+  if (ownerUserId === null) return true
+  const owners = await eligibleOwners(tx, principal, weddingId)
+  return owners.some((o) => o.id === ownerUserId)
 }
 
 async function liveWedding(tx: TenantDb, weddingId: string): Promise<boolean> {
@@ -268,6 +352,8 @@ export async function createRunSheetItem(
     if (input.weddingVendorId && !(await liveVendorLink(tx, weddingId, input.weddingVendorId))) {
       return fail('vendorNotFound')
     }
+    const ownerUserId = input.ownerUserId ?? null
+    if (!(await ownerAllowed(tx, principal, weddingId, ownerUserId))) return fail('ownerNotFound')
 
     const slots = await slotsOf(tx, weddingId, eventId)
     const index = clockInsertIndex(
@@ -287,6 +373,7 @@ export async function createRunSheetItem(
       title: input.title,
       place: input.place,
       weddingVendorId: input.weddingVendorId,
+      ownerUserId,
       position: index,
     })
     const order = slots.map((s) => s.id)
@@ -318,6 +405,7 @@ export async function updateRunSheetItem(
         eventId: runSheetItems.eventId,
         startsAt: runSheetItems.startsAt,
         weddingVendorId: runSheetItems.weddingVendorId,
+        ownerUserId: runSheetItems.ownerUserId,
       })
       .from(runSheetItems)
       .where(and(eq(runSheetItems.id, itemId), eq(runSheetItems.weddingId, weddingId)))
@@ -333,6 +421,15 @@ export async function updateRunSheetItem(
     ) {
       return fail('vendorNotFound')
     }
+    // Same rule for the owner: one who lost access since keeps the row, and a `member` editing a
+    // colleague's row -- a colleague they cannot see -- keeps the colleague (spec 0004).
+    const ownerUserId = input.ownerUserId === undefined ? existing.ownerUserId : input.ownerUserId
+    if (
+      ownerUserId !== existing.ownerUserId &&
+      !(await ownerAllowed(tx, principal, weddingId, ownerUserId))
+    ) {
+      return fail('ownerNotFound')
+    }
 
     // Read the order BEFORE the update: the rollover test is about where the item sits now, and
     // its new time would move the rollover it is being tested against.
@@ -347,6 +444,7 @@ export async function updateRunSheetItem(
         title: input.title,
         place: input.place,
         weddingVendorId: input.weddingVendorId,
+        ownerUserId,
         updatedAt: new Date(),
       })
       .where(and(eq(runSheetItems.id, itemId), eq(runSheetItems.weddingId, weddingId)))

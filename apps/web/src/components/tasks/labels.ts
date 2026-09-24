@@ -6,7 +6,7 @@ import { daysBetween, isOpen } from './buckets.ts'
  * without rendering; the components only turn a key into a string. Keys are relative to
  * `app.tasks`.
  */
-export type LabelKey = { key: string; values?: { days: number } }
+export type LabelKey = { key: string; values?: { days: number; anchor?: string } }
 
 /**
  * The relative line under a due date. `null` for a done task: "3 days overdue" on something that
@@ -30,10 +30,22 @@ export function dueLabel(
   return { key: 'due.inDays', values: { days } }
 }
 
-/** "14 days before the wedding". `null` when the task has no rule to state. */
-export function ruleLabel(task: Pick<TaskRow, 'dueOffsetDays' | 'dueAt'>): LabelKey | null {
+/**
+ * "14 days before the wedding", or "14 days before Civil" for an anchored task (spec 0004).
+ * `null` when the task has no rule to state. An anchor whose label did not come back reads as the
+ * main-day rule: the date beside it is still right (`resolveTaskDueDate`), only the name is missing.
+ */
+export function ruleLabel(
+  task: Pick<TaskRow, 'dueOffsetDays' | 'dueAt'> & { anchorLabel?: string | null },
+): LabelKey | null {
   if (task.dueOffsetDays === null) return task.dueAt === null ? null : { key: 'rule.fixed' }
-  if (task.dueOffsetDays === 0) return { key: 'rule.onDay' }
   const days = Math.abs(task.dueOffsetDays)
+  const anchor = task.anchorLabel ?? null
+  if (anchor !== null) {
+    if (days === 0) return { key: 'rule.anchorOnDay', values: { days, anchor } }
+    const key = task.dueOffsetDays < 0 ? 'rule.anchorBefore' : 'rule.anchorAfter'
+    return { key, values: { days, anchor } }
+  }
+  if (days === 0) return { key: 'rule.onDay' }
   return { key: task.dueOffsetDays < 0 ? 'rule.before' : 'rule.after', values: { days } }
 }

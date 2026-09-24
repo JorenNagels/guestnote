@@ -51,6 +51,9 @@ export default async function RunSheetPage({
       selectedEventId={selected?.id ?? null}
       items={selected ? sheet.items.filter((i) => i.eventId === selected.id) : []}
       vendors={sheet.vendors}
+      owners={sheet.owners}
+      viewerId={memberships.userId}
+      color={wedding.color}
     />
   )
 }

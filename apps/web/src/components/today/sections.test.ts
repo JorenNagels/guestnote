@@ -74,7 +74,8 @@ describe('todaySections', () => {
     expect(ids(s.needsYou)).toEqual(['c', 'a', 'b'])
   })
 
-  // The repo resolves an offset task's date from the wedding, and `dueAt` may be stale. The
+  // The repo resolves an offset task's date itself, and `dueAt` can be stale after a date write that
+  // bypassed the repo. The
   // screen must read `dueDate` and never the stored instant.
   it('trusts the resolved dueDate over a stale dueAt', () => {
     const stale = row({

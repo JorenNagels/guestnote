@@ -1,6 +1,6 @@
 'use client'
 
-import type { RunSheetItem, RunSheetVendor } from '@guestnote/db'
+import type { RunSheetItem, RunSheetOwner, RunSheetVendor } from '@guestnote/db'
 import { Button } from '@guestnote/ui/button'
 import { Field } from '@guestnote/ui/field'
 import { InlineError } from '@guestnote/ui/inline-error'
@@ -33,6 +33,7 @@ export function ItemSheet({
   item,
   defaultStart,
   vendors,
+  owners,
   canMoveUp,
   canMoveDown,
   onClose,
@@ -43,6 +44,8 @@ export function ItemSheet({
   item: RunSheetItem | null
   defaultStart: string
   vendors: readonly RunSheetVendor[]
+  /** Who this viewer may name as the row's owner: `getRunSheet`'s `owners` (spec 0004). */
+  owners: readonly RunSheetOwner[]
   canMoveUp: boolean
   canMoveDown: boolean
   onClose: () => void
@@ -54,6 +57,7 @@ export function ItemSheet({
   const [what, setWhat] = useState(item?.title ?? '')
   const [place, setPlace] = useState(item?.place ?? '')
   const [vendorId, setVendorId] = useState(item?.weddingVendorId ?? '')
+  const [ownerId, setOwnerId] = useState(item?.ownerUserId ?? '')
   const [error, setError] = useState<RunSheetError | null>(null)
   const [confirming, setConfirming] = useState(false)
   const [pending, start] = useTransition()
@@ -66,6 +70,13 @@ export function ItemSheet({
       ? { id: item.weddingVendorId, name: item.vendorName }
       : null
 
+  // The same for an owner this viewer cannot offer: a colleague a `member` cannot see, or someone
+  // who has lost access. Kept, by name, so saving an unrelated field does not clear it.
+  const currentOwner =
+    item?.ownerUserId && !owners.some((o) => o.id === item.ownerUserId)
+      ? { id: item.ownerUserId, name: item.ownerName ?? '' }
+      : null
+
   const save = (next: boolean) => {
     setError(null)
     start(async () => {
@@ -76,6 +87,7 @@ export function ItemSheet({
         title: what,
         place,
         weddingVendorId: vendorId,
+        ownerUserId: ownerId,
       })
       if (!result.ok) {
         setError(result.error)
@@ -92,6 +104,9 @@ export function ItemSheet({
       setWhat('')
       setPlace('')
       setVendorId('')
+      // Reset like the vendor: ownership is a deliberate assignment, never inherited from the row
+      // typed before it (spec 0004).
+      setOwnerId('')
       whatRef.current?.focus()
     })
   }
@@ -252,6 +267,25 @@ export function ItemSheet({
             <Hint id="item-vendor-hint">{t('vendorEmpty')}</Hint>
           )}
           {fieldError('vendor')}
+        </div>
+        <div>
+          <SelectField
+            id="item-owner"
+            label={t('owner')}
+            value={ownerId}
+            onChange={(e) => setOwnerId(e.target.value)}
+            invalid={error === 'owner'}
+            errorId="item-owner-error"
+          >
+            <option value="">{t('ownerNone')}</option>
+            {owners.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.name}
+              </option>
+            ))}
+            {currentOwner && <option value={currentOwner.id}>{currentOwner.name}</option>}
+          </SelectField>
+          {fieldError('owner')}
         </div>
         {item && (
           // On a phone the rows carry no move buttons (they would eat the width the title needs),

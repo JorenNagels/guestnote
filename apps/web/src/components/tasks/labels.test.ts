@@ -46,6 +46,22 @@ describe('ruleLabel', () => {
     expect(ruleLabel({ dueOffsetDays: 0, dueAt: at })).toEqual({ key: 'rule.onDay' })
   })
 
+  it('names the anchor when there is one (spec 0004), on the day as well', () => {
+    const anchored = { dueAt: at, anchorLabel: 'Civil' }
+    expect(ruleLabel({ ...anchored, dueOffsetDays: -14 })).toEqual({
+      key: 'rule.anchorBefore',
+      values: { days: 14, anchor: 'Civil' },
+    })
+    expect(ruleLabel({ ...anchored, dueOffsetDays: 2 })).toEqual({
+      key: 'rule.anchorAfter',
+      values: { days: 2, anchor: 'Civil' },
+    })
+    expect(ruleLabel({ ...anchored, dueOffsetDays: 0 })).toEqual({
+      key: 'rule.anchorOnDay',
+      values: { days: 0, anchor: 'Civil' },
+    })
+  })
+
   it('calls a stored date with no offset fixed, and nothing when there is neither', () => {
     expect(ruleLabel({ dueOffsetDays: null, dueAt: at })).toEqual({ key: 'rule.fixed' })
     expect(ruleLabel({ dueOffsetDays: null, dueAt: null })).toBeNull()

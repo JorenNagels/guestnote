@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-21 · **Status:** Built 2026-09-21 · **Parent:** `docs/specs/0003-planner-app-screens.md`, row S9
 
-Nothing here contradicts spec 0003. Prototype range: `design-system/planner-prototype/INDEX.md`, "Run sheet".
+Nothing here contradicts spec 0003, except the owner tint spec 0004 added (2026-09-24), which amends 0003's colour rule. Prototype range: `design-system/planner-prototype/INDEX.md`, "Run sheet".
 
 ## Behaviour
 
@@ -32,13 +32,16 @@ Nothing here contradicts spec 0003. Prototype range: `design-system/planner-prot
   of the editor, so reading stays uncluttered.
 - **Delete** asks once, in the sheet, and removes the row for good (the table has no `deleted_at`).
 - **Vendor** ("who owns it") is a picker limited to this wedding's `wedding_vendors` (S3). A row with no
-  vendor reads "Planner". The server reads the chosen `wedding_vendors` row and the event under
+  vendor reads "Planner" (since spec 0004, 2026-09-24: the column names the vendor and the row's
+  owner together, and "Planner" only when neither is named). The server reads the chosen `wedding_vendors` row and the event under
   `withTenant` for THIS wedding before saving (spec 0003, parent-read rule). A vendor removed from the
   wedding later still shows on the rows that named it, and can be kept when the row is edited.
 - Removed events (S1 soft delete) do not show. Their rows are kept, so removing an event stays undoable.
 - Every action checks membership itself (a Server Function is a POST to its own route).
-- Not built: print, PDF, CSV (spec 0003, "Not in scope"); the prototype's per-person tint (there is no
-  owner column beyond the vendor).
+- Not built: print, PDF, CSV (spec 0003, "Not in scope"). The prototype's per-person tint was listed
+  here as not built for want of an owner column; built 2026-09-24 by spec 0004
+  (`run_sheet_items.owner_user_id`, the "Verantwoordelijke" select, the viewer's rows tinted with the
+  wedding colour at 12% into `--card`, dropped in print).
 
 ## States
 

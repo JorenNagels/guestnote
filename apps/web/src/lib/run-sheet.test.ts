@@ -151,3 +151,28 @@ describe('parseRunSheetForm', () => {
     expect(parseRunSheetForm({ ...ok, title: 5 })).toEqual({ error: 'title' })
   })
 })
+
+describe('parseRunSheetForm, the owner (spec 0004)', () => {
+  const ok = {
+    eventId: E,
+    startsAt: '15:30',
+    durationMin: '40',
+    title: 'Ceremony',
+    place: '',
+    weddingVendorId: '',
+  }
+  const input = (over: object) => {
+    const r = parseRunSheetForm({ ...ok, ...over })
+    return 'input' in r ? r.input : r
+  }
+
+  it('leaves the owner out when the form did not send one, so an update keeps it', () => {
+    expect('ownerUserId' in (input({}) as object)).toBe(false)
+  })
+
+  it('reads empty as nobody, trims a uuid, and refuses anything else', () => {
+    expect(input({ ownerUserId: '' })).toMatchObject({ ownerUserId: null })
+    expect(input({ ownerUserId: `  ${E}  ` })).toMatchObject({ ownerUserId: E })
+    expect(parseRunSheetForm({ ...ok, ownerUserId: 'x' })).toEqual({ error: 'owner' })
+  })
+})

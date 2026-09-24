@@ -1,10 +1,12 @@
 import { and, asc, eq, isNull, sql } from 'drizzle-orm'
 import { newId } from '../id.ts'
 import { weddingEvents } from '../schema/events.ts'
+import { tasks } from '../schema/tasks.ts'
 import { weddings } from '../schema/weddings.ts'
 import { withTenant } from '../tenant.ts'
 import { fail, ok, type Result } from './result.ts'
 import type { WeddingScope } from './scope.ts'
+import { refreshTaskDueAt } from './task-due-refresh.ts'
 
 /**
  * Slice S1 of docs/specs/0003-planner-app-screens.md: the events of one wedding.
@@ -140,8 +142,8 @@ export async function updateWeddingEvent(
   const principal = scope.principal
   if (!principal) return fail('notFound')
 
-  const rows = await withTenant(db, principal, async (tx) =>
-    tx
+  const rows = await withTenant(db, principal, async (tx) => {
+    const updated = await tx
       .update(weddingEvents)
       .set({
         label: input.label,
@@ -159,8 +161,11 @@ export async function updateWeddingEvent(
           isNull(weddingEvents.deletedAt),
         ),
       )
-      .returning(COLUMNS),
-  )
+      .returning(COLUMNS)
+    // The tasks anchored here move with the event's date (spec 0004).
+    if (updated[0]) await refreshTaskDueAt(tx, weddingId)
+    return updated
+  })
   const row = rows[0]
   return row ? ok(toEvent(row)) : fail('notFound')
 }
@@ -174,8 +179,8 @@ export async function deleteWeddingEvent(
   const principal = scope.principal
   if (!principal) return fail('notFound')
 
-  const rows = await withTenant(db, principal, async (tx) =>
-    tx
+  const rows = await withTenant(db, principal, async (tx) => {
+    const removed = await tx
       .update(weddingEvents)
       .set({ deletedAt: new Date(), updatedAt: new Date() })
       .where(
@@ -185,7 +190,42 @@ export async function deleteWeddingEvent(
           isNull(weddingEvents.deletedAt),
         ),
       )
-      .returning({ id: weddingEvents.id }),
-  )
+      .returning({ id: weddingEvents.id })
+    if (removed.length === 0) return removed
+    // Its tasks fall back to the main date (spec 0004): the anchor is cleared, not left pointing
+    // at a removed row, so no reader has to guess what a dangling anchor means. Only after the
+    // removal matched, so a wrong-wedding id touches no task either.
+    await tx
+      .update(tasks)
+      .set({ anchorEventId: null, updatedAt: new Date() })
+      .where(and(eq(tasks.anchorEventId, eventId), eq(tasks.weddingId, weddingId)))
+    await refreshTaskDueAt(tx, weddingId)
+    return removed
+  })
   return rows.length > 0 ? ok(null) : fail('notFound')
+}
+
+/**
+ * How many live tasks count from each event of this wedding, by event id; an event with none is
+ * absent. What the settings page shows beside Remove ("3 taken tellen vanaf dit moment…", spec
+ * 0004). One grouped query for the page, not one per event. Empty for a caller with no standing.
+ */
+export async function anchoredTaskCounts(scope: WeddingScope): Promise<Record<string, number>> {
+  const { db, weddingId } = scope
+  const principal = scope.principal
+  if (!principal) return {}
+  const rows = await withTenant(db, principal, (tx) =>
+    tx
+      .select({ eventId: tasks.anchorEventId, n: sql<number>`count(*)::int` })
+      .from(tasks)
+      .where(
+        and(
+          eq(tasks.weddingId, weddingId),
+          isNull(tasks.deletedAt),
+          sql`${tasks.anchorEventId} is not null`,
+        ),
+      )
+      .groupBy(tasks.anchorEventId),
+  )
+  return Object.fromEntries(rows.flatMap((r) => (r.eventId ? [[r.eventId, r.n]] : [])))
 }

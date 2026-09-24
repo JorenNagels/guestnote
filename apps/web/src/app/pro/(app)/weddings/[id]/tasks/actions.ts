@@ -5,6 +5,7 @@ import {
   completeTask,
   createTask,
   type TaskVisibility,
+  type TaskWriteFailure,
   updateTask,
 } from '@guestnote/db'
 import { revalidatePath } from 'next/cache'
@@ -46,6 +47,13 @@ async function who(weddingId: string, ...ids: string[]) {
 
 const NOT_FOUND = { ok: false, error: 'notFound' } as const
 
+/**
+ * The one write failure a planner can act on: the event the task counts from was removed while
+ * the form was open (spec 0004). Everything else is the same 404 as before.
+ */
+const writeFailure = (reason: TaskWriteFailure) =>
+  reason === 'anchorNotFound' ? ({ ok: false, error: 'anchorGone' } as const) : NOT_FOUND
+
 export async function createTaskAction(
   weddingId: string,
   values: unknown,
@@ -56,7 +64,7 @@ export async function createTaskAction(
   const ctx = await who(weddingId)
   if (!ctx) return NOT_FOUND
   const task = await createTask(ctx, parsed.input)
-  if (!task.ok) return NOT_FOUND
+  if (!task.ok) return writeFailure(task.reason)
   refresh()
   return { ok: true, taskId: task.value.id }
 }
@@ -72,7 +80,7 @@ export async function updateTaskAction(
   const ctx = await who(weddingId, taskId)
   if (!ctx) return NOT_FOUND
   const task = await updateTask(ctx, taskId, parsed.input)
-  if (!task.ok) return NOT_FOUND
+  if (!task.ok) return writeFailure(task.reason)
   refresh()
   return { ok: true }
 }

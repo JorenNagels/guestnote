@@ -126,7 +126,7 @@ describe('createTask and the due date', () => {
     expect(t).toMatchObject({ dueOffsetDays: null, dueDate: '2027-02-28' })
   })
 
-  it('lets the offset follow the wedding when it moves, while due_at goes stale', async () => {
+  it('lets the offset follow the wedding even when a raw date write bypasses updateWedding and leaves due_at stale', async () => {
     const t = unwrap(
       await createTask(WeddingScope.of(h.db, owner, F.orgA, F.weddingA1), {
         title: 'Follows',

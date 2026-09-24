@@ -32,37 +32,58 @@ export function taskAddDays(date: string, days: number): string {
  *
  * `weddingDate` is a `date` column, so it arrives as `YYYY-MM-DD` and is read as UTC midnight;
  * it is a civil date and never shifts with a zone (see `weddings.wedding_date`).
+ *
+ * An anchored offset counts from `anchorOn`, the anchor event's `starts_on` (spec 0004). An
+ * anchor whose date did not come back is one the reader cannot see -- a couple cannot read
+ * `wedding_events` -- or, after `selectTasks`' join, one pointing at another wedding's event; either
+ * way `due_at` is the answer, because
+ * every write that moves a date rewrites it (`refreshTaskDueAt`). Falling back to the main date
+ * instead would show a couple the wrong day for exactly the tasks this feature exists for.
  */
 export function resolveTaskDueDate(
-  task: { dueOffsetDays: number | null; dueAt: Date | null },
+  task: { dueOffsetDays: number | null; dueAt: Date | null; anchorEventId?: string | null },
   weddingDate: string | null,
+  anchorOn: string | null = null,
 ): string | null {
-  if (task.dueOffsetDays !== null) {
-    return weddingDate === null ? null : taskAddDays(weddingDate, task.dueOffsetDays)
+  const fromDueAt = task.dueAt === null ? null : task.dueAt.toISOString().slice(0, 10)
+  if (task.dueOffsetDays === null) return fromDueAt
+  if (task.anchorEventId) {
+    return anchorOn === null ? fromDueAt : taskAddDays(anchorOn, task.dueOffsetDays)
   }
-  return task.dueAt === null ? null : task.dueAt.toISOString().slice(0, 10)
+  return weddingDate === null ? null : taskAddDays(weddingDate, task.dueOffsetDays)
 }
 
 /** 12:00 UTC, the seed's convention: the same civil date in every zone from Honolulu to Auckland. */
 const noonUtc = (date: string): Date => new Date(assertCivilDate(date) + DAY_MS / 2)
 
 /**
- * The two stored columns for a `TaskDue`. `dueAt` is written for an offset task too, so the
- * `(org_id, due_at)` index serves the cross-wedding "due this week" screen; reads never trust
- * it (`resolveTaskDueDate`). It goes stale if `wedding_date` changes, until the task is next
- * saved -- the price of not putting a trigger on `weddings`.
+ * The stored columns for a `TaskDue`. `dueAt` is written for an offset task too, so the
+ * `(org_id, due_at)` index can serve a cross-wedding "due this week" query; reads prefer the offset
+ * and use `due_at` only for an anchor they cannot resolve (`resolveTaskDueDate`). Since spec 0004
+ * it is kept current by every repo write that moves a date (`refreshTaskDueAt`).
+ *
+ * `anchorOn` is the anchor event's date, which the caller has read under the same transaction; it
+ * is ignored unless the offset names an anchor. `anchorEventId` is always returned, so writing a
+ * fixed date or no date over an anchored task clears the anchor with it -- the database's
+ * `tasks_anchor_needs_offset` check would refuse the row otherwise.
  */
 export function taskDueColumns(
   due: TaskDue,
   weddingDate: string | null,
-): { dueOffsetDays: number | null; dueAt: Date | null } {
-  if (due.kind === 'none') return { dueOffsetDays: null, dueAt: null }
-  if (due.kind === 'date') return { dueOffsetDays: null, dueAt: noonUtc(due.date) }
+  anchorOn: string | null = null,
+): { dueOffsetDays: number | null; dueAt: Date | null; anchorEventId: string | null } {
+  if (due.kind === 'none') return { dueOffsetDays: null, dueAt: null, anchorEventId: null }
+  if (due.kind === 'date') {
+    return { dueOffsetDays: null, dueAt: noonUtc(due.date), anchorEventId: null }
+  }
   if (!Number.isInteger(due.days) || Math.abs(due.days) > MAX_OFFSET_DAYS) {
     throw new RangeError(`tasks: an offset must be a whole number within ${MAX_OFFSET_DAYS} days`)
   }
+  const anchorEventId = due.anchorEventId ?? null
+  const base = anchorEventId === null ? weddingDate : anchorOn
   return {
     dueOffsetDays: due.days,
-    dueAt: weddingDate === null ? null : noonUtc(taskAddDays(weddingDate, due.days)),
+    dueAt: base === null ? null : noonUtc(taskAddDays(base, due.days)),
+    anchorEventId,
   }
 }

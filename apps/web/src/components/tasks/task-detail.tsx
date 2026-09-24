@@ -9,7 +9,7 @@ import { useFormatter, useTranslations } from 'next-intl'
 import { useState, useTransition } from 'react'
 import { setTaskVisibilityAction } from '../../app/pro/(app)/weddings/[id]/tasks/actions.ts'
 import { app } from '../../lib/routes.ts'
-import { formFromTask } from '../../lib/task-form.ts'
+import { formFromTask, type TaskAnchorOption } from '../../lib/task-form.ts'
 import { isOverdue } from './buckets.ts'
 import { CompleteBox } from './complete-box.tsx'
 import { formatDate, labelText } from './format.ts'
@@ -27,10 +27,12 @@ import { VisibilityTag } from './visibility-tag.tsx'
 export function TaskDetail({
   task,
   weddingDate,
+  events = [],
   today,
 }: {
   task: TaskRow
   weddingDate: string | null
+  events?: readonly TaskAnchorOption[]
   today: string
 }) {
   const t = useTranslations('app.tasks')
@@ -45,6 +47,7 @@ export function TaskDetail({
         weddingId={task.weddingId}
         taskId={task.id}
         weddingDate={weddingDate}
+        events={events}
         initial={formFromTask(task)}
         onDone={() => setEditing(false)}
         onCancel={() => setEditing(false)}

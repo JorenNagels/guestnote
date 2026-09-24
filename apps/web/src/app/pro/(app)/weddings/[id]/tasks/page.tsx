@@ -1,4 +1,4 @@
-import { getWedding, listTasks, WeddingScope } from '@guestnote/db'
+import { getWedding, listTasks, listWeddingEvents, WeddingScope } from '@guestnote/db'
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { parseFilter } from '../../../../../../components/tasks/buckets.ts'
@@ -6,6 +6,7 @@ import { Checklist } from '../../../../../../components/tasks/checklist.tsx'
 import { TasksIntl } from '../../../../../../components/tasks/provider.tsx'
 import { getDb } from '../../../../../../lib/db.ts'
 import { currentMemberships, currentOrgId } from '../../../../../../lib/principal.ts'
+import { anchorOption } from '../../../../../../lib/task-form.ts'
 import { todayCivil } from '../../../../../../lib/tminus.ts'
 import { isUuid } from '../../../../../../lib/uuid.ts'
 
@@ -36,7 +37,7 @@ export default async function ChecklistPage({
   const scope = WeddingScope.of(getDb(), memberships, orgId, id)
   const wedding = await getWedding(scope)
   if (!wedding) notFound()
-  const tasks = await listTasks(scope)
+  const [tasks, events] = await Promise.all([listTasks(scope), listWeddingEvents(scope)])
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-8">
@@ -50,6 +51,7 @@ export default async function ChecklistPage({
         <Checklist
           weddingId={wedding.id}
           weddingDate={wedding.weddingDate}
+          events={events.map(anchorOption)}
           tasks={tasks}
           filter={parseFilter(filter)}
           today={todayCivil()}

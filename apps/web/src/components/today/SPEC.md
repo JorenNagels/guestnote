@@ -13,7 +13,9 @@ item "until P16 existed"; its amendments table records that it now does.
   `listAssignedTasks`. Owner and admin: every wedding in the org. A `member`: assigned weddings
   only (the repo does one transaction per wedding, in turn). Nothing here decides that; the repo and RLS do.
 - **Dates.** Every due date comes from `TaskRow.dueDate`, which S2 resolves from the wedding date
-  for an offset task. The stored `due_at` (and its index) is never read: it goes stale when a wedding moves.
+  (or, since spec 0004, the task's anchor event) for an offset task. The stored `due_at` (and its
+  index) is never read here: it is a copy the repo keeps current, and `dueDate` is the answer it
+  stands behind. (This used to say `due_at` goes stale when a wedding moves; spec 0004 closed that.)
   "Today" is the Brussels civil date, read once by `todayCivil()` and passed down.
 - **Header.** Title *Vandaag*, the long date, and how many active weddings the user sees.
 - **Wedding cards.** One per active (not archived) wedding: colour dot, couple, date, `T-42`, and

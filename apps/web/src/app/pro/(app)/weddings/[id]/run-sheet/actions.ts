@@ -32,6 +32,7 @@ const RUN_SHEET = '/pro/weddings/[id]/run-sheet'
 function refusal(reason: RunSheetFailure): RunSheetError {
   if (reason === 'eventNotFound') return 'event'
   if (reason === 'vendorNotFound') return 'vendor'
+  if (reason === 'ownerNotFound') return 'owner'
   return 'notFound'
 }
 

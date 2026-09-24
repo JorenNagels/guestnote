@@ -49,6 +49,8 @@
     "vendor": "Wie is verantwoordelijk",
     "vendorNone": "Planner, geen leverancier",
     "vendorEmpty": "Nog geen leveranciers bij deze bruiloft. Voeg ze toe bij Leveranciers.",
+    "owner": "Verantwoordelijke",
+    "ownerNone": "Niemand",
     "vendorRemoved": "{name} (niet meer bij deze bruiloft)",
     "order": "Volgorde",
     "moveUp": "Hoger",
@@ -70,7 +72,8 @@
     "place": "Dat is te lang voor een plaats. Hou het onder 120 tekens.",
     "vendor": "Kies een leverancier uit de lijst.",
     "notFound": "Dit onderdeel of deze bruiloft bestaat niet meer. Vernieuw de pagina.",
-    "failed": "Het opslaan is niet gelukt. Er is niets gewijzigd. Probeer het zo nog eens."
+    "failed": "Het opslaan is niet gelukt. Er is niets gewijzigd. Probeer het zo nog eens.",
+    "owner": "Kies iemand van het team dat aan deze bruiloft werkt."
   },
   "error": {
     "title": "Het draaiboek kon niet geladen worden",

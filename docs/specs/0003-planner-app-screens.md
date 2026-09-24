@@ -68,9 +68,17 @@ picker; both send a plain `#RRGGBB`. Colour is a dot or a stripe only, **never t
 background behind text**, so no contrast rule applies to an arbitrary hex. `tokens.css` stays
 untouched. Rejected: six named keys and new tokens.
 
+> **Amended 2026-09-24 by spec 0004.** One exception to "never a background behind text": a
+> run-sheet row owned by the viewer is tinted with the wedding colour mixed 12% into `--card`,
+> close enough to the plain card that text contrast holds for any hex. Spec 0004 argues it.
+
 **Multi-date weddings use a `wedding_events` table.** One row per event. Run sheet items hang
 off an event. `weddings.wedding_date` stays as the main date that task offsets resolve
 against, so tasks do not change. Rejected: jsonb (no FK from run sheet items) and one date only.
+
+> **Amended 2026-09-24 by spec 0004.** "Tasks do not change" no longer holds for every task: an
+> offset task may now count from an event (`tasks.anchor_event_id`). An unanchored offset task
+> still resolves against `wedding_date`, exactly as written above.
 
 **Only three text-and-number columns are added to `weddings`:** `venue`, `headcount`, `notes`,
 all nullable. The status stays `draft|live|archived`; the prototype's "Booked" is dropped.

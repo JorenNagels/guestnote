@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { EMPTY_FORM, formFromTask, offsetFromForm, parseTaskForm } from './task-form.ts'
+import {
+  anchorOption,
+  EMPTY_FORM,
+  formFromTask,
+  offsetFromForm,
+  parseTaskForm,
+} from './task-form.ts'
 
 const ok = (over: object) => parseTaskForm({ ...EMPTY_FORM, title: 'Book the DJ', ...over })
 
@@ -91,5 +97,52 @@ describe('formFromTask', () => {
       date: '2027-05-01',
     })
     expect(formFromTask({ ...base, dueOffsetDays: null, dueDate: null }).dueKind).toBe('none')
+  })
+})
+
+describe('the anchor (spec 0004)', () => {
+  const E = '0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b'
+  it('carries the chosen event on an offset, and none for the main day', () => {
+    expect(ok({ dueKind: 'offset', offsetDays: '14', anchorEventId: E })).toMatchObject({
+      input: { due: { kind: 'offset', days: -14, anchorEventId: E } },
+    })
+    expect(ok({ dueKind: 'offset', offsetDays: '14', anchorEventId: '' })).toMatchObject({
+      input: { due: { kind: 'offset', days: -14, anchorEventId: null } },
+    })
+  })
+
+  it('refuses a malformed anchor id before it can reach the uuid cast', () => {
+    expect(ok({ dueKind: 'offset', offsetDays: '14', anchorEventId: 'x' })).toEqual({
+      ok: false,
+      error: 'anchorGone',
+    })
+  })
+
+  it('drops the anchor for a fixed date, whatever the select still held', () => {
+    const r = ok({ dueKind: 'date', date: '2027-05-01', anchorEventId: E })
+    expect(r).toMatchObject({ input: { due: { kind: 'date', date: '2027-05-01' } } })
+    expect(r.ok && r.input.due && 'anchorEventId' in r.input.due).toBe(false)
+  })
+
+  it('reads the anchor back into the edit form', () => {
+    const base = { title: 'x', notes: null, visibility: 'shared', assigneeRole: 'planner' } as const
+    expect(
+      formFromTask({ ...base, dueOffsetDays: -14, dueDate: '2027-07-02', anchorEventId: E })
+        .anchorEventId,
+    ).toBe(E)
+    expect(formFromTask({ ...base, dueOffsetDays: -14, dueDate: null }).anchorEventId).toBe('')
+  })
+})
+
+describe('anchorOption', () => {
+  it('keeps only what the select needs, so venue and time stay off the client', () => {
+    const e = {
+      id: 'e1',
+      label: 'Civil',
+      startsOn: '2027-07-16',
+      venue: 'Stadhuis',
+      startsAt: '11:00',
+    }
+    expect(anchorOption(e)).toEqual({ id: 'e1', label: 'Civil', startsOn: '2027-07-16' })
   })
 })

@@ -1,4 +1,4 @@
-import type { RunSheetItem, WeddingEvent } from '@guestnote/db'
+import type { RunSheetItem, RunSheetOwner, WeddingEvent } from '@guestnote/db'
 import { cleanup, fireEvent, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { RunSheetView } from './run-sheet-view.tsx'
@@ -31,6 +31,8 @@ const item = (over: Partial<RunSheetItem> & Pick<RunSheetItem, 'id' | 'title'>):
   place: null,
   weddingVendorId: null,
   vendorName: null,
+  ownerUserId: null,
+  ownerName: null,
   position: 0,
   ...over,
 })
@@ -39,6 +41,9 @@ function view(over: {
   events?: WeddingEvent[]
   selectedEventId?: string | null
   items?: RunSheetItem[]
+  owners?: RunSheetOwner[]
+  viewerId?: string | null
+  color?: string | null
 }) {
   const events = over.events ?? [event({ id: 'e1', label: 'Ceremony' })]
   return renderWithCopy(
@@ -50,6 +55,9 @@ function view(over: {
       selectedEventId={over.selectedEventId ?? events[0]?.id ?? null}
       items={over.items ?? []}
       vendors={[]}
+      owners={over.owners ?? []}
+      viewerId={over.viewerId ?? null}
+      color={over.color ?? null}
     />,
   )
 }
@@ -150,5 +158,75 @@ describe('RunSheetView', () => {
   it('a row with no vendor reads "Planner"', () => {
     view({ items: [item({ id: 'i1', title: 'Toast', weddingVendorId: null, vendorName: null })] })
     expect(screen.getAllByText('Planner').length).toBeGreaterThan(0)
+  })
+})
+
+/**
+ * Spec 0004: a row owned by the viewer is tinted, and the owner is named beside the vendor.
+ * The tint is asserted through the custom property the row carries, because jsdom does not
+ * resolve `color-mix` or Tailwind's arbitrary-value class into a computed background.
+ */
+describe('run-sheet owners', () => {
+  const ME = 'u-me'
+  const rows = () => [
+    item({ id: 'i1', title: 'Mine', ownerUserId: ME, ownerName: 'Katrien' }),
+    item({ id: 'i2', title: 'Theirs', startsAt: '10:00', ownerUserId: 'u-2', ownerName: 'Lore' }),
+    item({ id: 'i3', title: 'Nobody', startsAt: '11:00' }),
+  ]
+  const tableRow = (title: string) =>
+    within(screen.getByRole('table')).getByText(title).closest('tr') as HTMLElement
+
+  it("tints only the viewer's own rows, in the wedding colour mixed into the card", () => {
+    view({ items: rows(), viewerId: ME, color: '#206560' })
+    expect(tableRow('Mine').style.getPropertyValue('--row-tint')).toBe(
+      'color-mix(in oklab, #206560 12%, var(--card))',
+    )
+    expect(tableRow('Mine').className).toContain('print:bg-transparent')
+    expect(tableRow('Theirs').style.getPropertyValue('--row-tint')).toBe('')
+    expect(tableRow('Nobody').style.getPropertyValue('--row-tint')).toBe('')
+  })
+
+  it('uses the neutral muted tint when the wedding has no colour, or one that is not a hex', () => {
+    view({ items: rows(), viewerId: ME, color: 'transparent' })
+    expect(tableRow('Mine').style.getPropertyValue('--row-tint')).toBe('var(--muted)')
+  })
+
+  it('tints nothing when nobody is signed in as an owner', () => {
+    view({ items: rows(), viewerId: null, color: '#206560' })
+    expect(tableRow('Mine').style.getPropertyValue('--row-tint')).toBe('')
+    // The unowned row is the one a missing `viewerId !== null` guard would tint (null === null).
+    expect(tableRow('Nobody').style.getPropertyValue('--row-tint')).toBe('')
+  })
+
+  it('names the vendor and the owner together, and "Planner" only when there is neither', () => {
+    view({
+      items: [
+        item({ id: 'i1', title: 'Dinner', vendorName: 'Traiteur A', ownerName: 'Katrien' }),
+        item({ id: 'i2', title: 'Toast', startsAt: '10:00' }),
+      ],
+    })
+    expect(within(tableRow('Dinner')).getByText('Traiteur A · Katrien')).toBeTruthy()
+    expect(within(tableRow('Toast')).getByText('Planner')).toBeTruthy()
+  })
+
+  it('offers the owners, keeps an owner the viewer cannot offer, and sends the choice', () => {
+    view({
+      items: rows(),
+      viewerId: ME,
+      owners: [{ id: ME, name: 'Katrien' }],
+    })
+    fireEvent.click(within(tableRow('Theirs')).getByRole('button', { name: /Edit/ }))
+    const select = screen.getByLabelText('Responsible') as HTMLSelectElement
+    // Lore is not in this viewer's list (a member cannot see colleagues) but owns the row.
+    expect(Array.from(select.options).map((o) => o.text)).toEqual(['Nobody', 'Katrien', 'Lore'])
+    expect(select.value).toBe('u-2')
+
+    fireEvent.change(select, { target: { value: ME } })
+    fireEvent.submit(select.closest('form') as HTMLFormElement)
+    expect(saveRunSheetItem).toHaveBeenCalledWith(
+      W,
+      'i2',
+      expect.objectContaining({ ownerUserId: ME }),
+    )
   })
 })

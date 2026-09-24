@@ -1,7 +1,8 @@
-import { and, eq, isNull, ne, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNull, ne, sql } from 'drizzle-orm'
 import type { Db, TenantDb } from '../client.ts'
 import { newId } from '../id.ts'
 import { users } from '../schema/auth.ts'
+import { weddingEvents } from '../schema/events.ts'
 import {
   type TASK_ASSIGNEE_ROLES,
   type TASK_STATUSES,
@@ -58,14 +59,22 @@ export type TaskRow = {
   /** The assignee's name, else their address; null only for an unassigned task. */
   readonly assigneeName: string | null
   readonly assigneeRole: TaskAssigneeRole | null
-  /** T-minus in days, negative is before the wedding. Wins over `dueAt` when both are set. */
+  /**
+   * T-minus in days, negative is before. Counts from the anchor event when there is one, else the
+   * wedding date, and wins over `dueAt` unless the anchor cannot be resolved (`resolveTaskDueDate`).
+   */
   readonly dueOffsetDays: number | null
+  /** The event the offset counts from; null is the main wedding date (spec 0004). */
+  readonly anchorEventId: string | null
+  /** That event's label, or null when there is no anchor or the reader cannot see events. */
+  readonly anchorLabel: string | null
   /** The stored instant. For an offset task this is a materialised copy -- see `dueDate`. */
   readonly dueAt: Date | null
   /**
    * The due date to show, `YYYY-MM-DD` in UTC, or null when there is none to show. Derived on
-   * every read: from the offset and the wedding's date when there is an offset, else from
-   * `dueAt`. An offset task on a wedding with no date has no due date.
+   * every read: from the offset and the anchor event's date or else the wedding's date when there is
+   * an offset, from `dueAt` otherwise and for an anchor this reader cannot see. An unanchored offset
+   * task on a wedding with no date has no due date.
    */
   readonly dueDate: string | null
   readonly completedAt: Date | null
@@ -96,8 +105,11 @@ export type TaskCommentRow = {
  */
 export type TaskDue =
   | { readonly kind: 'none' }
-  /** T-minus days, negative is before the wedding date. Follows the wedding if it moves. */
-  | { readonly kind: 'offset'; readonly days: number }
+  /**
+   * T-minus days, negative is before. Counts from the wedding date, or from `anchorEventId`'s
+   * date when one is named (spec 0004), and follows whichever it counts from when it moves.
+   */
+  | { readonly kind: 'offset'; readonly days: number; readonly anchorEventId?: string | null }
   /** A civil date, `YYYY-MM-DD`. Stays put if the wedding moves. */
   | { readonly kind: 'date'; readonly date: string }
 
@@ -141,6 +153,9 @@ const TASK_SELECT = {
   assigneeName: personName,
   assigneeRole: tasks.assigneeRole,
   dueOffsetDays: tasks.dueOffsetDays,
+  anchorEventId: tasks.anchorEventId,
+  anchorOn: weddingEvents.startsOn,
+  anchorLabel: weddingEvents.label,
   dueAt: tasks.dueAt,
   completedAt: tasks.completedAt,
   createdAt: tasks.createdAt,
@@ -164,8 +179,10 @@ function toRow(r: Selected): TaskRow {
     assigneeName: r.assigneeName,
     assigneeRole: r.assigneeRole as TaskAssigneeRole | null,
     dueOffsetDays: r.dueOffsetDays,
+    anchorEventId: r.anchorEventId,
+    anchorLabel: r.anchorLabel,
     dueAt: r.dueAt,
-    dueDate: resolveTaskDueDate(r, r.weddingDate),
+    dueDate: resolveTaskDueDate(r, r.weddingDate, r.anchorOn),
     completedAt: r.completedAt,
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,
@@ -174,12 +191,59 @@ function toRow(r: Selected): TaskRow {
 
 /** The one shape every read shares: a live task on a live wedding, with the two names it needs. */
 function selectTasks(tx: TenantDb) {
-  return tx
-    .select(TASK_SELECT)
-    .from(tasks)
-    .innerJoin(weddings, eq(weddings.id, tasks.weddingId))
-    .leftJoin(users, eq(users.id, tasks.assigneeUserId))
+  return (
+    tx
+      .select(TASK_SELECT)
+      .from(tasks)
+      .innerJoin(weddings, eq(weddings.id, tasks.weddingId))
+      .leftJoin(users, eq(users.id, tasks.assigneeUserId))
+      // Left, with the soft delete in the join condition: a `where` on it would drop every
+      // unanchored task. A removed event's anchor is cleared when it is removed, so a live anchor
+      // with no row here is one this reader cannot see, and `resolveTaskDueDate` handles that.
+      .leftJoin(
+        weddingEvents,
+        and(
+          eq(weddingEvents.id, tasks.anchorEventId),
+          // The write path's parent read keeps an anchor in its own wedding; this is the same
+          // rule on read, so a future path that copied `anchor_event_id` across weddings (a
+          // "duplicate wedding") would show no label rather than a sibling's.
+          eq(weddingEvents.weddingId, tasks.weddingId),
+          isNull(weddingEvents.deletedAt),
+        ),
+      )
+  )
 }
+
+/**
+ * The live events of this wedding among `ids`, by id to date. The parent read the plain foreign
+ * key needs (spec 0003): nothing in Postgres stops an anchor naming another wedding's event, and
+ * for an org-wide principal RLS would not either.
+ */
+async function anchorDates(
+  tx: TenantDb,
+  weddingId: string,
+  ids: readonly string[],
+): Promise<Map<string, string>> {
+  if (ids.length === 0) return new Map()
+  const rows = await tx
+    .select({ id: weddingEvents.id, startsOn: weddingEvents.startsOn })
+    .from(weddingEvents)
+    .where(
+      and(
+        inArray(weddingEvents.id, [...ids]),
+        eq(weddingEvents.weddingId, weddingId),
+        isNull(weddingEvents.deletedAt),
+      ),
+    )
+    // Share-locked: a `deleteWeddingEvent` committing between this read and the task write would
+    // otherwise leave the task anchored to a removed event, after the removal's own anchor-clear
+    // had already run. The lock makes the removal wait for this transaction.
+    .for('share')
+  return new Map(rows.map((r) => [r.id, r.startsOn]))
+}
+
+const anchorOf = (due: TaskDue | undefined): string | null =>
+  due?.kind === 'offset' ? (due.anchorEventId ?? null) : null
 
 export async function loadTask(
   tx: TenantDb,
@@ -198,12 +262,19 @@ export async function loadTask(
   return r ? { task: toRow(r), weddingDate: r.weddingDate } : null
 }
 
-/** The wedding's date, or `undefined` when the wedding is not visible in this transaction. */
+/**
+ * The wedding's date, or `undefined` when the wedding is not visible in this transaction.
+ *
+ * Share-locked for the reason `anchorDates` is: a task write computes `due_at` from this date, and
+ * an `updateWedding` committing in between would run its `refreshTaskDueAt` before this task
+ * exists, leaving it with the old date's copy. The lock makes the date change wait.
+ */
 async function weddingDateOf(tx: TenantDb, weddingId: string): Promise<string | null | undefined> {
   const rows = await tx
     .select({ weddingDate: weddings.weddingDate })
     .from(weddings)
     .where(and(eq(weddings.id, weddingId), isNull(weddings.deletedAt)))
+    .for('share')
   return rows[0]?.weddingDate
 }
 
@@ -297,12 +368,15 @@ function assigneeFor(
 /**
  * One task, or `notFound` when the wedding is not reachable. Title is trimmed and must survive it.
  */
+export type TaskWriteFailure = 'notFound' | 'anchorNotFound'
+
 export async function createTask(
   scope: WeddingScope,
   input: TaskInput,
-): Promise<Result<TaskRow, 'notFound'>> {
+): Promise<Result<TaskRow, TaskWriteFailure>> {
   const created = await createTasks(scope, [input])
-  const id = created.ok ? created.value[0] : undefined
+  if (!created.ok) return created
+  const id = created.value[0]
   if (!id) return fail('notFound')
   const task = await getTask(scope, id)
   return task ? ok(task) : fail('notFound')
@@ -318,7 +392,7 @@ export async function createTask(
 export async function createTasks(
   scope: WeddingScope,
   items: readonly TaskInput[],
-): Promise<Result<string[], 'notFound'>> {
+): Promise<Result<string[], TaskWriteFailure>> {
   const { db, weddingId } = scope
   const principal = scope.principal
   if (!principal) return fail('notFound')
@@ -328,6 +402,10 @@ export async function createTasks(
     const weddingDate = await weddingDateOf(tx, weddingId)
     // `undefined` and not `null`: null is a wedding with no date, which is a real wedding.
     if (weddingDate === undefined) return fail('notFound')
+
+    const wanted = [...new Set(items.map((i) => anchorOf(i.due)).filter((a) => a !== null))]
+    const anchors = await anchorDates(tx, weddingId, wanted)
+    if (anchors.size !== wanted.length) return fail('anchorNotFound')
 
     const values = items.map((item) => {
       const title = item.title.trim()
@@ -343,7 +421,11 @@ export async function createTasks(
         assigneeRole: role,
         assigneeUserId: assigneeFor(role, null, principal.userId),
         createdBy: principal.userId,
-        ...taskDueColumns(item.due ?? { kind: 'none' }, weddingDate),
+        ...taskDueColumns(
+          item.due ?? { kind: 'none' },
+          weddingDate,
+          anchors.get(anchorOf(item.due) ?? '') ?? null,
+        ),
       }
     })
     const inserted = await tx.insert(tasks).values(values).returning({ id: tasks.id })
@@ -361,7 +443,7 @@ export async function updateTask(
   scope: WeddingScope,
   taskId: string,
   patch: TaskPatch,
-): Promise<Result<TaskRow, 'notFound'>> {
+): Promise<Result<TaskRow, TaskWriteFailure>> {
   const { db, weddingId } = scope
   const principal = scope.principal
   if (!principal) return fail('notFound')
@@ -386,7 +468,17 @@ export async function updateTask(
         principal.userId,
       )
     }
-    if (patch.due !== undefined) Object.assign(set, taskDueColumns(patch.due, current.weddingDate))
+    if (patch.due !== undefined) {
+      // Re-read under a share lock rather than trusting `loadTask`'s join (see `weddingDateOf`).
+      const weddingDate = (await weddingDateOf(tx, weddingId)) ?? null
+      const anchor = anchorOf(patch.due)
+      const anchors = await anchorDates(tx, weddingId, anchor ? [anchor] : [])
+      if (anchor && !anchors.has(anchor)) return fail('anchorNotFound')
+      Object.assign(
+        set,
+        taskDueColumns(patch.due, weddingDate, anchor ? (anchors.get(anchor) ?? null) : null),
+      )
+    }
 
     await tx
       .update(tasks)

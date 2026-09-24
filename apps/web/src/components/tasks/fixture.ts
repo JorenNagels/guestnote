@@ -13,6 +13,8 @@ export function task(over: Partial<TaskRow> = {}): TaskRow {
     assigneeName: null,
     assigneeRole: 'planner',
     dueOffsetDays: null,
+    anchorEventId: null,
+    anchorLabel: null,
     dueAt: null,
     dueDate: null,
     completedAt: null,

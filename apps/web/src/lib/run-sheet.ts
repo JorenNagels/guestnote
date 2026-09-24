@@ -126,6 +126,8 @@ export type RunSheetFormValues = {
   place: string
   /** A `wedding_vendors` id, or empty for none. */
   weddingVendorId: string
+  /** A `users` id, or empty for nobody (spec 0004). Absent leaves the row's owner as it is. */
+  ownerUserId?: string
 }
 
 export type RunSheetError =
@@ -135,6 +137,7 @@ export type RunSheetError =
   | 'title'
   | 'place'
   | 'vendor'
+  | 'owner'
   | 'notFound'
   | 'failed'
 
@@ -170,6 +173,11 @@ export function parseRunSheetForm(
   const vendorId = text(v.weddingVendorId).trim()
   if (vendorId !== '' && !isUuid(vendorId)) return { error: 'vendor' }
 
+  // Absent and empty differ: absent is a caller that knows nothing of owners and must not clear
+  // one; empty is the planner choosing "Niemand".
+  const ownerText = v.ownerUserId === undefined ? undefined : text(v.ownerUserId).trim()
+  if (ownerText !== undefined && ownerText !== '' && !isUuid(ownerText)) return { error: 'owner' }
+
   return {
     eventId,
     input: {
@@ -178,6 +186,7 @@ export function parseRunSheetForm(
       title,
       place: place === '' ? null : place,
       weddingVendorId: vendorId === '' ? null : vendorId,
+      ...(ownerText === undefined ? {} : { ownerUserId: ownerText === '' ? null : ownerText }),
     },
   }
 }

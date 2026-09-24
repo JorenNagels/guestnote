@@ -44,11 +44,13 @@ wedding 448-545 of `design-system/planner-prototype/Guestnote Planner.dc.html`.
 - **Settings** `/weddings/[id]/settings`: the same form for an existing wedding, plus notes (internal),
   and the **Dates** block: one row per event (label, date, time, venue) with Save and Remove, and an
   empty row to add one. The main day is the wedding's own date field, which the checklist counts
-  from; events are the extra moments. The prototype's "People" and "Sharing" blocks are the couple
+  from; events are the extra moments. Since 2026-09-24 (spec 0004) a task may count from an event
+  instead; editing an event's date moves those tasks, removing it sends them back to the main day,
+  and a note beside Remove says how many. The prototype's "People" and "Sharing" blocks are the couple
   spec's and are not here.
 - **Colour**: `packages/ui` ColorPicker (six presets and a native input) plus "Geen kleur". The form
   posts a plain `#RRGGBB`; the action checks `^#[0-9A-Fa-f]{6}$` and stores upper case. Colour is
-  a dot or a stripe only.
+  a dot or a stripe only -- except the viewer's own run-sheet rows, 12% into `--card` (spec 0004, 2026-09-24).
 - **Status** is `draft | live | archived`, three radios. Archived sinks to the bottom of the sidebar.
 - **Remove an event** is a soft delete (`deleted_at`). A run sheet item keeps its `event_id`, so S9
   must list events where `deleted_at is null`. Undoing is a later feature; the row is not gone.

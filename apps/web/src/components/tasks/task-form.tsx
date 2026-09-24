@@ -13,6 +13,7 @@ import {
   NOTES_MAX,
   OFFSET_MAX,
   offsetFromForm,
+  type TaskAnchorOption,
   type TaskFormValues,
   TITLE_MAX,
 } from '../../lib/task-form.ts'
@@ -31,6 +32,7 @@ export function TaskForm({
   weddingId,
   taskId,
   weddingDate,
+  events = [],
   initial,
   onDone,
   onCancel,
@@ -39,6 +41,8 @@ export function TaskForm({
   /** Present when editing. */
   taskId?: string | undefined
   weddingDate: string | null
+  /** The wedding's live events, date order: what an offset may count from besides the main day. */
+  events?: readonly TaskAnchorOption[]
   initial: TaskFormValues
   onDone: () => void
   onCancel: () => void
@@ -58,11 +62,15 @@ export function TaskForm({
   // The resolved date is shown while typing: an offset alone ("-42") tells a planner nothing
   // until it is a date on a calendar.
   const days = offsetFromForm(values.offsetDays, values.offsetDirection)
+  // An anchor that is not in `events` was removed since the form opened; the preview falls back to
+  // the main day, and the save says so (`anchorGone`) rather than guessing.
+  const anchor = events.find((e) => e.id === values.anchorEventId)
+  const base = anchor ? anchor.startsOn : weddingDate
   const preview =
     values.dueKind === 'offset' && days !== null
-      ? weddingDate === null
+      ? base === null
         ? t('form.previewNoWeddingDate')
-        : t('form.previewDate', { date: formatDate(format, addDays(weddingDate, days)) })
+        : t('form.previewDate', { date: formatDate(format, addDays(base, days)) })
       : null
 
   function submit(event: React.FormEvent) {
@@ -176,7 +184,32 @@ export function TaskForm({
                 ['after', t('form.after')],
               ]}
             />
+            {/* A native select and not the prototype's pills: a wedding can have five moments,
+                and pills wrap badly at 390px (spec 0004). */}
+            <div>
+              <label htmlFor={`${uid}-anchor`} className="mb-1.5 block text-sm font-medium">
+                {t('form.anchor')}
+              </label>
+              <select
+                id={`${uid}-anchor`}
+                value={values.anchorEventId}
+                onChange={(e) => set('anchorEventId', e.target.value)}
+                aria-invalid={error === 'anchorGone' || undefined}
+                aria-describedby={error === 'anchorGone' ? errorId : undefined}
+                className="border-input h-9 max-w-full rounded-[var(--radius)] border bg-transparent px-2 text-sm"
+              >
+                <option value="">{t('form.anchorMain')}</option>
+                {events.map((e) => (
+                  <option key={e.id} value={e.id}>
+                    {e.label} · {formatDate(format, e.startsOn)}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
+        )}
+        {values.dueKind === 'offset' && events.length === 0 && (
+          <p className="text-muted-foreground mt-1.5 text-xs">{t('form.anchorNoEvents')}</p>
         )}
 
         {values.dueKind === 'date' && (

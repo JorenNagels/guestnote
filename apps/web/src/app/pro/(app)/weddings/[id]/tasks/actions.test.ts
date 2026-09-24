@@ -210,3 +210,18 @@ describe('addCommentAction', () => {
     expect(await addCommentAction(WEDDING, TASK, 'hi')).toEqual({ ok: false, error: 'notFound' })
   })
 })
+
+describe('a removed anchor (spec 0004)', () => {
+  const offset = { ...FORM, dueKind: 'offset', offsetDays: '14', anchorEventId: TASK }
+
+  it('says the moment is gone, on create and update, and refreshes nothing', async () => {
+    createTask.mockResolvedValue({ ok: false, reason: 'anchorNotFound' })
+    updateTask.mockResolvedValue({ ok: false, reason: 'anchorNotFound' })
+    expect(await createTaskAction(WEDDING, offset)).toEqual({ ok: false, error: 'anchorGone' })
+    expect(await updateTaskAction(WEDDING, TASK, offset)).toEqual({
+      ok: false,
+      error: 'anchorGone',
+    })
+    expect(revalidatePath).not.toHaveBeenCalled()
+  })
+})

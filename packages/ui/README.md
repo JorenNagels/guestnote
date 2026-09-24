@@ -36,4 +36,4 @@ A modal side panel: `open`, `onClose`, `title`, `closeLabel`, optional `footer`.
 
 ## ColorPicker
 
-Six preset swatches (real radios) plus a native colour input. `onChange` always receives `#RRGGBB` uppercase; `COLOR_PRESETS` and `normalizeHex` are exported. Colour is a dot or a stripe, never text or a ground behind text.
+Six preset swatches (real radios) plus a native colour input. `onChange` always receives `#RRGGBB` uppercase; `COLOR_PRESETS` and `normalizeHex` are exported. Colour is a dot or a stripe, never text or a ground behind text -- except the viewer's own run-sheet rows, 12% into `--card` (spec 0004, 2026-09-24).

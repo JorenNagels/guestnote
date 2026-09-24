@@ -6,10 +6,10 @@ import { addDays, daysBetween, isOpen } from '../tasks/buckets.ts'
  * `@guestnote/db` (the `import type` is erased), and every function takes `today` as a
  * `YYYY-MM-DD` argument -- `tasks/buckets.ts` has the argument for that.
  *
- * Every date read here is `TaskRow.dueDate`, which the repo derives from the wedding's date for
- * an offset task. `dueAt` is never looked at: it is a stored copy that goes stale when a wedding
- * moves (`repos/tasks.ts`, `taskDueColumns`), and a screen whose whole job is "what is due" is
- * the one place where a stale date does the most harm.
+ * Every date read here is `TaskRow.dueDate`, which the repo derives for an offset task from its
+ * anchor event or the wedding's date. `dueAt` is never looked at: it is a stored copy, kept current
+ * only by the repo's own date writes (`task-due-refresh.ts`), and `dueDate` is the one answer the
+ * repo stands behind -- a screen whose whole job is "what is due" should read that and nothing else.
  */
 
 /** "This week" reaches tomorrow up to and including today + 7. */

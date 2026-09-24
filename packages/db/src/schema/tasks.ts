@@ -1,6 +1,8 @@
+import { sql } from 'drizzle-orm'
 import { check, index, integer, pgTable, text, uuid } from 'drizzle-orm/pg-core'
 import { createdAt, deletedAt, oneOf, orgId, tstz, updatedAt, weddingId } from './_shared.ts'
 import { users } from './auth.ts'
+import { weddingEvents } from './events.ts'
 import { weddings } from './weddings.ts'
 
 export const TASK_STATUSES = ['open', 'in_progress', 'done'] as const
@@ -44,11 +46,25 @@ export const tasks = pgTable(
     dueAt: tstz('due_at'),
     /**
      * T-minus, for templates: -180 means "6 months before the wedding date".
-     * Resolved against `weddings.wedding_date` + `weddings.timezone` in
-     * packages/core, which is what lets one checklist template apply to any wedding
-     * and compute its own dates.
+     * Resolved against `weddings.wedding_date`, or `anchor_event_id`'s date when set, as a civil
+     * date in `repos/task-dates.ts` -- which is what lets one checklist template apply to any
+     * wedding and compute its own dates. (This comment used to say `packages/core` and
+     * `weddings.timezone`; neither was ever true, corrected 2026-09-24.)
      */
     dueOffsetDays: integer('due_offset_days'),
+    /**
+     * The event the offset counts from, instead of `weddings.wedding_date` (spec 0004). Null is
+     * the main date, which is what a template produces. `set null` rather than `cascade` or
+     * `restrict`: the app never hard-deletes an event (removal is soft, and `deleteWeddingEvent`
+     * clears this first so its tasks fall back to the main date), and a hand-run delete of one
+     * must neither take its tasks with it nor be blocked by them.
+     *
+     * A link and not a day count (the prototype's `anchorDay`): moving the civil ceremony has to
+     * move the tasks that count from it, which a number relative to the main date cannot do.
+     */
+    anchorEventId: uuid('anchor_event_id').references(() => weddingEvents.id, {
+      onDelete: 'set null',
+    }),
     createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
     completedAt: tstz('completed_at'),
     createdAt: createdAt(),
@@ -59,10 +75,18 @@ export const tasks = pgTable(
     check('tasks_status_check', oneOf('status', TASK_STATUSES)),
     check('tasks_visibility_check', oneOf('visibility', TASK_VISIBILITIES)),
     check('tasks_assignee_role_check', oneOf('assignee_role', TASK_ASSIGNEE_ROLES)),
+    // An anchor on a fixed-date task means nothing, and `TaskDue` cannot build one; this is the
+    // same rule held where a hand-written UPDATE cannot get round it.
+    check(
+      'tasks_anchor_needs_offset',
+      sql.raw('anchor_event_id is null or due_offset_days is not null'),
+    ),
     // Every index starts with the tenant column, so the planner's "due this week
     // across every wedding" screen (item P16) and the per-wedding list both hit it.
     index('tasks_org_wedding_idx').on(t.orgId, t.weddingId),
     index('tasks_org_due_at_idx').on(t.orgId, t.dueAt),
+    // What an event's date change or removal looks its tasks up by.
+    index('tasks_org_anchor_event_idx').on(t.orgId, t.anchorEventId),
   ],
 )
 

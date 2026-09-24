@@ -74,7 +74,9 @@ function phrase(days: number, locale: string, labels: WeddingRowLabels): string 
  * The colour is an arbitrary planner-chosen hex, so no contrast rule can be promised for text
  * on it or over it. It is therefore only ever a shape beside the text: a dot when expanded, a
  * 3px edge on the rail. The prototype tinted the active row's background and put white initials
- * on a coloured chip; both were dropped for exactly this. Cost: the active row is marked by the
+ * on a coloured chip; both were dropped for exactly this. (The run sheet does tint rows since spec
+ * 0004, but only as a 12% mix into the card, a ceiling that keeps contrast for any hex -- the
+ * prototype's tint was the full colour, and white text on an arbitrary colour has no floor.) Cost: the active row is marked by the
  * neutral `bg-muted` and the stripe, so a very pale colour makes the stripe faint -- the text
  * and `aria-current` still carry the state.
  *

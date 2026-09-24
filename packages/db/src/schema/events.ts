@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 import { check, date, index, integer, pgTable, text, time, uuid } from 'drizzle-orm/pg-core'
 import { createdAt, deletedAt, orgId, updatedAt, weddingId } from './_shared.ts'
+import { users } from './auth.ts'
 import { weddingVendors } from './vendors.ts'
 import { weddings } from './weddings.ts'
 
@@ -10,7 +11,8 @@ import { weddings } from './weddings.ts'
  * an event and need a foreign key.
  *
  * `weddings.wedding_date` stays the MAIN date and is what `tasks.due_offset_days` resolves
- * against, so nothing about tasks changes. Which event row is "the main one" is not stored:
+ * against -- unless the task names an event in `tasks.anchor_event_id` (spec 0004, which
+ * reversed spec 0003's "nothing about tasks changes"). Which event row is "the main one" is not stored:
  * the date of the wedding is `weddings.wedding_date`, and an event on that date is it.
  *
  * `starts_on` is a `date` for the same reason `wedding_date` is: a local civil date. And
@@ -63,6 +65,14 @@ export const runSheetItems = pgTable(
     weddingVendorId: uuid('wedding_vendor_id').references(() => weddingVendors.id, {
       onDelete: 'set null',
     }),
+    /**
+     * The staff member who answers for this row, beside the vendor who does it (spec 0004). Their
+     * rows are tinted for them on the sheet. `set null`: a deleted user must not delete the day.
+     *
+     * `run_sheet_items.link_read` (0008) grants a vendor link the whole row, so a signed link can
+     * read this id. It is opaque -- no name, no address -- and the vendor page never selects it.
+     */
+    ownerUserId: uuid('owner_user_id').references(() => users.id, { onDelete: 'set null' }),
     position: integer('position').notNull().default(0),
     createdAt: createdAt(),
     updatedAt: updatedAt(),

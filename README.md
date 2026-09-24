@@ -242,7 +242,7 @@ Three things gate it:
    exist from the first migration rather than leaking on the day the couple portal ships.
    → `research/07-auth-and-tenancy.md`, `09-planner-app.md` §b
 3. **The task engine.** Shared checklist, assigned to planner *or* couple, due dates anchored
-   to the wedding date, applied from a template in one click. → **T3/T6/T8/T9**
+   to the wedding date (or, since spec 0004, to one of its events), applied from a template in one click. → **T3/T6/T8/T9**
 
 ### Deferred, not cancelled
 

@@ -7,6 +7,7 @@ import { withTenant } from '../tenant.ts'
 import { type Memberships, principalForOrg, principalForWedding } from './memberships.ts'
 import { fail, ok, type Result } from './result.ts'
 import type { WeddingScope } from './scope.ts'
+import { refreshTaskDueAt } from './task-due-refresh.ts'
 
 /**
  * The wedding list, which is the first read in this application to go through
@@ -292,8 +293,8 @@ export async function updateWedding(
   const principal = scope.principal
   if (!principal) return fail('notFound')
 
-  const rows = await withTenant(db, principal, async (tx) =>
-    tx
+  const rows = await withTenant(db, principal, async (tx) => {
+    const updated = await tx
       .update(weddings)
       .set({
         status: input.status,
@@ -308,8 +309,13 @@ export async function updateWedding(
       // The `id` predicate is what narrows an org-wide principal to one wedding; a pinned
       // member is narrowed by RLS as well, and this is the same belt `getWedding` describes.
       .where(and(eq(weddings.id, weddingId), isNull(weddings.deletedAt)))
-      .returning(DETAIL),
-  )
+      .returning(DETAIL)
+    // Every unanchored offset task counts from this date, so their `due_at` copy moves with it
+    // in the same transaction (spec 0004). Unconditional: comparing old and new dates would
+    // need a read first, and the rewrite is one statement over one wedding's tasks.
+    if (updated[0]) await refreshTaskDueAt(tx, weddingId)
+    return updated
+  })
   return rows[0] ? ok(rows[0]) : fail('notFound')
 }
 

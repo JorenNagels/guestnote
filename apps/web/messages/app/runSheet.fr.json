@@ -49,6 +49,8 @@
     "vendor": "Qui s'en charge",
     "vendorNone": "Planner, pas de prestataire",
     "vendorEmpty": "Pas encore de prestataires sur ce mariage. Ajoutez-les sous Prestataires.",
+    "owner": "Responsable",
+    "ownerNone": "Personne",
     "vendorRemoved": "{name} (ne fait plus partie de ce mariage)",
     "order": "Ordre",
     "moveUp": "Monter",
@@ -70,7 +72,8 @@
     "place": "C'est trop long pour un lieu. Restez sous 120 caractères.",
     "vendor": "Choisissez un prestataire dans la liste.",
     "notFound": "Cet élément ou ce mariage n'existe plus. Actualisez la page.",
-    "failed": "L'enregistrement n'a pas abouti. Rien n'a été modifié. Réessayez dans un instant."
+    "failed": "L'enregistrement n'a pas abouti. Rien n'a été modifié. Réessayez dans un instant.",
+    "owner": "Choisissez quelqu'un de l'équipe qui travaille sur ce mariage."
   },
   "error": {
     "title": "Le déroulé n'a pas pu être chargé",
