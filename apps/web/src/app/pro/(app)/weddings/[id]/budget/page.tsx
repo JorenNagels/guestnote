@@ -26,7 +26,6 @@ export default async function BudgetPage({ params }: { params: Promise<{ id: str
   return (
     <BudgetView
       weddingId={id}
-      coupleName={data.wedding.coupleDisplayName}
       locale={data.wedding.locale}
       lines={data.lines}
       payments={data.payments}

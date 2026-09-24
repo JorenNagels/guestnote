@@ -45,7 +45,7 @@ export default async function TaskPage({
   ])
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-8">
+    <div className="mx-auto max-w-3xl px-6 pt-6 pb-8">
       <TasksIntl>
         <TaskDetail
           task={task}

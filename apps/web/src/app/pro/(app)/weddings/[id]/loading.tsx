@@ -11,20 +11,22 @@ import { getTranslations } from 'next-intl/server'
  * whole server render before the screen moves. With this one the skeleton is already in the
  * client cache and paints on click. See node_modules/next/dist/docs/01-app/02-guides/prefetching.md.
  *
- * Generic rather than one per screen: shaped as header, tabs and a list, which is what all six
- * share. A per-screen skeleton would be closer for a moment and six more files to keep in step.
+ * Generic rather than one per screen: shaped as a title and a list, which is what all six share.
+ * A per-screen skeleton would be closer for a moment and six more files to keep in step.
+ *
+ * **Content only.** It renders inside `layout.tsx`, below the wedding's header and tab strip,
+ * which stay on screen through a tab switch. It used to draw grey bars for the header and the
+ * strip too, so every tab click blanked the title the planner was already reading (2026-09-24).
  */
 export default async function Loading() {
   const t = await getTranslations('app.shell')
   return (
-    <div aria-busy="true" className="mx-auto max-w-5xl px-6 py-8">
+    <div aria-busy="true" className="mx-auto max-w-5xl px-6 pt-6 pb-8">
       <p role="status" className="sr-only">
         {t('loading')}
       </p>
       <div aria-hidden="true" className="animate-pulse">
-        <div className="bg-muted h-3 w-32 rounded" />
-        <div className="bg-muted mt-2 h-7 w-64 rounded" />
-        <div className="bg-muted mt-6 h-9 w-full rounded" />
+        <div className="bg-muted h-6 w-40 rounded" />
         <div className="border-border bg-card mt-6 divide-y overflow-hidden rounded-[var(--radius)] border">
           {[0, 1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="h-12 px-4 py-3">

@@ -4,7 +4,7 @@ import { getTranslations } from 'next-intl/server'
 export default async function Loading() {
   const t = await getTranslations('app.money')
   return (
-    <div aria-busy="true" className="mx-auto max-w-5xl px-6 py-8">
+    <div aria-busy="true" className="mx-auto max-w-5xl px-6 pt-6 pb-8">
       <p role="status" className="sr-only">
         {t('loading')}
       </p>

@@ -32,13 +32,10 @@ export default async function WeddingVendorsPage({ params }: { params: Promise<{
   if (!wedding || !data) notFound()
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-8">
+    <div className="mx-auto max-w-5xl px-6 pt-6 pb-8">
       <header className="mb-6">
-        <p className="text-muted-foreground text-xs font-semibold tracking-[0.09em] uppercase">
-          {wedding.coupleDisplayName}
-        </p>
-        <div className="mt-1 flex flex-wrap items-baseline justify-between gap-x-4">
-          <h1 className="text-2xl font-semibold tracking-tight">{t('wedding.title')}</h1>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4">
+          <h2 className="text-xl font-semibold tracking-tight">{t('wedding.title')}</h2>
           <Link
             href={app.vendors()}
             className="text-muted-foreground text-xs underline underline-offset-[3px] hover:text-foreground"

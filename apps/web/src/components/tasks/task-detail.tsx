@@ -108,7 +108,7 @@ export function TaskDetail({
             done={done}
             onFail={() => setError('failed')}
           />
-          <h1
+          <h2
             className={
               done
                 ? 'text-muted-foreground min-w-0 flex-1 text-lg font-semibold line-through'
@@ -116,7 +116,7 @@ export function TaskDetail({
             }
           >
             {task.title}
-          </h1>
+          </h2>
           {task.status === 'in_progress' && <Pill tone="accent">{t('row.inProgress')}</Pill>}
           <Button
             variant="secondary"

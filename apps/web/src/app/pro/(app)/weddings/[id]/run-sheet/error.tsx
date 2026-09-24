@@ -7,8 +7,8 @@ import { useTranslations } from 'next-intl'
 export default function ErrorBoundary({ reset }: { error: Error; reset: () => void }) {
   const t = useTranslations('app.runSheet.error')
   return (
-    <div role="alert" className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
-      <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
+    <div role="alert" className="mx-auto max-w-5xl px-6 pt-6 pb-8">
+      <h2 className="text-xl font-semibold tracking-tight">{t('title')}</h2>
       <p className="text-muted-foreground mt-2 text-sm">{t('body')}</p>
       <div className="mt-4 max-w-48">
         <Button onClick={reset}>{t('retry')}</Button>

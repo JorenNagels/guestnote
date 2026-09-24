@@ -29,14 +29,7 @@ function view(
   vendors = [] as { id: string; name: string }[],
 ) {
   return renderWithCopy(
-    <BudgetView
-      weddingId={W}
-      coupleName="Emma and Lucas"
-      locale="en"
-      lines={lines}
-      payments={payments}
-      vendors={vendors}
-    />,
+    <BudgetView weddingId={W} locale="en" lines={lines} payments={payments} vendors={vendors} />,
   )
 }
 

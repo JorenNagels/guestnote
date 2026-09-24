@@ -4,7 +4,7 @@
  */
 export default function Loading() {
   return (
-    <div aria-busy="true" className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+    <div aria-busy="true" className="mx-auto max-w-5xl px-6 pt-6 pb-8">
       <div aria-hidden="true" className="animate-pulse">
         <div className="bg-muted h-7 w-56 rounded" />
         <div className="bg-muted mt-2 h-4 w-72 rounded" />

@@ -9,8 +9,6 @@ import { getTranslations } from 'next-intl/server'
 import { EventsEditor } from '../../../../../../components/wedding/events-editor.tsx'
 import { eventsLabels, weddingFormLabels } from '../../../../../../components/wedding/labels.ts'
 import { WeddingForm } from '../../../../../../components/wedding/wedding-form.tsx'
-import { WeddingHeader } from '../../../../../../components/wedding/wedding-header.tsx'
-import { WeddingTabs } from '../../../../../../components/wedding/wedding-tabs.tsx'
 import { getDb } from '../../../../../../lib/db.ts'
 import { currentMemberships, currentOrgId } from '../../../../../../lib/principal.ts'
 import { isUuid } from '../../../../../../lib/uuid.ts'
@@ -25,13 +23,12 @@ import { saveEventAction, updateWeddingAction } from './actions.ts'
  * on the server, and each re-derives standing itself when it runs.
  */
 export default async function SettingsPage({ params }: { params: Promise<{ id: string }> }) {
-  const [{ id }, memberships, orgId, t, status, nav] = await Promise.all([
+  const [{ id }, memberships, orgId, t, status] = await Promise.all([
     params,
     currentMemberships(),
     currentOrgId(),
     getTranslations('app.weddingPages'),
     getTranslations('app.weddings.status'),
-    getTranslations('app.shell.nav'),
   ])
   // A malformed id is a 404 like any other unknown one: Postgres would raise on the uuid cast
   // and the planner would get a 500 for a mistyped URL.
@@ -46,10 +43,8 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
   ])
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-8">
-      <WeddingHeader wedding={wedding} eyebrow={nav('settings')} />
-      <WeddingTabs weddingId={id} current="settings" />
-      <p className="text-muted-foreground mt-4 mb-5 text-sm">{t('settings.intro')}</p>
+    <div className="mx-auto max-w-5xl px-6 pb-8">
+      <p className="text-muted-foreground mt-6 mb-5 text-sm">{t('settings.intro')}</p>
 
       <div className="flex max-w-3xl flex-col gap-4">
         <WeddingForm

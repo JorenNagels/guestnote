@@ -140,8 +140,8 @@ export function FilesScreen({
   })
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-8">
-      <h1 className="text-2xl font-semibold tracking-tight">{labels.title}</h1>
+    <div className="mx-auto max-w-5xl px-6 pt-6 pb-8">
+      <h2 className="text-xl font-semibold tracking-tight">{labels.title}</h2>
 
       <div className="mt-6">
         <UploadZone

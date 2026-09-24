@@ -45,7 +45,6 @@ export default async function RunSheetPage({
   return (
     <RunSheetView
       weddingId={id}
-      coupleName={wedding.coupleDisplayName}
       locale={locale}
       events={events}
       selectedEventId={selected?.id ?? null}

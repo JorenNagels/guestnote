@@ -40,10 +40,10 @@ afterAll(() => {
  * ## What is mocked
  *
  * The seams that leave the process -- `@guestnote/db` and `lib/principal.ts` -- plus
- * `next-intl/server` and `notFound`. `WeddingHeader` and `WeddingTabs` are async Server
- * Components, which jsdom cannot render as children, so they are replaced by stubs; the header
- * keeps its real `formatCivilDate` because the UTC pin below is a correctness property and a
- * mocked date would let it rot. The header and the strip have their own tests.
+ * `next-intl/server` and `notFound`. The header and the tab strip are not this page's any more:
+ * since 2026-09-24 `layout.tsx` renders them once for every wedding screen, and
+ * `layout.test.tsx` covers them. The UTC pin below still discriminates, through the days-to-go
+ * figure's own `formatCivilDate`.
  */
 const getWeddingDetail = vi.fn()
 const getWeddingTaskCounts = vi.fn()
@@ -76,15 +76,6 @@ vi.mock('../../../../../lib/principal.ts', () => ({
   },
 }))
 vi.mock('next/navigation', () => ({ notFound: () => notFound() }))
-vi.mock('../../../../../components/wedding/wedding-header.tsx', async (orig) => ({
-  ...(await orig<typeof import('../../../../../components/wedding/wedding-header.tsx')>()),
-  WeddingHeader: ({ wedding }: { wedding: { coupleDisplayName: string } }) => (
-    <h1>{wedding.coupleDisplayName}</h1>
-  ),
-}))
-vi.mock('../../../../../components/wedding/wedding-tabs.tsx', () => ({
-  WeddingTabs: ({ current }: { current: string }) => <nav data-current={current} />,
-}))
 // `TasksIntl` is async and the row is a client component reading `app.tasks`; both have their
 // own tests. Stubbed to the title, which is all this page decides: WHICH tasks, in what order.
 vi.mock('../../../../../components/tasks/provider.tsx', () => ({
@@ -150,10 +141,10 @@ const renderPage = async (id = WID) =>
   render(await WeddingPage({ params: Promise.resolve({ id }) }))
 
 describe('a wedding the principal can see', () => {
-  it('names it, and points the strip at the overview', async () => {
-    const { container } = await renderPage()
-    expect(screen.getByRole('heading', { name: 'Els & Jan' })).toBeInTheDocument()
-    expect(container.querySelector('nav')?.getAttribute('data-current')).toBe('overview')
+  it('leaves the couple heading and the strip to the layout, so a tab switch keeps them', async () => {
+    await renderPage()
+    expect(screen.queryByRole('heading', { level: 1 })).toBeNull()
+    expect(screen.queryByRole('navigation')).toBeNull()
   })
 
   it('counts the days to go, on the civil date', async () => {

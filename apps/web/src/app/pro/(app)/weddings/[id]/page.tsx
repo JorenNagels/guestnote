@@ -11,8 +11,6 @@ import { notFound } from 'next/navigation'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { TasksIntl } from '../../../../../components/tasks/provider.tsx'
 import { TaskRowView } from '../../../../../components/tasks/task-row.tsx'
-import { WeddingHeader } from '../../../../../components/wedding/wedding-header.tsx'
-import { WeddingTabs } from '../../../../../components/wedding/wedding-tabs.tsx'
 import { formatCivilDate } from '../../../../../lib/civil-date.ts'
 import { getDb } from '../../../../../lib/db.ts'
 import { currentMemberships, currentOrgId } from '../../../../../lib/principal.ts'
@@ -80,10 +78,7 @@ export default async function WeddingPage({ params }: { params: Promise<{ id: st
   const percent = counts.total === 0 ? 0 : Math.round((counts.done / counts.total) * 100)
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-8">
-      <WeddingHeader wedding={wedding} />
-      <WeddingTabs weddingId={id} current="overview" />
-
+    <div className="mx-auto max-w-5xl px-6 pb-8">
       <div className="mt-6 flex flex-wrap items-start gap-6">
         <div className="min-w-[min(100%,520px)] flex-[1_1_520px]">
           <dl className="mb-6 grid grid-cols-[repeat(auto-fit,minmax(8.5rem,1fr))] gap-2.5">

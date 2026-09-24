@@ -40,12 +40,9 @@ export default async function ChecklistPage({
   const [tasks, events] = await Promise.all([listTasks(scope), listWeddingEvents(scope)])
 
   return (
-    <div className="mx-auto max-w-4xl px-6 py-8">
+    <div className="mx-auto max-w-5xl px-6 pt-6 pb-8">
       <header className="mb-5">
-        <p className="text-muted-foreground text-xs font-semibold tracking-[0.09em] uppercase">
-          {wedding.coupleDisplayName}
-        </p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">{t('title')}</h1>
+        <h2 className="text-xl font-semibold tracking-tight">{t('title')}</h2>
       </header>
       <TasksIntl>
         <Checklist

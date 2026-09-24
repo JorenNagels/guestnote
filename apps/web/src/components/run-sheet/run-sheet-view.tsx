@@ -64,7 +64,6 @@ function whoOf(item: RunSheetItem, planner: string): string {
  */
 export function RunSheetView({
   weddingId,
-  coupleName,
   locale,
   events,
   selectedEventId,
@@ -75,7 +74,6 @@ export function RunSheetView({
   color = null,
 }: {
   weddingId: string
-  coupleName: string
   locale: string
   events: WeddingEvent[]
   selectedEventId: string | null
@@ -113,12 +111,9 @@ export function RunSheetView({
     sheetItem !== 'new' && sheetItem ? items.findIndex((i) => i.id === sheetItem.id) : -1
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
+    <div className="mx-auto max-w-5xl px-6 pt-6 pb-8">
       <header className="mb-5">
-        <p className="text-muted-foreground text-xs font-semibold tracking-[0.09em] uppercase">
-          {coupleName}
-        </p>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight">{t('title')}</h1>
+        <h2 className="text-xl font-semibold tracking-tight">{t('title')}</h2>
       </header>
 
       {events.length === 0 ? (

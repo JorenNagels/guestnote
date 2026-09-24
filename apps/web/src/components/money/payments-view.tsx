@@ -86,13 +86,10 @@ export function PaymentsView({
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-8">
+    <div className="mx-auto max-w-5xl px-6 pt-6 pb-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-muted-foreground text-xs font-semibold tracking-[0.09em] uppercase">
-            {wedding.coupleDisplayName}
-          </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight">{t('title')}</h1>
+          <h2 className="text-xl font-semibold tracking-tight">{t('title')}</h2>
           <p className="text-muted-foreground mt-1 text-sm">{t('subtitle')}</p>
         </div>
         <div className="flex gap-2">

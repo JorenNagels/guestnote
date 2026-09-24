@@ -49,7 +49,6 @@ function view(over: {
   return renderWithCopy(
     <RunSheetView
       weddingId={W}
-      coupleName="Emma and Lucas"
       locale="en"
       events={events}
       selectedEventId={over.selectedEventId ?? events[0]?.id ?? null}
