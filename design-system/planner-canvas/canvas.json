@@ -1,0 +1,228 @@
+{
+  "artboards": [
+    {
+      "file": "Anatomy.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1933,
+      "page": "page-1",
+      "title": "Layout · anatomie"
+    },
+    {
+      "file": "Main.dc.html",
+      "x": 1560,
+      "y": 0,
+      "w": 1440,
+      "h": 1088,
+      "page": "page-1",
+      "title": "Vandaag · P16"
+    },
+    {
+      "file": "WeddingOverview.dc.html",
+      "x": 3120,
+      "y": 0,
+      "w": 1440,
+      "h": 1044,
+      "page": "page-1",
+      "title": "Bruiloft · overzicht"
+    },
+    {
+      "file": "Checklist.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1164,
+      "page": "page-2",
+      "title": "Taken · P6 + P8"
+    },
+    {
+      "file": "TaskDetail.dc.html",
+      "x": 1560,
+      "y": 0,
+      "w": 560,
+      "h": 944,
+      "page": "page-2",
+      "title": "Taak en reacties · P4"
+    },
+    {
+      "file": "Templates.dc.html",
+      "x": 2240,
+      "y": 0,
+      "w": 1440,
+      "h": 1104,
+      "page": "page-2",
+      "title": "Sjablonen · P9 + P17"
+    },
+    {
+      "file": "CouplePortal.dc.html",
+      "x": 3800,
+      "y": 0,
+      "w": 1440,
+      "h": 964,
+      "page": "page-2",
+      "title": "Koppelportaal · P7"
+    },
+    {
+      "file": "Budget.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1247,
+      "page": "page-3",
+      "title": "Budget · P11"
+    },
+    {
+      "file": "Payments.dc.html",
+      "x": 1560,
+      "y": 0,
+      "w": 1440,
+      "h": 1144,
+      "page": "page-3",
+      "title": "Betalingen · P12"
+    },
+    {
+      "file": "Vendors.dc.html",
+      "x": 3120,
+      "y": 0,
+      "w": 1440,
+      "h": 1044,
+      "page": "page-3",
+      "title": "Leveranciers · P13"
+    },
+    {
+      "file": "RunSheet.dc.html",
+      "x": 4680,
+      "y": 0,
+      "w": 1440,
+      "h": 1262,
+      "page": "page-3",
+      "title": "Draaiboek · P14"
+    },
+    {
+      "file": "RunSheetPhone.dc.html",
+      "x": 6240,
+      "y": 0,
+      "w": 390,
+      "h": 868,
+      "page": "page-3",
+      "title": "Draaiboek op de dag · P14"
+    },
+    {
+      "file": "Files.dc.html",
+      "x": 6750,
+      "y": 0,
+      "w": 1440,
+      "h": 1024,
+      "page": "page-3",
+      "title": "Bestanden · P15"
+    },
+    {
+      "file": "Moodboard.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1144,
+      "page": "page-4",
+      "title": "Moodboard · P21"
+    },
+    {
+      "file": "VendorSlice.dc.html",
+      "x": 1560,
+      "y": 0,
+      "w": 900,
+      "h": 876,
+      "page": "page-4",
+      "title": "Leverancierslink · P18"
+    },
+    {
+      "file": "Team.dc.html",
+      "x": 2580,
+      "y": 0,
+      "w": 1440,
+      "h": 1164,
+      "page": "page-4",
+      "title": "Team en zitjes · P20"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "note-shell",
+      "page": "page-1",
+      "x": 0,
+      "y": -230,
+      "w": 420,
+      "text": "Wat hier NIEUW is tegenover shell.tsx vandaag:\n\n· Vandaag (P16) staat in de navigatie, en / stopt met doorverwijzen naar /weddings\n· de bruiloftsectie heeft acht rijen in plaats van één\n· Sjablonen en Team staan globaal, niet per bruiloft\n\nWat NIET verandert: geen --sidebar-* tokengroep. De zijbalk blijft staan op --background met --border ernaast, --muted voor de actieve rij en --foreground voor de tekst — precies zoals spec 0001 besloot — die groep vraagt een contrastpas die dit werk niet doet."
+    },
+    {
+      "id": "note-height",
+      "page": "page-1",
+      "x": 460,
+      "y": -230,
+      "w": 400,
+      "text": "Gemeten, niet geschat: 775px voor de zijbalk met acht bruiloftsecties (build.mjs --measure, headless Chromium, Inter geladen).\n\nDat past op 900px en niet op de ~740px van een 13-inch laptop. Er is geen scrollgebied in de zijbalk, dus wat wegvalt is het account en de inklapknop — de twee dingen die altijd bereikbaar horen te zijn. Kop en account vastzetten, middenstuk laten scrollen."
+    },
+    {
+      "id": "note-badge",
+      "page": "page-1",
+      "x": 1560,
+      "y": -230,
+      "w": 400,
+      "text": "Het telletje op Taken is een VOORSTEL, geen bestaand gedrag.\n\nSpec 0001 liet het badge op Bruiloften bewust weg: voor een `member` kost dat één transactie per toegewezen bruiloft, op elke paginarender. Binnen één bruiloft is het één aggregaat — maar dat is geredeneerd, niet gemeten. Meten voordat het gebouwd wordt."
+    },
+    {
+      "id": "note-internal",
+      "page": "page-2",
+      "x": 0,
+      "y": -250,
+      "w": 430,
+      "text": "De interne grens staat er twee keer op: getinte rij ÉN slotchip met het woord \"Intern\".\n\nNooit kleur alleen. Deze schermen worden zwart-wit afgedrukt voor de zaal, en principe 4 zegt dat die grens altijd zichtbaar moet zijn, nooit af te leiden.\n\nDe reacties erven de zichtbaarheid van de taak via een databasetrigger, niet via applicatiecode — daarom durft het paneel te beloven dat ze meegaan."
+    },
+    {
+      "id": "note-couple",
+      "page": "page-2",
+      "x": 3800,
+      "y": -250,
+      "w": 420,
+      "text": "PRODUCT.md laat open of het koppel dezelfde UI uitgekleed krijgt of een aparte surface. Dit is de goedkope kant, getekend zodat de keuze te beoordelen valt.\n\nHet belangrijkste aan dit scherm is wat er NIET staat: geen spoor van de vier interne taken. Geen telling, geen grijze rij, geen \"3 verborgen\". Een hint dat er iets verborgen is, is zelf het lek."
+    },
+    {
+      "id": "note-print",
+      "page": "page-3",
+      "x": 4680,
+      "y": -250,
+      "w": 420,
+      "text": "Het draaiboek is ontworpen om een zwart-witte A4 te overleven: de wie-kolom is een naam plus een rolwoord, de blokken zijn toon en geen kleur, en elk bedrag is rechts uitgelijnd met tabular-nums (td.num is een baselaagregel in tokens.css, geen keuze per scherm).\n\nOp de telefoon: geen nagemaakte statusbalk, elk tikdoel ≥44px. Dit is het enige scherm dat offline moet werken."
+    },
+    {
+      "id": "note-mood",
+      "page": "page-4",
+      "x": 0,
+      "y": -210,
+      "w": 400,
+      "text": "De moodboardtegels zijn placeholders. Er zit geen beeldmateriaal in deze repo, en een stockfoto zou een visuele richting suggereren die niemand gekozen heeft.\n\nDe reactierail rechts is de eigenlijke feature: die haalt de feedback van het koppel weg uit de groepschat."
+    }
+  ],
+  "pages": [
+    {
+      "id": "page-1",
+      "name": "Layout"
+    },
+    {
+      "id": "page-2",
+      "name": "Taken, sjablonen, koppel"
+    },
+    {
+      "id": "page-3",
+      "name": "PH2 — dagelijkse motor"
+    },
+    {
+      "id": "page-4",
+      "name": "PH3 — plakkracht"
+    }
+  ],
+  "launch": {
+    "view": "canvas",
+    "page": "page-1"
+  }
+}
