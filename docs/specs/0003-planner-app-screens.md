@@ -97,6 +97,8 @@ Rejected: a live link (needs diff and conflict UX).
 
 **Team invites send email.** Owner or admin writes `invitations` and sends through the mailer
 seam. Seat counts and billing are not built; the Team screen shows static seat labels.
+*(2026-09-26: billing — trial, lock, Billing screen — was built by spec 0005 behind
+`packages/billing`, switched off while `GUESTNOTE_BILLING_FROM` is unset. Seat counts still are not.)*
 
 **Team read and invite acceptance are migration `0007` (F1b, 2026-09-21).** S6 stopped on two
 `NEEDS-SCHEMA` gaps and F1b closed them: a `for select` policy `org_staff_read` on `org_members` and
@@ -197,7 +199,7 @@ Wave 2 may start a slice as soon as its own dependencies are done, not the whole
 | Unread counts on the sidebar | cost for `member`; needs a measurement first |
 | Assignment and digest emails (P10) | templates, schedule and unsubscribe are their own job |
 | Run sheet print, PDF, CSV (P19) | not chosen for this build |
-| Seat counts and billing | pricing is undecided |
+| Seat counts and billing | pricing is undecided *(billing: built by spec 0005, 2026-09-26, switched off; seat counts still not)* |
 | Pinterest import | later add-on to the moodboard |
 | Per-org or per-wedding theming beyond the colour dot | parked in `design-system/` |
 | Contracts, e-sign, invoicing, lead CRM | `research/09-planner-app.md` |

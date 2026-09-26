@@ -350,6 +350,8 @@ Fixing it belongs to its own change covering both paths, and it needs the `AUTH_
 thresholds decided — they are still explicitly placeholders
 (`packages/core/src/auth/policy.ts`). Until then the exposure is: staging, invite-only, no
 production deployment.
+*(2026-09-26: no longer invite-only — spec 0005 opened self-serve sign-up at `/pro/signup` on
+staging. Still no production deployment; the gap itself is unchanged.)*
 
 **`reportCeremonyFailure` is a third path and this note does not cover it** — added
 2026-09-01 after `tenancy-auditor` pointed out that `actions.ts` claimed it did. It is not an

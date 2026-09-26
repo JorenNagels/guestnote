@@ -24,9 +24,14 @@ wedding 448-545 of `design-system/planner-prototype/Guestnote Planner.dc.html`.
 
 - **Wedding route strip** (`wedding-tabs.tsx`, reusable): links, not ARIA tabs, in one row under the
   header: Overzicht, Checklist, Budget, Betalingen, Leveranciers, Draaiboek, Bestanden, Moodboard,
-  Instellingen. `current` gets `aria-current="page"`. Later slices render
-  `<WeddingTabs weddingId={id} current="budget" />` under their own heading. Labels come from
+  Instellingen. The current tab gets `aria-current="page"`. Labels come from
   `app.shell.nav.*`, so it adds no copy of its own.
+  *(Changed 2026-09-24, `190dfbd`: the header and the strip render once, in
+  `app/pro/(app)/weddings/[id]/layout.tsx`, and the current tab comes from the URL segment
+  (`useSelectedLayoutSegment` in `wedding-tabs-nav.tsx`), not a `current` prop. No screen renders
+  either itself any more, so a tab switch no longer blanks the header into its skeleton. First
+  written as "later slices render `<WeddingTabs weddingId={id} current="budget" />` under their
+  own heading".)*
 - **Header** (`wedding-header.tsx`): colour dot, couple name, date with `T-42`, venue, status pill,
   then the strip.
 - **Overview** `/weddings/[id]`: four figures (days to go, open tasks with the late count, done of
@@ -86,9 +91,12 @@ NL first, in `apps/web/messages/app/weddingPages.{nl,en,fr}.json` under `app.wed
 
 - Create is owner/admin only, confirmed in code: `canCreateWedding` (page and action) plus
   `createWedding`'s own `principalForOrg`. A member sees a sentence, not a form.
-- The link strip is `wedding-tabs.tsx` (`WeddingTabs`, async, reads labels; `WeddingTabsView`, pure).
-  Under it every later slice renders `<WeddingTabs weddingId={id} current="budget" />`, with
-  `<WeddingHeader wedding={...} eyebrow?>` above. Uses `next/link`, checked in Chrome: client
+- The link strip is `wedding-tabs.tsx` (`WeddingTabs`, async, reads labels; `WeddingTabsView`, pure;
+  `WeddingTabsNav`, the client wrapper that picks the current tab from the URL segment). The
+  wedding layout renders `<WeddingHeader wedding={...} />` and `<WeddingTabs weddingId={id} />` once
+  for every screen under `/weddings/[id]` *(since 2026-09-24, `190dfbd`; until then each screen
+  rendered both under its own heading with a `current` prop)*. The layout is not the gate: every
+  page still resolves its own scope and 404s on its own. Uses `next/link`, checked in Chrome: client
   navigation between Overzicht and Instellingen works through the proxy rewrite.
 - A malformed wedding id in the URL is a 404 (`isUuid`), not the 500 Postgres' uuid cast gave.
   The F3 pages of other slices that call `getWedding` with the raw id still have that shape.

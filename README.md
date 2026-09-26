@@ -269,7 +269,7 @@ Full reasoning in `research/05-architecture.md`; costs in `research/06-hosting-c
 | Database | **Neon Postgres** + Drizzle — real Postgres at €0, over HTTP, so no VPC and no $37.96/mo NAT Gateway |
 | Auth | **Better Auth** self-hosted (confirmed 2026-08-12, `07-auth-and-tenancy.md`). Guests never get accounts — signed household links |
 | Custom domains | Deferred to v2. Subdomains only at launch; schema reserved |
-| Email / payments | SES + react-email · Mollie (Bancontact €0.39 vs Stripe €2.34) |
+| Email / payments | SES + react-email · Mollie (Bancontact €0.39 vs Stripe €2.34) *(**Note 2026-09-26:** the payment provider is not chosen yet — spec 0005 built billing behind `packages/billing` with a no-op provider, switched off while `GUESTNOTE_BILLING_FROM` is unset; `research/05-architecture.md` "Payments — Mollie" note)* |
 
 **Running cost: ~€0.50/mo idle, ~€6–8/mo at 100 weddings.** *(**Correction 2026-08-19:**
 ~€9–11/mo at 100 weddings. SES moved to the Essentials pricing plan at $0.16/1,000 — see

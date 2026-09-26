@@ -3,6 +3,8 @@
 Presigned upload and download for the private files bucket: the Files screen and the moodboard
 (`docs/specs/0003-planner-app-screens.md`, slice F4). The browser PUTs straight to S3 with a URL
 this package signs; no file passes through a Lambda.
+*(Since 2026-09-26, spec 0005: also the studio logo, under an org-only `brand/` key, and the one
+delete this package does -- see rule 3 and "What is deliberately not here".)*
 
 Built on the shape of `packages/email`: one file touches the provider, config arrives as
 arguments, and everything returned is plain data.
@@ -18,7 +20,8 @@ development only, when it is not, a local-directory transport (`lib/dev-files.ts
 ```
 Server Function (checks membership itself)
   -> createStorage().presignUpload / presignDownload   validates, builds the key, sets expiry
-    -> StorageTransport.presignPut / presignGet          the port
+     (+ presignBrandDownload / deleteBrandObject for the studio logo, since 2026-09-26)
+    -> StorageTransport.presignPut / presignGet / deleteObject   the port
       -> src/s3.ts                                       the only AWS SDK contact
 ```
 
@@ -26,7 +29,7 @@ Server Function (checks membership itself)
 |---|---|
 | `src/index.ts` | `createStorage`; everything that is not the provider's business |
 | `src/types.ts` | `UploadRequest`, `UploadResult`, `StorageTransport` and friends |
-| `src/keys.ts` | `buildObjectKey`, `assertKeyInScope`, `contentDisposition`. Pure, no SDK |
+| `src/keys.ts` | `buildObjectKey`, `assertKeyInScope`, `buildBrandKey`, `assertBrandKeyInScope`, `contentDisposition`. Pure, no SDK |
 | `src/limits.ts` | the size default, the expiry, the content-type allow-list |
 | `src/s3.ts` | **the only file allowed to import `@aws-sdk/client-s3` or `@aws-sdk/s3-request-presigner`** |
 
@@ -43,6 +46,9 @@ resolves the Lambda role.
 **3. No part of a key is user-controlled.** A key is `<orgId>/<weddingId>/<fileId>`, all UUIDs,
 validated before use. The filename lives in `files.name` and reaches a browser only through
 `Content-Disposition`. `presignDownload` refuses (throws) a key outside the caller's scope.
+*(2026-09-26, spec 0005: there is now a second shape, `<orgId>/brand/<fileId>`, for a studio
+logo -- org scope only, built by `buildBrandKey` and checked by `assertBrandKeyInScope`, which
+`presignBrandDownload` and `deleteBrandObject` call before anything is signed or deleted.)*
 The prefix is for operators and for that check; **it is not access control** -- the presigned URL
 is, and whether to mint one is the calling Server Function's decision.
 
@@ -68,7 +74,7 @@ client must send the size it declared, which `File.size` always gives it.
 
 | | Value | Why |
 |---|---|---|
-| Size | 25 MiB, `maxBytes` overrides | Documents and phone photos. A guess, not a measurement |
+| Size | 25 MiB, `maxBytes` overrides; a `logo` is capped at 2 MiB (`LOGO_MAX_BYTES`, since 2026-09-26) | Documents and phone photos. A guess, not a measurement |
 | URL life | 5 minutes, both directions | It is a bearer credential and cannot be revoked; a download link is minted per click |
 | Types | per `kind`, in `limits.ts` | No `image/svg+xml` and no `text/html`: both can carry script |
 

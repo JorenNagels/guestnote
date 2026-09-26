@@ -9,6 +9,11 @@ under "2026-09-21, by spec 0003".
 
 - Sidebar top to bottom: org head, Zoeken, **Vandaag, Bruiloften, Sjablonen, Leveranciers, Team**,
   the heading **Jouw bruiloften**, one row per wedding, **Nieuwe bruiloft**, collapse, account.
+  *(Amended 2026-09-26, spec 0005: **Studio** follows Team for owner and admin only, and
+  **Billing** follows Studio for owner and admin only while `GUESTNOTE_BILLING_FROM` is set; a
+  member sees neither. The org head shows the studio's logo in place of the monogram when one is
+  set, falling back to the monogram if it fails to load. One banner slot sits above the page --
+  the demo banner while billing is off, the trial banner once it is on.)*
 - A wedding row: colour dot (neutral when `color` is null), couple name, `T-42 · 3 okt`. The
   countdown is computed in the browser from `wedding_date` as a civil date (UTC midnight), with
   "today" taken from the Brussels calendar day. Archived: the word `Gearchiveerd`, no countdown.

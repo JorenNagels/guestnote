@@ -287,8 +287,12 @@ export function createBetterAuthProvider(config: AuthConfig) {
          */
         storeOTP: 'hashed',
         // First verification creates the account. That IS the registration flow for this
-        // product -- there is no self-serve signup, and a planner's staff arrive by
-        // invitation, so the only accounts that can exist are ones someone asked for.
+        // product: a planner's staff arrive by invitation, and since spec 0005 (2026-09-26) a
+        // planner may also sign up at /pro/signup and create a studio. So an account can exist
+        // with no org at all -- it lands on `noOrg` or the sign-up's Studio step -- and that is
+        // harmless, because an account is a login and nothing more: every read is scoped by
+        // a membership it does not have. Until spec 0005 this said "there is no self-serve
+        // signup".
         disableSignUp: false,
         async sendVerificationOTP({ email, otp, type }) {
           await config.sendCode({ email, code: otp, type })

@@ -29,6 +29,8 @@ unauthenticated `(public)` layout beside `login` and `invite`)
   `withTenant`. Shows who shared it (org name), the vendor's own name, the wedding's couple
   names / date / venue / headcount, the vendor's own run-sheet items only (not the wedding's
   whole day), and the planner's freeform note (`wedding_vendors.notes`) if there is one.
+  *(Amended 2026-09-26, spec 0005: the header also shows the studio's logo when it has one --
+  `resolve_vendor_link` gained `logo_key` in migration 0010 -- and the monogram otherwise, or if the logo fails to load.)*
 - Anything else — unknown, expired, revoked, or a vendor since removed from the wedding — is
   the identical "this link no longer works" screen. `resolve_vendor_link` tells the repo
   which of those it was (for a future admin view); the page deliberately never reads that

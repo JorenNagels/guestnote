@@ -207,6 +207,13 @@ catalogues.
 | White-labelling this screen | PRODUCT.md: white-label is scoped to client sites and emails. |
 | The authenticated shell | Rung 2 hands off. |
 
+> **Correction 2026-09-26: self-serve signup is back in, by spec 0005.** "Orgs are founder-seeded
+> until pricing mechanics settle" no longer holds: a planner can create their own studio at
+> `/pro/signup` (`docs/specs/0005-start-a-studio-without-an-invitation.md`), while the product runs
+> as a free demo and billing stays switched off. Social sign-in, rejected in the row above, was
+> added 2026-08-29 (`research/07-auth-and-tenancy.md`). This screen is unchanged except its footer,
+> below.
+
 **Must remain untouched:** `design-system/tokens.css` (no new token without a contrast
 run); the three-root-layout rule; the `private, no-store` posture; the rule that `/pro`
 never reaches a URL bar.
@@ -446,6 +453,10 @@ and PRODUCT.md forbids the number.
 **Also added.** A "no account yet — Guestnote is invite-only" line under the form. It
 answers the only question an empty login page raises, and stops a planner hunting for a
 Create account link that does not exist.
+
+> **Changed 2026-09-26 (spec 0005).** The line is now a prompt and a link to `/pro/signup` —
+> "Plan je bruiloften beroepsmatig? Start je studio", or "Probeer een maand gratis" once billing
+> is on — read from `auth.noAccount.*` by `getAuthCopy(billingOn)`.
 
 **Entry point.** `guestnote.be` gained a header **Inloggen** button that navigates to
 `app.guestnote.be/login`. Not an overlay: the session cookie is `__Host-` prefixed and so

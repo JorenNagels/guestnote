@@ -78,7 +78,7 @@ that survives that.
 | Isolation | Tenant-scoped repository layer **+ Postgres RLS** as the backstop |
 | Auth | **Better Auth** self-hosted — `passkey` + `emailOTP` plugins, plus a secondary "Continue with Google", no password (credential superseded 2026-08-18, Google added 2026-08-29; see `07-auth-and-tenancy.md`). Organization plugin NOT used. Guests never get accounts |
 | Email | **SES** + `react-email` templates. Friendly-From white-labelling in v1 |
-| Payments | **Mollie** (Bancontact/iDEAL economics decide it) |
+| Payments | **Mollie** (Bancontact/iDEAL economics decide it) *(**Note 2026-09-26:** not chosen yet — spec 0005 built a provider-neutral seam; §6's "Payments — Mollie" note)* |
 | Jobs | EventBridge Scheduler one-shots → SQS → Lambda |
 | IaC | **CDK**, two stacks: Foundation / App |
 
@@ -528,6 +528,8 @@ bounded one-weekend job.
 ### Roles
 
 - `org_members`: `owner` (billing) / `admin` (all weddings) / `member` (assigned weddings only)
+  *(**Corrected 2026-09-26:** billing is owner **and** admin since spec 0005 — see the correction
+  under `07-auth-and-tenancy.md`'s permission table.)*
 - `wedding_members`: `couple` / `editor` — a couple attaches to one wedding, not to the org
 - **A direct couple gets their own org** of type `couple_direct`. One code path for everything,
   and "a planner takes over this couple's wedding" becomes one `weddings.org_id` update.
@@ -612,6 +614,14 @@ wants for a €49/mo invoice. Use Mollie for both until billing gets genuinely c
 
 Mollie webhooks send **only an id** — `/api/webhooks/mollie` must re-fetch the payment before
 acting, and be idempotent on `mollie_id`.
+
+> **Note 2026-09-26: the provider choice was deferred again, on purpose.** Spec 0005
+> (`docs/specs/0005-start-a-studio-without-an-invitation.md`) built billing behind a seam,
+> `packages/billing`, with a no-op provider only; nothing in the app names Mollie or Stripe, and the
+> design it was built from assumes Stripe. The Bancontact and SEPA reasoning above is not reversed —
+> it is the input to the choice, which is made when billing goes live (`GUESTNOTE_BILLING_FROM`
+> set). `mollie_customer_id` and `subscription_status` stay unused until then; the seam's columns are
+> the provider-neutral `billing_customer_id` and `billing_subscription_id` (migration 0010).
 
 ### Observability & secrets
 
@@ -783,6 +793,15 @@ deployment"; the stage is `staging` — see the 2026-08-29 note above). **Rollba
 | **M8** | Self-serve onboarding, slug uniqueness + reserved words | 1–2 | **← the day-90 goal** |
 | **M9** | Mollie checkout + subscriptions, feature gating on `organizations.plan` | 1–2 | |
 | **M10** | Reminders, bounce pipeline, retention job, DPA + privacy policy | 1 | |
+
+> **Status 2026-09-26 (spec 0005).** **M8 is built:** a planner signs up at `/pro/signup`, creates a
+> studio through the `create_studio` definer function (slug from the name, `-2`/`-3` on collision,
+> reserved labels refused by `studioSlugFromName`), and gets three starter templates. **M9 is built
+> as UI only:** the trial, the lock after it and the Billing screen exist behind `packages/billing`
+> with a no-op provider, and are switched off while `GUESTNOTE_BILLING_FROM` is unset — which it is
+> everywhere, because the product runs as a free demo. There is no checkout, no subscription and no
+> webhook; gating is on the computed trial state, not `organizations.plan`. The provider (Mollie
+> above, or Stripe) is still to choose.
 
 ---
 

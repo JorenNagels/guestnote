@@ -4,8 +4,10 @@ Transactional mail: react-email templates rendered to HTML and handed to SES v2 
 `research/05-architecture.md` §6 is the design; `docs/adr/0004-sign-in-mail-sends-for-real.md`
 records where that document turned out to be wrong and what was measured instead.
 
-Two templates today: the sign-in code, and the staff invitation (`src/templates/staff-invite.tsx`,
-added with spec 0003's team slice and migration `0007`'s real `resolveInvitation`).
+Three templates today: the sign-in code, the staff invitation (`src/templates/staff-invite.tsx`,
+added with spec 0003's team slice and migration `0007`'s real `resolveInvitation`), and the trial
+reminder (`src/templates/trial-reminder.tsx`, spec 0005, 2026-09-26 -- sent only by the
+trial-reminder cron, and nothing at all while `GUESTNOTE_BILLING_FROM` is unset).
 
 ## The seam
 
@@ -103,6 +105,7 @@ against the daily limit.
 | `render.test.ts` | the code appears in both parts, **no `href` anywhere**, doctype, MSO block, preheader out of the plaintext |
 | `ses.test.ts` | the `SendEmailCommand` input, `Charset: 'UTF-8'` on all three parts, no Reply-To (deliberate, and no longer for the reason first given — `docs/adr/0005-the-apex-receives-mail.md`), and every error mapping |
 | `index.test.ts` | what the transport is handed, what is recorded, and that a throwing recorder still returns the send result |
+| `staff-invite.test.ts`, `trial-reminder.test.ts` | the link, the copy and the template tag of the invitation and the trial reminder; the invite's delivery record omits the link |
 
 Mutation-checked, per the root README's standard: the drift test was confirmed to fail on a
 one-digit colour change, and the import ban on a probe file that imported the SDK.

@@ -35,7 +35,7 @@ an invite that has not been used yet.
 |---|---|
 | Role change, removal of a member | `packages/db` has no repo for it, and RLS on `org_members` only lets a user write their own row. Needs a schema change first. |
 | Resend an invite | Not asked for. Revoke and invite again does the same job. |
-| Seat counts, billing | Spec 0003, "Not in scope". |
+| Seat counts, billing | Spec 0003, "Not in scope". *(2026-09-26: billing now has its own screen, `/billing`, from spec 0005, switched off while `GUESTNOTE_BILLING_FROM` is unset; the seat labels here are unchanged.)* |
 
 ## Schema gaps, closed by migration `0007` (F1b, 2026-09-22)
 

@@ -248,6 +248,13 @@ into the database; both were rejected as more machinery than one `select` list, 
 paragraph is the record of that being a choice rather than an oversight. `0002_grants.sql` grants
 table-wide `select`, so nothing there changes.
 
+*(Amended 2026-09-26: migration 0010 (spec 0005) added nine columns to the same row —
+`logo_key`, `trial_ends_at`, `billing_cycle`, `billing_status`, `billing_name`, `billing_email`,
+`vat_number`, `billing_customer_id`, `billing_subscription_id` — so this accepted cost now covers
+them too. Same boundary, same choice: `listOrgsForUser` still selects
+`id, name, slug`, and `repos/studios.ts`' `billingProfile` is the one reader of the billing
+columns, behind an owner/admin principal — the migration's header says so.)*
+
 ### Search is in the sidebar and opens the palette
 
 **No header band.** A search item at the top of the sidebar nav opens the ⌘K palette; ⌘K and

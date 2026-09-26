@@ -243,6 +243,14 @@ neither            → 404 (not 403 — don't confirm the wedding exists)
 | Guest list, RSVPs | ✅ | ✅ | assigned | ✅ | ✅ |
 | CSV export | ✅ | ✅ | assigned | ✅ | |
 
+> **Correction 2026-09-26: billing is owner + admin, not owner only.** Spec 0005 gave the Billing
+> screen to owner and admin, the design's choice, because a studio's office manager is typically an
+> admin and handles the invoices. The "Billing, plan, cancel" row and "no billing" for `member`
+> above therefore read ✅ for admin too; members still never see it (the nav item is absent and
+> `/pro/billing` 404s). Cancelling does not exist yet — it needs a provider — and is meant to stay an
+> owner action when it does. The Billing screen itself is switched off while
+> `GUESTNOTE_BILLING_FROM` is unset.
+
 Guests appear nowhere on this table. They hold a household token and hit `guestRepo`, which has
 no listing method by construction (§5).
 
@@ -367,3 +375,7 @@ rule is the whole design.
   and run on an in-memory provider, so M3 is a provider swap plus the shell it hands off to.
 - **M9** — feature gating reads `organizations.plan`, which is why the wedding belongs to the
   *planner's* org and not the couple's.
+  > **Note 2026-09-26:** as built (spec 0005), the lock reads a trial state computed from
+  > `organizations.created_at`, `trial_ends_at` and `billing_status`, not `plan`, and it is off
+  > while `GUESTNOTE_BILLING_FROM` is unset. The conclusion stands — it is still the planner's
+  > org that is locked — see `05-architecture.md` §9's "Status 2026-09-26" note.
