@@ -110,10 +110,12 @@ export function StudioStep({ labels, ownerName: initialOwner, action, logoAction
 
   return (
     <>
-      <h1 className="mb-1.5 text-2xl leading-tight font-semibold tracking-tight">{labels.title}</h1>
-      <p className="mb-6 text-sm leading-relaxed text-muted-foreground">{labels.intro}</p>
+      <h1 className="mb-1.5 text-2xl leading-tight font-semibold tracking-[-0.015em]">
+        {labels.title}
+      </h1>
+      <p className="mb-[22px] text-sm leading-[1.55] text-muted-foreground">{labels.intro}</p>
 
-      <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
+      <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3.5">
         <div>
           <Field
             id="signup-studio-name"
@@ -173,13 +175,18 @@ export function StudioStep({ labels, ownerName: initialOwner, action, logoAction
           />
         )}
 
-        <div>
-          <span className="mb-1.5 block text-xs text-muted-foreground">{labels.preview}</span>
-          <Card className="flex items-center gap-3">
-            <StudioMark name={shown} logoUrl={logoFailed ? null : logo?.url} />
-            <span className="min-w-0 truncate text-sm font-semibold">{shown}</span>
-          </Card>
-        </div>
+        {/* The design's preview row: the 28px mark, the name as it will read, and what the
+            row is for underneath it -- inside the card, so the caption reads as part of the
+            preview rather than a label on a form control it is not. */}
+        <Card className="flex items-center gap-3 px-3 py-2.5">
+          <StudioMark name={shown} logoUrl={logoFailed ? null : logo?.url} />
+          <span className="flex min-w-0 flex-col">
+            <span className="truncate text-[13.5px] leading-snug font-semibold">{shown}</span>
+            <span className="text-[11.5px] leading-snug text-muted-foreground">
+              {labels.preview}
+            </span>
+          </span>
+        </Card>
 
         {state.form && <InlineError>{labels.errors[state.form]}</InlineError>}
         {logoFailed && <InlineError>{labels.logo.afterCreate}</InlineError>}

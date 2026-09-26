@@ -10,8 +10,10 @@
     "introDemo": "Guestnote est en démo : tout est gratuit pendant que nous construisons.",
     "introBilling": "Un mois avec tout débloqué. Pas de carte avant que vous décidiez de rester.",
     "notPlanner": "Vous vous mariez, ou vous êtes prestataire d’un mariage ? Vous n’avez pas besoin de compte. Ouvrez le lien envoyé par votre wedding planner.",
-    "haveAccount": "Déjà un studio ?",
-    "signIn": "Se connecter"
+    "haveAccount": "Vous avez déjà un compte ?",
+    "signIn": "Se connecter",
+    "emailLabel": "E-mail professionnel",
+    "or": "ou"
   },
   "invited": {
     "title": "Vous êtes invité",
@@ -57,12 +59,12 @@
     "coupleLabel": "Couple",
     "couplePlaceholder": "Els & Jan",
     "dateLabel": "Jour du mariage (facultatif)",
-    "planLabel": "Commencer avec",
+    "planLabel": "Planning de départ",
     "tasks": "{count} tâches",
     "empty": "Commencer à vide",
     "emptyHint": "Une checklist vide.",
-    "create": "Ajouter le mariage",
-    "creating": "Ajout du mariage…",
+    "create": "Créer le mariage",
+    "creating": "Création du mariage…",
     "skip": "Plus tard",
     "errors": {
       "required": "Indiquez les noms du couple.",
@@ -75,12 +77,14 @@
   "team": {
     "title": "Qui organise avec vous ?",
     "intro": "Ils reçoivent une invitation par e-mail et rejoignent votre studio en tant que planners.",
-    "emailLabel": "Adresse e-mail {n}",
+    "emailFirst": "E-mail du planner",
+    "emailSecond": "Un autre planner",
+    "emailThird": "Et encore un",
     "emailPlaceholder": "collegue@studio.be",
     "noteDemo": "Gratuit pendant la démo.",
     "noteBilling": "Gratuit pendant votre mois d’essai. Ensuite, chaque planner supplémentaire est une place dans votre abonnement.",
-    "sendNone": "Envoyer les invitations",
-    "sendOne": "Envoyer 1 invitation",
+    "sendNone": "Envoyer l’invitation",
+    "sendOne": "Envoyer l’invitation",
     "sendMany": "Envoyer {count} invitations",
     "sending": "Envoi…",
     "sent": "Invité",
@@ -103,5 +107,6 @@
     "teamInvited": "{count} invité(s)",
     "trial": "Votre essai court jusqu’au {date}. Nous vous le rappellerons trois jours avant.",
     "open": "Ouvrir Guestnote"
-  }
+  },
+  "signedInAs": "Connecté en tant que {email}"
 }

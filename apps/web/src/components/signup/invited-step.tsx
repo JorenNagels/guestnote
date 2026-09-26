@@ -84,8 +84,10 @@ export function InvitedStep({ labels, email, invitations, ownStudioHref, homeHre
   return (
     <>
       <LiveRegion message={announcement} />
-      <h1 className="mb-1.5 text-2xl leading-tight font-semibold tracking-tight">{labels.title}</h1>
-      <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+      <h1 className="mb-1.5 text-2xl leading-tight font-semibold tracking-[-0.015em]">
+        {labels.title}
+      </h1>
+      <p className="mb-[22px] text-sm leading-[1.55] text-muted-foreground">
         {before}
         <span className="font-medium break-words text-foreground">{email}</span>
         {after}

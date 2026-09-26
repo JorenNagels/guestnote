@@ -57,8 +57,8 @@ type Props = {
   /** What the panel beside the form shows. Absent on narrow viewports it simply is not drawn. */
   stage: StageContent
   /**
-   * Sign-up (spec 0005) reuses this whole flow for its Account step, and these four props are
-   * the only places it differs. Rejected: a second component for sign-up -- the passkey,
+   * Sign-up (spec 0005) reuses this whole flow for its Account step, and these five props
+   * (with `account` below) are the only places it differs. Rejected: a second component for sign-up -- the passkey,
    * Google and code machinery above is exactly what must not exist twice.
    *
    * `heading` replaces rung 0's "Sign in" title (not on an invitation, which has its own).
@@ -73,6 +73,15 @@ type Props = {
   footer?: ReactNode
   /** Where "Continue with Google" comes back to. Absent is the dashboard. */
   googleReturn?: 'signup'
+  /**
+   * Sign-up's Account step as the design draws it: Google FIRST, then an "or" divider, then the
+   * email field under its own label, and a line under the button for the couple or vendor who
+   * landed here by mistake. Sign-in keeps Google below the form, where the comment on that
+   * button argues it belongs for a returning planner; on sign-up a new planner's fastest way
+   * in is the account they already have, which is the design's reason (spec 0005 handoff,
+   * 2026-09-26). Absent is sign-in's order.
+   */
+  account?: Readonly<{ emailLabel: string; divider: string; below: ReactNode }>
 }
 
 /** 0 identify, 1 verify, 2 arrive. Monotonic; the passkey path skips 1 entirely. */
@@ -229,6 +238,7 @@ export function AuthFlow({
   steps,
   footer,
   googleReturn,
+  account,
 }: Props) {
   const [rung, setRung] = useState<Rung>(0)
   const [email, setEmail] = useState(boundEmail ?? '')
@@ -617,6 +627,44 @@ export function AuthFlow({
 
   const [sentBefore, sentAfter] = splitAround(copy.verify.sentTo, 'email')
 
+  // Hidden on an invitation landing: that flow pins the address on purpose, and a Google
+  // button is a way to pick a different one. research/07's "Social sign-in added 2026-08-29"
+  // note has the why.
+  const showGoogle = googleEnabled && !boundEmail
+  // The whole divider is decorative: a screen reader still reaches the form and the button by
+  // normal traversal, and `role="separator"` on the label would push the word itself out of the
+  // a11y tree (browsers force `presentation` on a separator's descendants).
+  const divider = (word: string) => (
+    <div
+      className="my-3.5 flex items-center gap-3 text-xs text-muted-foreground"
+      aria-hidden="true"
+    >
+      <span className="h-px flex-1 bg-[var(--gn-input,var(--input))]" />
+      {word}
+      <span className="h-px flex-1 bg-[var(--gn-input,var(--input))]" />
+    </div>
+  )
+  const googleButton = (
+    <Button
+      variant="secondary"
+      className="h-10"
+      icon={<GoogleGIcon />}
+      disabled={googlePending}
+      onClick={() => void onGoogle()}
+    >
+      {copy.signIn.google}
+    </Button>
+  )
+  // Sign-in: Google sits below the primary path, under a divider -- the secondary method
+  // position (shadcn login-01/04, the "one unambiguous primary CTA" argument). Sign-up draws it
+  // first instead; the `account` prop says why.
+  const googleBelow = showGoogle && (
+    <>
+      {divider(copy.signIn.orContinue)}
+      {googleButton}
+    </>
+  )
+
   return (
     <div className="signin">
       {/* In the DOM from first paint, and only its text changes. A live region inserted
@@ -625,7 +673,7 @@ export function AuthFlow({
 
       <div className="flex flex-col">
         <div className="flex items-center justify-between gap-4 px-5 py-4 lg:px-8 lg:pt-6">
-          <div className="flex items-center gap-2 text-sm font-semibold tracking-tight">
+          <div className="flex items-center gap-2 text-[15px] font-semibold tracking-tight">
             <Wordmark className="h-5 w-auto" />
             <span>Guestnote</span>
           </div>
@@ -652,10 +700,10 @@ export function AuthFlow({
 
             {rung === 0 && (
               <>
-                <h1 className="mb-1.5 text-2xl leading-tight font-semibold tracking-tight">
+                <h1 className="mb-1.5 text-2xl leading-tight font-semibold tracking-[-0.015em]">
                   {boundEmail ? copy.invite.title : (heading ?? copy.signIn.title)}
                 </h1>
-                <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+                <p className="mb-[22px] text-sm leading-[1.55] text-muted-foreground">
                   {lead ?? copy.signIn.help}
                 </p>
 
@@ -666,10 +714,16 @@ export function AuthFlow({
                     {notice && (
                       <p className="mb-4 text-xs leading-relaxed text-muted-foreground">{notice}</p>
                     )}
+                    {account && showGoogle && (
+                      <>
+                        {googleButton}
+                        {divider(account.divider)}
+                      </>
+                    )}
                     <Field
                       id="auth-email"
                       ref={emailRef}
-                      label={copy.signIn.emailLabel}
+                      label={account?.emailLabel ?? copy.signIn.emailLabel}
                       type="email"
                       inputMode="email"
                       /* `webauthn` LAST, per spec. This attribute IS the passkey
@@ -710,35 +764,11 @@ export function AuthFlow({
                         {copy.signIn.passkey}
                       </Button>
                     )}
-                    {/* Google sits below the primary path, under a divider -- the secondary
-                      method position (shadcn login-01/04, the "one unambiguous primary CTA"
-                      argument). Hidden on an invitation landing: that flow pins the address
-                      on purpose, and a Google button is a way to pick a different one.
-                      research/07's "Social sign-in added 2026-08-29" note has the why. */}
-                    {googleEnabled && !boundEmail && (
-                      <>
-                        {/* The whole divider is decorative: a screen reader still reaches
-                          the form and the button by normal traversal, and `role="separator"`
-                          on the label would push the word itself out of the a11y tree
-                          (browsers force `presentation` on a separator's descendants). */}
-                        <div
-                          className="my-4 flex items-center gap-3 text-xs text-muted-foreground"
-                          aria-hidden="true"
-                        >
-                          <span className="h-px flex-1 bg-[var(--gn-input,var(--input))]" />
-                          {copy.signIn.orContinue}
-                          <span className="h-px flex-1 bg-[var(--gn-input,var(--input))]" />
-                        </div>
-                        <Button
-                          variant="secondary"
-                          className="h-10"
-                          icon={<GoogleGIcon />}
-                          disabled={googlePending}
-                          onClick={() => void onGoogle()}
-                        >
-                          {copy.signIn.google}
-                        </Button>
-                      </>
+                    {!account && googleBelow}
+                    {account && (
+                      <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                        {account.below}
+                      </p>
                     )}
                   </>
                 )}
@@ -747,10 +777,10 @@ export function AuthFlow({
 
             {rung === 1 && (
               <>
-                <h1 className="mb-1.5 text-2xl leading-tight font-semibold tracking-tight">
+                <h1 className="mb-1.5 text-2xl leading-tight font-semibold tracking-[-0.015em]">
                   {copy.verify.title}
                 </h1>
-                <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+                <p className="mb-[22px] text-sm leading-[1.55] text-muted-foreground">
                   {/* The address is shown back and stays correctable. "Wrong address" is the
                     most common recovery on this screen and must not cost a page. */}
                   {sentBefore}
@@ -805,10 +835,10 @@ export function AuthFlow({
             {rung === 2 && (
               <>
                 <ArrivalBadge className="mb-4" />
-                <h1 className="mb-1.5 text-2xl leading-tight font-semibold tracking-tight">
+                <h1 className="mb-1.5 text-2xl leading-tight font-semibold tracking-[-0.015em]">
                   {copy.arrive.title}
                 </h1>
-                <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+                <p className="mb-[22px] text-sm leading-[1.55] text-muted-foreground">
                   {copy.arrive.body}
                 </p>
                 {/* The fallback for a blocked or slow auto-redirect, and it carries the

@@ -1,6 +1,7 @@
 'use client'
 
 import { Button } from '@guestnote/ui/button'
+import { cx } from '@guestnote/ui/cx'
 import { Field } from '@guestnote/ui/field'
 import { InlineError } from '@guestnote/ui/inline-error'
 import { type FormEvent, startTransition, useActionState, useState } from 'react'
@@ -65,10 +66,12 @@ export function WeddingStep({ labels, plans, skipHref, action }: Props) {
 
   return (
     <>
-      <h1 className="mb-1.5 text-2xl leading-tight font-semibold tracking-tight">{labels.title}</h1>
-      <p className="mb-6 text-sm leading-relaxed text-muted-foreground">{labels.intro}</p>
+      <h1 className="mb-1.5 text-2xl leading-tight font-semibold tracking-[-0.015em]">
+        {labels.title}
+      </h1>
+      <p className="mb-[22px] text-sm leading-[1.55] text-muted-foreground">{labels.intro}</p>
 
-      <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
+      <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3.5">
         <div>
           <Field
             id="signup-couple"
@@ -107,27 +110,50 @@ export function WeddingStep({ labels, plans, skipHref, action }: Props) {
         <fieldset>
           <legend className="mb-1.5 text-sm font-medium">{labels.planLabel}</legend>
           <div className="flex flex-col gap-2">
-            {options.map((o) => (
-              // The report dialog's radio pattern: a real radio group, the dot visually hidden,
-              // the whole row the target. Arrow keys still move between them.
-              <label
-                key={o.id || 'empty'}
-                className="has-[:checked]:border-foreground has-[:checked]:bg-muted has-[:focus-visible]:outline-ring flex cursor-pointer items-baseline justify-between gap-3 rounded-[var(--radius)] border border-input px-3 py-2.5 text-sm outline-offset-2 has-[:focus-visible]:outline-2"
-              >
-                <input
-                  className="sr-only"
-                  type="radio"
-                  name="template"
-                  value={o.id}
-                  checked={plan === o.id}
-                  onChange={() => setPlan(o.id)}
-                />
-                <span className="min-w-0 font-medium">{o.name}</span>
-                <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                  {o.id === EMPTY ? labels.emptyHint : fill(labels.tasks, { count: o.itemCount })}
-                </span>
-              </label>
-            ))}
+            {options.map((o) => {
+              const on = plan === o.id
+              return (
+                // A real radio group, the input visually hidden and the whole row the target;
+                // arrow keys still move between them. The dot is drawn from `on` rather than
+                // with `peer-checked`, since React already holds the answer. Selected is the
+                // design's: white ground, the strong border, a filled dot, 600 weight.
+                <label
+                  key={o.id || 'empty'}
+                  className={cx(
+                    'flex min-h-11 cursor-pointer items-center gap-2.5 rounded-[var(--radius)] border px-3 py-2 text-sm outline-offset-2 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring',
+                    on ? 'border-input bg-card font-semibold' : 'border-border',
+                  )}
+                >
+                  <input
+                    className="sr-only"
+                    type="radio"
+                    name="template"
+                    value={o.id}
+                    checked={on}
+                    onChange={() => setPlan(o.id)}
+                  />
+                  <span
+                    aria-hidden="true"
+                    className={cx(
+                      'grid size-4 shrink-0 place-items-center rounded-full border',
+                      on ? 'border-foreground' : 'border-input',
+                    )}
+                  >
+                    {on && <span className="size-2 rounded-full bg-foreground" />}
+                  </span>
+                  <span className="min-w-0 flex-1">{o.name}</span>
+                  {o.id === EMPTY ? (
+                    <span className="shrink-0 text-xs font-normal text-muted-foreground">
+                      {labels.emptyHint}
+                    </span>
+                  ) : (
+                    <span className="shrink-0 font-mono text-[11px] font-normal text-muted-foreground tabular-nums">
+                      {fill(labels.tasks, { count: o.itemCount })}
+                    </span>
+                  )}
+                </label>
+              )
+            })}
           </div>
         </fieldset>
 

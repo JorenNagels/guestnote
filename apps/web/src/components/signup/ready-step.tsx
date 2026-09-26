@@ -35,7 +35,9 @@ export function ReadyStep({ labels, studioName, weddingName, homeHref }: Props) 
   return (
     <>
       <ArrivalBadge className="mb-4" />
-      <h1 className="mb-6 text-2xl leading-tight font-semibold tracking-tight">{labels.title}</h1>
+      <h1 className="mb-[22px] text-2xl leading-tight font-semibold tracking-[-0.015em]">
+        {labels.title}
+      </h1>
 
       <Card as="section" padding="none" className="mb-4">
         <dl className="divide-y divide-border text-sm">

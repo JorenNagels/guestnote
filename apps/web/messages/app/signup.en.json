@@ -10,8 +10,10 @@
     "introDemo": "Guestnote is in demo: everything is free while we build.",
     "introBilling": "A month with everything unlocked. No card until you decide to stay.",
     "notPlanner": "Getting married, or supplying a wedding? You don’t need an account. Open the link your planner sent you.",
-    "haveAccount": "Already have a studio?",
-    "signIn": "Sign in"
+    "haveAccount": "Already have an account?",
+    "signIn": "Sign in",
+    "emailLabel": "Work email",
+    "or": "or"
   },
   "invited": {
     "title": "You’ve been invited",
@@ -56,13 +58,13 @@
     "intro": "Add one wedding to see Guestnote at work. The rest can wait.",
     "coupleLabel": "Couple",
     "couplePlaceholder": "Els & Jan",
-    "dateLabel": "Wedding day (optional)",
-    "planLabel": "Start with",
+    "dateLabel": "Main day (optional)",
+    "planLabel": "Starting plan",
     "tasks": "{count} tasks",
     "empty": "Start empty",
     "emptyHint": "An empty checklist.",
-    "create": "Add wedding",
-    "creating": "Adding wedding…",
+    "create": "Create wedding",
+    "creating": "Creating wedding…",
     "skip": "Skip for now",
     "errors": {
       "required": "Fill in the couple’s names.",
@@ -75,12 +77,14 @@
   "team": {
     "title": "Who plans with you?",
     "intro": "They get an invitation by email and join your studio as planners.",
-    "emailLabel": "Email address {n}",
+    "emailFirst": "Planner’s email",
+    "emailSecond": "Another planner",
+    "emailThird": "And another",
     "emailPlaceholder": "colleague@studio.be",
     "noteDemo": "Free during the demo.",
     "noteBilling": "Free during your trial. After that, each extra planner is a seat on your plan.",
-    "sendNone": "Send invitations",
-    "sendOne": "Send 1 invitation",
+    "sendNone": "Send invitation",
+    "sendOne": "Send invitation",
     "sendMany": "Send {count} invitations",
     "sending": "Sending…",
     "sent": "Invited",
@@ -103,5 +107,6 @@
     "teamInvited": "{count} invited",
     "trial": "Your trial runs until {date}. We’ll remind you three days before.",
     "open": "Open Guestnote"
-  }
+  },
+  "signedInAs": "Signed in as {email}"
 }

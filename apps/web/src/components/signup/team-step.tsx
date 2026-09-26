@@ -12,8 +12,8 @@ import { TEAM_ROWS, type TeamFormState } from './state.ts'
 export type TeamLabels = Readonly<{
   title: string
   intro: string
-  /** template, `{n}` */
-  emailLabel: string
+  /** One per row, the design's: "Planner's email", "Another planner", "And another". */
+  emailLabels: readonly [string, string, string]
   emailPlaceholder: string
   note: string
   sendNone: string
@@ -68,10 +68,12 @@ export function TeamStep({ labels, skipHref, action }: Props) {
 
   return (
     <>
-      <h1 className="mb-1.5 text-2xl leading-tight font-semibold tracking-tight">{labels.title}</h1>
-      <p className="mb-6 text-sm leading-relaxed text-muted-foreground">{labels.intro}</p>
+      <h1 className="mb-1.5 text-2xl leading-tight font-semibold tracking-[-0.015em]">
+        {labels.title}
+      </h1>
+      <p className="mb-[22px] text-sm leading-[1.55] text-muted-foreground">{labels.intro}</p>
 
-      <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
+      <form onSubmit={onSubmit} noValidate className="flex flex-col gap-3.5">
         {rows.map((value, i) => {
           const error = sent.has(i) ? undefined : errorFor(i)
           const id = `signup-team-${i}`
@@ -84,7 +86,7 @@ export function TeamStep({ labels, skipHref, action }: Props) {
                 type="email"
                 inputMode="email"
                 autoComplete="off"
-                label={fill(labels.emailLabel, { n: i + 1 })}
+                label={labels.emailLabels[i] ?? labels.emailLabels[0]}
                 placeholder={labels.emailPlaceholder}
                 value={value}
                 disabled={sent.has(i)}

@@ -35,3 +35,11 @@
  * Relative to THIS file, like every other `@source`.
  */
 @source "../../../../packages/ui/src/**/*.tsx";
+
+/* Native controls follow the theme too. Dark is a `.dark` class, not `prefers-color-scheme`
+   (tokens.css:21), so the browser never learns it on its own: until 2026-09-26 a date field
+   on the dark theme drew its calendar icon black on the near-black field -- found on sign-up's
+   wedding step. Here rather than in tokens.css, which the login brief keeps untouched. */
+.dark {
+  color-scheme: dark;
+}

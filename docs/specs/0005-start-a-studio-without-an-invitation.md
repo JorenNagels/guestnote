@@ -1,7 +1,7 @@
 # Spec 0005 — Start a studio without an invitation, run it as a demo, and tell us what broke
 
-**Date:** 2026-09-24 · **Status:** Specified, not built
-**Built so far:** slices 1-5 of 6 -- demo mode (`GUESTNOTE_BILLING_FROM`, `lib/billing-mode.ts`),
+**Date:** 2026-09-24 · **Status:** Built 2026-09-26 -- what is left is under "Still open"
+**Built:** all six slices -- demo mode (`GUESTNOTE_BILLING_FROM`, `lib/billing-mode.ts`),
 the demo banner and "Report a problem" (Sentry User Feedback); migration 0010 and its repos
 (`repos/studios.ts`, `myPendingInvitations`, `acceptInvitationById`, `seedTemplates`, the vendor
 link's `logoKey`, `studioSlugFromName`); the sign-up flow at `/signup` (`app/pro/(public)/signup/`,
@@ -13,8 +13,10 @@ vendor-link header; the trial, the lock and billing, all switched off while
 `GUESTNOTE_BILLING_FROM` is unset (`packages/billing`, `lib/trial-state.ts`, `lib/trial.ts`,
 `app/pro/trial-guard.test.ts`, `components/banners/trial-banner.tsx`, `/billing` in
 `app/pro/(app)/billing/` and `components/billing/`, `@guestnote/db/cron`, the reminder route
-`app/api/cron/trial-reminders/` and its `TrialReminders` cron in `sst.config.ts`). Not built: the
-slice-6 docs pass. Where the build differs from the first draft, the text says so with "(as built)".
+`app/api/cron/trial-reminders/` and its `TrialReminders` cron in `sst.config.ts`); and slice 6, the
+correction notes in `research/05`, `research/07` and the login brief, plus sign-up's pass against
+the design handoff. Where the build differs from the first draft, the text says so with "(as
+built)".
 **Phase:** `research/05-architecture.md` M8 (self-serve onboarding) and the UI half of M9 (billing),
 plus a demo-period bug channel · **Bar:** a planner runs one real wedding here instead of a
 spreadsheet — which first means a planner can get in without the founder seeding their org.
@@ -174,7 +176,20 @@ with `resolveMemberships`, never the `gn_org` cookie, and creating or joining a 
 cookie so the dashboard opens there. "Continue with Google" comes back to `/signup`
 (`startGoogleSignIn('signup')`, a closed set, not a URL). The design handoff could not be read
 during the build -- no DesignSync tool in that session -- so layout follows the sign-in shell and
-this spec's copy table; a pass against the handoff is still owed.)*
+this spec's copy table, and a pass against the handoff was owed -- made below.)*
+*(As built, 2026-09-26: the pass against the handoff was made, in Chrome at 390px and desktop,
+light and dark. It moved the "getting married or supplying a wedding" line from the footer to
+under the Account step's button, made the footer "Already have an account? Sign in" before a
+session and "Signed in as {email}" after it, put Google first on the Account step with an "or"
+divider and a "Work email" label (`AuthFlow`'s `account` prop; sign-in keeps Google below), put the
+preview caption inside the preview card, drew the starting-plan rows as the design does (visible
+radio, white ground and strong border when selected, task count in mono), named the three Team
+rows ("Planner's email", "Another planner", "And another") and set the design's 24px/−0.015em
+heading, 14px/1.55 intro, 22px under it and 14px between controls on every step, sign-in's too.
+The button copy is the design's: "Create wedding", "Send invitation" / "Send N invitations". NL and
+FR for those labels were written here, not taken from the handoff, which is English. Found on the
+way: the dark theme never set `color-scheme`, so native controls (the date field's icon) drew for
+a light page; `globals.css` now sets it on `.dark`.)*
 
 **The org is created by a new `SECURITY DEFINER` function**, `create_studio(name, owner_name)`
 *(as built: `create_studio(org_id, user_id, name, slug_base, owner_name)` -- the org id is the
@@ -446,6 +461,10 @@ NL first; EN below; FR written at build and reviewed. Keys under `messages/app/s
 | signup.account.title | Start je studio | Start your studio |
 | signup.account.intro (demo) | Guestnote is in demo: alles is gratis terwijl we bouwen. | Guestnote is in demo: everything is free while we build. |
 | signup.account.intro (billing) | Een maand lang alles open. Geen kaart tot je beslist te blijven. | A month with everything unlocked. No card until you decide to stay. |
+| signup.account.emailLabel, .or *(as built)* | Zakelijk e-mailadres · of | Work email · or |
+| signup.account.haveAccount *(as built, the design's)* | Al een account? | Already have an account? |
+| signup.signedInAs *(as built)* | Aangemeld als {email} | Signed in as {email} |
+| signup.team.emailFirst/Second/Third *(as built)* | E-mailadres van de planner · Nog een planner · En nog een | Planner’s email · Another planner · And another |
 | signup.account.notPlanner | Ga je trouwen, of lever je aan een bruiloft? Dan heb je geen account nodig. Open de link die je planner stuurde. | Getting married, or supplying a wedding? You don’t need an account. Open the link your planner sent you. |
 | signup.invited.title | Je bent uitgenodigd | You’ve been invited |
 | signup.invited.join | Deelnemen | Join |
@@ -504,29 +523,49 @@ The Billing screen's strings are the design's, translated at build.
 
 - [ ] A stranger can sign up on staging with email, create a studio, a first wedding from a starter
       template and invite a planner, and land on `/pro` with the demo banner.
+      *Walked end to end on dev 2026-09-26 (console mail), landing on `/pro` with the banner; not
+      yet on staging, which needs a real inbox for the code.*
 - [ ] Signing up with an address that has a pending invite shows the invited screen; Join lands in
-      that studio.
+      that studio. *Covered by component and action tests; not recorded as seen in a browser.*
 - [ ] The logo uploads, shows in the sidebar (open and collapsed) and on a vendor link, and can be
-      removed.
+      removed. *Built and tested; the vendor-link header is not recorded as seen in a browser.*
 - [ ] "Report a problem" produces a Sentry feedback item with category, text, screenshot and context
       on staging, and a Sentry alert rule emails `joren@guestnote.be` on new feedback (manual,
-      in the Sentry UI).
+      in the Sentry UI). *Both open: the staging readback and the alert rule.*
 - [ ] With `GUESTNOTE_BILLING_FROM` set locally: trial banner in all three states, Billing screen
       for owner/admin, 404 for member, staff writes refused after the trial end, couple and
       vendor-link reads unaffected; the guard-coverage test fails when a guard call is removed.
-- [ ] The reminder cron sends once, only with billing on.
-- [ ] Starter template content reviewed by Joren in NL; EN and FR present.
-- [ ] Correction notes in `research/05-architecture.md` (provider deferred), `research/07-auth-and-
+      *The refused write was seen 2026-09-26; the member's 404 is not browser-checked.*
+- [ ] The reminder cron sends once, only with billing on. *Tested in code; never live -- neither
+      stage has `CRON_SECRET`, so the cron is not deployed.*
+- [ ] Starter template content reviewed by Joren in NL; EN and FR present. *EN and FR present;
+      the review is Joren's.*
+- [x] Correction notes in `research/05-architecture.md` (provider deferred), `research/07-auth-and-
       tenancy.md` (billing owner + admin), `.impeccable/surfaces/src-app-pro-public-login.md`
       (self-serve reopened); CLAUDE.md invariant 2 names the new definer functions; invariant 5
       names `packages/billing`; invariant 6 names `GUESTNOTE_BILLING_FROM`.
-- [ ] `tenancy-auditor` on the migration and every new Server Function.
+- [ ] `tenancy-auditor` on the migration and every new Server Function. *Recorded for the
+      migration (`91f1f55`, nothing blocking); not recorded here for slices 3-5's actions.*
 - [ ] `npm run check`, `npm run test:db` (both tiers), and whatever else `/verify` names.
+      *`npm run check` green 2026-09-26; the local db tier passed with migration 0010 (630); the
+      Neon tier is not recorded.*
 
 ## Still open
 
-- **The rate-limit mechanism for reports.** In-process per instance is weak; if reports get abused,
-  a scoped table is the fix.
+- **Starter template content**, until Joren reviews the NL.
+- **The Sentry alert rule** that emails on new feedback (manual, Sentry UI), and **a staging
+  readback** of one real report with its screenshot and context.
 - **The provider.** Mollie vs Stripe, when billing goes live. The seam's shape assumes a hosted
   checkout and a hosted portal, which both offer.
-- **Starter template content**, until reviewed.
+- **The trial lock's error shape.** `assertWritable` throws; a `locked` result per action is
+  needed before billing goes live, so form actions show an inline error rather than the route's
+  error boundary (Trial, as built).
+- **The reminder mail is NL only**, because the owner has no stored language.
+- **The BE VAT rule in `packages/billing/src/pricing.ts`**: "no VAT with a VAT number" is wrong for
+  a Belgian number; the provider settles it.
+- **Browser checks not yet made:** the member's view (no Studio or Billing item, `/billing` 404),
+  the invited screen's Join, the logo on a vendor link, and sign-up on staging with a real inbox.
+- **The rate-limit mechanism for reports.** In-process per instance is weak; if reports get abused,
+  a scoped table is the fix.
+- **The `noOrg` hint** on `/pro` (`weddings.noOrgHint`) still says only an invitation grants
+  access, and does not link to `/signup`. Product copy, left for a decision.

@@ -1189,6 +1189,46 @@ describe('the Google button', () => {
     expect(screen.getByText('DIVIDER-OR-CONTINUE')).toBeInTheDocument()
   })
 
+  it('stays below the form on sign-in, after the Continue button', () => {
+    renderFlow({ googleEnabled: true })
+    const continueButton = screen.getByRole('button', { name: 'ACTION-CONTINUE' })
+    expect(
+      continueButton.compareDocumentPosition(googleButton() as HTMLElement) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+  })
+
+  it("comes first on sign-up's Account step, over its own divider, as the design draws it", () => {
+    renderFlow({
+      googleEnabled: true,
+      account: { emailLabel: 'LABEL-WORK-EMAIL', divider: 'DIVIDER-OR', below: 'NOT-PLANNER' },
+    })
+    const field = screen.getByLabelText('LABEL-WORK-EMAIL')
+    expect(
+      field.compareDocumentPosition(googleButton() as HTMLElement) &
+        Node.DOCUMENT_POSITION_PRECEDING,
+    ).toBeTruthy()
+    expect(screen.getByText('DIVIDER-OR')).toBeInTheDocument()
+    // One divider, sign-up's word: sign-in's "or continue with" would read backwards above
+    // the field.
+    expect(screen.queryByText('DIVIDER-OR-CONTINUE')).not.toBeInTheDocument()
+    // The line for a couple or vendor who landed here sits under the button.
+    const continueButton = screen.getByRole('button', { name: 'ACTION-CONTINUE' })
+    expect(
+      continueButton.compareDocumentPosition(screen.getByText('NOT-PLANNER')) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+  })
+
+  it('draws no divider on sign-up when Google is not configured', () => {
+    renderFlow({
+      googleEnabled: false,
+      account: { emailLabel: 'LABEL-WORK-EMAIL', divider: 'DIVIDER-OR', below: 'NOT-PLANNER' },
+    })
+    expect(screen.queryByText('DIVIDER-OR')).not.toBeInTheDocument()
+    expect(screen.getByText('NOT-PLANNER')).toBeInTheDocument()
+  })
+
   it('is secondary weight, never primary', () => {
     renderFlow({ googleEnabled: true })
     expect(googleButton()?.className).toContain('bg-transparent')

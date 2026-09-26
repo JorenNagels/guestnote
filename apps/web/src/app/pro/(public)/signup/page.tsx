@@ -73,9 +73,12 @@ export default async function SignupPage({
   const locale: Locale = isLocale(rawLocale) ? rawLocale : LOCALES[0]
   const stage = await getStageContent(copy)
   const labels = [t('steps.account'), t('steps.studio'), t('steps.wedding'), t('steps.team')]
-  const signupFooter = (
+  // The design's two footers: "Already have an account? Sign in" before there is a session,
+  // "Signed in as {email}" once there is one. The line for a couple or a vendor who landed here
+  // by mistake sits under the Account step's button, not down here (`AuthFlow`'s `account`).
+  const signInFooter = (
     <>
-      {t('account.notPlanner')} {t('account.haveAccount')}{' '}
+      {t('account.haveAccount')}{' '}
       <a
         href={app.login()}
         className="font-medium text-foreground underline underline-offset-[3px]"
@@ -99,7 +102,12 @@ export default async function SignupPage({
         heading={t('account.title')}
         lead={billing.on ? t('account.introBilling') : t('account.introDemo')}
         steps={{ labels, current: 0 }}
-        footer={signupFooter}
+        footer={signInFooter}
+        account={{
+          emailLabel: t('account.emailLabel'),
+          divider: t('account.or'),
+          below: t('account.notPlanner'),
+        }}
       />
     )
   }
@@ -130,12 +138,13 @@ export default async function SignupPage({
     locale,
     locales: LOCALES,
     stage,
+    footer: fill(t.raw('signedInAs') as string, { email: session.email }),
   }
 
   switch (step) {
     case 'invited':
       return (
-        <SignupFrame {...frame} footer={signupFooter}>
+        <SignupFrame {...frame}>
           <InvitedStep
             labels={{
               title: t('invited.title'),
@@ -262,7 +271,7 @@ export default async function SignupPage({
             labels={{
               title: t('team.title'),
               intro: t('team.intro'),
-              emailLabel: t.raw('team.emailLabel') as string,
+              emailLabels: [t('team.emailFirst'), t('team.emailSecond'), t('team.emailThird')],
               emailPlaceholder: t('team.emailPlaceholder'),
               note: billing.on ? t('team.noteBilling') : t('team.noteDemo'),
               sendNone: t('team.sendNone'),

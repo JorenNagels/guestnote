@@ -46,7 +46,7 @@ export function SignupFrame({
     <div className="signin">
       <div className="flex flex-col">
         <div className="flex items-center justify-between gap-4 px-5 py-4 lg:px-8 lg:pt-6">
-          <div className="flex items-center gap-2 text-sm font-semibold tracking-tight">
+          <div className="flex items-center gap-2 text-[15px] font-semibold tracking-tight">
             <Wordmark className="h-5 w-auto" />
             <span>Guestnote</span>
           </div>
@@ -67,7 +67,7 @@ export function SignupFrame({
         </div>
 
         {footer && (
-          <p className="text-muted-foreground shrink-0 px-5 pb-6 text-xs leading-relaxed lg:px-8">
+          <p className="text-muted-foreground shrink-0 px-5 pb-6 text-xs leading-relaxed break-words lg:px-8">
             {footer}
           </p>
         )}

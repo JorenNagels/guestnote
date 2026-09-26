@@ -10,8 +10,10 @@
     "introDemo": "Guestnote is in demo: alles is gratis terwijl we bouwen.",
     "introBilling": "Een maand lang alles open. Geen kaart tot je beslist te blijven.",
     "notPlanner": "Ga je trouwen, of lever je aan een bruiloft? Dan heb je geen account nodig. Open de link die je planner stuurde.",
-    "haveAccount": "Al een studio?",
-    "signIn": "Aanmelden"
+    "haveAccount": "Al een account?",
+    "signIn": "Aanmelden",
+    "emailLabel": "Zakelijk e-mailadres",
+    "or": "of"
   },
   "invited": {
     "title": "Je bent uitgenodigd",
@@ -57,12 +59,12 @@
     "coupleLabel": "Koppel",
     "couplePlaceholder": "Els & Jan",
     "dateLabel": "Trouwdag (optioneel)",
-    "planLabel": "Beginnen met",
+    "planLabel": "Startplan",
     "tasks": "{count} taken",
     "empty": "Leeg beginnen",
     "emptyHint": "Een lege checklist.",
-    "create": "Bruiloft toevoegen",
-    "creating": "Bruiloft toevoegen…",
+    "create": "Bruiloft aanmaken",
+    "creating": "Bruiloft aanmaken…",
     "skip": "Later",
     "errors": {
       "required": "Vul de namen van het koppel in.",
@@ -75,12 +77,14 @@
   "team": {
     "title": "Wie plant er met je mee?",
     "intro": "Ze krijgen een uitnodiging per e-mail en komen in je studio als planner.",
-    "emailLabel": "E-mailadres {n}",
+    "emailFirst": "E-mailadres van de planner",
+    "emailSecond": "Nog een planner",
+    "emailThird": "En nog een",
     "emailPlaceholder": "collega@studio.be",
     "noteDemo": "Gratis tijdens de demo.",
     "noteBilling": "Gratis tijdens je proefmaand. Daarna is elke extra planner een plaats in je abonnement.",
-    "sendNone": "Uitnodigingen versturen",
-    "sendOne": "1 uitnodiging versturen",
+    "sendNone": "Uitnodiging versturen",
+    "sendOne": "Uitnodiging versturen",
     "sendMany": "{count} uitnodigingen versturen",
     "sending": "Versturen…",
     "sent": "Uitgenodigd",
@@ -103,5 +107,6 @@
     "teamInvited": "{count} uitgenodigd",
     "trial": "Je proefmaand loopt tot {date}. We sturen je drie dagen vooraf een herinnering.",
     "open": "Guestnote openen"
-  }
+  },
+  "signedInAs": "Aangemeld als {email}"
 }

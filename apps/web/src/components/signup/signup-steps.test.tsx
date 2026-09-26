@@ -73,7 +73,7 @@ const WEDDING: WeddingLabels = {
 const TEAM: TeamLabels = {
   title: 'T-TEAM',
   intro: '',
-  emailLabel: 'EMAIL {n}',
+  emailLabels: ['EMAIL 1', 'EMAIL 2', 'EMAIL 3'],
   emailPlaceholder: '',
   note: 'NOTE',
   sendNone: 'SEND-NONE',
