@@ -106,6 +106,12 @@ stop and ask. The rest are held by convention alone, which is why they are writt
    row (including `venue`) for every event of the wedding, not just the linked vendor's own
    event, deliberately: nothing on that table is sensitive today, and the migration's own
    comment says so plainly, with a test proving a link principal can read a sibling event's venue.
+   **Migration 0010 added four more `SECURITY DEFINER` doors, no policies:** `create_studio`
+   (a user makes an org and becomes its owner, one owned studio each), `my_pending_invitations`
+   (the caller's own invitations, matched on their `users.email` and never an email argument),
+   `accept_invitation_by_id` (hands on to `accept_invitation`), and `orgs_with_trial_ending` —
+   the **only cross-tenant read in the schema**, for the trial-reminder cron, returning org id,
+   name, trial end and one owner email and nothing else. Same install guard, same grants.
 
 3. **`Principal` stays a discriminated union.** Never `{ orgId?, weddingId? }`. A principal
    with no `org_members` row *must* carry `weddingId`, or RLS falls through to org-wide

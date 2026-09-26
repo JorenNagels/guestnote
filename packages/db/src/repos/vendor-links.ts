@@ -53,6 +53,11 @@ export type VendorLinkLookup = {
   readonly weddingVenue: string | null
   readonly weddingHeadcount: number | null
   readonly status: 'live' | 'expired' | 'revoked'
+  /**
+   * The studio's logo storage key (spec 0005, migration 0010), or `null`. A key, not a URL:
+   * the page presigns it per render, like every other object in the private bucket.
+   */
+  readonly logoKey: string | null
 }
 
 export type VendorTimelineItem = {
@@ -88,6 +93,7 @@ type ResolveRow = {
   wedding_venue: string | null
   wedding_headcount: number | null
   status: string
+  logo_key: string | null
 }
 
 const KNOWN_STATUSES = new Set(['live', 'expired', 'revoked'])
@@ -218,6 +224,7 @@ export async function resolveVendorLinkByHash(
     weddingVenue: row.wedding_venue,
     weddingHeadcount: row.wedding_headcount,
     status: row.status as VendorLinkLookup['status'],
+    logoKey: row.logo_key,
   }
 }
 

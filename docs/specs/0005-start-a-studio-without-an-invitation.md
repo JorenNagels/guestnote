@@ -1,9 +1,11 @@
 # Spec 0005 — Start a studio without an invitation, run it as a demo, and tell us what broke
 
 **Date:** 2026-09-24 · **Status:** Specified, not built
-**Built so far:** slice 1 of 6 -- demo mode (`GUESTNOTE_BILLING_FROM`, `lib/billing-mode.ts`),
-the demo banner and "Report a problem" (Sentry User Feedback). Not built: sign-up, starter
-templates, studio page and logo, trial, billing, migration 0010. Where the build differs from
+**Built so far:** slices 1-2 of 6 -- demo mode (`GUESTNOTE_BILLING_FROM`, `lib/billing-mode.ts`),
+the demo banner and "Report a problem" (Sentry User Feedback); migration 0010 and its repos
+(`repos/studios.ts`, `myPendingInvitations`, `acceptInvitationById`, `seedTemplates`, the vendor
+link's `logoKey`, `studioSlugFromName`). Not built: the sign-up screens, starter template
+content, studio page and logo upload, trial, billing. Where the build differs from
 the first draft, the text says so with "(as built)".
 **Phase:** `research/05-architecture.md` M8 (self-serve onboarding) and the UI half of M9 (billing),
 plus a demo-period bug channel · **Bar:** a planner runs one real wedding here instead of a
@@ -126,7 +128,12 @@ which the no-op provider ignores — the call sites exist so wiring a provider i
 one screen added between Verify and Studio (below). Every step's Server Function authorises
 itself; `proxy.ts` does nothing new (invariant 7).
 
-**The org is created by a new `SECURITY DEFINER` function**, `create_studio(name, owner_name)`,
+**The org is created by a new `SECURITY DEFINER` function**, `create_studio(name, owner_name)`
+*(as built: `create_studio(org_id, user_id, name, slug_base, owner_name)` -- the org id is the
+app's `newId()` (invariant 9), `user_id` must equal `app.user_id` as in `accept_invitation`, and
+the app passes the slug base already cleaned by `lib/slug.ts`'s `studioSlugFromName`, which
+falls back to `studio` for a reserved or empty name; the function adds `-2`, `-3` on collision
+among live orgs. A blank owner name leaves `users.name` as it is.)*
 modelled on `accept_invitation` (migration 0007): it inserts the `organizations` row with type
 `planner`, the caller as `owner` in `org_members`, and sets the user's display name, in one
 transaction, keyed by `app.user_id`. Not a third sanctioned unscoped writer. The org slug is
@@ -144,7 +151,11 @@ wedding name, role) — matched against the email on the caller's `users` row, n
 argument, so it cannot be used to probe whether an address is invited. If there are any, the
 **"You've been invited"** screen lists each with Join (staff) or Open (wedding), plus "Start my
 own studio anyway". Joining accepts by invitation id through a function that re-checks the email
-match. A couple invite opens the existing invitation outcome, which today is `inviteCouple`
+match *(as built: an invitation addressed to another email answers `unknown`, not
+`wrong_user`, so an id reveals nothing about an invitation that was never the caller's; the
+function then hands on to `accept_invitation`, which does every other check. The list also
+leaves out an invitation whose wedding is deleted or belongs to another org, since accepting it
+could only be refused)*. A couple invite opens the existing invitation outcome, which today is `inviteCouple`
 ("the portal is not open yet"). Rejected: checking the email before verification (leaks
 invitation existence to anyone who types an address); auto-redirecting (blocks a staff planner
 who also wants their own studio).
@@ -320,7 +331,7 @@ Migration `0010` (next after 0009):
 | `organizations.billing_status text` check `trialing`/`active`/`past_due`/`canceled` | null = trialing; "trial ended" is computed, never stored, so it cannot go stale |
 | `organizations.billing_name`, `billing_email`, `vat_number text` | null until entered on the Billing screen |
 | `organizations.billing_customer_id`, `billing_subscription_id text` | null until a provider exists; provider-neutral names |
-| `create_studio`, `my_pending_invitations`, `accept_invitation_by_id`, `orgs_with_trial_ending` | `SECURITY DEFINER`, `search_path=''`, executable by `app_user` only |
+| `create_studio`, `my_pending_invitations`, `accept_invitation_by_id`, `orgs_with_trial_ending` | `SECURITY DEFINER`, `search_path=''`, executable by `app_user` only. *(As built: `orgs_with_trial_ending(on, billing_from)` returns the trial's last day as a Europe/Brussels `YYYY-MM-DD`, with Postgres's month arithmetic -- 31 January + 1 month is the last day of February, which `lib/trial.ts` must match -- one row per org with its earliest owner's email, and nothing at all when `billing_from` is null.)* |
 | `resolve_vendor_link` | also returns `logo_key` |
 
 `mollie_customer_id` and `subscription_status` stay untouched and unused — dropping them is a

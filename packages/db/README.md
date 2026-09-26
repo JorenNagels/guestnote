@@ -173,6 +173,21 @@ transaction as every date write, which closes the stale-`due_at` note in `task-d
 Neon tier shares its database with the dev server, so running it wipes the dev seed: rerun
 `npm run db:seed -- <you>` afterwards.
 
+### Migration 0010: studios and billing columns
+
+Spec 0005, slice 2. **631 passed on the local tier, 2026-09-24** (fresh database, all eleven
+migrations); applied to Neon `dev` over the unpooled endpoint, **not yet to staging** -- the
+deploy workflow's migration step picks it up on the push. Nine nullable columns on
+`organizations` (logo, trial override, provider-neutral billing), no policy change, and four
+`SECURITY DEFINER` functions on 0007's pattern (install guard, `search_path` empty, `app_user`
+only): `create_studio`, `my_pending_invitations`, `accept_invitation_by_id` (a thin door onto
+`accept_invitation`, which does every check), and `orgs_with_trial_ending`, the one
+cross-tenant read, for the reminder cron. `resolve_vendor_link` is dropped and re-made with
+`logo_key` appended, so the running app reads the new shape unchanged during the deploy window.
+`test/studios.test.ts`; a hand sweep of 23 SQL and 6 repo mutations killed all but three
+equivalent ones, each noted beside its assertion (one of them, the double-submit lock, was
+only killed after the race test was rewritten to hold two transactions open).
+
 ## Applying a migration
 
 **Use the loop above, not `npm run db:migrate`.**

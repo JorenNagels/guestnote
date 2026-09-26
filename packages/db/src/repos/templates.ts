@@ -485,3 +485,57 @@ export async function applyTemplate(
   )
   return ids.ok ? ok({ count: ids.value.length }) : NOT_FOUND
 }
+
+/** One starter template: its head and its items, in order. */
+export type SeedTemplate = TemplateInput & { readonly items: readonly TemplateItemInput[] }
+
+/**
+ * Spec 0005: the starter templates a new studio is seeded with, right after `createStudio`,
+ * written by the new owner through the ordinary scoped path -- not by `create_studio`, so the
+ * definer function stays small and the content (which is copy, in the studio's locale) stays
+ * out of SQL. Owner or admin only, like every template write.
+ *
+ * ONE transaction for all of them, so a studio never ends up with two of three templates or a
+ * template missing half its items; `addTemplateItem` per item would be a transaction each. An
+ * empty template, a template over `MAX_TEMPLATE_ITEMS` or a name over the form's limit refuses
+ * the whole seed before any SQL (`empty`, `full`) -- the content is ours, so any of those is a
+ * bug in it, and a partial seed would hide the bug.
+ */
+export async function seedTemplates(
+  db: Db,
+  m: Memberships,
+  orgId: string,
+  templates: readonly SeedTemplate[],
+): Promise<TemplateWriteResult<{ ids: string[] }>> {
+  const principal = principalForOrg(m, orgId)
+  if (!principal) return FORBIDDEN
+  for (const t of templates) {
+    if (t.items.length === 0) return EMPTY
+    if (t.items.length > MAX_TEMPLATE_ITEMS || t.name.length > MAX_NAME) return FULL
+  }
+  const ids = templates.map(() => newId())
+  await withTenant(db, principal, async (tx) => {
+    await tx.insert(taskTemplates).values(
+      templates.map((t, i) => ({
+        id: ids[i] as string,
+        orgId,
+        name: t.name,
+        description: t.description,
+      })),
+    )
+    const items = templates.flatMap((t, i) =>
+      t.items.map((item, position) => ({
+        id: newId(),
+        orgId,
+        templateId: ids[i] as string,
+        title: item.title,
+        dueOffsetDays: item.dueOffsetDays,
+        visibility: item.visibility,
+        assigneeRole: item.assigneeRole,
+        position,
+      })),
+    )
+    if (items.length > 0) await tx.insert(templateItems).values(items)
+  })
+  return ok({ ids })
+}

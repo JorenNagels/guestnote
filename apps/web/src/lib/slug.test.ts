@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FALLBACK_SLUG, slugFromName } from './slug.ts'
+import { FALLBACK_SLUG, FALLBACK_STUDIO_SLUG, slugFromName, studioSlugFromName } from './slug.ts'
 
 describe('slugFromName', () => {
   it('writes the ampersand as "en" and strips accents', () => {
@@ -22,5 +22,17 @@ describe('slugFromName', () => {
     const slug = slugFromName(`${'a'.repeat(39)} b${'c'.repeat(30)}`)
     expect(slug.length).toBeLessThanOrEqual(40)
     expect(slug.endsWith('-')).toBe(false)
+  })
+})
+
+describe('studioSlugFromName', () => {
+  it('slugs a studio name by the same rules', () => {
+    expect(studioSlugFromName('Studio Wit & Co')).toBe('studio-wit-en-co')
+  })
+
+  it('falls back to its own word, not the wedding one, for a reserved or empty name', () => {
+    expect(studioSlugFromName('Billing')).toBe(FALLBACK_STUDIO_SLUG)
+    expect(studioSlugFromName('Ó')).toBe(FALLBACK_STUDIO_SLUG)
+    expect(FALLBACK_STUDIO_SLUG).not.toBe(FALLBACK_SLUG)
   })
 })

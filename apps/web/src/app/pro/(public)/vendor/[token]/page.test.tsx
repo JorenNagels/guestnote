@@ -48,6 +48,7 @@ const LOOKUP = {
   weddingVenue: 'Kasteel Groot',
   weddingHeadcount: 120,
   status: 'live' as const,
+  logoKey: null,
 }
 
 const VIEW = {

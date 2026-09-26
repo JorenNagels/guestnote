@@ -80,6 +80,26 @@ async function rowsOf<T>(pending: Promise<unknown>): Promise<T[]> {
 const RESOLVE_STATUSES = new Set(['pending', 'expired', 'accepted'])
 const REFUSALS = new Set(['unknown', 'expired', 'already_accepted', 'wrong_user', 'forbidden'])
 
+/** Narrows one accept function's row to `AcceptOutcome`; both accept doors share it. */
+function toAcceptOutcome(row: AcceptRow | undefined, fn: string): AcceptOutcome {
+  if (!row) throw new Error(`${fn} returned no row (migrations 0007, 0010)`)
+  if (row.outcome === 'accepted') {
+    if (!row.joined_org_id || !row.joined_role) {
+      throw new Error(`${fn} said accepted with no org or role (migrations 0007, 0010)`)
+    }
+    return {
+      outcome: 'accepted',
+      orgId: row.joined_org_id,
+      weddingId: row.joined_wedding_id,
+      role: row.joined_role,
+    }
+  }
+  if (!REFUSALS.has(row.outcome)) {
+    throw new Error(`${fn} returned an unknown outcome '${row.outcome}' (migrations 0007, 0010)`)
+  }
+  return { outcome: row.outcome as Exclude<AcceptOutcome['outcome'], 'accepted'> } as AcceptOutcome
+}
+
 /** `null` for a token that matches nothing, which includes a revoked (deleted) invitation. */
 export async function resolveInvitationByHash(
   db: Db,
@@ -122,22 +142,79 @@ export async function acceptInvitationByHash(
       tx.execute(sql`select * from public.accept_invitation(${tokenHash}, ${userId}::uuid)`),
     ),
   )
-  if (!row) throw new Error('accept_invitation returned no row (migration 0007)')
-  if (row.outcome === 'accepted') {
-    if (!row.joined_org_id || !row.joined_role) {
-      throw new Error('accept_invitation said accepted with no org or role (migration 0007)')
-    }
-    return {
-      outcome: 'accepted',
-      orgId: row.joined_org_id,
-      weddingId: row.joined_wedding_id,
-      role: row.joined_role,
-    }
-  }
-  if (!REFUSALS.has(row.outcome)) {
-    throw new Error(
-      `accept_invitation returned an unknown outcome '${row.outcome}' (migration 0007)`,
-    )
-  }
-  return { outcome: row.outcome as Exclude<AcceptOutcome['outcome'], 'accepted'> } as AcceptOutcome
+  return toAcceptOutcome(row, 'accept_invitation')
+}
+
+/**
+ * One of the caller's own pending invitations, for spec 0005's "You've been invited" screen.
+ * No token hash and no email: the id is what `acceptInvitationById` takes, and the email is the
+ * caller's own by construction.
+ */
+export type PendingInvitation = {
+  readonly invitationId: string
+  readonly orgId: string
+  readonly orgName: string
+  /** Null for a staff invitation; set for a couple/editor one. */
+  readonly weddingId: string | null
+  /** The wedding's couple display name, for a wedding invitation. */
+  readonly weddingName: string | null
+  readonly role: string
+  readonly inviterName: string | null
+  readonly expiresAt: Date
+}
+
+type PendingRow = {
+  invitation_id: string
+  org_id: string
+  org_name: string
+  wedding_id: string | null
+  wedding_name: string | null
+  role: string
+  inviter_name: string | null
+  expires_at: Date | string
+}
+
+/**
+ * The signed-in user's own pending, unexpired invitations, matched by the email on their
+ * `users` row (migration 0010, `my_pending_invitations`). There is deliberately no email
+ * parameter anywhere on this path: it cannot be used to ask whether an address is invited.
+ */
+export async function myPendingInvitations(db: Db, userId: string): Promise<PendingInvitation[]> {
+  const rows = await withUser(db, userId, (tx: TenantDb) =>
+    rowsOf<PendingRow>(
+      tx.execute(sql`select * from public.my_pending_invitations(${userId}::uuid)`),
+    ),
+  )
+  return rows.map((r) => ({
+    invitationId: r.invitation_id,
+    orgId: r.org_id,
+    orgName: r.org_name,
+    weddingId: r.wedding_id,
+    weddingName: r.wedding_name,
+    role: r.role,
+    inviterName: r.inviter_name,
+    // Raw `execute` bypasses drizzle's column mapping; the neon driver hands back a string.
+    expiresAt: r.expires_at instanceof Date ? r.expires_at : new Date(r.expires_at),
+  }))
+}
+
+/**
+ * Join from the invited screen: `acceptInvitationByHash` by invitation id (migration 0010,
+ * `accept_invitation_by_id`, which hands on to 0007's `accept_invitation`). Same outcomes,
+ * except that an invitation addressed to another email is `unknown` rather than `wrong_user`,
+ * so an id says nothing about an invitation that was never the caller's.
+ */
+export async function acceptInvitationById(
+  db: Db,
+  invitationId: string,
+  userId: string,
+): Promise<AcceptOutcome> {
+  const [row] = await withUser(db, userId, (tx: TenantDb) =>
+    rowsOf<AcceptRow>(
+      tx.execute(
+        sql`select * from public.accept_invitation_by_id(${invitationId}::uuid, ${userId}::uuid)`,
+      ),
+    ),
+  )
+  return toAcceptOutcome(row, 'accept_invitation_by_id')
 }

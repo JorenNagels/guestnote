@@ -22,6 +22,23 @@ const MIN = 3
 const MAX = 40
 
 export function slugFromName(name: string): string {
+  return slugOr(name, FALLBACK_SLUG)
+}
+
+/**
+ * The same rules for a studio's org slug (spec 0005), with `studio` as the fallback: `Admin`
+ * or `Ó` becomes `studio`, and `create_studio` (migration 0010) adds `-2`, `-3` on a clash
+ * among live orgs. The org slug is shown and routed nowhere today -- tenant hosts are wedding
+ * slugs -- but it is held to the wedding slug's rules anyway, so that the day it becomes an
+ * address no existing studio already holds a reserved label.
+ */
+export const FALLBACK_STUDIO_SLUG = 'studio'
+
+export function studioSlugFromName(name: string): string {
+  return slugOr(name, FALLBACK_STUDIO_SLUG)
+}
+
+function slugOr(name: string, fallback: string): string {
   const slug = name
     .normalize('NFD')
     .replace(/\p{M}+/gu, '')
@@ -31,6 +48,6 @@ export function slugFromName(name: string): string {
     .replace(/^-+|-+$/g, '')
     .slice(0, MAX)
     .replace(/-+$/, '')
-  if (slug.length < MIN || RESERVED_SUBDOMAINS.has(slug)) return FALLBACK_SLUG
+  if (slug.length < MIN || RESERVED_SUBDOMAINS.has(slug)) return fallback
   return slug
 }

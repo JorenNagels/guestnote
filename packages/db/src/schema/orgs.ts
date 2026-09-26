@@ -15,6 +15,9 @@ import { users } from './auth.ts'
 export const ORG_TYPES = ['planner', 'venue', 'couple_direct'] as const
 export const ORG_ROLES = ['owner', 'admin', 'member'] as const
 export const INVITATION_ROLES = ['admin', 'member', 'couple', 'editor'] as const
+/** Spec 0005. Both nullable: null cycle is "no plan chosen", null status is "trialing". */
+export const BILLING_CYCLES = ['monthly', 'yearly'] as const
+export const BILLING_STATUSES = ['trialing', 'active', 'past_due', 'canceled'] as const
 
 /**
  * An organisation is **the business that pays and brands** -- not "everyone
@@ -33,14 +36,40 @@ export const organizations = pgTable(
     type: text('type').notNull(),
     plan: text('plan').notNull().default('free'),
     brand: jsonb('brand'),
+    // Untouched and unused since spec 0005 (migration 0010): the provider is not chosen, and
+    // dropping these is a cleanup for the day it is. The `billing_*` columns below replace them.
     mollieCustomerId: text('mollie_customer_id'),
     subscriptionStatus: text('subscription_status'),
+    /**
+     * Spec 0005 (migration 0010). The storage key of the studio's logo, `<org>/brand/<id>`,
+     * not a `files` row: `files.wedding_id` is NOT NULL and a logo belongs to no wedding.
+     * Null is "no logo", the default for every studio.
+     */
+    logoKey: text('logo_key'),
+    /**
+     * Null means computed on read -- `max(created_at, GUESTNOTE_BILLING_FROM) + 1 month`, in
+     * Europe/Brussels -- so turning billing on is a config change and not a backfill. Set by
+     * hand only, to give one studio more time.
+     */
+    trialEndsAt: tstz('trial_ends_at'),
+    /** Null until a plan is chosen. */
+    billingCycle: text('billing_cycle'),
+    /** Null is "trialing". "Trial ended" is computed and never stored, so it cannot go stale. */
+    billingStatus: text('billing_status'),
+    billingName: text('billing_name'),
+    billingEmail: text('billing_email'),
+    vatNumber: text('vat_number'),
+    /** Provider-neutral names: null until a provider exists behind `packages/billing`. */
+    billingCustomerId: text('billing_customer_id'),
+    billingSubscriptionId: text('billing_subscription_id'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
     deletedAt: deletedAt(),
   },
   (t) => [
     check('organizations_type_check', oneOf('type', ORG_TYPES)),
+    check('organizations_billing_cycle_check', oneOf('billing_cycle', BILLING_CYCLES)),
+    check('organizations_billing_status_check', oneOf('billing_status', BILLING_STATUSES)),
     // Unique among the living. A plain UNIQUE would let a soft-deleted org squat
     // its slug forever, with no way to release it short of a hard delete.
     uniqueIndex('organizations_slug_key').on(t.slug).where(sql`deleted_at is null`),
