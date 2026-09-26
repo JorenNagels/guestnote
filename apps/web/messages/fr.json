@@ -15,7 +15,7 @@
       "dateUnknown": "Date pas encore fixée",
       "empty": "Aucun mariage pour l'instant. Le premier que vous créez apparaîtra ici.",
       "noOrg": "Vous êtes connecté, mais vous n'appartenez encore à aucune organisation.",
-      "noOrgHint": "C'est une invitation d'un wedding planner ou d'un lieu de réception qui donne accès. Si vous vous attendiez à voir quelque chose ici, contactez la personne qui vous a invité.",
+      "noOrgHint": "Les wedding planners peuvent créer leur propre studio via « Lancez votre studio » sur la page de connexion. Les couples et prestataires accèdent via le lien envoyé par leur planner.",
       "status": {
         "draft": "Brouillon",
         "live": "En ligne",

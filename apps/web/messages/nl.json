@@ -15,7 +15,7 @@
       "dateUnknown": "Datum nog niet vastgelegd",
       "empty": "Nog geen bruiloften. Zodra er een is aangemaakt, staat ze hier.",
       "noOrg": "Je bent aangemeld, maar hoort nog bij geen enkele organisatie.",
-      "noOrgHint": "Een uitnodiging van een planner of locatie geeft je toegang. Klopt dit niet? Neem contact op met wie je heeft uitgenodigd.",
+      "noOrgHint": "Planners kunnen hun eigen studio starten via Start je studio op de aanmeldpagina. Koppels en leveranciers krijgen toegang via de link van hun planner.",
       "status": {
         "draft": "Concept",
         "live": "Live",

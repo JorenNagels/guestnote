@@ -15,7 +15,7 @@
       "dateUnknown": "No date set yet",
       "empty": "No weddings yet. The first one you create shows up here.",
       "noOrg": "You are signed in, but you do not belong to an organisation yet.",
-      "noOrgHint": "An invitation from a planner or a venue is what grants access. If you expected to see something here, ask whoever invited you.",
+      "noOrgHint": "Planners can start their own studio from Start your studio on the sign-in page. Couples and vendors get access through the link their planner sent.",
       "status": {
         "draft": "Draft",
         "live": "Live",

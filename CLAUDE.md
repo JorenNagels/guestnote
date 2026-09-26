@@ -95,7 +95,8 @@ stop and ask. The rest are held by convention alone, which is why they are writt
    table now returns the whole org to an owner or admin: it must filter to the caller itself
    if it means "my row".**
    The same migration adds `resolve_invitation` and `accept_invitation`, `SECURITY DEFINER`
-   functions that are the only door onto `invitations` before a principal exists. They
+   functions that were the only door onto `invitations` before a principal exists (migration 0010
+   added `my_pending_invitations` and `accept_invitation_by_id`, both bound to `app.user_id`). They
    install only when the migrating role bypasses RLS, and they are executable by `app_user`
    alone.
    **Migration 0008 added three more, on a third axis: no tenant key at all.**
