@@ -1,14 +1,16 @@
 # Spec 0005 — Start a studio without an invitation, run it as a demo, and tell us what broke
 
 **Date:** 2026-09-24 · **Status:** Specified, not built
-**Built so far:** slices 1-3 of 6 -- demo mode (`GUESTNOTE_BILLING_FROM`, `lib/billing-mode.ts`),
+**Built so far:** slices 1-4 of 6 -- demo mode (`GUESTNOTE_BILLING_FROM`, `lib/billing-mode.ts`),
 the demo banner and "Report a problem" (Sentry User Feedback); migration 0010 and its repos
 (`repos/studios.ts`, `myPendingInvitations`, `acceptInvitationById`, `seedTemplates`, the vendor
 link's `logoKey`, `studioSlugFromName`); the sign-up flow at `/signup` (`app/pro/(public)/signup/`,
 `components/signup/`, `lib/signup-step.ts`), the starter templates (`lib/starter-templates.ts`,
-drafted, not yet reviewed) and the sign-in footer link. Not built: studio page and logo upload
-(sign-up's logo slot is a marked placeholder), trial, billing. Where the build differs from
-the first draft, the text says so with "(as built)".
+drafted, not yet reviewed) and the sign-in footer link; the studio logo (`<org>/brand/<id>` keys and
+`deleteBrandObject` in `packages/storage`, `lib/studio-logo.ts`, `components/studio/`), the Studio
+page at `/studio` (`app/pro/(app)/studio/`), the sidebar's Studio item and logo, and the logo on the
+vendor-link header. Not built: trial, billing. Where the build differs from the first draft, the
+text says so with "(as built)".
 **Phase:** `research/05-architecture.md` M8 (self-serve onboarding) and the UI half of M9 (billing),
 plus a demo-period bug channel · **Bar:** a planner runs one real wedding here instead of a
 spreadsheet — which first means a planner can get in without the founder seeding their org.
@@ -218,6 +220,11 @@ shape `<org>/brand/<id>` — a sibling of the wedding prefix, not a `files` row,
 wedding_id` is NOT NULL and a logo belongs to no wedding. Not in `brand jsonb`: that column has
 no shape and giving it one is its own decision (`spec 0001:108-111`). Uploaded by presigned PUT
 as wedding files are; replacing deletes the old object after the new key is saved.
+*(As built: the key is built by `buildBrandKey` from an org-only `BrandScope`, a type of its own so a
+wedding call can never omit its wedding; `assertBrandKeyInScope` guards the GET and the delete. The
+delete is the app's first: `s3:DeleteObject` is granted on `*/brand/*` only (`sst.config.ts`), so a
+wedding file cannot be removed by any bug in the app, and a failed delete is reported, not shown --
+the new key is already saved. A `member` is refused before anything is signed.)*
 
 **Served by presigning on each render.** The sidebar, the Studio page and the vendor-link page
 are dynamic, so a fresh 5-minute GET per render costs one signature, no request. Cost: the
@@ -228,12 +235,24 @@ bucket's whole design is private-only).
 page; the **vendor-link page header**, which means `resolve_vendor_link` (migration 0008) returns
 the logo key too, in a new migration. The couple portal does not exist yet, so not there.
 
+*(As built, sign-up: the studio does not exist when the logo is picked, so the Studio step holds the
+file in the browser -- checked there against the same types and 2 MB, restated in
+`components/studio/logo-upload.ts` and pinned to the storage package by a test -- and "Create studio"
+posts `logo=1`. The action then answers `{ created: true }` instead of redirecting and does not set
+the org cookie, because a cookie written by a Server Action re-renders `/signup`, which sends an
+owner with no step home and would drop the file. The browser uploads into the studio the user owns,
+then posts the form again; that second post is `create_studio`'s `alreadyOwner` path, which sets the
+cookie and goes to the wedding step. If the upload fails the step stays, says the studio was created
+and the logo can be added on the Studio page, and the button reads "Continue".)*
+
 ### Studio page
 
 **`/pro/studio`, a sidebar item "Studio" between Team and Billing, owner and admin only.** It
 holds the logo block and the studio name (rename). Not in the design as a nav item — the design
 only says a settings page is needed; putting it in the sidebar beside Team keeps "things about
-the studio" together.
+the studio" together. *(As built: a member gets a 404, not Team's explanatory notice -- they have no
+link to it. The shell draws the item from a `canManage` the layout computes with `principalForOrg`;
+the Billing item after it waits for slice 5.)*
 
 ### Demo banner
 
@@ -408,6 +427,8 @@ NL first; EN below; FR written at build and reviewed. Keys under `messages/app/s
 | logo.help | PNG, JPG of WebP tot 2 MB. Vierkant werkt het best. Zichtbaar in je zijbalk en op leverancierslinks. | PNG, JPG or WebP up to 2 MB. Square works best. Shown in your sidebar and on vendor links. |
 | logo.notImage | Dat is geen afbeelding. Gebruik een PNG, JPG of WebP. | That isn’t an image. Use a PNG, JPG or WebP. |
 | logo.tooLarge | Dat bestand is groter dan 2 MB. Probeer een kleinere afbeelding. | That file is over 2 MB. Try a smaller image. |
+| logo.* *(as built)* | the logo copy lives under `app.studio.logo.*` and sign-up reads it from there; beyond the three above: label, upload, replace, remove, uploading, removing, added, removed, `errors.failed` ("Het logo kon niet worden opgeslagen. Probeer het opnieuw.") and `errors.afterCreate` (sign-up only) | |
+| studio.* *(as built)* | the Studio page: title, subtitle, and `name.*` for the rename -- see `messages/app/studio.*.json`; sign-up gained `studio.continue` and lost `studio.logoLater` | |
 | banners.demo.pill | DEMO | DEMO |
 | banners.demo.body | Guestnote is in demo. Alles is gratis terwijl we bouwen. | Guestnote is in demo. Everything is free while we build. |
 | banners.demo.ask *(as built: shown only when there is an inbox to report to)* | Loopt er iets mis? | Something off? |

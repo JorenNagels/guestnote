@@ -180,10 +180,19 @@ export default $config({
         // Presigning is a local signature made with the role's own credentials, and S3 checks
         // the *signer's* permissions when the URL is used -- so without these two actions every
         // presigned URL is valid-looking and answers 403. Objects only, this one bucket, and no
-        // `s3:ListBucket` or `s3:DeleteObject`: the app cannot enumerate or remove files yet.
+        // `s3:ListBucket`: the app cannot enumerate files.
         {
           actions: ['s3:PutObject', 's3:GetObject'],
           resources: [$interpolate`${files.arn}/*`],
+        },
+        // Spec 0005: replacing or removing a studio logo deletes the old object, and that is
+        // the only deletion the app does. Scoped to the brand prefix (`<org>/brand/<id>`,
+        // packages/storage/src/keys.ts), so a wedding file cannot be removed by any bug in the
+        // app -- deleting a wedding file still only removes its `files` row. Rejected: the
+        // bucket-wide `/*`, which would make that a code promise instead of an IAM one.
+        {
+          actions: ['s3:DeleteObject'],
+          resources: [$interpolate`${files.arn}/*/brand/*`],
         },
       ],
       environment: {

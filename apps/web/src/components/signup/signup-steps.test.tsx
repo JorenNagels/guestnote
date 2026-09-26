@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { InvitedLabels } from './invited-step.tsx'
 import type { StudioLabels } from './studio-step.tsx'
 import type { TeamLabels } from './team-step.tsx'
@@ -25,14 +25,28 @@ const STUDIO: StudioLabels = {
   namePlaceholder: '',
   ownerLabel: 'L-OWNER',
   ownerPlaceholder: '',
-  logoLabel: 'L-LOGO',
-  logoLater: 'LOGO-LATER',
   preview: 'PREVIEW',
   previewFallback: 'FALLBACK',
   create: 'CREATE',
   creating: 'CREATING',
+  continue: 'CONTINUE',
   errors: { required: 'E-REQ', tooLong: 'E-LONG', failed: 'E-FAILED', forbidden: 'E-FORBIDDEN' },
+  logo: {
+    label: 'L-LOGO',
+    upload: 'UPLOAD',
+    replace: 'REPLACE',
+    remove: 'REMOVE',
+    uploading: 'UPLOADING',
+    removing: 'REMOVING',
+    help: 'HELP',
+    added: 'ADDED',
+    removed: 'REMOVED',
+    errors: { notImage: 'E-NOT-IMAGE', tooLarge: 'E-TOO-LARGE', failed: 'E-LOGO-FAILED' },
+    afterCreate: 'E-AFTER-CREATE',
+  },
 }
+
+const noLogo = { start: vi.fn(), confirm: vi.fn() }
 
 const WEDDING: WeddingLabels = {
   title: 'T-WEDDING',
@@ -99,7 +113,7 @@ beforeEach(() => vi.clearAllMocks())
 describe('StudioStep', () => {
   it('keeps Create disabled until both names are non-blank, and previews the name', () => {
     const action = vi.fn(async () => ({}))
-    render(<StudioStep labels={STUDIO} ownerName="" action={action} />)
+    render(<StudioStep labels={STUDIO} ownerName="" action={action} logoActions={noLogo} />)
     const create = screen.getByRole('button', { name: 'CREATE' })
     expect(create).toBeDisabled()
     // Before a name: the fallback, never an empty preview row.
@@ -115,13 +129,13 @@ describe('StudioStep', () => {
   })
 
   it('prefills the name already on the account', () => {
-    render(<StudioStep labels={STUDIO} ownerName="Ilse" action={vi.fn()} />)
+    render(<StudioStep labels={STUDIO} ownerName="Ilse" action={vi.fn()} logoActions={noLogo} />)
     expect(screen.getByLabelText('L-OWNER')).toHaveValue('Ilse')
   })
 
   it('posts both names, and shows a refusal without losing them', async () => {
     const action = vi.fn(async () => ({ form: 'failed' as const }))
-    render(<StudioStep labels={STUDIO} ownerName="Ilse" action={action} />)
+    render(<StudioStep labels={STUDIO} ownerName="Ilse" action={action} logoActions={noLogo} />)
     fireEvent.change(screen.getByLabelText('L-NAME'), { target: { value: 'Studio Wit' } })
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'CREATE' }))
@@ -133,10 +147,132 @@ describe('StudioStep', () => {
     expect(screen.getByLabelText('L-NAME')).toHaveValue('Studio Wit')
   })
 
-  it('uploads nothing: the logo is a marked slot until slice 4', () => {
-    render(<StudioStep labels={STUDIO} ownerName="" action={vi.fn()} />)
-    expect(screen.getByText('LOGO-LATER')).toBeInTheDocument()
-    expect(document.querySelector('input[type="file"]')).toBeNull()
+  it('posts no logo flag when no logo was picked, so the action redirects as before', async () => {
+    const action = vi.fn(async () => ({}))
+    render(<StudioStep labels={STUDIO} ownerName="Ilse" action={action} logoActions={noLogo} />)
+    fireEvent.change(screen.getByLabelText('L-NAME'), { target: { value: 'Studio Wit' } })
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'CREATE' }))
+    })
+    const fd = (action.mock.calls[0] as unknown as [unknown, FormData])[1]
+    expect(fd.get('logo')).toBe('')
+  })
+})
+
+/**
+ * The logo on the Studio step (spec 0005, as built): held in the browser until the studio
+ * exists, then uploaded, then the form is posted again. jsdom has no object URLs, so
+ * `createObjectURL` is stubbed; `fetch` is the PUT.
+ */
+describe('StudioStep logo', () => {
+  const png = (bytes = 4) => new File([new Uint8Array(bytes)], 'logo.png', { type: 'image/png' })
+  const pick = (file: File) =>
+    act(async () => {
+      fireEvent.change(screen.getByTestId('logo-input'), { target: { files: [file] } })
+    })
+
+  beforeEach(() => {
+    URL.createObjectURL = vi.fn(() => 'blob:held')
+    URL.revokeObjectURL = vi.fn()
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => new Response(null, { status: 200 })),
+    )
+  })
+
+  afterEach(() => vi.unstubAllGlobals())
+
+  it.each([
+    ['an SVG', new File(['<svg/>'], 'a.svg', { type: 'image/svg+xml' }), 'E-NOT-IMAGE'],
+    [
+      'a file over 2 MB',
+      new File([new Uint8Array(2 * 1024 * 1024 + 1)], 'a.png', { type: 'image/png' }),
+      'E-TOO-LARGE',
+    ],
+  ])('refuses %s beside the field, and holds nothing', async (_label, file, message) => {
+    render(<StudioStep labels={STUDIO} ownerName="Ilse" action={vi.fn()} logoActions={noLogo} />)
+    await pick(file)
+    expect(screen.getByText(message)).toBeInTheDocument()
+    expect(screen.queryByTestId('logo-tile')).toBeNull()
+    expect(URL.createObjectURL).not.toHaveBeenCalled()
+  })
+
+  it('shows a held logo in the tile and the preview, and announces it', async () => {
+    render(<StudioStep labels={STUDIO} ownerName="Ilse" action={vi.fn()} logoActions={noLogo} />)
+    await pick(png())
+    expect(screen.getByTestId('logo-tile')).toHaveAttribute('src', 'blob:held')
+    expect(screen.getByTestId('studio-logo')).toHaveAttribute('src', 'blob:held')
+    expect(screen.getByRole('button', { name: 'REPLACE' })).toBeInTheDocument()
+    expect(screen.getByText('ADDED')).toBeInTheDocument()
+    // Nothing leaves the browser before the studio exists.
+    expect(noLogo.start).not.toHaveBeenCalled()
+  })
+
+  it('uploads after the studio is created, then posts again to move on', async () => {
+    const action = vi.fn().mockResolvedValueOnce({ created: true }).mockResolvedValueOnce({})
+    const logo = {
+      start: vi.fn(async () => ({ ok: true as const, fileId: 'f1', url: '/put', headers: {} })),
+      confirm: vi.fn(async () => ({ ok: true as const })),
+    }
+    render(<StudioStep labels={STUDIO} ownerName="Ilse" action={action} logoActions={logo} />)
+    fireEvent.change(screen.getByLabelText('L-NAME'), { target: { value: 'Studio Wit' } })
+    await pick(png())
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'CREATE' }))
+    })
+
+    await waitFor(() => expect(action).toHaveBeenCalledTimes(2))
+    const first = (action.mock.calls[0] as unknown as [unknown, FormData])[1]
+    expect(first.get('logo')).toBe('1')
+    expect(logo.start).toHaveBeenCalledWith({ mime: 'image/png', sizeBytes: 4 })
+    expect(fetch).toHaveBeenCalledWith('/put', expect.objectContaining({ method: 'PUT' }))
+    expect(logo.confirm).toHaveBeenCalledWith('f1')
+  })
+
+  it('leaves the button usable when the second post is refused after a good upload', async () => {
+    const action = vi
+      .fn()
+      .mockResolvedValueOnce({ created: true })
+      .mockResolvedValueOnce({ form: 'forbidden' })
+    const logo = {
+      start: vi.fn(async () => ({ ok: true as const, fileId: 'f1', url: '/put', headers: {} })),
+      confirm: vi.fn(async () => ({ ok: true as const })),
+    }
+    render(<StudioStep labels={STUDIO} ownerName="Ilse" action={action} logoActions={logo} />)
+    fireEvent.change(screen.getByLabelText('L-NAME'), { target: { value: 'Studio Wit' } })
+    await pick(png())
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'CREATE' }))
+    })
+    await waitFor(() => expect(screen.getByText('E-FORBIDDEN')).toBeInTheDocument())
+    expect(screen.getByRole('button', { name: 'CREATE' })).toBeEnabled()
+  })
+
+  it('stays when the upload fails after creating, says so, and Continue posts without a logo', async () => {
+    const action = vi.fn().mockResolvedValueOnce({ created: true }).mockResolvedValue({})
+    const logo = {
+      start: vi.fn(async () => ({ ok: false as const, error: 'unavailable' as const })),
+      confirm: vi.fn(),
+    }
+    render(<StudioStep labels={STUDIO} ownerName="Ilse" action={action} logoActions={logo} />)
+    fireEvent.change(screen.getByLabelText('L-NAME'), { target: { value: 'Studio Wit' } })
+    await pick(png())
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'CREATE' }))
+    })
+
+    await waitFor(() => expect(screen.getByText('E-AFTER-CREATE')).toBeInTheDocument())
+    expect(action).toHaveBeenCalledTimes(1)
+    // The preview no longer shows a logo that never arrived.
+    expect(screen.queryByTestId('studio-logo')).toBeNull()
+    expect(logo.confirm).not.toHaveBeenCalled()
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'CONTINUE' }))
+    })
+    await waitFor(() => expect(action).toHaveBeenCalledTimes(2))
+    const second = (action.mock.calls[1] as unknown as [unknown, FormData])[1]
+    expect(second.get('logo')).toBe('')
   })
 })
 

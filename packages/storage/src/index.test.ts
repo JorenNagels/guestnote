@@ -1,9 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import { createStorage } from './index.ts'
-import { ALLOWED_CONTENT_TYPES, DEFAULT_MAX_BYTES, PRESIGN_EXPIRES_SECONDS } from './limits.ts'
+import {
+  ALLOWED_CONTENT_TYPES,
+  DEFAULT_MAX_BYTES,
+  LOGO_MAX_BYTES,
+  PRESIGN_EXPIRES_SECONDS,
+} from './limits.ts'
 import type { PresignGetInput, PresignPutInput, PresignResult, StorageTransport } from './types.ts'
 
 const ORG = '0190a0a0-0000-7000-8000-000000000001'
+const OTHER_ORG = '0190a0a0-0000-7000-8000-000000000009'
 const WEDDING = '0190a0a0-0000-7000-8000-000000000002'
 const FILE = '0190a0a0-0000-7000-8000-000000000003'
 const scope = { orgId: ORG, weddingId: WEDDING }
@@ -17,6 +23,7 @@ const NOW = new Date('2026-09-21T10:00:00.000Z')
 function fake(result: PresignResult = { ok: true, url: 'https://signed.example/x' }) {
   const puts: PresignPutInput[] = []
   const gets: PresignGetInput[] = []
+  const deletes: string[] = []
   const transport: StorageTransport = {
     name: 'fake',
     async presignPut(input) {
@@ -27,8 +34,12 @@ function fake(result: PresignResult = { ok: true, url: 'https://signed.example/x
       gets.push(input)
       return result
     },
+    async deleteObject({ key }) {
+      deletes.push(key)
+      return result.ok ? { ok: true } : { ok: false, detail: result.detail }
+    },
   }
-  return { transport, puts, gets }
+  return { transport, puts, gets, deletes }
 }
 
 const upload = (overrides: Record<string, unknown> = {}) => ({
@@ -217,5 +228,121 @@ describe('presignDownload', () => {
       failure: 'unavailable',
       detail: 'boom',
     })
+  })
+})
+
+describe('a studio logo (spec 0005)', () => {
+  const brand = { orgId: ORG }
+  const logo = (overrides: Record<string, unknown> = {}) => ({
+    scope: brand,
+    fileId: FILE,
+    kind: 'logo' as const,
+    contentType: 'image/png',
+    sizeBytes: 1000,
+    ...overrides,
+  })
+
+  it('signs <org>/brand/<file>, with no wedding in the scope', async () => {
+    const { transport, puts } = fake()
+    const result = await createStorage({ transport, now: () => NOW }).presignUpload(logo())
+    expect(puts[0]?.key).toBe(`${ORG}/brand/${FILE}`)
+    expect(result).toMatchObject({ ok: true, key: `${ORG}/brand/${FILE}` })
+  })
+
+  it.each(['image/png', 'image/jpeg', 'image/webp'])('accepts %s', async (type) => {
+    const { transport } = fake()
+    const result = await createStorage({ transport }).presignUpload(logo({ contentType: type }))
+    expect(result.ok).toBe(true)
+  })
+
+  it.each(['image/svg+xml', 'image/gif', 'image/heic', 'application/pdf', ''])(
+    'refuses %s and signs nothing',
+    async (type) => {
+      const { transport, puts } = fake()
+      const result = await createStorage({ transport }).presignUpload(logo({ contentType: type }))
+      expect(result).toMatchObject({ ok: false, failure: 'typeNotAllowed' })
+      expect(puts).toEqual([])
+    },
+  )
+
+  it('accepts exactly 2 MiB and refuses one byte over, though the storage allows 25', async () => {
+    const { transport, puts } = fake()
+    const storage = createStorage({ transport })
+    expect(LOGO_MAX_BYTES).toBe(2 * 1024 * 1024)
+    expect((await storage.presignUpload(logo({ sizeBytes: LOGO_MAX_BYTES }))).ok).toBe(true)
+    expect(await storage.presignUpload(logo({ sizeBytes: LOGO_MAX_BYTES + 1 }))).toMatchObject({
+      ok: false,
+      failure: 'tooLarge',
+    })
+    expect(puts).toHaveLength(1)
+  })
+
+  it('lets a smaller storage-wide limit win over the logo limit', async () => {
+    const { transport } = fake()
+    const storage = createStorage({ transport, maxBytes: 1000 })
+    expect(await storage.presignUpload(logo({ sizeBytes: 1001 }))).toMatchObject({
+      ok: false,
+      failure: 'tooLarge',
+    })
+  })
+
+  it('does not let the logo limit reach a wedding upload', async () => {
+    const { transport } = fake()
+    const result = await createStorage({ transport }).presignUpload(
+      upload({ sizeBytes: LOGO_MAX_BYTES + 1 }),
+    )
+    expect(result.ok).toBe(true)
+  })
+
+  it('signs a brand GET inline, for an <img>', async () => {
+    const { transport, gets } = fake()
+    const result = await createStorage({ transport, now: () => NOW }).presignBrandDownload({
+      scope: brand,
+      key: `${ORG}/brand/${FILE}`,
+    })
+    expect(result).toMatchObject({ ok: true, url: 'https://signed.example/x' })
+    expect(gets[0]?.key).toBe(`${ORG}/brand/${FILE}`)
+    expect(gets[0]?.contentDisposition).toMatch(/^inline;/)
+  })
+
+  it.each([
+    ['a wedding file of the same org', `${ORG}/${WEDDING}/${FILE}`],
+    ["another org's logo", `${OTHER_ORG}/brand/${FILE}`],
+  ])('refuses to sign a GET for %s', async (_label, key) => {
+    const { transport, gets } = fake()
+    await expect(
+      createStorage({ transport }).presignBrandDownload({ scope: brand, key }),
+    ).rejects.toThrow(/is not a brand object/)
+    expect(gets).toEqual([])
+  })
+
+  it('deletes a brand object through the transport', async () => {
+    const { transport, deletes } = fake()
+    const result = await createStorage({ transport }).deleteBrandObject({
+      scope: brand,
+      key: `${ORG}/brand/${FILE}`,
+    })
+    expect(result).toEqual({ ok: true })
+    expect(deletes).toEqual([`${ORG}/brand/${FILE}`])
+  })
+
+  it.each([
+    ['a wedding file of the same org', `${ORG}/${WEDDING}/${FILE}`],
+    ["another org's logo", `${OTHER_ORG}/brand/${FILE}`],
+  ])('never deletes %s', async (_label, key) => {
+    const { transport, deletes } = fake()
+    await expect(
+      createStorage({ transport }).deleteBrandObject({ scope: brand, key }),
+    ).rejects.toThrow(/is not a brand object/)
+    expect(deletes).toEqual([])
+  })
+
+  it('returns a failed delete as a value', async () => {
+    const { transport } = fake({ ok: false, detail: 'AccessDenied' })
+    const result = await createStorage({ transport }).deleteBrandObject({
+      scope: brand,
+      key: `${ORG}/brand/${FILE}`,
+    })
+    expect(result).toEqual({ ok: false, detail: 'AccessDenied' })
   })
 })

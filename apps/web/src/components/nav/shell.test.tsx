@@ -97,6 +97,7 @@ const LABELS: ShellLabels = {
   templates: 'Sjablonen',
   vendors: 'Leveranciers',
   team: 'Team',
+  studio: 'Studio',
   weddingsSection: 'Jouw bruiloften',
   newWedding: 'Nieuwe bruiloft',
   wedding: {
@@ -195,6 +196,7 @@ function shellTree(over: Partial<Parameters<typeof Shell>[0]> = {}) {
       density="comfortable"
       banner={null}
       canReport={false}
+      canManage={false}
       labels={LABELS}
       {...over}
     >
@@ -404,6 +406,53 @@ describe('the collapsed rail', () => {
   })
 })
 
+/**
+ * Spec 0005: the org's logo replaces the monogram in the head, open and collapsed, and the
+ * monogram comes back when the logo fails to load. The monogram is found by its initials,
+ * which are its only text.
+ */
+describe('the organisation logo', () => {
+  const LOGO = 'https://files.example/org-a/brand/x?sig=1'
+  const WITH_LOGO = { ...STUDIO_A, logoUrl: LOGO }
+  const head = () => screen.getByRole('navigation', { name: 'Hoofdnavigatie' })
+
+  it.each(['expanded', 'collapsed'] as const)(
+    'draws the logo instead of the monogram, %s',
+    (nav) => {
+      renderShell({ org: WITH_LOGO, orgs: [WITH_LOGO], initialNav: nav })
+      expect(within(head()).getByTestId('studio-logo')).toHaveAttribute('src', LOGO)
+      expect(within(head()).queryByText('SA')).toBeNull()
+    },
+  )
+
+  it('draws it on the switcher trigger too, when there are two organisations', () => {
+    renderShell({ org: WITH_LOGO, orgs: [ATELIER, WITH_LOGO] })
+    const trigger = screen.getByRole('button', { expanded: false, name: /Studio A/ })
+    expect(within(trigger).getByTestId('studio-logo')).toHaveAttribute('src', LOGO)
+  })
+
+  it('falls back to the monogram when the logo fails to load', () => {
+    renderShell({ org: WITH_LOGO, orgs: [WITH_LOGO] })
+    fireEvent.error(within(head()).getByTestId('studio-logo'))
+    expect(within(head()).queryByTestId('studio-logo')).toBeNull()
+    expect(within(head()).getByText('SA')).toBeInTheDocument()
+  })
+
+  it('tries again with a fresh signature after a failure', () => {
+    renderShell({ org: WITH_LOGO, orgs: [WITH_LOGO] })
+    fireEvent.error(within(head()).getByTestId('studio-logo'))
+    const fresh = { ...STUDIO_A, logoUrl: `${LOGO}2` }
+    rerenderShell({ org: fresh, orgs: [fresh] })
+    expect(within(head()).getByTestId('studio-logo')).toHaveAttribute('src', `${LOGO}2`)
+  })
+
+  it('draws the monogram when there is no logo', () => {
+    renderShell()
+    expect(within(head()).queryByTestId('studio-logo')).toBeNull()
+    expect(within(head()).getByText('SA')).toBeInTheDocument()
+  })
+})
+
 const ELS: ShellWedding = {
   id: 'w1',
   name: 'Els & Jan',
@@ -442,6 +491,31 @@ describe('the organisation-level items', () => {
       ['Leveranciers', '/vendors'],
       ['Team', '/team'],
     ])
+  })
+
+  /**
+   * Spec 0005: Studio sits after Team for an owner or admin, and a member does not see it at
+   * all. `canManage` is computed by the layout from `principalForOrg`; the page 404s a member
+   * regardless, so this is about the link, not the gate.
+   */
+  it('adds Studio right after Team for an owner or admin', () => {
+    renderShell({ canManage: true })
+    const nav = screen.getByRole('navigation', { name: 'Hoofdnavigatie' })
+    const links = within(nav)
+      .getAllByRole('link')
+      .slice(4, 6)
+      .map((a) => [a.textContent, a.getAttribute('href')])
+    expect(links).toEqual([
+      ['Team', '/team'],
+      ['Studio', '/studio'],
+    ])
+  })
+
+  it('shows a member no Studio item', () => {
+    renderShell({ canManage: false })
+    const nav = screen.getByRole('navigation', { name: 'Hoofdnavigatie' })
+    expect(within(nav).queryByRole('link', { name: 'Studio' })).toBeNull()
+    expect(within(nav).getByRole('link', { name: 'Team' })).toBeInTheDocument()
   })
 
   it('marks only the page you are on', () => {

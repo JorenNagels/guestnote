@@ -51,6 +51,8 @@ export const app = {
   templates: () => '/templates',
   template: (templateId: string) => `/templates/${templateId}`,
   team: () => '/team',
+  /** Spec 0005: the studio's logo and name. Owner and admin; a 404 for anyone else. */
+  studio: () => '/studio',
   login: () => '/login',
   /**
    * Self-serve sign-up (spec 0005). One route for every step: the page derives which step to

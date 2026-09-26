@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import type { StorageTransport } from '@guestnote/storage'
 import { isUuid } from './uuid.ts'
@@ -32,10 +32,14 @@ import { isUuid } from './uuid.ts'
 
 const SECRET = 'guestnote-dev-files-not-a-secret'
 
-/** `<org>/<wedding>/<file>`, all UUIDs. The route's traversal guard, whatever the signature says. */
+/**
+ * `<org>/<wedding>/<file>`, all UUIDs, or a studio logo's `<org>/brand/<file>` (spec 0005). The
+ * route's traversal guard, whatever the signature says. The literal `brand` is the only non-UUID
+ * segment allowed, and only in the middle, so no key can climb out of the directory.
+ */
 function isObjectKey(key: string): boolean {
-  const parts = key.split('/')
-  return parts.length === 3 && parts.every(isUuid)
+  const [org, middle, file, ...rest] = key.split('/')
+  return rest.length === 0 && isUuid(org) && (isUuid(middle) || middle === 'brand') && isUuid(file)
 }
 
 export const DEV_FILES_PREFIX = '/api/dev-files/'
@@ -130,6 +134,14 @@ export function createDevFiles(config: { dir: string; now?: () => Date }): DevFi
             cd: input.contentDisposition,
           }),
         }
+      },
+      async deleteObject({ key }) {
+        // The same guard the route applies, because this path is reached from a Server Function
+        // with a key read from the database, and `rm` with `force` would happily take anything.
+        if (!isObjectKey(key)) return { ok: false, detail: `not an object key: ${key}` }
+        await rm(path(key), { force: true })
+        await rm(`${path(key)}.type`, { force: true })
+        return { ok: true }
       },
     },
 

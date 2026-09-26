@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { assertKeyInScope, buildObjectKey, contentDisposition } from './keys.ts'
+import {
+  assertBrandKeyInScope,
+  assertKeyInScope,
+  buildBrandKey,
+  buildObjectKey,
+  contentDisposition,
+} from './keys.ts'
 
 const ORG = '0190a0a0-0000-7000-8000-000000000001'
 const OTHER_ORG = '0190a0a0-0000-7000-8000-000000000009'
@@ -55,6 +61,54 @@ describe('assertKeyInScope', () => {
     ['an empty key', ''],
   ])('refuses %s', (_label, key) => {
     expect(() => assertKeyInScope(scope, key)).toThrow(/is not an object of org/)
+  })
+})
+
+describe('buildBrandKey', () => {
+  it('is org/brand/file, lower-cased', () => {
+    expect(buildBrandKey({ orgId: ORG.toUpperCase() }, FILE.toUpperCase())).toBe(
+      `${ORG}/brand/${FILE}`,
+    )
+  })
+
+  it.each([
+    ['a path traversal', '../../etc/passwd'],
+    ['a slash-bearing id', `${FILE}/extra`],
+    ['a non-uuid', 'logo.png'],
+  ])('throws on %s as the file id', (_label, bad) => {
+    expect(() => buildBrandKey({ orgId: ORG }, bad)).toThrow(/fileId must be a UUID/)
+  })
+
+  it('throws on a malformed org id', () => {
+    expect(() => buildBrandKey({ orgId: 'x' }, FILE)).toThrow(/scope\.orgId/)
+  })
+
+  it('can never equal a wedding key, so neither check accepts the other', () => {
+    const brand = buildBrandKey({ orgId: ORG }, FILE)
+    expect(() => assertKeyInScope(scope, brand)).toThrow(/is not an object of org/)
+    expect(() => assertBrandKeyInScope({ orgId: ORG }, buildObjectKey(scope, FILE))).toThrow(
+      /is not a brand object/,
+    )
+  })
+})
+
+describe('assertBrandKeyInScope', () => {
+  const brand = { orgId: ORG }
+
+  it('accepts a key the scope built', () => {
+    expect(() => assertBrandKeyInScope(brand, buildBrandKey(brand, FILE))).not.toThrow()
+  })
+
+  it.each([
+    ["another org's logo", `${OTHER_ORG}/brand/${FILE}`],
+    ['a traversal out of the prefix', `${ORG}/brand/../${OTHER_ORG}/brand/${FILE}`],
+    ['a trailing segment', `${ORG}/brand/${FILE}/extra`],
+    ['a missing file segment', `${ORG}/brand`],
+    ['a non-uuid leaf', `${ORG}/brand/logo.png`],
+    ['a different middle segment', `${ORG}/brands/${FILE}`],
+    ['an empty key', ''],
+  ])('refuses %s', (_label, key) => {
+    expect(() => assertBrandKeyInScope(brand, key)).toThrow(/is not a brand object/)
   })
 })
 

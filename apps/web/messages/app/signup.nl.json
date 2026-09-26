@@ -39,12 +39,11 @@
     "namePlaceholder": "Studio Wit",
     "ownerLabel": "Je naam",
     "ownerPlaceholder": "Ilse Verhoeven",
-    "logoLabel": "Logo",
-    "logoLater": "Een logo voeg je binnenkort toe op de pagina van je studio.",
     "preview": "Zo zien koppels en leveranciers je",
     "previewFallback": "Je studio",
     "create": "Studio aanmaken",
     "creating": "Studio aanmaken…",
+    "continue": "Doorgaan",
     "errors": {
       "required": "Vul dit in.",
       "tooLong": "Dat is te lang.",

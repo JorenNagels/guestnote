@@ -35,6 +35,12 @@ import {
   normaliseInviteEmail,
 } from '../../../../lib/staff-invite.ts'
 import { starterTemplates } from '../../../../lib/starter-templates.ts'
+import {
+  confirmLogo,
+  type LogoDone,
+  type StartLogo,
+  startLogoUpload,
+} from '../../../../lib/studio-logo.ts'
 import { isUuid } from '../../../../lib/uuid.ts'
 import type { FormState } from '../../../../lib/wedding-form-state.ts'
 
@@ -137,8 +143,38 @@ export async function createStudioAction(
   if (!seeded.ok)
     reportSilentFailure('signup: starter templates not seeded', { orgId, reason: seeded.reason })
 
+  // A logo was picked before the studio existed (spec 0005, as built): answer instead of
+  // redirecting, so the browser still holds the file and can upload it now. Deliberately without
+  // `actIn` -- a cookie written by a Server Function re-renders the current route, and `/signup`
+  // for someone who owns a studio and names no step redirects home, taking the file with it.
+  // The client re-submits once the upload is done; that second call is the `alreadyOwner` path
+  // above, which sets the cookie and moves on.
+  if (formData.get('logo') === '1') return { created: true, values }
+
   await actIn(orgId)
   redirect(app.signupStep('wedding'))
+}
+
+/**
+ * The logo picked on the Studio step, uploaded right after "Create studio" succeeded. The same
+ * two steps as the Studio page (`lib/studio-logo.ts`), acting in the studio this user OWNS --
+ * the rule for every sign-up step after this one -- never the `gn_org` cookie.
+ */
+export async function startSignupLogoUpload(input: {
+  mime: string
+  sizeBytes: number
+}): Promise<StartLogo> {
+  const session = await currentSession()
+  const owned = session ? await ownStudio(session.userId) : null
+  if (!owned) return { ok: false, error: 'forbidden' }
+  return startLogoUpload(owned, input)
+}
+
+export async function confirmSignupLogo(fileId: string): Promise<LogoDone> {
+  const session = await currentSession()
+  const owned = session ? await ownStudio(session.userId) : null
+  if (!owned) return { ok: false, error: 'forbidden' }
+  return confirmLogo(owned, fileId)
 }
 
 /**

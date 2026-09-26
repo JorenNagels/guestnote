@@ -23,6 +23,7 @@ import {
   PaymentsIcon,
   PlusIcon,
   RunSheetIcon,
+  StudioIcon,
   TeamIcon,
   TemplatesIcon,
   TodayIcon,
@@ -44,6 +45,8 @@ export type ShellLabels = {
   templates: string
   vendors: string
   team: string
+  /** Spec 0005's Studio page. Rendered only when `canManage`. */
+  studio: string
   /** The heading over the wedding rows. Not `weddings`: two identical words a row apart. */
   weddingsSection: string
   newWedding: string
@@ -132,6 +135,7 @@ export function Shell({
   density,
   banner,
   canReport,
+  canManage,
   labels,
   children,
 }: {
@@ -159,6 +163,12 @@ export function Shell({
   banner: 'demo' | null
   /** Whether "Report a problem" has an inbox to send to. False without a Sentry DSN. */
   canReport: boolean
+  /**
+   * Owner or admin of `org`: computed by the layout with `principalForOrg`. It decides whether
+   * the Studio item is drawn, and nothing else -- the page 404s a member and its Server
+   * Functions refuse one on their own, so a wrong value here shows a link, never grants a write.
+   */
+  canManage: boolean
   labels: ShellLabels
   children: ReactNode
 }) {
@@ -249,6 +259,20 @@ export function Shell({
       exact: false,
     },
     { key: 'team', href: app.team(), icon: <TeamIcon />, label: labels.team, exact: false },
+    // After Team, where spec 0005 puts it ("things about the studio" together). A member does
+    // not see it at all rather than a link to a 404: Team is shown to a member because its page
+    // explains itself, and a settings page they cannot use has nothing to explain.
+    ...(canManage
+      ? [
+          {
+            key: 'studio',
+            href: app.studio(),
+            icon: <StudioIcon />,
+            label: labels.studio,
+            exact: false,
+          },
+        ]
+      : []),
   ]
 
   const sidebar = (

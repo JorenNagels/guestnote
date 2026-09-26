@@ -39,12 +39,11 @@
     "namePlaceholder": "Studio Wit",
     "ownerLabel": "Your name",
     "ownerPlaceholder": "Ilse Verhoeven",
-    "logoLabel": "Logo",
-    "logoLater": "You’ll soon be able to add a logo on your studio’s page.",
     "preview": "How couples and vendors will see you",
     "previewFallback": "Your studio",
     "create": "Create studio",
     "creating": "Creating studio…",
+    "continue": "Continue",
     "errors": {
       "required": "Fill this in.",
       "tooLong": "That’s too long.",

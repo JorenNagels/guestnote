@@ -1,6 +1,17 @@
-import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import {
+  DeleteObjectCommand,
+  GetObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
-import type { PresignGetInput, PresignPutInput, PresignResult, StorageTransport } from './types.ts'
+import type {
+  DeleteResult,
+  PresignGetInput,
+  PresignPutInput,
+  PresignResult,
+  StorageTransport,
+} from './types.ts'
 
 /**
  * **The only file in this repository allowed to import the AWS S3 SDK.**
@@ -12,7 +23,7 @@ import type { PresignGetInput, PresignPutInput, PresignResult, StorageTransport 
  * and the SDK must not be dragged into a bundle by a stray import (`packages/storage/README.md`
  * has the measured size).
  *
- * Everything below returns `PresignResult`, which names no AWS type.
+ * Everything below returns `PresignResult` or `DeleteResult`, which name no AWS type.
  *
  * ## Configuration is arguments, never `process.env`
  *
@@ -24,6 +35,10 @@ import type { PresignGetInput, PresignPutInput, PresignResult, StorageTransport 
  * Presigning is a local HMAC over the request. Nothing here makes a network call, so nothing
  * here can be slow or hit S3's rate limits, and `s3.test.ts` runs the real presigner with a
  * fake key instead of mocking it. The one thing that can fail is credential resolution.
+ *
+ * `deleteObject` is the exception, and the only call here that reaches the bucket: removing a
+ * replaced studio logo (spec 0005). The role may delete `<org>/brand/<id>` keys and nothing else
+ * (`sst.config.ts`), so a wedding file cannot be removed through it even by a bug above.
  */
 
 export type S3TransportConfig = {
@@ -107,6 +122,17 @@ export function createS3Transport(config: S3TransportConfig): StorageTransport {
           { expiresIn: input.expiresInSeconds, signingDate: input.signingDate },
         )
         return { ok: true, url }
+      } catch (error) {
+        return { ok: false, detail: describe(error) }
+      }
+    },
+
+    async deleteObject({ key }): Promise<DeleteResult> {
+      try {
+        // S3 answers 204 for a key that does not exist, so a second delete of the same logo is
+        // a success, which is what the caller wants from "make sure it is gone".
+        await client.send(new DeleteObjectCommand({ Bucket: config.bucket, Key: key }))
+        return { ok: true }
       } catch (error) {
         return { ok: false, detail: describe(error) }
       }

@@ -11,6 +11,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
  */
 const resolveVendorLinkByHash = vi.fn()
 const getVendorLinkView = vi.fn()
+const logoUrl = vi.fn()
 const DB = { marker: 'the-db' }
 
 vi.mock('@guestnote/db', async (orig) => ({
@@ -19,6 +20,9 @@ vi.mock('@guestnote/db', async (orig) => ({
   getVendorLinkView: (...a: unknown[]) => getVendorLinkView(...a),
 }))
 vi.mock('../../../../../lib/db.ts', () => ({ getDb: () => DB }))
+vi.mock('../../../../../lib/studio-logo.ts', () => ({
+  logoUrl: (...a: unknown[]) => logoUrl(...a),
+}))
 vi.mock('next-intl/server', () => ({
   getLocale: async () => 'nl',
   getTranslations: async () =>
@@ -69,6 +73,9 @@ beforeEach(() => {
   vi.clearAllMocks()
   resolveVendorLinkByHash.mockResolvedValue(LOOKUP)
   getVendorLinkView.mockResolvedValue(VIEW)
+  logoUrl.mockImplementation(async (_org: string, key: string | null) =>
+    key ? `https://get.example/${key}` : null,
+  )
 })
 
 describe('a live link', () => {
@@ -99,6 +106,33 @@ describe('a live link', () => {
     getVendorLinkView.mockResolvedValue({ ...VIEW, plannerNote: null })
     const el = await render()
     expect(JSON.stringify(el)).not.toContain('plannerNeedsTitle')
+  })
+})
+
+/**
+ * Spec 0005: the studio's logo in the header. `logoUrl` is mocked at its seam; the rule pinned
+ * is that it is signed with the org the LOOKUP resolved -- the only org this link speaks for --
+ * and handed to the header's mark, which draws the monogram when there is none.
+ */
+describe('the studio logo in the header', () => {
+  it('signs the logo key with the lookup org and draws it', async () => {
+    resolveVendorLinkByHash.mockResolvedValue({ ...LOOKUP, logoKey: 'org-1/brand/logo' })
+    const html = JSON.stringify(await render())
+    expect(logoUrl).toHaveBeenCalledWith('org-1', 'org-1/brand/logo')
+    expect(html).toContain('"logoUrl":"https://get.example/org-1/brand/logo"')
+  })
+
+  it('passes no logo when the studio has none', async () => {
+    const html = JSON.stringify(await render())
+    expect(logoUrl).toHaveBeenCalledWith('org-1', null)
+    expect(html).toContain('"logoUrl":null')
+    expect(html).toContain('"name":"Studio Wit"')
+  })
+
+  it('signs nothing for a link that is not live', async () => {
+    resolveVendorLinkByHash.mockResolvedValue({ ...LOOKUP, status: 'revoked' })
+    await render()
+    expect(logoUrl).not.toHaveBeenCalled()
   })
 })
 

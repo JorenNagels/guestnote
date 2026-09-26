@@ -3,11 +3,23 @@
 import { cx } from '@guestnote/ui/cx'
 import { useTransition } from 'react'
 import { switchOrg } from '../../app/pro/(app)/actions.ts'
+import { StudioMark } from '../studio/studio-mark.tsx'
 import { CheckIcon, ChevronIcon } from './icons.tsx'
 import { Menu, MenuLabel, MenuRow } from './menu.tsx'
 import { Monogram } from './monogram.tsx'
 
-export type OrgOption = { id: string; name: string; slug: string }
+export type OrgOption = {
+  id: string
+  name: string
+  slug: string
+  /**
+   * A 5 minute signed GET for the org's logo (spec 0005), or absent for "draw the monogram".
+   * The layout signs it for the CURRENT org only: the switcher's other rows keep their
+   * monograms, because signing a URL per membership on every render buys a picture in a menu
+   * that is closed nearly all the time.
+   */
+  logoUrl?: string | null | undefined
+}
 
 /**
  * The organisation at the top of the sidebar. **A menu only when there is somewhere to go.**
@@ -44,7 +56,7 @@ export function OrgHead({
       <div
         className={cx('flex h-11 items-center gap-2.5', collapsed ? 'justify-center' : 'px-2.5')}
       >
-        <Monogram name={current.name} />
+        <StudioMark name={current.name} logoUrl={current.logoUrl} />
         {/* On the rail the monogram is all that is left, and a monogram is decoration. So
             the name becomes visually-hidden TEXT rather than an `aria-label` on the wrapper:
             a label on a div with no role is ignored by assistive tech and flagged by lint,
@@ -75,7 +87,7 @@ export function OrgHead({
             collapsed ? 'justify-center' : 'px-2.5',
           )}
         >
-          <Monogram name={current.name} />
+          <StudioMark name={current.name} logoUrl={current.logoUrl} />
           {collapsed ? null : (
             <>
               <span className="min-w-0 flex-1 truncate text-left text-sm font-semibold">

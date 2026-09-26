@@ -112,6 +112,31 @@ describe('dev files', () => {
     expect((await put(q, 'abcd', 'image/png', evil)).status).toBe(403)
   })
 
+  it('accepts a studio logo key, <org>/brand/<file>, and deletes it', async () => {
+    const brand = `${KEY.split('/')[0]}/brand/${KEY.split('/')[2]}`
+    const r = await dev.transport.presignPut({
+      key: brand,
+      contentType: 'image/png',
+      contentLength: 4,
+      expiresInSeconds: 300,
+      signingDate: NOW,
+    })
+    if (!r.ok) throw new Error('presign failed')
+    const q = new URL(r.url, 'http://x').searchParams
+    expect((await put(q, 'abcd', 'image/png', brand)).status).toBe(200)
+    expect(await readFile(join(dir, ...brand.split('/')), 'utf8')).toBe('abcd')
+
+    expect(await dev.transport.deleteObject({ key: brand })).toEqual({ ok: true })
+    await expect(readFile(join(dir, ...brand.split('/')))).rejects.toThrow()
+  })
+
+  it.each([
+    ['a traversal', '../../etc/passwd'],
+    ['a non-brand middle segment', `${KEY.split('/')[0]}/logos/${KEY.split('/')[2]}`],
+  ])('refuses to delete %s', async (_label, key) => {
+    expect(await dev.transport.deleteObject({ key })).toMatchObject({ ok: false })
+  })
+
   it('is a 404 for a signed GET of a file that was never uploaded', async () => {
     expect((await dev.get(KEY, await signedGet())).status).toBe(404)
   })

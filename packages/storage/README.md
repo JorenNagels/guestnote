@@ -138,9 +138,12 @@ made the two defaults above visible; a mock would have accepted either.
 
 ## What is deliberately not here
 
-- **Deletion and listing.** Neither `s3:DeleteObject` nor `s3:ListBucket` is granted to the app
-  (`sst.config.ts`). Deleting a file removes its `files` row; the object stays until a lifecycle
-  rule or a job removes it, and that is the Files slice's decision.
+- **Listing, and deleting a wedding's files.** `s3:ListBucket` is not granted, and
+  `s3:DeleteObject` only on `*/brand/*` (`sst.config.ts`). Deleting a file removes its `files`
+  row; the object stays until a lifecycle rule or a job removes it, and that is the Files slice's
+  decision. *(Since spec 0005, 2026-09-26: a studio logo is the one exception. Its key is
+  `<org>/brand/<id>` -- `buildBrandKey`, org scope only -- and replacing or removing it deletes the
+  old object through `deleteBrandObject`, which refuses any other key shape before it calls S3.)*
 - **Multipart upload.** 25 MiB fits a single PUT. `etag` is already exposed in the bucket's CORS
   rule for the day it does not.
 - **Virus scanning, image resizing, thumbnails.** None planned.

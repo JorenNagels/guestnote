@@ -47,6 +47,7 @@ export const SLICES = [
   'banners',
   'report',
   'signup',
+  'studio',
 ] as const
 
 export type Slice = (typeof SLICES)[number]

@@ -1,0 +1,33 @@
+{
+  "title": "Studio",
+  "subtitle": "Hoe je studio verschijnt voor je team, koppels en leveranciers.",
+  "logo": {
+    "label": "Logo · optioneel",
+    "upload": "Logo uploaden",
+    "replace": "Vervangen",
+    "remove": "Verwijderen",
+    "uploading": "Bezig met uploaden…",
+    "removing": "Bezig met verwijderen…",
+    "help": "PNG, JPG of WebP tot 2 MB. Vierkant werkt het best. Zichtbaar in je zijbalk en op leverancierslinks.",
+    "added": "Logo toegevoegd",
+    "removed": "Logo verwijderd",
+    "errors": {
+      "notImage": "Dat is geen afbeelding. Gebruik een PNG, JPG of WebP.",
+      "tooLarge": "Dat bestand is groter dan 2 MB. Probeer een kleinere afbeelding.",
+      "failed": "Het logo kon niet worden opgeslagen. Probeer het opnieuw.",
+      "afterCreate": "Je studio is aangemaakt, maar het logo kwam niet door. Voeg het later toe op de pagina Studio."
+    }
+  },
+  "name": {
+    "title": "Naam",
+    "label": "Naam van je studio",
+    "save": "Opslaan",
+    "saving": "Bezig met opslaan…",
+    "saved": "Opgeslagen",
+    "errors": {
+      "required": "Vul dit in.",
+      "tooLong": "Dat is te lang.",
+      "failed": "Dat lukte niet. Probeer het opnieuw."
+    }
+  }
+}

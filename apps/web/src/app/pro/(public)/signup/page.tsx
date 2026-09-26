@@ -29,10 +29,12 @@ import { indicatorIndex, signupStep } from '../../../../lib/signup-step.ts'
 import { starterTemplates } from '../../../../lib/starter-templates.ts'
 import { brusselsToday, trialLastDay } from '../../../../lib/trial.ts'
 import {
+  confirmSignupLogo,
   createFirstWeddingAction,
   createStudioAction,
   inviteTeamAction,
   joinInvitationAction,
+  startSignupLogoUpload,
 } from './actions.ts'
 
 /**
@@ -59,12 +61,14 @@ export default async function SignupPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   const billing = billingMode()
-  const [session, query, rawLocale, copy, t] = await Promise.all([
+  const [session, query, rawLocale, copy, t, studioT] = await Promise.all([
     getAuth().getSession(await headers()),
     searchParams,
     getLocale(),
     getAuthCopy(billing.on),
     getTranslations('app.signup'),
+    // The logo block's copy is the Studio page's (`app.studio.logo`), not a second copy of it.
+    getTranslations('app.studio'),
   ])
   const locale: Locale = isLocale(rawLocale) ? rawLocale : LOCALES[0]
   const stage = await getStageContent(copy)
@@ -178,12 +182,28 @@ export default async function SignupPage({
               namePlaceholder: t('studio.namePlaceholder'),
               ownerLabel: t('studio.ownerLabel'),
               ownerPlaceholder: t('studio.ownerPlaceholder'),
-              logoLabel: t('studio.logoLabel'),
-              logoLater: t('studio.logoLater'),
               preview: t('studio.preview'),
               previewFallback: t('studio.previewFallback'),
               create: t('studio.create'),
               creating: t('studio.creating'),
+              continue: t('studio.continue'),
+              logo: {
+                label: studioT('logo.label'),
+                upload: studioT('logo.upload'),
+                replace: studioT('logo.replace'),
+                remove: studioT('logo.remove'),
+                uploading: studioT('logo.uploading'),
+                removing: studioT('logo.removing'),
+                help: studioT('logo.help'),
+                added: studioT('logo.added'),
+                removed: studioT('logo.removed'),
+                errors: {
+                  notImage: studioT('logo.errors.notImage'),
+                  tooLarge: studioT('logo.errors.tooLarge'),
+                  failed: studioT('logo.errors.failed'),
+                },
+                afterCreate: studioT('logo.errors.afterCreate'),
+              },
               errors: {
                 required: t('studio.errors.required'),
                 tooLong: t('studio.errors.tooLong'),
@@ -193,6 +213,7 @@ export default async function SignupPage({
             }}
             ownerName={session.name ?? ''}
             action={createStudioAction}
+            logoActions={{ start: startSignupLogoUpload, confirm: confirmSignupLogo }}
           />
         </SignupFrame>
       )

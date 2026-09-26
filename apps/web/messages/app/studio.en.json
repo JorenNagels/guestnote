@@ -1,0 +1,33 @@
+{
+  "title": "Studio",
+  "subtitle": "How your studio appears to your team, couples and vendors.",
+  "logo": {
+    "label": "Logo · optional",
+    "upload": "Upload logo",
+    "replace": "Replace",
+    "remove": "Remove",
+    "uploading": "Uploading…",
+    "removing": "Removing…",
+    "help": "PNG, JPG or WebP up to 2 MB. Square works best. Shown in your sidebar and on vendor links.",
+    "added": "Logo added",
+    "removed": "Logo removed",
+    "errors": {
+      "notImage": "That isn’t an image. Use a PNG, JPG or WebP.",
+      "tooLarge": "That file is over 2 MB. Try a smaller image.",
+      "failed": "The logo couldn’t be saved. Try again.",
+      "afterCreate": "Your studio was created, but the logo didn’t come through. Add it later on the Studio page."
+    }
+  },
+  "name": {
+    "title": "Name",
+    "label": "Studio name",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "errors": {
+      "required": "Fill this in.",
+      "tooLong": "That’s too long.",
+      "failed": "That didn’t work. Try again."
+    }
+  }
+}

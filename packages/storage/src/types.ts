@@ -15,8 +15,12 @@
  * What a file is *for*, which decides which content types are accepted.
  *
  * Mirrors `files.kind` in spec 0003: `image` is the moodboard, `file` is the Files screen.
+ * `logo` is a studio's logo (spec 0005), the one kind that belongs to no wedding.
  */
-export type UploadKind = 'file' | 'image'
+export type UploadKind = 'file' | 'image' | 'logo'
+
+/** The two kinds that live under a wedding, and so take a `StorageScope`. */
+export type WeddingUploadKind = Exclude<UploadKind, 'logo'>
 
 /**
  * The tenant a key must live under. Both ids are UUIDs (CLAUDE.md invariant 9).
@@ -27,6 +31,18 @@ export type UploadKind = 'file' | 'image'
 export type StorageScope = {
   readonly orgId: string
   readonly weddingId: string
+}
+
+/**
+ * The org a brand object (spec 0005: the studio logo) lives under, and nothing else.
+ *
+ * A separate type rather than `StorageScope` with an optional `weddingId`: an optional wedding
+ * would make "forgot the wedding" and "means the brand prefix" the same value, and every wedding
+ * key check would have to ask which one it was handed. As two types, a wedding call cannot be
+ * made without its wedding, and a brand key cannot be built anywhere but `<org>/brand/`.
+ */
+export type BrandScope = {
+  readonly orgId: string
 }
 
 /**
@@ -43,14 +59,21 @@ export type StorageScope = {
  */
 export type UploadFailure = 'invalidSize' | 'tooLarge' | 'typeNotAllowed' | 'unavailable'
 
-export type UploadRequest = {
-  readonly scope: StorageScope
+/**
+ * The kind decides the scope: a wedding kind needs the wedding, `logo` takes the org alone and
+ * its key is `<org>/brand/<fileId>`. A union rather than one shape with an optional wedding, for
+ * the reason `BrandScope` gives.
+ */
+export type UploadRequest = (
+  | { readonly scope: StorageScope; readonly kind: WeddingUploadKind }
+  | { readonly scope: BrandScope; readonly kind: 'logo' }
+) & {
   /**
    * The `files.id` this upload becomes, UUIDv7 from `newId()`. It is also the last segment of
-   * the storage key, so a row and its object can always be joined without a lookup.
+   * the storage key, so a row and its object can always be joined without a lookup. For a logo
+   * there is no row; the id only names the object.
    */
   readonly fileId: string
-  readonly kind: UploadKind
   /** What the browser reports as `File.type`. Normalised, then checked against the allow-list. */
   readonly contentType: string
   /** `File.size`. Signed into the URL as the exact `Content-Length`. */
@@ -88,6 +111,21 @@ export type DownloadRequest = {
   readonly disposition?: 'inline' | 'attachment'
 }
 
+/** A brand object's GET. Always `inline`: a logo is only ever drawn by an `<img>`. */
+export type BrandDownloadRequest = {
+  readonly scope: BrandScope
+  /** `organizations.logo_key`. Checked against `scope`; anything but `<org>/brand/<id>` throws. */
+  readonly key: string
+}
+
+/**
+ * Removing a replaced or cleared logo. Brand objects only -- there is no way to name a wedding
+ * key here, so no caller can delete a planner's file through this seam by mistake.
+ */
+export type BrandDeleteRequest = BrandDownloadRequest
+
+export type DeleteResult = { readonly ok: true } | { readonly ok: false; readonly detail: string }
+
 export type DownloadResult =
   | { readonly ok: true; readonly url: string; readonly expiresAt: string }
   | { readonly ok: false; readonly failure: 'unavailable'; readonly detail: string }
@@ -96,6 +134,8 @@ export type DownloadResult =
 export type Storage = {
   presignUpload(request: UploadRequest): Promise<UploadResult>
   presignDownload(request: DownloadRequest): Promise<DownloadResult>
+  presignBrandDownload(request: BrandDownloadRequest): Promise<DownloadResult>
+  deleteBrandObject(request: BrandDeleteRequest): Promise<DeleteResult>
 }
 
 /**
@@ -110,6 +150,11 @@ export type StorageTransport = {
   readonly name: string
   presignPut(input: PresignPutInput): Promise<PresignResult>
   presignGet(input: PresignGetInput): Promise<PresignResult>
+  /**
+   * The one call that is not a signature: it reaches the bucket. Never throws -- a failure is a
+   * value, because every caller treats a leftover object as a cost and not an error.
+   */
+  deleteObject(input: { readonly key: string }): Promise<DeleteResult>
 }
 
 export type PresignPutInput = {

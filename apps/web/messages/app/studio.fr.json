@@ -1,0 +1,33 @@
+{
+  "title": "Studio",
+  "subtitle": "Comment votre studio apparaît à votre équipe, aux couples et aux fournisseurs.",
+  "logo": {
+    "label": "Logo · facultatif",
+    "upload": "Téléverser un logo",
+    "replace": "Remplacer",
+    "remove": "Supprimer",
+    "uploading": "Envoi en cours…",
+    "removing": "Suppression…",
+    "help": "PNG, JPG ou WebP jusqu’à 2 Mo. Un format carré fonctionne le mieux. Visible dans votre barre latérale et sur les liens fournisseurs.",
+    "added": "Logo ajouté",
+    "removed": "Logo supprimé",
+    "errors": {
+      "notImage": "Ce n’est pas une image. Utilisez un PNG, JPG ou WebP.",
+      "tooLarge": "Ce fichier dépasse 2 Mo. Essayez une image plus petite.",
+      "failed": "Le logo n’a pas pu être enregistré. Réessayez.",
+      "afterCreate": "Votre studio est créé, mais le logo n’est pas passé. Ajoutez-le plus tard sur la page Studio."
+    }
+  },
+  "name": {
+    "title": "Nom",
+    "label": "Nom du studio",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "saved": "Enregistré",
+    "errors": {
+      "required": "Remplissez ce champ.",
+      "tooLong": "C’est trop long.",
+      "failed": "Cela n’a pas fonctionné. Réessayez."
+    }
+  }
+}

@@ -3,10 +3,11 @@ import { cx } from '@guestnote/ui/cx'
 /**
  * Initials on a tinted square, for an organisation or a person.
  *
- * There is no logo to render and that is a schema fact, not a shortcut:
- * `organizations.brand` is untyped nullable `jsonb` with no shape, no upload path and no
- * reader anywhere. `docs/specs/0001-moving-around-the-dashboard.md` defers logo upload to
- * its own spec, because it needs file storage this repo does not have yet.
+ * Since spec 0005 (2026-09-26) an organisation can have a logo, `organizations.logo_key`,
+ * and `org-head.tsx` draws it in this square's place. This is still what every studio without
+ * one sees, what a logo that fails to load falls back to, and what the switcher's other rows
+ * draw. (It used to say there was no logo to render: `docs/specs/0001` had deferred upload
+ * until file storage existed.)
  *
  * ## Why the tint is derived from the name and not random
  *

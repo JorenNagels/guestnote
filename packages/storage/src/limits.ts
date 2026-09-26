@@ -15,6 +15,14 @@ import type { UploadKind } from './types.ts'
 export const DEFAULT_MAX_BYTES = 25 * 1024 * 1024
 
 /**
+ * 2 MiB for a studio logo (spec 0005). A logo is drawn at 28 to 48 CSS pixels, so anything
+ * near this is already far more than it needs; the number is the spec's, chosen so a phone
+ * screenshot of a logo passes and a camera photo of a shopfront does not. Applied on top of the
+ * storage-wide limit, never instead of it: a smaller `maxBytes` still wins.
+ */
+export const LOGO_MAX_BYTES = 2 * 1024 * 1024
+
+/**
  * Five minutes for both directions. A presigned URL is a bearer credential: whoever holds it can
  * use it, and it cannot be revoked short of expiry. Five minutes covers a slow venue connection
  * starting a 25 MB upload, and a download link is minted per click so it never needs longer.
@@ -63,6 +71,10 @@ export const ALLOWED_CONTENT_TYPES: Readonly<Record<UploadKind, readonly string[
   image: IMAGE_TYPES,
   // A planner drops a photo into Files as readily as into the moodboard.
   file: [...DOCUMENT_TYPES, ...IMAGE_TYPES],
+  // Spec 0005: the three every browser draws. Not GIF (a moving logo in a sidebar), not HEIC
+  // and AVIF (a vendor opening a link on an older browser sees nothing), and not SVG for the
+  // reason above -- the design offered SVG and the spec dropped it rather than weaken this.
+  logo: ['image/png', 'image/jpeg', 'image/webp'],
 }
 
 /**

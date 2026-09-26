@@ -20,6 +20,11 @@ export type StudioFormState = {
   /** `forbidden`: no session. `failed`: the database refused a name the form accepted. */
   readonly form?: 'forbidden' | 'failed'
   readonly values?: Readonly<Partial<Record<StudioField, string>>>
+  /**
+   * The studio exists and a logo is waiting to be uploaded (`logo=1` was posted). Only then does
+   * the action answer instead of redirecting -- see `createStudioAction`.
+   */
+  readonly created?: boolean
 }
 
 /** The team step's three rows are `email0`..`email2`, so a row keeps its index across a retry. */

@@ -165,6 +165,28 @@ export function TeamIcon({ className }: IconProps) {
   )
 }
 
+/** A shopfront: the studio itself, as distinct from the people in it (`TeamIcon`). */
+export function StudioIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M4 10v10h16V10" />
+      <path d="M3 10l2-6h14l2 6c0 1.4-1.3 2.5-3 2.5s-3-1.1-3-2.5c0 1.4-1.3 2.5-3 2.5s-3-1.1-3-2.5c0 1.4-1.3 2.5-3 2.5S3 11.4 3 10z" />
+      <path d="M10 20v-4.5h4V20" />
+    </Glyph>
+  )
+}
+
+/** The empty logo tile: a picture frame with a hill and a sun. */
+export function ImageIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
+      <circle cx="9" cy="10" r="1.6" />
+      <path d="M20.5 16l-5-5-8.5 8.5" />
+    </Glyph>
+  )
+}
+
 export function PlusIcon({ className }: IconProps) {
   return (
     <Glyph className={className}>

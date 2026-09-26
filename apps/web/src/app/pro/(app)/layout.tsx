@@ -1,4 +1,4 @@
-import { listWeddings, type WeddingSummary } from '@guestnote/db'
+import { listWeddings, principalForOrg, studioSettings, type WeddingSummary } from '@guestnote/db'
 import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { getLocale, getTranslations } from 'next-intl/server'
@@ -20,6 +20,7 @@ import {
 } from '../../../lib/prefs.ts'
 import { currentMemberships, currentOrgId, currentOrgs } from '../../../lib/principal.ts'
 import { app } from '../../../lib/routes.ts'
+import { logoUrl } from '../../../lib/studio-logo.ts'
 
 /**
  * The authenticated branch of root layout B, and now the shell itself. Its sibling
@@ -100,11 +101,23 @@ export default async function AppShellLayout({ children }: { children: ReactNode
   // nothing there can see how the layout produces them.
   const raw = (key: string) => String(shellT.raw(key))
 
-  const weddings = memberships ? await listWeddings(getDb(), memberships, orgId) : []
+  // The logo (spec 0005) beside the weddings, not after them: both need only `orgId`.
+  // `studioSettings` answers for any staff of the org -- every member's sidebar shows the logo
+  // -- and `logoUrl` signs it here, per render, for 5 minutes.
+  const [weddings, settings] = memberships
+    ? await Promise.all([
+        listWeddings(getDb(), memberships, orgId),
+        studioSettings(getDb(), memberships, orgId),
+      ])
+    : [[], null]
+  const org = { ...current, logoUrl: settings ? await logoUrl(orgId, settings.logoKey) : null }
+  // Owner or admin, by the same function every org-wide write asks. It decides whether the
+  // Studio item is drawn; the page and its Server Functions ask again for themselves.
+  const canManage = memberships ? principalForOrg(memberships, orgId) !== null : false
 
   return (
     <Shell
-      org={current}
+      org={org}
       orgs={orgs}
       weddings={weddings.map(toShellWedding)}
       user={{ name: session.name, email: session.email }}
@@ -123,6 +136,7 @@ export default async function AppShellLayout({ children }: { children: ReactNode
       // built, billing on shows no banner at all.
       banner={billingMode().on ? null : 'demo'}
       canReport={feedbackAvailable()}
+      canManage={canManage}
       labels={{
         nav: t('nav.label'),
         weddings: t('weddings.title'),
@@ -130,6 +144,7 @@ export default async function AppShellLayout({ children }: { children: ReactNode
         templates: shellT('nav.templates'),
         vendors: shellT('nav.vendors'),
         team: shellT('nav.team'),
+        studio: shellT('nav.studio'),
         weddingsSection: shellT('nav.weddingsSection'),
         newWedding: shellT('nav.newWedding'),
         wedding: {

@@ -1,9 +1,11 @@
 import { getVendorLinkView, resolveVendorLinkByHash } from '@guestnote/db'
 import { getLocale, getTranslations } from 'next-intl/server'
+import { StudioMark } from '../../../../../components/studio/studio-mark.tsx'
 import { hashBearerToken } from '../../../../../lib/bearer-token.ts'
 import { formatCivilDate } from '../../../../../lib/civil-date.ts'
 import { getDb } from '../../../../../lib/db.ts'
 import { formatDuration } from '../../../../../lib/run-sheet.ts'
+import { logoUrl } from '../../../../../lib/studio-logo.ts'
 
 /**
  * `app.guestnote.be/vendor/<token>` -- spec 0003, S10. The one screen a vendor with no
@@ -37,12 +39,18 @@ export default async function VendorLinkPage({ params }: { params: Promise<{ tok
     return <Gone title={t('gone.title')} body={t('gone.body')} />
   }
 
-  const view = await getVendorLinkView(getDb(), {
-    kind: 'link',
-    orgId: lookup.orgId,
-    weddingId: lookup.weddingId,
-    weddingVendorId: lookup.weddingVendorId,
-  })
+  // The studio's logo (spec 0005), signed with the org the lookup resolved -- the only org this
+  // link can speak for -- and beside the view read, not after it. `logoUrl` refuses a key that
+  // is not a brand object of that org, and answers `null` for none, which draws the monogram.
+  const [view, logo] = await Promise.all([
+    getVendorLinkView(getDb(), {
+      kind: 'link',
+      orgId: lookup.orgId,
+      weddingId: lookup.weddingId,
+      weddingVendorId: lookup.weddingVendorId,
+    }),
+    logoUrl(lookup.orgId, lookup.logoKey),
+  ])
 
   const details = [
     lookup.weddingCoupleDisplayName,
@@ -53,9 +61,12 @@ export default async function VendorLinkPage({ params }: { params: Promise<{ tok
   return (
     <div className="min-h-dvh bg-muted/40 px-4 py-8 sm:px-6">
       <div className="mx-auto max-w-2xl">
-        <p className="text-muted-foreground mb-4 text-sm">
-          {t('sharedWith', { org: lookup.orgName })}
-        </p>
+        <div className="mb-4 flex items-center gap-2.5">
+          <StudioMark name={lookup.orgName} logoUrl={logo} className="size-8" />
+          <p className="text-muted-foreground min-w-0 text-sm">
+            {t('sharedWith', { org: lookup.orgName })}
+          </p>
+        </div>
 
         <div className="border-border bg-background rounded-[var(--radius)] border p-6">
           <p className="text-muted-foreground text-xs font-semibold tracking-[0.09em] uppercase">
