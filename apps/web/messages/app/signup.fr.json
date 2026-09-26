@@ -1,0 +1,108 @@
+{
+  "steps": {
+    "account": "Compte",
+    "studio": "Studio",
+    "wedding": "Mariage",
+    "team": "Équipe"
+  },
+  "account": {
+    "title": "Lancez votre studio",
+    "introDemo": "Guestnote est en démo : tout est gratuit pendant que nous construisons.",
+    "introBilling": "Un mois avec tout débloqué. Pas de carte avant que vous décidiez de rester.",
+    "notPlanner": "Vous vous mariez, ou vous êtes prestataire d’un mariage ? Vous n’avez pas besoin de compte. Ouvrez le lien envoyé par votre wedding planner.",
+    "haveAccount": "Déjà un studio ?",
+    "signIn": "Se connecter"
+  },
+  "invited": {
+    "title": "Vous êtes invité",
+    "intro": "Des invitations attendent {email}. Rejoignez-les, ou lancez votre propre studio.",
+    "staffLine": "en tant que {role}",
+    "weddingLine": "Mariage de {wedding}",
+    "invitedBy": "Invité par {inviter}",
+    "roleAdmin": "administrateur",
+    "roleMember": "planner",
+    "join": "Rejoindre",
+    "joining": "En cours…",
+    "open": "Ouvrir",
+    "couplePortal": "Le portail des mariés n’est pas encore ouvert. Votre invitation reste valable.",
+    "ownStudio": "Lancer quand même mon propre studio",
+    "errors": {
+      "expired": "Cette invitation a expiré. Demandez-en une nouvelle.",
+      "accepted": "Cette invitation a déjà été utilisée.",
+      "unknown": "Cette invitation ne fonctionne plus. Demandez-en une nouvelle à la personne qui vous a invité."
+    }
+  },
+  "studio": {
+    "title": "Nommez votre studio",
+    "intro": "C’est le nom de votre entreprise dans Guestnote. Vous pourrez le modifier plus tard.",
+    "nameLabel": "Nom du studio",
+    "namePlaceholder": "Studio Wit",
+    "ownerLabel": "Votre nom",
+    "ownerPlaceholder": "Ilse Verhoeven",
+    "logoLabel": "Logo",
+    "logoLater": "Vous pourrez bientôt ajouter un logo sur la page de votre studio.",
+    "preview": "Ce que voient les mariés et les prestataires",
+    "previewFallback": "Votre studio",
+    "create": "Créer le studio",
+    "creating": "Création du studio…",
+    "errors": {
+      "required": "Complétez ce champ.",
+      "tooLong": "C’est trop long.",
+      "failed": "Votre studio n’a pas pu être créé. Réessayez.",
+      "forbidden": "Votre session a expiré. Reconnectez-vous."
+    }
+  },
+  "wedding": {
+    "title": "Votre premier mariage",
+    "intro": "Ajoutez un mariage pour voir Guestnote à l’œuvre. Le reste peut attendre.",
+    "coupleLabel": "Couple",
+    "couplePlaceholder": "Els & Jan",
+    "dateLabel": "Jour du mariage (facultatif)",
+    "planLabel": "Commencer avec",
+    "tasks": "{count} tâches",
+    "empty": "Commencer à vide",
+    "emptyHint": "Une checklist vide.",
+    "create": "Ajouter le mariage",
+    "creating": "Ajout du mariage…",
+    "skip": "Plus tard",
+    "errors": {
+      "required": "Indiquez les noms du couple.",
+      "tooLong": "C’est trop long.",
+      "invalidDate": "Ce n’est pas une date valide.",
+      "failed": "Le mariage n’a pas pu être ajouté. Réessayez.",
+      "forbidden": "Votre session a expiré. Reconnectez-vous."
+    }
+  },
+  "team": {
+    "title": "Qui organise avec vous ?",
+    "intro": "Ils reçoivent une invitation par e-mail et rejoignent votre studio en tant que planners.",
+    "emailLabel": "Adresse e-mail {n}",
+    "emailPlaceholder": "collegue@studio.be",
+    "noteDemo": "Gratuit pendant la démo.",
+    "noteBilling": "Gratuit pendant votre mois d’essai. Ensuite, chaque planner supplémentaire est une place dans votre abonnement.",
+    "sendNone": "Envoyer les invitations",
+    "sendOne": "Envoyer 1 invitation",
+    "sendMany": "Envoyer {count} invitations",
+    "sending": "Envoi…",
+    "sent": "Invité",
+    "skip": "Juste moi pour l’instant",
+    "errors": {
+      "invalidEmail": "Ce n’est pas une adresse e-mail valide.",
+      "invalidRole": "Ce rôle n’existe pas.",
+      "duplicate": "Cette adresse a déjà été invitée.",
+      "alreadyMember": "Cette personne fait déjà partie de votre studio.",
+      "forbidden": "Votre session a expiré. Reconnectez-vous.",
+      "mailFailed": "L’invitation n’a pas pu être envoyée. Réessayez."
+    }
+  },
+  "ready": {
+    "title": "{studio} est prêt",
+    "studio": "Studio",
+    "wedding": "Mariage",
+    "team": "Équipe",
+    "teamNone": "Juste vous",
+    "teamInvited": "{count} invité(s)",
+    "trial": "Votre essai court jusqu’au {date}. Nous vous le rappellerons trois jours avant.",
+    "open": "Ouvrir Guestnote"
+  }
+}

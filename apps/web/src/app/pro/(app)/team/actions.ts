@@ -1,18 +1,21 @@
 'use server'
 
-import { createStaffInvite, revokeStaffInvite } from '@guestnote/db'
+import { revokeStaffInvite } from '@guestnote/db'
 import { revalidatePath } from 'next/cache'
 import { getLocale } from 'next-intl/server'
-import { newBearerToken } from '../../../../lib/bearer-token.ts'
 import { getDb } from '../../../../lib/db.ts'
-import { sendStaffInviteMail } from '../../../../lib/invite-mail.ts'
-import { INVITE_TTL_DAYS } from '../../../../lib/invite-token.ts'
 import {
   currentMemberships,
   currentOrgId,
   currentOrgs,
   currentSession,
 } from '../../../../lib/principal.ts'
+import {
+  type InviteOutcome,
+  inviteStaff,
+  normaliseInviteEmail,
+  parseStaffRole,
+} from '../../../../lib/staff-invite.ts'
 import { isUuid } from '../../../../lib/uuid.ts'
 
 /**
@@ -27,31 +30,19 @@ import { isUuid } from '../../../../lib/uuid.ts'
  * rewritten URL (see `(app)/actions.ts`, `DASHBOARD_TREE`).
  */
 
-export type InviteFailure =
-  | 'invalidEmail'
-  | 'invalidRole'
-  | 'duplicate'
-  | 'alreadyMember'
-  | 'forbidden'
-  | 'mailFailed'
-
-export type InviteOutcome = { ok: true } | { ok: false; reason: InviteFailure }
-
-/** Deliberately loose: the only real test of an address is whether mail arrives. */
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
+/**
+ * The core -- the row, the mail, taking the row back when the mail fails -- is
+ * `lib/staff-invite.ts`, shared with sign-up's team step. What stays here is how the Team screen
+ * finds the caller and the org: the session and the `gn_org` cookie.
+ */
 export async function inviteTeamMember(input: {
   email: string
   role: string
 }): Promise<InviteOutcome> {
-  const email = String(input.email ?? '')
-    .trim()
-    .toLowerCase()
-  if (email.length > 254 || !EMAIL.test(email)) return { ok: false, reason: 'invalidEmail' }
-  // `owner` is not on offer: ownership is not something an invitation can grant, and the
-  // `invitations_role_check` constraint would refuse it anyway. The wire value is a string.
-  if (input.role !== 'admin' && input.role !== 'member') return { ok: false, reason: 'invalidRole' }
-  const role = input.role
+  const email = normaliseInviteEmail(input.email)
+  if (!email) return { ok: false, reason: 'invalidEmail' }
+  const role = parseStaffRole(input.role)
+  if (!role) return { ok: false, reason: 'invalidRole' }
 
   const [session, memberships, orgId, orgs, locale] = await Promise.all([
     currentSession(),
@@ -62,35 +53,17 @@ export async function inviteTeamMember(input: {
   ])
   if (!session || !memberships || !orgId) return { ok: false, reason: 'forbidden' }
 
-  const { token, tokenHash } = newBearerToken()
-  const expiresAt = new Date(Date.now() + INVITE_TTL_DAYS * 24 * 60 * 60 * 1000)
-
-  const created = await createStaffInvite(getDb(), memberships, orgId, {
+  const outcome = await inviteStaff({
+    memberships,
+    orgId,
+    orgName: orgs.find((o) => o.id === orgId)?.name ?? '',
+    inviter: session.name ?? session.email,
+    locale,
     email,
     role,
-    tokenHash,
-    expiresAt,
   })
-  if (!created.ok) return { ok: false, reason: created.reason }
-
-  const sent = await sendStaffInviteMail({
-    to: email,
-    token,
-    locale,
-    inviter: session.name ?? session.email,
-    org: orgs.find((o) => o.id === orgId)?.name ?? '',
-    role,
-  }).catch(() => null)
-
-  if (!sent?.ok) {
-    // Take the row back: a pending invite whose mail never left is one the planner cannot
-    // tell from a live one, and its only effect would be to block a retry as a duplicate.
-    await revokeStaffInvite(getDb(), memberships, orgId, created.value.id)
-    return { ok: false, reason: 'mailFailed' }
-  }
-
-  revalidatePath('/pro/team')
-  return { ok: true }
+  if (outcome.ok) revalidatePath('/pro/team')
+  return outcome
 }
 
 export async function revokeInvite(invitationId: string): Promise<{ ok: boolean }> {

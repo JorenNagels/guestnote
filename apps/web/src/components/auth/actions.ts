@@ -8,7 +8,7 @@ import type {
   PasskeyRequestOptions,
 } from '@guestnote/core/auth'
 import { cookies, headers } from 'next/headers'
-import { appHomeUrl, appLoginUrl } from '../../lib/app-url.ts'
+import { appHomeUrl, appLoginUrl, appSignupUrl } from '../../lib/app-url.ts'
 import { getAuth } from '../../lib/auth.ts'
 import { isLocale, LOCALE_COOKIE, type Locale } from '../../lib/locales.ts'
 import { reportSilentFailure } from '../../lib/observability.ts'
@@ -120,10 +120,16 @@ export async function submitCode(email: string, code: string): Promise<StepResul
  * surface renders as nothing -- the button does not navigate, or the visitor is returned
  * to the plain login form.
  */
-export async function startGoogleSignIn(): Promise<{ ok: true; url: string } | { ok: false }> {
+export async function startGoogleSignIn(
+  returnTo?: 'signup',
+): Promise<{ ok: true; url: string } | { ok: false }> {
+  // A name, never a URL: the client picks from a closed set, so this cannot be turned into an
+  // open redirect through Better Auth's callback. Sign-up comes back to itself on success AND
+  // on a cancel, since its first step is the same form.
+  const signup = returnTo === 'signup'
   const result = await getAuth().startGoogleSignIn({
-    callbackURL: appHomeUrl(),
-    errorURL: appLoginUrl(),
+    callbackURL: signup ? appSignupUrl() : appHomeUrl(),
+    errorURL: signup ? appSignupUrl() : appLoginUrl(),
     headers: await headers(),
   })
   return result.ok ? { ok: true, url: result.value.url } : { ok: false }

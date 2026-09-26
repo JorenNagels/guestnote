@@ -203,9 +203,24 @@ describe('rung 0 — identify', () => {
     expect(emailField()).toHaveAttribute('autocomplete', 'username webauthn')
   })
 
-  it('answers the question an empty login page always raises', () => {
+  it('answers the question an empty login page always raises, with a way in', () => {
+    // Spec 0005: "invite-only" became a link to sign-up.
     renderFlow()
-    expect(screen.getByText('NO-ACCOUNT')).toBeInTheDocument()
+    expect(screen.getByText(/NO-ACCOUNT-PROMPT/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'NO-ACCOUNT-LINK' })).toHaveAttribute('href', '/signup')
+  })
+
+  it('lets sign-up replace the footer, the heading and the step labels', () => {
+    renderFlow({
+      heading: 'TITLE-SIGNUP',
+      footer: 'FOOTER-SIGNUP',
+      steps: { labels: ['S-ACCOUNT', 'S-STUDIO', 'S-WEDDING', 'S-TEAM'], current: 0 },
+    })
+    expect(screen.getByRole('heading', { name: 'TITLE-SIGNUP' })).toBeInTheDocument()
+    expect(screen.getByText('FOOTER-SIGNUP')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'NO-ACCOUNT-LINK' })).not.toBeInTheDocument()
+    expect(screen.getByText('S-ACCOUNT')).toBeInTheDocument()
+    expect(screen.queryByText('STEP-PUBLIC')).not.toBeInTheDocument()
   })
 
   it('draws no passkey button and no method menu', () => {
@@ -1196,6 +1211,13 @@ describe('the Google button', () => {
     await user.click(googleButton() as HTMLElement)
     await waitFor(() => expect(startGoogleSignIn).toHaveBeenCalledOnce())
     expect(assign).toHaveBeenCalledWith('https://accounts.google.com/o/oauth2/v2/auth?x=1')
+    expect(startGoogleSignIn).toHaveBeenCalledWith(undefined)
+  })
+
+  it('asks for sign-up as the return when sign-up renders it', async () => {
+    const { user } = renderFlow({ googleEnabled: true, googleReturn: 'signup' })
+    await user.click(googleButton() as HTMLElement)
+    await waitFor(() => expect(startGoogleSignIn).toHaveBeenCalledWith('signup'))
   })
 
   it('does nothing visible when the server refuses -- no error, no navigation', async () => {

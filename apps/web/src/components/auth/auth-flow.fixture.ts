@@ -49,7 +49,7 @@ export const COPY: AuthCopy = {
     dismiss: 'ACTION-ENROLL-DISMISS',
   },
   busy: { sending: 'BUSY-SENDING', checking: 'BUSY-CHECKING', enrolling: 'BUSY-ENROLLING' },
-  noAccount: 'NO-ACCOUNT',
+  noAccount: { prompt: 'NO-ACCOUNT-PROMPT', link: 'NO-ACCOUNT-LINK' },
   stage: {
     label: 'STAGE-LABEL',
     couple: 'STAGE-COUPLE',

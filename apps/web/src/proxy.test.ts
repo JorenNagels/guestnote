@@ -169,6 +169,15 @@ describe('the app host', () => {
     expect(rewrittenPath(response)).toBe('/pro/weddings?sort=date&page=2')
   })
 
+  it('passes sign-up through like /login, query and all, with no session check', () => {
+    // Spec 0005: `/signup` is public and does its own authorization per step. The proxy
+    // adds nothing for it (invariant 7) -- this pins that it also takes nothing away, and
+    // that `?step=` survives the rewrite the page derives its step from.
+    const response = proxy(request('https://app.guestnote.be/signup?step=team'))
+    expect(rewrittenPath(response)).toBe('/pro/signup?step=team')
+    expect(response.headers.get('cache-control')).toBe('private, no-store')
+  })
+
   it('rewrites the root to /pro, not to /pro/', () => {
     expect(rewrittenPath(proxy(request('https://app.guestnote.be/')))).toBe('/pro/')
   })

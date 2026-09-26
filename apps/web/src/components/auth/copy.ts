@@ -59,8 +59,14 @@ export type AuthCopy = Readonly<{
   }>
   enroll: Readonly<{ title: string; body: string; confirm: string; dismiss: string }>
   busy: Readonly<{ sending: string; checking: string; enrolling: string }>
-  /** The one line that answers the question an empty login page always raises. */
-  noAccount: string
+  /**
+   * The one line that answers the question an empty login page always raises: a prompt and a
+   * link to `/signup` (spec 0005, Sign-in). It said "Guestnote is invite-only" until self-serve
+   * studios existed. The link's words follow billing -- "Start your studio" in the demo, "Try it
+   * free for a month" once there is a trial to promise -- and are picked on the server, so the
+   * client never learns which mode it is in.
+   */
+  noAccount: Readonly<{ prompt: string; link: string }>
   stage: Readonly<{
     label: string
     couple: string
@@ -115,7 +121,11 @@ export function fill(template: string, values: Record<string, string | number>):
   )
 }
 
-export async function getAuthCopy(): Promise<AuthCopy> {
+/**
+ * `billingOn` is `billingMode().on`, passed in rather than read here so this module stays a
+ * pure catalogue read that a test can call without an environment.
+ */
+export async function getAuthCopy(billingOn: boolean): Promise<AuthCopy> {
   const t = await getTranslations('auth')
   const raw = (key: string) => t.raw(key) as string
 
@@ -168,7 +178,10 @@ export async function getAuthCopy(): Promise<AuthCopy> {
       checking: t('busy.checking'),
       enrolling: t('busy.enrolling'),
     },
-    noAccount: t('noAccount'),
+    noAccount: {
+      prompt: t('noAccount.prompt'),
+      link: billingOn ? t('noAccount.linkBilling') : t('noAccount.linkDemo'),
+    },
     stage: {
       label: t('stage.label'),
       couple: t('stage.couple'),

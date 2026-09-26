@@ -53,6 +53,15 @@ export const app = {
   team: () => '/team',
   login: () => '/login',
   /**
+   * Self-serve sign-up (spec 0005). One route for every step: the page derives which step to
+   * show from the session and the database (`lib/signup-step.ts`), so the only state in the
+   * URL is what the database cannot tell -- that the planner chose to skip the invitations, or
+   * which of the optional steps after the studio they are on.
+   */
+  signup: () => '/signup',
+  signupOwnStudio: () => '/signup?own=1',
+  signupStep: (step: 'wedding' | 'team' | 'ready') => `/signup?step=${step}`,
+  /**
    * Where a lapsed session sends the planner. The reason is a query rather than a
    * separate route because it is the same screen -- a second route would be a second
    * place for the sign-in flow to drift.

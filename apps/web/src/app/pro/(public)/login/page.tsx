@@ -5,6 +5,7 @@ import { AuthFlow } from '@/components/auth/auth-flow.tsx'
 import { getAuthCopy } from '@/components/auth/copy.ts'
 import { getStageContent } from '@/components/auth/stage-content.ts'
 import { getAuth } from '../../../../lib/auth.ts'
+import { billingMode } from '../../../../lib/billing-mode.ts'
 import { isLocale, LOCALES } from '../../../../lib/locales.ts'
 import { app } from '../../../../lib/routes.ts'
 
@@ -79,7 +80,11 @@ export default async function LoginPage({
   // passing after someone deleted the call. See the docblock for the eleven days this cost.
   if (await getAuth().getSession(await headers())) redirect(app.home())
 
-  const [copy, locale, { reason }] = await Promise.all([getAuthCopy(), getLocale(), searchParams])
+  const [copy, locale, { reason }] = await Promise.all([
+    getAuthCopy(billingMode().on),
+    getLocale(),
+    searchParams,
+  ])
   const stage = await getStageContent(copy)
 
   return (

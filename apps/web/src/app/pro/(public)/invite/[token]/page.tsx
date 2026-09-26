@@ -5,6 +5,7 @@ import { AuthFlow } from '@/components/auth/auth-flow.tsx'
 import { fill, getAuthCopy } from '@/components/auth/copy.ts'
 import { getStageContent } from '@/components/auth/stage-content.ts'
 import { getAuth } from '../../../../../lib/auth.ts'
+import { billingMode } from '../../../../../lib/billing-mode.ts'
 import { isLocale, LOCALES } from '../../../../../lib/locales.ts'
 import { app } from '../../../../../lib/routes.ts'
 
@@ -36,7 +37,7 @@ export default async function InvitePage({
   const [{ token }, query, copy, locale] = await Promise.all([
     params,
     searchParams,
-    getAuthCopy(),
+    getAuthCopy(billingMode().on),
     getLocale(),
   ])
   const [invitation, session, stage] = await Promise.all([

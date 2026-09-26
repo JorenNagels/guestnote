@@ -1,0 +1,108 @@
+{
+  "steps": {
+    "account": "Account",
+    "studio": "Studio",
+    "wedding": "Wedding",
+    "team": "Team"
+  },
+  "account": {
+    "title": "Start your studio",
+    "introDemo": "Guestnote is in demo: everything is free while we build.",
+    "introBilling": "A month with everything unlocked. No card until you decide to stay.",
+    "notPlanner": "Getting married, or supplying a wedding? You don’t need an account. Open the link your planner sent you.",
+    "haveAccount": "Already have a studio?",
+    "signIn": "Sign in"
+  },
+  "invited": {
+    "title": "You’ve been invited",
+    "intro": "There are invitations waiting for {email}. Join, or start your own studio.",
+    "staffLine": "as {role}",
+    "weddingLine": "{wedding}’s wedding",
+    "invitedBy": "Invited by {inviter}",
+    "roleAdmin": "admin",
+    "roleMember": "planner",
+    "join": "Join",
+    "joining": "Joining…",
+    "open": "Open",
+    "couplePortal": "The couple portal isn’t open yet. Your invitation stays valid.",
+    "ownStudio": "Start my own studio anyway",
+    "errors": {
+      "expired": "This invitation has expired. Ask for a new one.",
+      "accepted": "This invitation has already been used.",
+      "unknown": "This invitation no longer works. Ask whoever invited you for a new one."
+    }
+  },
+  "studio": {
+    "title": "Name your studio",
+    "intro": "This is what your business is called in Guestnote. You can change it later.",
+    "nameLabel": "Studio name",
+    "namePlaceholder": "Studio Wit",
+    "ownerLabel": "Your name",
+    "ownerPlaceholder": "Ilse Verhoeven",
+    "logoLabel": "Logo",
+    "logoLater": "You’ll soon be able to add a logo on your studio’s page.",
+    "preview": "How couples and vendors will see you",
+    "previewFallback": "Your studio",
+    "create": "Create studio",
+    "creating": "Creating studio…",
+    "errors": {
+      "required": "Fill this in.",
+      "tooLong": "That’s too long.",
+      "failed": "Your studio couldn’t be created. Try again.",
+      "forbidden": "Your session has expired. Sign in again."
+    }
+  },
+  "wedding": {
+    "title": "Your first wedding",
+    "intro": "Add one wedding to see Guestnote at work. The rest can wait.",
+    "coupleLabel": "Couple",
+    "couplePlaceholder": "Els & Jan",
+    "dateLabel": "Wedding day (optional)",
+    "planLabel": "Start with",
+    "tasks": "{count} tasks",
+    "empty": "Start empty",
+    "emptyHint": "An empty checklist.",
+    "create": "Add wedding",
+    "creating": "Adding wedding…",
+    "skip": "Skip for now",
+    "errors": {
+      "required": "Fill in the couple’s names.",
+      "tooLong": "That’s too long.",
+      "invalidDate": "That isn’t a valid date.",
+      "failed": "The wedding couldn’t be added. Try again.",
+      "forbidden": "Your session has expired. Sign in again."
+    }
+  },
+  "team": {
+    "title": "Who plans with you?",
+    "intro": "They get an invitation by email and join your studio as planners.",
+    "emailLabel": "Email address {n}",
+    "emailPlaceholder": "colleague@studio.be",
+    "noteDemo": "Free during the demo.",
+    "noteBilling": "Free during your trial. After that, each extra planner is a seat on your plan.",
+    "sendNone": "Send invitations",
+    "sendOne": "Send 1 invitation",
+    "sendMany": "Send {count} invitations",
+    "sending": "Sending…",
+    "sent": "Invited",
+    "skip": "Just me for now",
+    "errors": {
+      "invalidEmail": "That isn’t a valid email address.",
+      "invalidRole": "That role doesn’t exist.",
+      "duplicate": "This address has already been invited.",
+      "alreadyMember": "This person is already in your studio.",
+      "forbidden": "Your session has expired. Sign in again.",
+      "mailFailed": "The invitation couldn’t be sent. Try again."
+    }
+  },
+  "ready": {
+    "title": "{studio} is ready",
+    "studio": "Studio",
+    "wedding": "Wedding",
+    "team": "Team",
+    "teamNone": "Just you",
+    "teamInvited": "{count} invited",
+    "trial": "Your trial runs until {date}. We’ll remind you three days before.",
+    "open": "Open Guestnote"
+  }
+}

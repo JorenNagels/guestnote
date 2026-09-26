@@ -8,8 +8,9 @@ import { InlineError } from '@guestnote/ui/inline-error'
 import { LiveRegion } from '@guestnote/ui/live-region'
 import { LocaleSwitcher } from '@guestnote/ui/locale-switcher'
 import { StepIndicator } from '@guestnote/ui/step-indicator'
-import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
+import { type ReactNode, useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import type { Locale } from '../../lib/locales.ts'
+import { app } from '../../lib/routes.ts'
 import { Wordmark } from '../brand/wordmark.tsx'
 import {
   beginPasskeySignIn,
@@ -55,6 +56,23 @@ type Props = {
   continueHref: string
   /** What the panel beside the form shows. Absent on narrow viewports it simply is not drawn. */
   stage: StageContent
+  /**
+   * Sign-up (spec 0005) reuses this whole flow for its Account step, and these four props are
+   * the only places it differs. Rejected: a second component for sign-up -- the passkey,
+   * Google and code machinery above is exactly what must not exist twice.
+   *
+   * `heading` replaces rung 0's "Sign in" title (not on an invitation, which has its own).
+   */
+  heading?: string
+  /**
+   * Sign-up's four labels (Account, Studio, Wedding, Team) in place of the three rungs. The
+   * index stays put across the rungs: verifying an address is still the Account step.
+   */
+  steps?: Readonly<{ labels: readonly string[]; current: number }>
+  /** Replaces the line under the column; sign-in's own points at `/signup`. */
+  footer?: ReactNode
+  /** Where "Continue with Google" comes back to. Absent is the dashboard. */
+  googleReturn?: 'signup'
 }
 
 /** 0 identify, 1 verify, 2 arrive. Monotonic; the passkey path skips 1 entirely. */
@@ -207,6 +225,10 @@ export function AuthFlow({
   notice,
   continueHref,
   stage,
+  heading,
+  steps,
+  footer,
+  googleReturn,
 }: Props) {
   const [rung, setRung] = useState<Rung>(0)
   const [email, setEmail] = useState(boundEmail ?? '')
@@ -507,7 +529,7 @@ export function AuthFlow({
    */
   async function onGoogle() {
     setGooglePending(true)
-    const result = await startGoogleSignIn().catch(() => ({ ok: false }) as const)
+    const result = await startGoogleSignIn(googleReturn).catch(() => ({ ok: false }) as const)
     if (!result.ok) {
       setGooglePending(false)
       return
@@ -624,14 +646,14 @@ export function AuthFlow({
               you are. */}
             <StepIndicator
               className="mb-6"
-              steps={[copy.steps.public, copy.steps.verifying, copy.steps.private]}
-              current={rung}
+              steps={steps?.labels ?? [copy.steps.public, copy.steps.verifying, copy.steps.private]}
+              current={steps?.current ?? rung}
             />
 
             {rung === 0 && (
               <>
                 <h1 className="mb-1.5 text-2xl leading-tight font-semibold tracking-tight">
-                  {boundEmail ? copy.invite.title : copy.signIn.title}
+                  {boundEmail ? copy.invite.title : (heading ?? copy.signIn.title)}
                 </h1>
                 <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
                   {lead ?? copy.signIn.help}
@@ -809,12 +831,21 @@ export function AuthFlow({
         {/*
         The line every login page needs and this one needs more than most: the form asks
         for an address, and the only question it raises -- "what if I do not have one" --
-        had no answer on screen. The honest answer is that there is no self-serve signup,
-        so it is also the thing that stops a planner hunting for a Create account link
-        that will never exist.
+        had no answer on screen. Until spec 0005 the honest answer was "invite-only"; now it
+        is a way in, a plain link to sign-up, and sign-up passes its own line instead.
       */}
         <p className="text-muted-foreground shrink-0 px-5 pb-6 text-xs leading-relaxed lg:px-8">
-          {copy.noAccount}
+          {footer ?? (
+            <>
+              {copy.noAccount.prompt}{' '}
+              <a
+                href={app.signup()}
+                className="font-medium text-foreground underline underline-offset-[3px]"
+              >
+                {copy.noAccount.link}
+              </a>
+            </>
+          )}
         </p>
       </div>
 

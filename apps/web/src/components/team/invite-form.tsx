@@ -6,7 +6,7 @@ import { Field } from '@guestnote/ui/field'
 import { InlineError } from '@guestnote/ui/inline-error'
 import { LiveRegion } from '@guestnote/ui/live-region'
 import { type FormEvent, useId, useRef, useState, useTransition } from 'react'
-import type { InviteOutcome } from '../../app/pro/(app)/team/actions.ts'
+import type { InviteOutcome } from '../../lib/staff-invite.ts'
 
 export type InviteFormCopy = {
   readonly title: string

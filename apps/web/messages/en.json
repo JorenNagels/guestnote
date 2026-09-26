@@ -124,7 +124,11 @@
       "inviteUnknown": "This link doesn’t work. Ask whoever invited you for a new one.",
       "inviteWrongAccount": "This invitation was sent to a different email address than the one you are signed in with. Sign out and open the link again."
     },
-    "noAccount": "No account yet? Guestnote is invite-only.",
+    "noAccount": {
+      "prompt": "Planning weddings for a living?",
+      "linkDemo": "Start your studio",
+      "linkBilling": "Try it free for a month"
+    },
     "stage": {
       "label": "Upcoming wedding",
       "couple": "Els & Jan",

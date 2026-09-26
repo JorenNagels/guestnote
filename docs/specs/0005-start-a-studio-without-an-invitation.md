@@ -1,11 +1,13 @@
 # Spec 0005 — Start a studio without an invitation, run it as a demo, and tell us what broke
 
 **Date:** 2026-09-24 · **Status:** Specified, not built
-**Built so far:** slices 1-2 of 6 -- demo mode (`GUESTNOTE_BILLING_FROM`, `lib/billing-mode.ts`),
+**Built so far:** slices 1-3 of 6 -- demo mode (`GUESTNOTE_BILLING_FROM`, `lib/billing-mode.ts`),
 the demo banner and "Report a problem" (Sentry User Feedback); migration 0010 and its repos
 (`repos/studios.ts`, `myPendingInvitations`, `acceptInvitationById`, `seedTemplates`, the vendor
-link's `logoKey`, `studioSlugFromName`). Not built: the sign-up screens, starter template
-content, studio page and logo upload, trial, billing. Where the build differs from
+link's `logoKey`, `studioSlugFromName`); the sign-up flow at `/signup` (`app/pro/(public)/signup/`,
+`components/signup/`, `lib/signup-step.ts`), the starter templates (`lib/starter-templates.ts`,
+drafted, not yet reviewed) and the sign-in footer link. Not built: studio page and logo upload
+(sign-up's logo slot is a marked placeholder), trial, billing. Where the build differs from
 the first draft, the text says so with "(as built)".
 **Phase:** `research/05-architecture.md` M8 (self-serve onboarding) and the UI half of M9 (billing),
 plus a demo-period bug channel · **Bar:** a planner runs one real wedding here instead of a
@@ -127,6 +129,15 @@ which the no-op provider ignores — the call sites exist so wiring a provider i
 **`/pro/signup` is a public route on the `app.` host, six steps as the design draws them**, with
 one screen added between Verify and Studio (below). Every step's Server Function authorises
 itself; `proxy.ts` does nothing new (invariant 7).
+*(As built: one route, and the server derives the step from the session and the database --
+`lib/signup-step.ts` -- with only `?own=1` and `?step=wedding|team|ready` in the URL. Account and
+Verify are `AuthFlow` itself, pointed back at `/signup`; the signed-in steps use the same
+`.signin` shell and stage. The steps after Studio act in the org the caller OWNS, resolved fresh
+with `resolveMemberships`, never the `gn_org` cookie, and creating or joining a studio sets that
+cookie so the dashboard opens there. "Continue with Google" comes back to `/signup`
+(`startGoogleSignIn('signup')`, a closed set, not a URL). The design handoff could not be read
+during the build -- no DesignSync tool in that session -- so layout follows the sign-in shell and
+this spec's copy table; a pass against the handoff is still owed.)*
 
 **The org is created by a new `SECURITY DEFINER` function**, `create_studio(name, owner_name)`
 *(as built: `create_studio(org_id, user_id, name, slug_base, owner_name)` -- the org id is the
@@ -151,7 +162,10 @@ wedding name, role) — matched against the email on the caller's `users` row, n
 argument, so it cannot be used to probe whether an address is invited. If there are any, the
 **"You've been invited"** screen lists each with Join (staff) or Open (wedding), plus "Start my
 own studio anyway". Joining accepts by invitation id through a function that re-checks the email
-match *(as built: an invitation addressed to another email answers `unknown`, not
+match *(as built: only a staff invitation is joined from this screen -- the action checks the id
+is in the caller's own pending list with no wedding; the definer function re-checks whose it is,
+not which kind. A successful Join answers `ok` and the client navigates, because a `redirect()`
+from a directly-called Server Function rejects its promise on the client)* *(as built: an invitation addressed to another email answers `unknown`, not
 `wrong_user`, so an id reveals nothing about an invitation that was never the caller's; the
 function then hands on to `accept_invitation`, which does every other check. The list also
 leaves out an invitation whose wedding is deleted or belongs to another org, since accepting it
@@ -165,7 +179,11 @@ owner, through the normal scoped template repo, right after `create_studio`:
 "Volledige planning · 12 maanden", "Gedeeltelijke planning · 6 maanden", "Dagcoördinatie". Task
 content is drafted from `research/09-planner-app.md` in NL/EN/FR and reviewed by Joren before this
 ships. Seeded in the studio's locale at creation; they are ordinary templates afterwards. Step 4's
-picker shows these three plus "Start empty". This also means the in-app Templates screen of a new
+picker shows these three plus "Start empty". *(As built: EN "Full planning · 12 months",
+"Partial planning · 6 months", "Day-of coordination"; FR "Organisation complète · 12 mois",
+"Organisation partielle · 6 mois", "Coordination du jour J" -- 28, 17 and 12 tasks, each task
+written once with its three titles so the languages cannot drift. A seed that fails does not fail
+the sign-up; it is reported, and the picker then offers "Start empty" alone.)* This also means the in-app Templates screen of a new
 studio is not empty.
 
 **Step 4 uses the in-app new-wedding code path**, extended with an optional template id. The
@@ -184,7 +202,9 @@ until…") are replaced while billing is off; see Copy.
 
 **The sign-in footer "Guestnote is invite-only" becomes a link to `/pro/signup`.** Its copy
 lives in the auth copy module, not a catalogue, because the login bundle ships none
-(`components/auth/copy.ts`). `.impeccable/surfaces/src-app-pro-public-login.md:200` ("orgs are
+(`components/auth/copy.ts`). *(As built: the strings are `auth.noAccount.{prompt,linkDemo,
+linkBilling}` in the base `messages/*.json`, read on the server by `getAuthCopy(billingOn)` --
+which is how every sign-in string already reached the page without a catalogue in the browser.)* `.impeccable/surfaces/src-app-pro-public-login.md:200` ("orgs are
 founder-seeded until pricing mechanics settle") gets a correction note.
 
 ### Studio logo
@@ -279,6 +299,8 @@ Shell, header, step indicator and spacing exactly as the design's Sign-up tab. S
 5. **First wedding** — couple (required), main day (optional date), starting plan (the three
    seeded templates + Start empty, default the first). "Skip for now" goes to step 6.
 6. **Team** — three email fields; button counts the non-blank ones. "Just me for now" skips.
+   *(As built: when one row's mail fails, the rows already invited are locked and marked
+   "Invited" so a retry does not send them twice.)*
 7. **Ready** — badge, "{Studio} is ready", summary (Studio / Wedding or "—" / Team: n invited or
    "Just you"), "Open Guestnote" → `/pro`.
 

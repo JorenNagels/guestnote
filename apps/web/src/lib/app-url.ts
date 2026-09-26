@@ -61,6 +61,14 @@ export function appLoginUrl(): string {
 }
 
 /**
+ * `https://app.guestnote.be/signup` -- where "Continue with Google" returns to from sign-up
+ * (spec 0005), so a new planner lands back on the step they were on, not on an empty dashboard.
+ */
+export function appSignupUrl(): string {
+  return `${appOrigin()}${app.signup()}`
+}
+
+/**
  * `https://app.guestnote.be/` -- the dashboard, for a link that starts on the apex.
  *
  * Points at the dashboard ROOT rather than `/weddings`, so the app host stays the only

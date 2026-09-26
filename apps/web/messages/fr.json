@@ -124,7 +124,11 @@
       "inviteUnknown": "Ce lien ne fonctionne pas. Demandez-en un nouveau à la personne qui vous a invité.",
       "inviteWrongAccount": "Cette invitation a été envoyée à une autre adresse e-mail que celle avec laquelle vous êtes connecté. Déconnectez-vous et rouvrez le lien."
     },
-    "noAccount": "Pas encore de compte ? Guestnote fonctionne sur invitation.",
+    "noAccount": {
+      "prompt": "Vous organisez des mariages de métier ?",
+      "linkDemo": "Lancez votre studio",
+      "linkBilling": "Essayez gratuitement pendant un mois"
+    },
     "stage": {
       "label": "Mariage à venir",
       "couple": "Els & Jan",

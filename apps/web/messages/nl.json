@@ -124,7 +124,11 @@
       "inviteUnknown": "Deze link werkt niet. Vraag degene die je uitnodigde om een nieuwe.",
       "inviteWrongAccount": "Deze uitnodiging is voor een ander e-mailadres dan waarmee je nu bent aangemeld. Meld je af en open de link opnieuw."
     },
-    "noAccount": "Nog geen account? Guestnote werkt op uitnodiging.",
+    "noAccount": {
+      "prompt": "Plan je bruiloften beroepsmatig?",
+      "linkDemo": "Start je studio",
+      "linkBilling": "Probeer een maand gratis"
+    },
     "stage": {
       "label": "Aankomende bruiloft",
       "couple": "Els & Jan",

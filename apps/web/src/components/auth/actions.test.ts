@@ -43,6 +43,7 @@ vi.mock('next/headers', () => ({
 vi.mock('../../lib/app-url.ts', () => ({
   appHomeUrl: () => 'http://app.guestnote.localhost:3000/',
   appLoginUrl: () => 'http://app.guestnote.localhost:3000/login',
+  appSignupUrl: () => 'http://app.guestnote.localhost:3000/signup',
 }))
 
 vi.mock('../../lib/observability.ts', () => ({
@@ -255,6 +256,24 @@ describe('startGoogleSignIn', () => {
       errorURL: 'http://app.guestnote.localhost:3000/login',
       headers: requestHeaders,
     })
+  })
+
+  it('brings sign-up back to sign-up, on success and on a cancel', async () => {
+    await startGoogleSignIn('signup')
+    expect(startGoogleSignInSeam).toHaveBeenCalledWith({
+      callbackURL: 'http://app.guestnote.localhost:3000/signup',
+      errorURL: 'http://app.guestnote.localhost:3000/signup',
+      headers: requestHeaders,
+    })
+  })
+
+  it('treats any other return value as the dashboard, so the client cannot name a URL', async () => {
+    // The wire value is a string whatever the type says; a Server Function is callable by
+    // anything that can POST.
+    await startGoogleSignIn('https://evil.example/' as 'signup')
+    expect(startGoogleSignInSeam).toHaveBeenCalledWith(
+      expect.objectContaining({ callbackURL: 'http://app.guestnote.localhost:3000/' }),
+    )
   })
 
   it('collapses a seam failure to a bare { ok: false }, carrying no reason', async () => {

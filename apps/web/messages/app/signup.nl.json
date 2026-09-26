@@ -1,0 +1,108 @@
+{
+  "steps": {
+    "account": "Account",
+    "studio": "Studio",
+    "wedding": "Bruiloft",
+    "team": "Team"
+  },
+  "account": {
+    "title": "Start je studio",
+    "introDemo": "Guestnote is in demo: alles is gratis terwijl we bouwen.",
+    "introBilling": "Een maand lang alles open. Geen kaart tot je beslist te blijven.",
+    "notPlanner": "Ga je trouwen, of lever je aan een bruiloft? Dan heb je geen account nodig. Open de link die je planner stuurde.",
+    "haveAccount": "Al een studio?",
+    "signIn": "Aanmelden"
+  },
+  "invited": {
+    "title": "Je bent uitgenodigd",
+    "intro": "Er wachten uitnodigingen op {email}. Neem deel, of start je eigen studio.",
+    "staffLine": "als {role}",
+    "weddingLine": "Bruiloft van {wedding}",
+    "invitedBy": "Uitgenodigd door {inviter}",
+    "roleAdmin": "beheerder",
+    "roleMember": "planner",
+    "join": "Deelnemen",
+    "joining": "Bezig…",
+    "open": "Openen",
+    "couplePortal": "Het portaal voor bruidsparen is nog niet open. Je uitnodiging blijft geldig.",
+    "ownStudio": "Toch mijn eigen studio starten",
+    "errors": {
+      "expired": "Deze uitnodiging is verlopen. Vraag om een nieuwe.",
+      "accepted": "Deze uitnodiging is al gebruikt.",
+      "unknown": "Deze uitnodiging werkt niet meer. Vraag degene die je uitnodigde om een nieuwe."
+    }
+  },
+  "studio": {
+    "title": "Geef je studio een naam",
+    "intro": "Zo heet je bedrijf in Guestnote. Je kunt het later nog aanpassen.",
+    "nameLabel": "Naam van je studio",
+    "namePlaceholder": "Studio Wit",
+    "ownerLabel": "Je naam",
+    "ownerPlaceholder": "Ilse Verhoeven",
+    "logoLabel": "Logo",
+    "logoLater": "Een logo voeg je binnenkort toe op de pagina van je studio.",
+    "preview": "Zo zien koppels en leveranciers je",
+    "previewFallback": "Je studio",
+    "create": "Studio aanmaken",
+    "creating": "Studio aanmaken…",
+    "errors": {
+      "required": "Vul dit in.",
+      "tooLong": "Dat is te lang.",
+      "failed": "Je studio kon niet worden aangemaakt. Probeer het opnieuw.",
+      "forbidden": "Je sessie is verlopen. Meld je opnieuw aan."
+    }
+  },
+  "wedding": {
+    "title": "Je eerste bruiloft",
+    "intro": "Voeg één bruiloft toe om Guestnote aan het werk te zien. De rest kan later.",
+    "coupleLabel": "Koppel",
+    "couplePlaceholder": "Els & Jan",
+    "dateLabel": "Trouwdag (optioneel)",
+    "planLabel": "Beginnen met",
+    "tasks": "{count} taken",
+    "empty": "Leeg beginnen",
+    "emptyHint": "Een lege checklist.",
+    "create": "Bruiloft toevoegen",
+    "creating": "Bruiloft toevoegen…",
+    "skip": "Later",
+    "errors": {
+      "required": "Vul de namen van het koppel in.",
+      "tooLong": "Dat is te lang.",
+      "invalidDate": "Dat is geen geldige datum.",
+      "failed": "De bruiloft kon niet worden toegevoegd. Probeer het opnieuw.",
+      "forbidden": "Je sessie is verlopen. Meld je opnieuw aan."
+    }
+  },
+  "team": {
+    "title": "Wie plant er met je mee?",
+    "intro": "Ze krijgen een uitnodiging per e-mail en komen in je studio als planner.",
+    "emailLabel": "E-mailadres {n}",
+    "emailPlaceholder": "collega@studio.be",
+    "noteDemo": "Gratis tijdens de demo.",
+    "noteBilling": "Gratis tijdens je proefmaand. Daarna is elke extra planner een plaats in je abonnement.",
+    "sendNone": "Uitnodigingen versturen",
+    "sendOne": "1 uitnodiging versturen",
+    "sendMany": "{count} uitnodigingen versturen",
+    "sending": "Versturen…",
+    "sent": "Uitgenodigd",
+    "skip": "Voorlopig alleen ik",
+    "errors": {
+      "invalidEmail": "Dat is geen geldig e-mailadres.",
+      "invalidRole": "Die rol bestaat niet.",
+      "duplicate": "Dit adres is al uitgenodigd.",
+      "alreadyMember": "Deze persoon zit al in je studio.",
+      "forbidden": "Je sessie is verlopen. Meld je opnieuw aan.",
+      "mailFailed": "De uitnodiging kon niet worden verstuurd. Probeer het opnieuw."
+    }
+  },
+  "ready": {
+    "title": "{studio} is klaar",
+    "studio": "Studio",
+    "wedding": "Bruiloft",
+    "team": "Team",
+    "teamNone": "Alleen jij",
+    "teamInvited": "{count} uitgenodigd",
+    "trial": "Je proefmaand loopt tot {date}. We sturen je drie dagen vooraf een herinnering.",
+    "open": "Guestnote openen"
+  }
+}
