@@ -1,0 +1,79 @@
+{
+  "title": "Facturatie",
+  "status": {
+    "running": "Je proefperiode loopt tot en met {date}.",
+    "lastDays": "Je proefperiode eindigt op {date}.",
+    "ended": "Je proefperiode is voorbij sinds {date}. Je bruiloften zijn alleen-lezen tot je een abonnement kiest.",
+    "canceled": "Je abonnement is stopgezet. Je bruiloften zijn alleen-lezen tot je opnieuw een abonnement kiest.",
+    "paid": "Studio, {cycle} gefactureerd.",
+    "paidNext": "Studio, {cycle} gefactureerd. Volgende factuur op {date}.",
+    "cycle": {
+      "monthly": "maandelijks",
+      "yearly": "jaarlijks"
+    }
+  },
+  "success": "Betaling ontvangen. {studio} zit op Studio, en het betaalbewijs is onderweg naar {email}.",
+  "plan": {
+    "title": "Studio-abonnement",
+    "pill": {
+      "running": "Proef",
+      "lastDays": "Proef eindigt bijna",
+      "ended": "Proef voorbij",
+      "paid": "Actief"
+    },
+    "cycle": {
+      "label": "Facturatieperiode",
+      "monthly": "Maandelijks",
+      "yearly": "Jaarlijks · 2 maanden gratis"
+    },
+    "base": "Studio",
+    "baseDetail": "Inclusief jou, {owner}",
+    "extra": "{count, plural, one {# extra planner} other {# extra planners}}",
+    "pending": "{count, plural, one {# openstaande uitnodiging telt} other {# openstaande uitnodigingen tellen}} pas mee na aanvaarding.",
+    "perMonth": "/ maand",
+    "perYear": "/ jaar",
+    "total": "Totaal",
+    "vat": "Prijzen exclusief btw. Er komt 21% Belgische btw bij: {amount}.",
+    "vatNone": "Prijzen exclusief btw. Met een btw-nummer komt er geen btw bij.",
+    "checkout": "Verder naar betalen",
+    "checkoutBusy": "Betaalpagina openen…",
+    "secure": "Je kaartgegevens vul je in op de beveiligde pagina van onze betaalprovider.",
+    "portal": "Betaalmethode en facturen ↗",
+    "portalBusy": "Openen…",
+    "errors": {
+      "unavailable": "Betalen kan nog niet. Er is niets aangerekend.",
+      "failed": "Dat lukte niet. Probeer het zo meteen opnieuw.",
+      "forbidden": "Alleen de eigenaar of een beheerder van de studio kan dit."
+    }
+  },
+  "details": {
+    "title": "Factuurgegevens",
+    "name": "Gefactureerd aan",
+    "email": "Factuur-e-mail",
+    "vat": "Btw-nummer",
+    "vatHelp": "Optioneel, bv. BE0123456789.",
+    "save": "Opslaan",
+    "saving": "Opslaan…",
+    "saved": "Opgeslagen",
+    "errors": {
+      "tooLong": "Dat is te lang.",
+      "invalidEmail": "Dat lijkt geen e-mailadres.",
+      "invalidVat": "Dat lijkt geen btw-nummer, bv. BE0123456789.",
+      "failed": "De gegevens konden niet worden opgeslagen. Probeer het opnieuw."
+    }
+  },
+  "invoices": {
+    "title": "Facturen",
+    "empty": "Nog niets. De eerste factuur komt op de dag dat je een abonnement kiest.",
+    "date": "Datum",
+    "number": "Nummer",
+    "amount": "Bedrag",
+    "pdf": "PDF"
+  },
+  "notes": {
+    "title": "Zo werkt facturatie",
+    "seats": "Je betaalt per planner: de studio omvat jou, en elke collega is een plaats. Koppels en leveranciers tellen nooit mee.",
+    "change": "Voeg planners toe of verwijder ze wanneer je wilt; de volgende factuur volgt.",
+    "readOnly": "Loopt een proefperiode af zonder abonnement, dan wordt er niets verwijderd. Bruiloften zijn alleen-lezen tot je er een kiest."
+  }
+}

@@ -10,6 +10,7 @@ import {
   type MailTransport,
   type SignInCodeCopy,
 } from '@guestnote/email'
+import { and, eq, gte } from 'drizzle-orm'
 import { createTranslator } from 'next-intl'
 import en from '../../messages/en.json'
 import fr from '../../messages/fr.json'
@@ -173,6 +174,35 @@ async function recordDelivery(entry: DeliveryRecord): Promise<void> {
       // comment. A row with `sent_at` set is not a row that was delivered.
       sentAt: entry.status === 'sent' ? new Date() : null,
     })
+}
+
+/**
+ * Whether `template` was accepted by the transport for `toEmail` since `since` -- the trial
+ * reminder's "once per trial" (spec 0005), read off the same `mail_deliveries` rows
+ * `recordDelivery` writes. `sent` only: a failed attempt is retried the next time the cron runs.
+ *
+ * A read of the unscoped table this module already owns, through `getDb()` for
+ * `recordDelivery`'s reason (no principal, no tenant column) -- not a third writer (`lib/db.ts`).
+ * Keyed by address and template, not org, because the table has no org column and adding one
+ * for this would give an auth-mail log a tenant key: two studios owned by one address, with
+ * trials ending within the window, would get one reminder between them. Not reachable today --
+ * one studio per owner (spec 0005, Sign-up).
+ */
+export async function sentSince(toEmail: string, template: string, since: Date): Promise<boolean> {
+  const m = schema.mailDeliveries
+  const [row] = await getDb()
+    .select({ id: m.id })
+    .from(m)
+    .where(
+      and(
+        eq(m.toEmail, toEmail),
+        eq(m.template, template),
+        eq(m.status, 'sent'),
+        gte(m.createdAt, since),
+      ),
+    )
+    .limit(1)
+  return row !== undefined
 }
 
 /**

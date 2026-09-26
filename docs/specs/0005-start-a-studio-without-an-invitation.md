@@ -1,7 +1,7 @@
 # Spec 0005 — Start a studio without an invitation, run it as a demo, and tell us what broke
 
 **Date:** 2026-09-24 · **Status:** Specified, not built
-**Built so far:** slices 1-4 of 6 -- demo mode (`GUESTNOTE_BILLING_FROM`, `lib/billing-mode.ts`),
+**Built so far:** slices 1-5 of 6 -- demo mode (`GUESTNOTE_BILLING_FROM`, `lib/billing-mode.ts`),
 the demo banner and "Report a problem" (Sentry User Feedback); migration 0010 and its repos
 (`repos/studios.ts`, `myPendingInvitations`, `acceptInvitationById`, `seedTemplates`, the vendor
 link's `logoKey`, `studioSlugFromName`); the sign-up flow at `/signup` (`app/pro/(public)/signup/`,
@@ -9,8 +9,12 @@ link's `logoKey`, `studioSlugFromName`); the sign-up flow at `/signup` (`app/pro
 drafted, not yet reviewed) and the sign-in footer link; the studio logo (`<org>/brand/<id>` keys and
 `deleteBrandObject` in `packages/storage`, `lib/studio-logo.ts`, `components/studio/`), the Studio
 page at `/studio` (`app/pro/(app)/studio/`), the sidebar's Studio item and logo, and the logo on the
-vendor-link header. Not built: trial, billing. Where the build differs from the first draft, the
-text says so with "(as built)".
+vendor-link header; the trial, the lock and billing, all switched off while
+`GUESTNOTE_BILLING_FROM` is unset (`packages/billing`, `lib/trial-state.ts`, `lib/trial.ts`,
+`app/pro/trial-guard.test.ts`, `components/banners/trial-banner.tsx`, `/billing` in
+`app/pro/(app)/billing/` and `components/billing/`, `@guestnote/db/cron`, the reminder route
+`app/api/cron/trial-reminders/` and its `TrialReminders` cron in `sst.config.ts`). Not built: the
+slice-6 docs pass. Where the build differs from the first draft, the text says so with "(as built)".
 **Phase:** `research/05-architecture.md` M8 (self-serve onboarding) and the UI half of M9 (billing),
 plus a demo-period bug channel · **Bar:** a planner runs one real wedding here instead of a
 spreadsheet — which first means a planner can get in without the founder seeding their org.
@@ -91,9 +95,33 @@ module under `app/pro/(app)/` and fails if one writes without it — the guard i
 its coverage, and a test is what makes a forgotten call site visible. Rejected: RLS (the lock
 depends on an env date Postgres cannot see without a new GUC on every transaction). The Billing
 screen, sign-out and "Report a problem" stay writable.
+*(As built: the guard is `assertWritable(orgId)` in `lib/trial.ts`, written as the first statement
+of every exported Server Function under `app/pro/(app)/` with the caller's `currentOrgId()`, and
+`trial-guard.test.ts` reads those modules as text; its allowlist is sign-out, the org switcher and
+the three preference cookies, the palette read, "Report a problem", the three Billing actions and
+the file download. Sign-up's steps after Studio carry the guard too, by hand -- that folder is
+outside the test. The guard THROWS a named `TrialEndedError`, as decided, rather than returning a
+result: a component that catches its action shows its generic inline error, and a form action
+(`useActionState`) or an uncaught call reaches the route's error boundary instead. "Forms stay
+visible" therefore holds only for the first kind today; turning the throw into a `locked` result
+per action is the follow-up if billing goes live before those screens change. Seen in the browser
+2026-09-26: the rename on `/studio` refused with the red banner up. `active` and `past_due` count
+as paid; `canceled` reads as an ended trial.)*
 
 **The trial reminder mail is built**, sent three days before the trial end to the owner, once
-per org per trial (deduplicated through `mail_deliveries`), by a daily `sst.aws.Cron`. It never
+per org per trial (deduplicated through `mail_deliveries`), by a daily `sst.aws.Cron`.
+*(As built: the cron is a small Lambda (`infra/cron/trial-reminders.ts`) that POSTs
+`/api/cron/trial-reminders` on the app host daily at 07:00 UTC with `Authorization: Bearer
+<CRON_SECRET>`; the route does the work. `CRON_SECRET` is optional in `env.ts` (unset: the route
+refuses everything), and `sst.config.ts` lists the stage's SSM names and deploys neither the
+secret nor the cron while `/guestnote/<stage>/CRON_SECRET` is absent -- which it is on both
+stages, so turning the reminder on is one `put-parameter` and a deploy. The dedupe is "this address
+was sent `trial-reminder` in the last 7 days", because `mail_deliveries` has no org column; two
+studios owned by one address would share one reminder, which one-studio-per-owner makes
+unreachable. A failed send is not retried the next day, when the org is no longer three days
+out. The mail is in Dutch: the owner has no stored language. `orgsWithTrialEnding` lives at
+`@guestnote/db/cron`, off the package root, importable only by that route -- `biome.json` and
+`no-unsafe-imports.test.ts` both.)* It never
 sends while billing is off. The cron needs to find orgs across tenants with no principal: that is
 a new `SECURITY DEFINER` function returning only org id, name, trial end and owner email, executable
 by `app_user` alone — a `tenancy-auditor` pass is required on it, and it is named in CLAUDE.md
@@ -125,6 +153,13 @@ screen is hidden, so the placeholders change nothing today.
 **Seats = active `org_members` rows**, owner included in the base; pending invites count only when
 accepted; couples and vendor links never count. Joining and leaving call the seam's `setSeats`,
 which the no-op provider ignores — the call sites exist so wiring a provider is not a hunt.
+*(As built: `seatsChanged(orgId, userId)` in `lib/billing.ts`, called after both accept paths
+(the invitation link in `lib/auth.ts` and sign-up's Join). There is no member-removal path in the
+app yet, so there is no call there. The count uses `listTeam`, which only an owner or admin can
+run under RLS, so a joining `member` cannot count their studio and the call is skipped; checkout
+counts again as the owner or admin who pays. Pricing is `packages/billing/src/pricing.ts`; its
+"no VAT with a VAT number" follows this spec and is flagged there as wrong for a Belgian number,
+for the provider to settle.)*
 
 ### Sign-up
 
@@ -340,6 +375,11 @@ toggle and computed line items from live seat count, Invoice details editable an
 the no-op provider returns "not available" and the screen shows an inline error rather than
 pretending. The success banner and paid state are exercised in component tests with fixture
 data.
+*(As built: the provider's return lands on `/billing?checkout=done`, and the success banner shows
+only when the studio then reads as paid. The notes column is "How billing works": seats, changing
+planners, and what an ended trial means. The trial banner offers "Choose a plan" to owners and
+admins only; a member sees the banner without the button. Amber is the last day and the two
+before it (three calendar days); the reminder goes out the day before amber starts.)*
 
 ### Trial ended (billing on only)
 
@@ -433,7 +473,8 @@ NL first; EN below; FR written at build and reviewed. Keys under `messages/app/s
 | banners.demo.body | Guestnote is in demo. Alles is gratis terwijl we bouwen. | Guestnote is in demo. Everything is free while we build. |
 | banners.demo.ask *(as built: shown only when there is an inbox to report to)* | Loopt er iets mis? | Something off? |
 | banners.demo.action | Meld het | Report it |
-| banners.trial.* | the design's three messages, with "veertien dagen" → the computed date | |
+| banners.trial.* | the design's three messages, with "veertien dagen" → the computed date *(as built: plus a pill per state, `lastDaysNone` for a studio with no live wedding, and `lastDay` for the final day's pill)* | |
+| billing.* *(as built)* | the Billing screen, NL/EN/FR, in `messages/app/billing.*.json`; the reminder mail is `email.trialReminder` in the base catalogues | |
 | report.menu, report.title | Een probleem melden | Report a problem |
 | report.category *(as built: the fieldset's label)* | Soort | Kind |
 | report.categories.{bug,idea,question} | Fout · Idee · Vraag | Bug · Idea · Question |

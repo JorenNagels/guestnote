@@ -1,35 +1,56 @@
-import { describe, expect, it } from 'vitest'
-import { addOneMonth, brusselsToday, trialLastDay } from './trial.ts'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-describe('addOneMonth', () => {
-  it('lands on the same day next month', () => {
-    expect(addOneMonth('2026-09-26')).toBe('2026-10-26')
-  })
+/**
+ * `assertWritable`, the one guard every staff write under `app/pro/(app)` calls first. The
+ * dates are `trial-state.test.ts`'s; this pins what the guard does with them.
+ */
+const billingMode = vi.fn()
+const trialFacts = vi.fn()
+const currentMemberships = vi.fn()
 
-  it('crosses the year', () => {
-    expect(addOneMonth('2026-12-15')).toBe('2027-01-15')
-  })
+vi.mock('./billing-mode.ts', () => ({ billingMode: () => billingMode() }))
+vi.mock('./db.ts', () => ({ getDb: () => ({}) }))
+vi.mock('./principal.ts', () => ({ currentMemberships: () => currentMemberships() }))
+vi.mock('@guestnote/db', () => ({ trialFacts: (...a: unknown[]) => trialFacts(...a) }))
 
-  it('clamps to the end of a shorter month, as Postgres does', () => {
-    expect(addOneMonth('2027-01-31')).toBe('2027-02-28')
-    expect(addOneMonth('2028-01-31')).toBe('2028-02-29')
-    expect(addOneMonth('2026-03-31')).toBe('2026-04-30')
-  })
+const { assertWritable, TrialEndedError } = await import('./trial.ts')
+
+const M = { userId: 'u1', orgs: [{ orgId: 'o1', role: 'member' }], weddings: [] }
+const LONG_AGO = { type: 'planner', createdAt: new Date('2020-01-01T10:00:00Z'), trialEndsAt: null }
+
+beforeEach(() => {
+  vi.clearAllMocks()
+  billingMode.mockReturnValue({ on: true, from: '2020-01-01' })
+  currentMemberships.mockResolvedValue(M)
+  trialFacts.mockResolvedValue({ ...LONG_AGO, billingStatus: null })
 })
 
-describe('trialLastDay', () => {
-  it('counts from the day billing starts for a studio made during the demo', () => {
-    expect(trialLastDay('2026-09-26', '2027-01-01')).toBe('2027-02-01')
+describe('assertWritable', () => {
+  it('refuses a staff write once the trial has ended, with the named error', async () => {
+    await expect(assertWritable('o1')).rejects.toBeInstanceOf(TrialEndedError)
+    expect(trialFacts).toHaveBeenCalledWith({}, M, 'o1')
   })
 
-  it('counts from creation once billing is already on', () => {
-    expect(trialLastDay('2027-03-10', '2027-01-01')).toBe('2027-04-10')
+  it('lets everything through while billing is off, without a query', async () => {
+    billingMode.mockReturnValue({ on: false })
+    await expect(assertWritable('o1')).resolves.toBeUndefined()
+    expect(trialFacts).not.toHaveBeenCalled()
+    expect(currentMemberships).not.toHaveBeenCalled()
   })
-})
 
-describe('brusselsToday', () => {
-  it('is the Brussels date, not the UTC one', () => {
-    // 23:30 UTC on 30 June is already 1 July in Brussels (UTC+2 in summer).
-    expect(brusselsToday(new Date('2026-06-30T23:30:00Z'))).toBe('2026-07-01')
+  it('lets a paying studio write', async () => {
+    trialFacts.mockResolvedValue({ ...LONG_AGO, billingStatus: 'active' })
+    await expect(assertWritable('o1')).resolves.toBeUndefined()
+  })
+
+  it('lets a running trial write', async () => {
+    trialFacts.mockResolvedValue({ ...LONG_AGO, trialEndsAt: new Date('2999-01-01T00:00:00Z') })
+    await expect(assertWritable('o1')).resolves.toBeUndefined()
+  })
+
+  it('has nothing to lock with no org or no staff row, and leaves refusing to the action', async () => {
+    await expect(assertWritable(null)).resolves.toBeUndefined()
+    trialFacts.mockResolvedValue(null)
+    await expect(assertWritable('o1')).resolves.toBeUndefined()
   })
 })

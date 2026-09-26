@@ -80,6 +80,48 @@ describe('@guestnote/db/unsafe stays contained', () => {
   })
 })
 
+describe('@guestnote/db/cron stays in the cron route', () => {
+  /**
+   * `orgsWithTrialEnding` reads across every tenant -- every studio whose trial ends on a day,
+   * with its owner's email -- for the trial-reminder cron, which has no principal. It was on the
+   * package root until slice 5 of spec 0005, one autocomplete away from any page; the slice-2
+   * `tenancy-auditor` pass asked for it to be narrowed, so it has its own export path and this
+   * ban. `packages/db/**` itself is allowed (its tests call it).
+   *
+   * `biome.json` bans the path too, and lifts the ban for the route with an override that
+   * RESTATES every other banned path: a Biome override replaces the rule's options rather than
+   * merging them (measured 2026-09-26 -- the override without the rest let `@guestnote/db/unsafe`
+   * through in that file). So a new ban added to the top-level list must be added to that
+   * override as well; this test does not catch the drift, the top-level Biome rule does not
+   * apply there.
+   */
+  const ALLOWED = [
+    /^packages\/db\//,
+    /^apps\/web\/src\/app\/api\/cron\/trial-reminders\/route\.ts$/,
+  ]
+  // The group keeps this file's own copy of the pattern from matching itself (see SES below).
+  // The second half catches the function by name from any path, as the `unsafe` ban does, so a
+  // relative import of `packages/db/src/cron.ts` does not slip past the export-path check.
+  const IMPORTS_CRON =
+    "(from|import\\()[[:space:]]*'(@guestnote/db/cron)'" +
+    '|\\{[^}]*orgsWith(TrialEnding)[^}]*\\}[[:space:]]*from'
+
+  it('is imported only by the trial-reminder route (and packages/db)', () => {
+    const offenders = gitGrep(IMPORTS_CRON).filter((f) => !ALLOWED.some((re) => re.test(f)))
+    expect(
+      offenders,
+      'These files import the cross-tenant cron reads. Nothing but the cron route may list ' +
+        'studios across tenants; packages/db/src/cron.ts says why:\n  ' +
+        offenders.join('\n  '),
+    ).toEqual([])
+  })
+
+  it('has a pattern that actually matches the one legitimate importer', () => {
+    // The canary: a regex that matches nothing passes forever.
+    expect(gitGrep(IMPORTS_CRON)).toContain('apps/web/src/app/api/cron/trial-reminders/route.ts')
+  })
+})
+
 describe('better-auth stays behind the packages/core/auth seam', () => {
   /**
    * research/07-auth-and-tenancy.md section 1: the seam is what keeps a provider swap a

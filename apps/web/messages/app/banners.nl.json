@@ -4,5 +4,18 @@
     "body": "Guestnote is in demo. Alles is gratis terwijl we bouwen.",
     "ask": "Loopt er iets mis?",
     "action": "Meld het"
+  },
+  "trial": {
+    "pill": {
+      "running": "PROEF",
+      "lastDay": "LAATSTE DAG",
+      "lastDays": "NOG {days, plural, one {# DAG} other {# DAGEN}}",
+      "ended": "ALLEEN-LEZEN"
+    },
+    "running": "Alles is open tot en met {date}. Tot dan heb je geen kaart nodig.",
+    "lastDays": "Je proefperiode eindigt op {date}. Kies een abonnement om je {count, plural, one {# bruiloft} other {# bruiloften}} open te houden.",
+    "lastDaysNone": "Je proefperiode eindigt op {date}. Kies een abonnement om alles open te houden.",
+    "ended": "Je bruiloften zijn alleen-lezen. Er is niets verwijderd, en met een abonnement is alles meteen weer open.",
+    "action": "Kies een abonnement"
   }
 }

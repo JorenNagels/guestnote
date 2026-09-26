@@ -162,6 +162,16 @@
       "expiry": "The invitation is valid for {days, plural, one {# day} other {# days}}.",
       "ignore": "Do not know {inviter}, or not expecting this? You can safely ignore this email.",
       "footer": "Guestnote · automated message. Replies to this address are not delivered."
+    },
+    "trialReminder": {
+      "subject": "Your trial for {studio} ends on {date}",
+      "preheader": "Choose a plan to keep everything open.",
+      "heading": "Three days to go",
+      "intro": "The trial for {studio} runs until the end of {date}. Choose a plan to keep all your weddings open.",
+      "cta": "Choose a plan",
+      "linkFallback": "Button not working? Copy this link into your browser:",
+      "after": "If you do nothing, your weddings become read-only. Nothing is deleted, and choosing a plan unlocks everything at once.",
+      "footer": "Guestnote · automated message. Replies to this address are not received."
     }
   }
 }

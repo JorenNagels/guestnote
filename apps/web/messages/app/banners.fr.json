@@ -4,5 +4,18 @@
     "body": "Guestnote est en démo. Tout est gratuit pendant que nous construisons.",
     "ask": "Un souci ?",
     "action": "Le signaler"
+  },
+  "trial": {
+    "pill": {
+      "running": "ESSAI",
+      "lastDay": "DERNIER JOUR",
+      "lastDays": "ENCORE {days, plural, one {# JOUR} other {# JOURS}}",
+      "ended": "LECTURE SEULE"
+    },
+    "running": "Tout est débloqué jusqu’au {date} inclus. Aucune carte n’est nécessaire d’ici là.",
+    "lastDays": "Votre essai se termine le {date}. Choisissez un abonnement pour garder {count, plural, one {# mariage ouvert} other {# mariages ouverts}}.",
+    "lastDaysNone": "Votre essai se termine le {date}. Choisissez un abonnement pour tout garder ouvert.",
+    "ended": "Vos mariages sont en lecture seule. Rien n’a été supprimé, et choisir un abonnement débloque tout immédiatement.",
+    "action": "Choisir un abonnement"
   }
 }

@@ -88,6 +88,27 @@ export default $config({
         withDecryption: true,
       }).value
 
+    // Which OPTIONAL parameters this stage has. Names only -- `withDecryption: false`, and the
+    // values are never read from this call -- so a SecureString's plaintext never enters the
+    // program through it; a present secret is then read the normal way, through `secret()`.
+    //
+    // `CRON_SECRET` (spec 0005, the trial reminder) is optional where the five above are not,
+    // because it arrived after both stages existed and a deploy must not fail over a feature
+    // that is switched off: while it is absent, the web function gets no `CRON_SECRET` (so
+    // `/api/cron/trial-reminders` refuses every request -- the safe value, invariant 6) and the
+    // `TrialReminders` cron below is not created at all. `put-parameter` plus a deploy turns both
+    // on. This is the Sentry placeholder's tolerance by a different route: that one must exist
+    // and may be fake; this one may be missing, and the stack changes shape instead of failing.
+    //
+    // A plain await (an invoke at plan time), not an Output: whether a resource exists cannot
+    // depend on an Output's value. The deploy role has admin (`infra/github-oidc.yaml`), so
+    // `ssm:GetParametersByPath` is allowed.
+    const optional = new Set(
+      (await aws.ssm.getParametersByPath({ path: `/guestnote/${stage}`, withDecryption: false }))
+        .names,
+    )
+    const hasCronSecret = optional.has(`/guestnote/${stage}/CRON_SECRET`)
+
     // Non-prod stages are their own registrable sub-tree, which is what makes
     // `app.<stage>.guestnote.be` and `<slug>.<stage>.guestnote.be` take the same proxy.ts
     // branches production does.
@@ -210,6 +231,9 @@ export default $config({
         // the rest, even though a DSN is a write-only ingest URL and not really a secret:
         // one place to look for "what is configured here" beats two.
         SENTRY_DSN: secret('SENTRY_DSN'),
+        // The trial-reminder route's bearer token, only when the parameter exists (see
+        // `hasCronSecret` above). Absent, the route refuses everything.
+        ...(hasCronSecret ? { CRON_SECRET: secret('CRON_SECRET') } : {}),
         // GUESTNOTE_MAIL_TRANSPORT is deliberately unset: lib/mailer.ts resolves an unset
         // value to `ses` in a deployed environment, which is the safe direction. AWS_REGION
         // is injected by the Lambda runtime; env.ts defaults it anyway.
@@ -277,6 +301,35 @@ export default $config({
       // the warm target. See apps/web/src/app/api/health/route.ts.
       warm: 0,
     })
+
+    /**
+     * The trial reminder (spec 0005, "Trial"): daily at 07:00 UTC -- 08:00 or 09:00 in Brussels,
+     * after the night and before a planner's working day -- a small Lambda POSTs the app's
+     * `/api/cron/trial-reminders` with the bearer token. The route decides everything, including
+     * doing nothing while `GUESTNOTE_BILLING_FROM` is unset, which is every stage today.
+     *
+     * An HTTP call to the app rather than the job importing the app's code: the logic needs the
+     * database, the mailer and the catalogues, all of which live in the Next bundle and its
+     * tests. The cost is one public route guarded by a secret, which the route argues for.
+     *
+     * Created only with `CRON_SECRET` present (`hasCronSecret`): without it the job could only
+     * collect 401s. Same runtime and architecture as the server function, for its reason.
+     */
+    if (hasCronSecret) {
+      new sst.aws.Cron('TrialReminders', {
+        schedule: 'cron(0 7 * * ? *)',
+        function: {
+          handler: 'infra/cron/trial-reminders.handler',
+          runtime: 'nodejs22.x',
+          architecture: 'arm64',
+          timeout: '60 seconds',
+          environment: {
+            TRIAL_REMINDERS_URL: `https://${appSubdomain}.${rootDomain}/api/cron/trial-reminders`,
+            CRON_SECRET: secret('CRON_SECRET'),
+          },
+        },
+      })
+    }
 
     // Surfaced for `npx sst outputs --stage <stage>` -- the production first-deploy step
     // in infra/README.md needs the CloudFront domain to verify against before the apex is

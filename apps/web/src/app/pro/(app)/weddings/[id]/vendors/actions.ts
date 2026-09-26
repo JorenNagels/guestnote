@@ -10,6 +10,8 @@ import {
 } from '@guestnote/db'
 import { revalidatePath } from 'next/cache'
 import { newBearerToken } from '../../../../../../lib/bearer-token.ts'
+import { currentOrgId } from '../../../../../../lib/principal.ts'
+import { assertWritable } from '../../../../../../lib/trial.ts'
 import {
   answer,
   parseId,
@@ -50,6 +52,7 @@ export async function addVendorToWedding(
   weddingId: unknown,
   vendorId: unknown,
 ): Promise<VendorActionResult> {
+  await assertWritable(await currentOrgId())
   const ctx = await context(weddingId)
   const vid = parseId(vendorId)
   if (!ctx) return { ok: false, error: 'notFound' }
@@ -63,6 +66,7 @@ export async function createVendorOnWedding(
   weddingId: unknown,
   input: unknown,
 ): Promise<VendorActionResult> {
+  await assertWritable(await currentOrgId())
   const ctx = await context(weddingId)
   if (!ctx) return { ok: false, error: 'notFound' }
   const parsed = parseVendorInput(input)
@@ -78,6 +82,7 @@ export async function setWeddingVendorStatus(
   linkId: unknown,
   status: unknown,
 ): Promise<VendorActionResult> {
+  await assertWritable(await currentOrgId())
   const ctx = await context(weddingId)
   if (!ctx) return { ok: false, error: 'notFound' }
   const id = parseId(linkId)
@@ -95,6 +100,7 @@ export async function saveWeddingVendor(
   status: unknown,
   notes: unknown,
 ): Promise<VendorActionResult> {
+  await assertWritable(await currentOrgId())
   const ctx = await context(weddingId)
   if (!ctx) return { ok: false, error: 'notFound' }
   const id = parseId(linkId)
@@ -113,6 +119,7 @@ export async function removeVendorFromWedding(
   weddingId: unknown,
   linkId: unknown,
 ): Promise<VendorActionResult> {
+  await assertWritable(await currentOrgId())
   const ctx = await context(weddingId)
   if (!ctx) return { ok: false, error: 'notFound' }
   const id = parseId(linkId)
@@ -138,6 +145,7 @@ export async function createVendorLinkAction(
   wedVendorId: unknown,
   ttlDays: unknown,
 ): Promise<CreateVendorLinkResult> {
+  await assertWritable(await currentOrgId())
   const ctx = await context(weddingId)
   if (!ctx) return { ok: false, error: 'notFound' }
   const id = parseId(wedVendorId)
@@ -163,6 +171,7 @@ export async function revokeVendorLinkAction(
   weddingId: unknown,
   linkId: unknown,
 ): Promise<{ ok: boolean }> {
+  await assertWritable(await currentOrgId())
   const ctx = await context(weddingId)
   if (!ctx) return { ok: false }
   const id = parseId(linkId)

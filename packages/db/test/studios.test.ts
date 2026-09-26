@@ -1,12 +1,12 @@
 import { createHash } from 'node:crypto'
 import { Pool } from 'pg'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { orgsWithTrialEnding } from '../src/cron.ts'
 import {
   acceptInvitationById,
   billingProfile,
   createStudio,
   myPendingInvitations,
-  orgsWithTrialEnding,
   renameStudio,
   resolveMemberships,
   resolveVendorLinkByHash,
@@ -14,6 +14,7 @@ import {
   seedTemplates,
   setLogoKey,
   studioSettings,
+  trialFacts,
 } from '../src/repos/index.ts'
 import {
   asNobody,
@@ -568,6 +569,30 @@ describe('repos/studios.ts', () => {
     })
     const other = await resolveMemberships(h.db, F.staffB)
     expect(await studioSettings(h.db, other, F.orgA)).toBeNull()
+  })
+
+  it('trialFacts: any staff member reads the trial columns and nothing else', async () => {
+    await seedExec(
+      "update organizations set trial_ends_at = '2026-12-01T10:00:00Z', billing_status = 'active', billing_name = 'secret' where id = $1",
+      [F.orgA],
+    )
+    const member = await resolveMemberships(h.db, F.memberA)
+    const facts = await trialFacts(h.db, member, F.orgA)
+    expect(facts).toEqual({
+      type: 'planner',
+      createdAt: expect.any(Date),
+      trialEndsAt: new Date('2026-12-01T10:00:00Z'),
+      billingStatus: 'active',
+    })
+    // The select list is the boundary: nothing else from the row reaches a member.
+    expect(Object.keys(facts ?? {}).sort()).toEqual([
+      'billingStatus',
+      'createdAt',
+      'trialEndsAt',
+      'type',
+    ])
+    const other = await resolveMemberships(h.db, F.staffB)
+    expect(await trialFacts(h.db, other, F.orgA)).toBeNull()
   })
 
   it('renameStudio: owner and admin rename, a member is refused and changes nothing', async () => {

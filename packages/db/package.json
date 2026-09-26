@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./cron": "./src/cron.ts",
     "./schema": "./src/schema/index.ts",
     "./unsafe": "./src/unsafe.ts"
   },

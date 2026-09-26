@@ -162,6 +162,16 @@
       "expiry": "De uitnodiging is {days, plural, one {# dag} other {# dagen}} geldig.",
       "ignore": "Ken je {inviter} niet, of verwachtte je dit niet? Dan kun je deze e-mail negeren.",
       "footer": "Guestnote · automatisch bericht. Antwoorden op dit adres komen niet aan."
+    },
+    "trialReminder": {
+      "subject": "Je proefperiode voor {studio} eindigt op {date}",
+      "preheader": "Kies een abonnement om alles open te houden.",
+      "heading": "Nog drie dagen",
+      "intro": "De proefperiode van {studio} loopt tot en met {date}. Kies een abonnement om al je bruiloften open te houden.",
+      "cta": "Kies een abonnement",
+      "linkFallback": "Werkt de knop niet? Kopieer dan deze link in je browser:",
+      "after": "Kies je niets, dan worden je bruiloften alleen-lezen. Er wordt niets verwijderd, en een abonnement maakt alles meteen weer open.",
+      "footer": "Guestnote · automatisch bericht. Antwoorden op dit adres komen niet aan."
     }
   }
 }

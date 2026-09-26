@@ -165,6 +165,16 @@ export function TeamIcon({ className }: IconProps) {
   )
 }
 
+/** A bank card: Billing (spec 0005). */
+export function CardIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <rect x="2.5" y="5" width="19" height="14" rx="2" />
+      <path d="M2.5 10h19M6 15h4" />
+    </Glyph>
+  )
+}
+
 /** A shopfront: the studio itself, as distinct from the people in it (`TeamIcon`). */
 export function StudioIcon({ className }: IconProps) {
   return (

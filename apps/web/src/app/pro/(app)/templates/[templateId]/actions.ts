@@ -15,12 +15,13 @@ import {
 import { revalidatePath } from 'next/cache'
 import { getTranslations } from 'next-intl/server'
 import { getDb } from '../../../../../lib/db.ts'
-import { currentCaller } from '../../../../../lib/principal.ts'
+import { currentCaller, currentOrgId } from '../../../../../lib/principal.ts'
 import {
   parseItemInput,
   parseTemplateInput,
   type TemplateActionError,
 } from '../../../../../lib/template-input.ts'
+import { assertWritable } from '../../../../../lib/trial.ts'
 import { isUuid } from '../../../../../lib/uuid.ts'
 
 /**
@@ -74,6 +75,7 @@ export async function updateTemplateAction(
   templateId: string,
   input: unknown,
 ): Promise<EditResult> {
+  await assertWritable(await currentOrgId())
   const parsed = parseTemplateInput(input)
   if (!parsed.ok) return { ok: false, error: parsed.error }
   const ctx = await writer(templateId)
@@ -82,12 +84,14 @@ export async function updateTemplateAction(
 }
 
 export async function deleteTemplateAction(templateId: string): Promise<EditResult> {
+  await assertWritable(await currentOrgId())
   const ctx = await writer(templateId)
   if (!ctx) return FORBIDDEN
   return settle(await deleteTemplate(getDb(), ctx.m, ctx.orgId, templateId))
 }
 
 export async function duplicateTemplateAction(templateId: string): Promise<DuplicateResult> {
+  await assertWritable(await currentOrgId())
   const ctx = await writer(templateId)
   if (!ctx) return FORBIDDEN
   const t = await getTranslations('app.templates')
@@ -99,6 +103,7 @@ export async function duplicateTemplateAction(templateId: string): Promise<Dupli
 }
 
 export async function addItemAction(templateId: string, input: unknown): Promise<EditResult> {
+  await assertWritable(await currentOrgId())
   const parsed = parseItemInput(input)
   if (!parsed.ok) return { ok: false, error: parsed.error }
   const ctx = await writer(templateId)
@@ -111,6 +116,7 @@ export async function updateItemAction(
   itemId: string,
   input: unknown,
 ): Promise<EditResult> {
+  await assertWritable(await currentOrgId())
   const parsed = parseItemInput(input)
   if (!parsed.ok) return { ok: false, error: parsed.error }
   const ctx = await writer(templateId, itemId)
@@ -121,6 +127,7 @@ export async function updateItemAction(
 }
 
 export async function deleteItemAction(templateId: string, itemId: string): Promise<EditResult> {
+  await assertWritable(await currentOrgId())
   const ctx = await writer(templateId, itemId)
   if (!ctx) return FORBIDDEN
   return settle(await deleteTemplateItem(getDb(), ctx.m, ctx.orgId, templateId, itemId))
@@ -131,6 +138,7 @@ export async function moveItemAction(
   itemId: string,
   direction: unknown,
 ): Promise<EditResult> {
+  await assertWritable(await currentOrgId())
   if (direction !== 'up' && direction !== 'down') return { ok: false, error: 'notFound' }
   const ctx = await writer(templateId, itemId)
   if (!ctx) return FORBIDDEN
@@ -141,6 +149,7 @@ export async function applyTemplateAction(
   templateId: string,
   weddingId: string,
 ): Promise<ApplyResult> {
+  await assertWritable(await currentOrgId())
   if (!isUuid(templateId) || !isUuid(weddingId)) return { ok: false, error: 'notFound' }
   const c = await currentCaller()
   if (!c) return { ok: false, error: 'notFound' }

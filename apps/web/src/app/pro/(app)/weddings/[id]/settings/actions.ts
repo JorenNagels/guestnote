@@ -7,6 +7,8 @@ import {
   updateWeddingEvent,
 } from '@guestnote/db'
 import { revalidatePath } from 'next/cache'
+import { currentOrgId } from '../../../../../../lib/principal.ts'
+import { assertWritable } from '../../../../../../lib/trial.ts'
 import { isUuid } from '../../../../../../lib/uuid.ts'
 import { echoValues, type FormState } from '../../../../../../lib/wedding-form-state.ts'
 import { parseEventForm, parseWeddingForm } from '../../../../../../lib/wedding-parse.ts'
@@ -36,6 +38,7 @@ export async function updateWeddingAction(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
+  await assertWritable(await currentOrgId())
   const scope = await currentWeddingScope(weddingId)
   if (!scope) return { form: 'forbidden' }
 
@@ -62,6 +65,7 @@ export async function saveEventAction(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
+  await assertWritable(await currentOrgId())
   const scope = await currentWeddingScope(weddingId)
   if (!scope) return { form: 'forbidden' }
 

@@ -47,6 +47,7 @@
               "@simplewebauthn/browser": "A phantom dependency -- hoisted by @better-auth/passkey, declared in no package.json, and resolvable from apps/web. Its parseRequestOptionsFromJSON()/toJSON() were rejected on reach (Safari 17.4, Firefox 135), which is why passkey.ts encodes by hand. Importing it lands provider types in the app and undoes that decision silently.",
               "@simplewebauthn/server": "Server half of the same phantom dependency. Verification belongs behind the seam in packages/core/src/auth/better-auth.ts, which is the only file allowed to know a WebAuthn library exists.",
               "@guestnote/db/unsafe": "Bypasses tenant isolation. packages/db/** and the migration runner only. See research/05-architecture.md section 4.",
+              "@guestnote/db/cron": "Reads across every tenant (orgs_with_trial_ending: names and owner emails of every studio whose trial ends on a day). Only apps/web/src/app/api/cron/trial-reminders/route.ts may import it -- packages/db/src/cron.ts says why it is not on the package root.",
               "@aws-sdk/client-sesv2": "Only packages/email/src/ses.ts may import this (and its test, to construct the SDK error classes it maps). Everything else goes through the packages/email seam, so swapping mail provider stays a bounded job -- and so the AWS SDK cannot be pulled into a bundle by a stray import. See research/05-architecture.md section 6.",
               "@aws-sdk/client-s3": "Only packages/storage/src/s3.ts may import this. Everything else goes through the packages/storage seam (createStorage), so swapping object store stays a bounded job -- and so the SDK cannot be pulled into a bundle by a stray import. See docs/specs/0003-planner-app-screens.md.",
               "@aws-sdk/s3-request-presigner": "Same seam as @aws-sdk/client-s3: only packages/storage/src/s3.ts may import it. Presigning is where the signed headers are chosen, and packages/storage/README.md records what the SDK's defaults get wrong.",
@@ -90,6 +91,31 @@
         "rules": {
           "style": {
             "noRestrictedImports": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["apps/web/src/app/api/cron/trial-reminders/route.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "better-auth": "Only packages/core/src/auth/better-auth.ts may import this. Everything else goes through the packages/core/auth seam, so swapping provider stays a bounded job. See research/07-auth-and-tenancy.md section 1.",
+                  "@better-auth/passkey": "Same seam as better-auth, and the one people actually reach for: its client half exports startAuthentication({ useBrowserAutofill }), which is exactly what apps/web/src/components/auth/passkey.ts hand-rolls base64url to avoid. Only packages/core/src/auth/better-auth.ts may import it.",
+                  "@simplewebauthn/browser": "A phantom dependency -- hoisted by @better-auth/passkey, declared in no package.json, and resolvable from apps/web. Its parseRequestOptionsFromJSON()/toJSON() were rejected on reach (Safari 17.4, Firefox 135), which is why passkey.ts encodes by hand. Importing it lands provider types in the app and undoes that decision silently.",
+                  "@simplewebauthn/server": "Server half of the same phantom dependency. Verification belongs behind the seam in packages/core/src/auth/better-auth.ts, which is the only file allowed to know a WebAuthn library exists.",
+                  "@guestnote/db/unsafe": "Bypasses tenant isolation. packages/db/** and the migration runner only. See research/05-architecture.md section 4.",
+                  "@aws-sdk/client-sesv2": "Only packages/email/src/ses.ts may import this (and its test, to construct the SDK error classes it maps). Everything else goes through the packages/email seam, so swapping mail provider stays a bounded job -- and so the AWS SDK cannot be pulled into a bundle by a stray import. See research/05-architecture.md section 6.",
+                  "@aws-sdk/client-s3": "Only packages/storage/src/s3.ts may import this. Everything else goes through the packages/storage seam (createStorage), so swapping object store stays a bounded job -- and so the SDK cannot be pulled into a bundle by a stray import. See docs/specs/0003-planner-app-screens.md.",
+                  "@aws-sdk/s3-request-presigner": "Same seam as @aws-sdk/client-s3: only packages/storage/src/s3.ts may import it. Presigning is where the signed headers are chosen, and packages/storage/README.md records what the SDK's defaults get wrong.",
+                  "@sentry/nextjs": "Only apps/web/src/instrumentation.ts may import this. lib/observability.ts was rewritten to take a reporter callback instead, because the SDK drags a webpack bundler plugin into its module graph and every test that transitively reached it failed with \"The URL must be of scheme file\" -- and because copy.ts refuses to ship a message catalogue to the login surface, so it will not have tens of kilobytes of SDK either. Same one-file-per-provider rule as better-auth and the AWS SDK; it was asserted in a comment and held by nothing until 2026-09-01."
+                }
+              }
+            }
           }
         }
       }

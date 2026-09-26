@@ -21,6 +21,7 @@ import {
   TEAM_ROWS,
   type TeamFormState,
 } from '../../../../components/signup/state.ts'
+import { seatsChanged } from '../../../../lib/billing.ts'
 import { createWeddingFromForm } from '../../../../lib/create-wedding.ts'
 import { getDb } from '../../../../lib/db.ts'
 import { DEFAULT_LOCALE, isLocale } from '../../../../lib/locales.ts'
@@ -41,6 +42,7 @@ import {
   type StartLogo,
   startLogoUpload,
 } from '../../../../lib/studio-logo.ts'
+import { assertWritable } from '../../../../lib/trial.ts'
 import { isUuid } from '../../../../lib/uuid.ts'
 import type { FormState } from '../../../../lib/wedding-form-state.ts'
 
@@ -167,6 +169,7 @@ export async function startSignupLogoUpload(input: {
   const session = await currentSession()
   const owned = session ? await ownStudio(session.userId) : null
   if (!owned) return { ok: false, error: 'forbidden' }
+  await assertWritable(owned.orgId)
   return startLogoUpload(owned, input)
 }
 
@@ -174,6 +177,7 @@ export async function confirmSignupLogo(fileId: string): Promise<LogoDone> {
   const session = await currentSession()
   const owned = session ? await ownStudio(session.userId) : null
   if (!owned) return { ok: false, error: 'forbidden' }
+  await assertWritable(owned.orgId)
   return confirmLogo(owned, fileId)
 }
 
@@ -190,6 +194,10 @@ export async function createFirstWeddingAction(
   if (!session) return { form: 'forbidden' }
   const studio = await ownStudio(session.userId)
   if (!studio) return { form: 'forbidden' }
+  // Not covered by `trial-guard.test.ts`, which reads `app/pro/(app)` only: the sign-up steps
+  // after Studio write into the caller's own studio, and a studio past its trial could otherwise
+  // add weddings here that `/weddings/new` refuses.
+  await assertWritable(studio.orgId)
 
   const created = await createWeddingFromForm(studio.memberships, studio.orgId, formData)
   if (!created.ok) return created.state
@@ -244,6 +252,7 @@ export async function inviteTeamAction(
   if (!session) return { form: 'forbidden', sent: alreadySent, values: rows }
   const studio = await ownStudio(session.userId)
   if (!studio) return { form: 'forbidden', sent: alreadySent, values: rows }
+  await assertWritable(studio.orgId)
 
   const [settings, locale] = await Promise.all([
     studioSettings(getDb(), studio.memberships, studio.orgId),
@@ -295,6 +304,7 @@ export async function joinInvitationAction(invitationId: string): Promise<JoinOu
     // Answered, not redirected: this is called directly rather than as a form action, and a
     // `redirect()` there rejects the client's promise -- which the screen would read as a
     // failure and announce before the navigation landed. The client navigates on `ok`.
+    await seatsChanged(result.orgId, session.userId)
     await actIn(result.orgId)
     return { ok: true }
   }

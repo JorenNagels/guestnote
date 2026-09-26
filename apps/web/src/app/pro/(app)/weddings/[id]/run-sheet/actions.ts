@@ -8,11 +8,13 @@ import {
   updateRunSheetItem,
 } from '@guestnote/db'
 import { revalidatePath } from 'next/cache'
+import { currentOrgId } from '../../../../../../lib/principal.ts'
 import {
   parseRunSheetForm,
   type RunSheetActionResult,
   type RunSheetError,
 } from '../../../../../../lib/run-sheet.ts'
+import { assertWritable } from '../../../../../../lib/trial.ts'
 import { isUuid } from '../../../../../../lib/uuid.ts'
 import { currentWeddingScope } from '../../../../../../lib/wedding-scope.ts'
 
@@ -42,6 +44,7 @@ export async function saveRunSheetItem(
   itemId: string | null,
   values: unknown,
 ): Promise<RunSheetActionResult> {
+  await assertWritable(await currentOrgId())
   const scope = await currentWeddingScope(weddingId)
   if (!scope || (itemId !== null && !isUuid(itemId))) {
     return { ok: false, error: 'notFound' }
@@ -62,6 +65,7 @@ export async function removeRunSheetItem(
   weddingId: string,
   itemId: string,
 ): Promise<RunSheetActionResult> {
+  await assertWritable(await currentOrgId())
   const scope = await currentWeddingScope(weddingId)
   if (!scope || !isUuid(itemId)) return { ok: false, error: 'notFound' }
 
@@ -76,6 +80,7 @@ export async function shiftRunSheetItem(
   itemId: string,
   direction: 'up' | 'down',
 ): Promise<RunSheetActionResult> {
+  await assertWritable(await currentOrgId())
   const scope = await currentWeddingScope(weddingId)
   if (!scope || !isUuid(itemId)) return { ok: false, error: 'notFound' }
   if (direction !== 'up' && direction !== 'down') return { ok: false, error: 'failed' }

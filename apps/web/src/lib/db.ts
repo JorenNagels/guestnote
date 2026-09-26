@@ -43,6 +43,10 @@ import { env } from '../env.ts'
  * `test/schema-coverage.test.ts` is what holds that, by failing if a table is added without a
  * classification. If a third writer appears here, or if either of these ever reaches a table
  * with an `org_id`, that is the point to stop rather than to widen this comment.
+ *
+ * Two principal-less READS also use this handle, and neither is a writer: `sentSince` in
+ * `lib/mailer.ts` (the same unscoped `mail_deliveries`), and the trial-reminder cron's one
+ * SECURITY DEFINER call through `@guestnote/db/cron` (spec 0005).
  */
 let cached: Db | undefined
 

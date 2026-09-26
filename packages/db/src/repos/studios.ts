@@ -49,6 +49,8 @@ export type StudioSettings = {
 
 export type BillingProfile = {
   readonly orgId: string
+  /** `planner`, `venue` or `couple_direct`: only a planner studio has a trial (spec 0005). */
+  readonly type: string
   readonly createdAt: Date
   readonly trialEndsAt: Date | null
   readonly billingCycle: 'monthly' | 'yearly' | null
@@ -134,6 +136,48 @@ export async function studioSettings(
   return row ?? null
 }
 
+/** The three columns the trial clock is computed from (spec 0005, "Trial"). */
+export type TrialFacts = {
+  /** Only a `planner` org has a trial -- the reminder function filters the same way (0010). */
+  readonly type: string
+  readonly createdAt: Date
+  readonly trialEndsAt: Date | null
+  readonly billingStatus: BillingProfile['billingStatus']
+}
+
+/**
+ * The trial's inputs for ANY staff member of the org; `null` for anyone else.
+ *
+ * Any staff and not owner/admin, unlike `billingProfile`: the lock applies to a member's writes
+ * and the banner shows in a member's shell, so both need the answer for a member too. Through
+ * `withUser` and `org_read_for_members`, as `studioSettings` is, and for the same reason the
+ * select list is the boundary: that policy admits the whole row, and a member gets these three
+ * columns and never the billing name, email, VAT number or provider ids. `billing_status` is
+ * the one billing column a member can now read; it says whether the studio pays, which the
+ * absence of the red banner already tells them.
+ */
+export async function trialFacts(
+  db: Db,
+  m: Memberships,
+  orgId: string,
+): Promise<TrialFacts | null> {
+  if (!m.orgs.some((o) => o.orgId === orgId)) return null
+  const [row] = await withUser(db, m.userId, (tx) =>
+    tx
+      .select({
+        type: organizations.type,
+        createdAt: organizations.createdAt,
+        trialEndsAt: organizations.trialEndsAt,
+        billingStatus: organizations.billingStatus,
+      })
+      .from(organizations)
+      .where(and(eq(organizations.id, orgId), isNull(organizations.deletedAt))),
+  )
+  return row
+    ? { ...row, billingStatus: row.billingStatus as BillingProfile['billingStatus'] }
+    : null
+}
+
 /** Owner or admin. The name is trimmed; blank or over `MAX_STUDIO_NAME` is `invalid`. */
 export async function renameStudio(
   db: Db,
@@ -197,6 +241,7 @@ export async function billingProfile(
     tx
       .select({
         orgId: organizations.id,
+        type: organizations.type,
         createdAt: organizations.createdAt,
         trialEndsAt: organizations.trialEndsAt,
         billingCycle: organizations.billingCycle,
@@ -251,37 +296,4 @@ export async function saveInvoiceDetails(
       .returning({ id: organizations.id }),
   )
   return changed.length === 0 ? fail('notFound') : ok(null)
-}
-
-export type TrialEnding = {
-  readonly orgId: string
-  readonly orgName: string
-  /** The trial's last day, `YYYY-MM-DD`, Europe/Brussels. */
-  readonly trialEndsOn: string
-  readonly ownerEmail: string
-}
-
-type TrialRow = { org_id: string; org_name: string; trial_ends_on: string; owner_email: string }
-
-/**
- * For the trial-reminder cron only, which has no principal: every live planner org whose
- * trial's last day is `on`, with one owner's email. `billingFrom` is
- * `GUESTNOTE_BILLING_FROM`; the function returns nothing without it. Both dates are
- * `YYYY-MM-DD`. A plain `Db` and one SECURITY DEFINER call, like `resolveInvitationByHash`
- * -- migration 0010 says why this is the only cross-tenant read in the schema.
- */
-export async function orgsWithTrialEnding(
-  db: Db,
-  on: string,
-  billingFrom: string,
-): Promise<TrialEnding[]> {
-  const rows = await rowsOf<TrialRow>(
-    db.execute(sql`select * from public.orgs_with_trial_ending(${on}::date, ${billingFrom}::date)`),
-  )
-  return rows.map((r) => ({
-    orgId: r.org_id,
-    orgName: r.org_name,
-    trialEndsOn: r.trial_ends_on,
-    ownerEmail: r.owner_email,
-  }))
 }

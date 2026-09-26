@@ -4,7 +4,7 @@ import { MAX_STUDIO_NAME, renameStudio } from '@guestnote/db'
 import { revalidatePath } from 'next/cache'
 import type { RenameState } from '../../../../components/studio/rename-form.tsx'
 import { getDb } from '../../../../lib/db.ts'
-import { currentCaller } from '../../../../lib/principal.ts'
+import { currentCaller, currentOrgId } from '../../../../lib/principal.ts'
 import {
   confirmLogo,
   type LogoDone,
@@ -12,6 +12,7 @@ import {
   type StartLogo,
   startLogoUpload,
 } from '../../../../lib/studio-logo.ts'
+import { assertWritable } from '../../../../lib/trial.ts'
 
 /**
  * The Studio page's Server Functions (spec 0005). **Not guarded by `(app)/layout.tsx` or by the
@@ -31,12 +32,14 @@ export async function startStudioLogoUpload(input: {
   mime: string
   sizeBytes: number
 }): Promise<StartLogo> {
+  await assertWritable(await currentOrgId())
   const caller = await currentCaller()
   if (!caller) return { ok: false, error: 'forbidden' }
   return startLogoUpload(caller, input)
 }
 
 export async function confirmStudioLogo(fileId: string): Promise<LogoDone> {
+  await assertWritable(await currentOrgId())
   const caller = await currentCaller()
   if (!caller) return { ok: false, error: 'forbidden' }
   const done = await confirmLogo(caller, fileId)
@@ -45,6 +48,7 @@ export async function confirmStudioLogo(fileId: string): Promise<LogoDone> {
 }
 
 export async function removeStudioLogo(): Promise<LogoDone> {
+  await assertWritable(await currentOrgId())
   const caller = await currentCaller()
   if (!caller) return { ok: false, error: 'forbidden' }
   const done = await removeLogo(caller)
@@ -56,6 +60,7 @@ export async function renameStudioAction(
   _prev: RenameState,
   formData: FormData,
 ): Promise<RenameState> {
+  await assertWritable(await currentOrgId())
   const raw = formData.get('name')
   const name = typeof raw === 'string' ? raw.trim() : ''
   if (name === '') return { error: 'required', value: name }

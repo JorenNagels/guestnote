@@ -10,8 +10,9 @@
  * Exceptions to "through `withTenant` or `withUser`", by construction, each one call of one
  * SECURITY DEFINER function on a plain `Db` because it runs with no principal at all, and none
  * reads a table itself: `invitations.ts`'s `resolveInvitationByHash` (migration 0007),
- * `vendor-links.ts`'s `resolveVendorLinkByHash` (0008), and `studios.ts`'s
- * `orgsWithTrialEnding` (0010), which serves the trial-reminder cron alone.
+ * `vendor-links.ts`'s `resolveVendorLinkByHash` (0008). The third, `orgsWithTrialEnding` (0010), is
+ * NOT here: it reads across every tenant for the trial-reminder cron, so it lives behind its own
+ * export path, `@guestnote/db/cron` (`src/cron.ts`), which only the cron route may import.
  */
 
 /**

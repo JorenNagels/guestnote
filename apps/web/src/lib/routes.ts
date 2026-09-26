@@ -53,6 +53,11 @@ export const app = {
   team: () => '/team',
   /** Spec 0005: the studio's logo and name. Owner and admin; a 404 for anyone else. */
   studio: () => '/studio',
+  /**
+   * Spec 0005: the plan, invoice details and invoices. Owner and admin, and only while billing is
+   * on (`GUESTNOTE_BILLING_FROM`); a 404 otherwise, as for a member.
+   */
+  billing: () => '/billing',
   login: () => '/login',
   /**
    * Self-serve sign-up (spec 0005). One route for every step: the page derives which step to

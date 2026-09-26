@@ -9,7 +9,9 @@ import {
   updateTask,
 } from '@guestnote/db'
 import { revalidatePath } from 'next/cache'
+import { currentOrgId } from '../../../../../../lib/principal.ts'
 import { COMMENT_MAX, parseTaskForm, type TaskFormError } from '../../../../../../lib/task-form.ts'
+import { assertWritable } from '../../../../../../lib/trial.ts'
 import { isUuid } from '../../../../../../lib/uuid.ts'
 import { currentWeddingScope } from '../../../../../../lib/wedding-scope.ts'
 
@@ -58,6 +60,7 @@ export async function createTaskAction(
   weddingId: string,
   values: unknown,
 ): Promise<TaskActionResult & { taskId?: string }> {
+  await assertWritable(await currentOrgId())
   const parsed = parseTaskForm(values)
   if (!parsed.ok) return parsed
 
@@ -74,6 +77,7 @@ export async function updateTaskAction(
   taskId: string,
   values: unknown,
 ): Promise<TaskActionResult> {
+  await assertWritable(await currentOrgId())
   const parsed = parseTaskForm(values)
   if (!parsed.ok) return parsed
 
@@ -91,6 +95,7 @@ export async function setTaskDoneAction(
   taskId: string,
   done: boolean,
 ): Promise<TaskActionResult> {
+  await assertWritable(await currentOrgId())
   const ctx = await who(weddingId, taskId)
   if (!ctx) return NOT_FOUND
   const task = await completeTask(ctx, taskId, done === true)
@@ -109,6 +114,7 @@ export async function setTaskVisibilityAction(
   taskId: string,
   visibility: TaskVisibility,
 ): Promise<TaskActionResult> {
+  await assertWritable(await currentOrgId())
   const ctx = await who(weddingId, taskId)
   if (!ctx) return NOT_FOUND
   const task = await updateTask(ctx, taskId, {
@@ -124,6 +130,7 @@ export async function addCommentAction(
   taskId: string,
   body: unknown,
 ): Promise<TaskActionResult> {
+  await assertWritable(await currentOrgId())
   const text = typeof body === 'string' ? body.trim() : ''
   if (text.length === 0 || text.length > COMMENT_MAX) return { ok: false, error: 'comment' }
 

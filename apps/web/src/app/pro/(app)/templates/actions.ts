@@ -3,8 +3,9 @@
 import { createTemplate, templateAccess } from '@guestnote/db'
 import { revalidatePath } from 'next/cache'
 import { getDb } from '../../../../lib/db.ts'
-import { currentCaller } from '../../../../lib/principal.ts'
+import { currentCaller, currentOrgId } from '../../../../lib/principal.ts'
 import { parseTemplateInput, type TemplateActionError } from '../../../../lib/template-input.ts'
+import { assertWritable } from '../../../../lib/trial.ts'
 
 /**
  * Creating a template. The other template writes are in `[templateId]/actions.ts`.
@@ -25,6 +26,7 @@ export type CreateTemplateResult =
   | { readonly ok: false; readonly error: TemplateActionError }
 
 export async function createTemplateAction(input: unknown): Promise<CreateTemplateResult> {
+  await assertWritable(await currentOrgId())
   const parsed = parseTemplateInput(input)
   if (!parsed.ok) return { ok: false, error: parsed.error }
 

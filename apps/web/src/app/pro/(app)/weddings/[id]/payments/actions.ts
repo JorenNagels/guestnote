@@ -10,6 +10,8 @@ import {
 import { paidInstant, parseCents, parseCivilDate } from '../../../../../../lib/money.ts'
 import { moneyError, revalidateMoney } from '../../../../../../lib/money-server.ts'
 import type { ActionResult } from '../../../../../../lib/money-types.ts'
+import { currentOrgId } from '../../../../../../lib/principal.ts'
+import { assertWritable } from '../../../../../../lib/trial.ts'
 import { isUuid } from '../../../../../../lib/uuid.ts'
 import { currentWeddingScope } from '../../../../../../lib/wedding-scope.ts'
 
@@ -54,6 +56,7 @@ export async function savePayment(
   paymentId: string | null,
   values: PaymentFormValues,
 ): Promise<ActionResult> {
+  await assertWritable(await currentOrgId())
   const scope = await currentWeddingScope(weddingId)
   if (!scope || (paymentId !== null && !isUuid(paymentId))) {
     return { ok: false, error: 'notFound' }
@@ -79,6 +82,7 @@ export async function markPaymentPaid(
   paymentId: string,
   paid: boolean,
 ): Promise<ActionResult> {
+  await assertWritable(await currentOrgId())
   const scope = await currentWeddingScope(weddingId)
   if (!scope || !isUuid(paymentId)) return { ok: false, error: 'notFound' }
 
@@ -89,6 +93,7 @@ export async function markPaymentPaid(
 }
 
 export async function removePayment(weddingId: string, paymentId: string): Promise<ActionResult> {
+  await assertWritable(await currentOrgId())
   const scope = await currentWeddingScope(weddingId)
   if (!scope || !isUuid(paymentId)) return { ok: false, error: 'notFound' }
 

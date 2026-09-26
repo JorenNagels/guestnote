@@ -59,6 +59,7 @@ const nextConfig: NextConfig = {
    * working identically, and documents the intent.
    */
   transpilePackages: [
+    '@guestnote/billing',
     '@guestnote/core',
     '@guestnote/db',
     '@guestnote/email',

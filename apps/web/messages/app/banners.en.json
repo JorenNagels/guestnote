@@ -4,5 +4,18 @@
     "body": "Guestnote is in demo. Everything is free while we build.",
     "ask": "Something off?",
     "action": "Report it"
+  },
+  "trial": {
+    "pill": {
+      "running": "TRIAL",
+      "lastDay": "LAST DAY",
+      "lastDays": "{days, plural, one {# DAY} other {# DAYS}} LEFT",
+      "ended": "READ-ONLY"
+    },
+    "running": "Everything is unlocked until the end of {date}. No card needed until then.",
+    "lastDays": "Your trial ends {date}. Choose a plan to keep your {count, plural, one {# wedding} other {# weddings}} open.",
+    "lastDaysNone": "Your trial ends {date}. Choose a plan to keep everything open.",
+    "ended": "Your weddings are read-only. Nothing has been deleted, and choosing a plan unlocks everything at once.",
+    "action": "Choose a plan"
   }
 }

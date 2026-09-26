@@ -9,10 +9,12 @@ import type { Density, NavState, Theme } from '../../lib/prefs.ts'
 import { app } from '../../lib/routes.ts'
 import { type EnrollmentLabels, EnrollmentPrompt } from '../auth/enrollment-prompt.tsx'
 import { DemoBanner } from '../banners/demo-banner.tsx'
+import { TrialBanner, type TrialBannerProps } from '../banners/trial-banner.tsx'
 import { ReportDialog, type ReportLabels } from '../report/report-dialog.tsx'
 import { AccountMenu } from './account-menu.tsx'
 import {
   BudgetIcon,
+  CardIcon,
   ChecklistIcon,
   CloseIcon,
   CollapseIcon,
@@ -47,6 +49,8 @@ export type ShellLabels = {
   team: string
   /** Spec 0005's Studio page. Rendered only when `canManage`. */
   studio: string
+  /** Spec 0005's Billing page. Rendered only when `canManage` and billing is on. */
+  billing: string
   /** The heading over the wedding rows. Not `weddings`: two identical words a row apart. */
   weddingsSection: string
   newWedding: string
@@ -136,6 +140,7 @@ export function Shell({
   banner,
   canReport,
   canManage,
+  billingOn,
   labels,
   children,
 }: {
@@ -157,10 +162,12 @@ export function Shell({
   theme: Theme
   density: Density
   /**
-   * The one strip above the page (spec 0005): `demo` while billing is off. One slot, not a
-   * stack -- at most one banner shows, and the layout decides which.
+   * The one strip above the page (spec 0005): `demo` while billing is off, the trial banner in
+   * one of its three states once it is on, nothing for a studio that pays. One slot, not a
+   * stack -- at most one banner shows, and the layout decides which. The trial banner is hidden
+   * on Billing itself, which says the same thing at more length.
    */
-  banner: 'demo' | null
+  banner: 'demo' | TrialBannerProps | null
   /** Whether "Report a problem" has an inbox to send to. False without a Sentry DSN. */
   canReport: boolean
   /**
@@ -169,6 +176,11 @@ export function Shell({
    * Functions refuse one on their own, so a wrong value here shows a link, never grants a write.
    */
   canManage: boolean
+  /**
+   * `GUESTNOTE_BILLING_FROM` is set (`lib/billing-mode.ts`). With `canManage`, draws Billing;
+   * like `canManage` it draws a link and grants nothing -- the page 404s on its own.
+   */
+  billingOn: boolean
   labels: ShellLabels
   children: ReactNode
 }) {
@@ -269,6 +281,19 @@ export function Shell({
             href: app.studio(),
             icon: <StudioIcon />,
             label: labels.studio,
+            exact: false,
+          },
+        ]
+      : []),
+    // After Studio, as the design puts it under Team. Absent while billing is off (the route
+    // 404s then) and for a member, for Studio's reason.
+    ...(canManage && billingOn
+      ? [
+          {
+            key: 'billing',
+            href: app.billing(),
+            icon: <CardIcon />,
+            label: labels.billing,
             exact: false,
           },
         ]
@@ -439,6 +464,8 @@ export function Shell({
         <main className="min-w-0 flex-1">
           {banner === 'demo' ? (
             <DemoBanner labels={labels.demoBanner} onReport={openReport} />
+          ) : banner && pathname !== app.billing() ? (
+            <TrialBanner {...banner} />
           ) : null}
           {children}
         </main>

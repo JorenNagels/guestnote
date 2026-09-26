@@ -4,6 +4,8 @@ import { createBudgetLine, deleteBudgetLine, updateBudgetLine } from '@guestnote
 import { cleanText, parseCents } from '../../../../../../lib/money.ts'
 import { moneyError, revalidateMoney } from '../../../../../../lib/money-server.ts'
 import type { ActionResult } from '../../../../../../lib/money-types.ts'
+import { currentOrgId } from '../../../../../../lib/principal.ts'
+import { assertWritable } from '../../../../../../lib/trial.ts'
 import { isUuid } from '../../../../../../lib/uuid.ts'
 import { currentWeddingScope } from '../../../../../../lib/wedding-scope.ts'
 
@@ -58,6 +60,7 @@ export async function saveBudgetLine(
   lineId: string | null,
   values: LineFormValues,
 ): Promise<ActionResult> {
+  await assertWritable(await currentOrgId())
   const scope = await currentWeddingScope(weddingId)
   if (!scope || (lineId !== null && !isUuid(lineId))) {
     return { ok: false, error: 'notFound' }
@@ -75,6 +78,7 @@ export async function saveBudgetLine(
 }
 
 export async function removeBudgetLine(weddingId: string, lineId: string): Promise<ActionResult> {
+  await assertWritable(await currentOrgId())
   const scope = await currentWeddingScope(weddingId)
   if (!scope || !isUuid(lineId)) return { ok: false, error: 'notFound' }
 

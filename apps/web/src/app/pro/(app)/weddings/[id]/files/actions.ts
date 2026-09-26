@@ -1,5 +1,7 @@
 'use server'
 
+import { currentOrgId } from '../../../../../../lib/principal.ts'
+import { assertWritable } from '../../../../../../lib/trial.ts'
 import {
   confirmUpload,
   downloadUrl,
@@ -26,22 +28,27 @@ export async function startFileUpload(
   weddingId: string,
   input: { name: string; mime: string; sizeBytes: number; visibility: Visibility },
 ) {
+  await assertWritable(await currentOrgId())
   return startUpload('file', weddingId, input)
 }
 
 export async function confirmFileUpload(weddingId: string, fileId: string) {
+  await assertWritable(await currentOrgId())
   return confirmUpload(weddingId, fileId)
 }
 
 export async function removeFile(weddingId: string, fileId: string) {
+  await assertWritable(await currentOrgId())
   return removeWeddingFile(weddingId, fileId)
 }
 
 export async function renameFile(weddingId: string, fileId: string, name: string) {
+  await assertWritable(await currentOrgId())
   return renameWeddingFile(weddingId, fileId, name)
 }
 
 export async function setFileVisibility(weddingId: string, fileId: string, visibility: Visibility) {
+  await assertWritable(await currentOrgId())
   return setWeddingFileVisibility(weddingId, fileId, visibility)
 }
 

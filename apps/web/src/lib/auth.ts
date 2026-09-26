@@ -3,6 +3,7 @@ import { createAuth } from '@guestnote/core/auth'
 import { acceptInvitationByHash, newId, resolveInvitationByHash, schema } from '@guestnote/db'
 import { cookies } from 'next/headers'
 import { env } from '../env.ts'
+import { seatsChanged } from './billing.ts'
 import { getDb } from './db.ts'
 import { DEFAULT_LOCALE, LOCALE_COOKIE } from './locales.ts'
 import { sendSignInCode } from './mailer.ts'
@@ -185,7 +186,10 @@ export function getAuth() {
       },
       async accept(tokenHash, userId) {
         const r = await acceptInvitationByHash(getDb(), tokenHash, userId)
-        return r.outcome === 'accepted' ? { outcome: 'accepted', role: r.role } : r
+        if (r.outcome !== 'accepted') return r
+        // A planner joined: the seat count moved (spec 0005). A no-op while billing is off.
+        await seatsChanged(r.orgId, userId)
+        return { outcome: 'accepted', role: r.role }
       },
     },
   })

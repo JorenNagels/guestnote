@@ -22,6 +22,7 @@ warning once let `npm install` write a dependency into `package.json` without in
 | `packages/ui/` | Presentational primitives, one export path per public file. |
 | `packages/email/` | The mail seam. `ses.ts` is the only AWS SDK contact. |
 | `packages/storage/` | The file-storage seam: presigned PUT/GET. `s3.ts` is the only S3 SDK contact. |
+| `packages/billing/` | The billing seam: plain data, `pricing.ts`/`quote()`, and a no-op provider. No provider SDK yet. |
 | `apps/web/src/proxy.ts` | The only file that reads the request's hostname. (`lib/app-url.ts` composes the app origin for cross-host links.) Its matcher's exclusion list is a promise those files exist — see invariant 13. |
 | `apps/web/src/env.ts` | The only file that reads `process.env`. |
 | `docs/adr/` | Decisions that were **measured**. Supersede `research/` where they overlap. |
@@ -129,6 +130,16 @@ stop and ask. The rest are held by convention alone, which is why they are writt
    crosses any seam — everything returns plain data. That is what keeps a provider swap a
    bounded job, and what stops the AWS SDK being dragged into a bundle by a stray import. All
    the bans are in `biome.json` *and* in `no-unsafe-imports.test.ts`.
+   **`packages/billing` is a seam with no provider behind it yet** (spec 0005): the app talks to
+   `getBillingProvider()` in `lib/billing.ts`, which returns the no-op provider, and the choice
+   between Mollie and Stripe was deferred on purpose. The provider's SDK, when it lands, gets
+   the same one-file rule and both bans in the same commit — there is no ban today because a
+   rule naming a package nobody installed would be a guess at its name.
+   **`@guestnote/db/cron` is banned the same way, for a tenancy reason rather than a provider
+   one:** `orgsWithTrialEnding` reads across every tenant, so it is off the package root and
+   only `app/api/cron/trial-reminders/route.ts` may import it. Biome's override for that file
+   *restates* every other banned path, because an override replaces the rule's options rather
+   than merging them — a new ban goes in both places.
    **A vendor pushed in from `instrumentation.ts` must be handed over on `globalThis`**, not
    through a module `let`: Next bundles that file separately from the app, so each side has
    its own copy of every module. `lib/observability.ts` found this 2026-09-24, after Sentry had
@@ -146,6 +157,11 @@ stop and ask. The rest are held by convention alone, which is why they are writt
    forgetting it must be the safe one** — `GUESTNOTE_MAIL_TRANSPORT` unset resolves to
    `console` in development and `ses` everywhere else, and `mailer.ts` throws rather than let a
    deployed environment write sign-in codes to CloudWatch.
+   `GUESTNOTE_BILLING_FROM` is the same shape: unset is the free demo, and nobody is ever locked
+   out of a wedding by forgetting it (`lib/billing-mode.ts` is its one reader). `CRON_SECRET`
+   too: unset, `/api/cron/trial-reminders` refuses every request, and `sst.config.ts` deploys
+   without the cron while `/guestnote/<stage>/CRON_SECRET` does not exist — the one SSM
+   parameter whose absence changes the stack instead of failing the deploy.
 
 7. **`proxy.ts` does no I/O, no session validation, no authorization, and does not import
    `@guestnote/db` even transitively.** Authorization lives in Server Functions plus

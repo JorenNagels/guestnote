@@ -162,6 +162,16 @@
       "expiry": "L’invitation est valable {days, plural, one {# jour} other {# jours}}.",
       "ignore": "Vous ne connaissez pas {inviter}, ou vous ne vous y attendiez pas ? Vous pouvez ignorer cet e-mail.",
       "footer": "Guestnote · message automatique. Les réponses envoyées à cette adresse ne sont pas reçues."
+    },
+    "trialReminder": {
+      "subject": "Votre essai pour {studio} se termine le {date}",
+      "preheader": "Choisissez un abonnement pour tout garder ouvert.",
+      "heading": "Plus que trois jours",
+      "intro": "L’essai de {studio} court jusqu’au {date} inclus. Choisissez un abonnement pour garder l’accès à tous vos mariages.",
+      "cta": "Choisir un abonnement",
+      "linkFallback": "Le bouton ne fonctionne pas ? Copiez ce lien dans votre navigateur :",
+      "after": "Sans choix de votre part, vos mariages passent en lecture seule. Rien n’est supprimé, et choisir un abonnement débloque tout immédiatement.",
+      "footer": "Guestnote · message automatique. Les réponses à cette adresse ne sont pas reçues."
     }
   }
 }

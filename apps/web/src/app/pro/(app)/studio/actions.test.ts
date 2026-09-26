@@ -19,7 +19,11 @@ vi.mock('@guestnote/db', async (orig) => ({
   renameStudio: (...a: unknown[]) => renameStudio(...a),
 }))
 vi.mock('../../../../lib/db.ts', () => ({ getDb: () => ({}) }))
-vi.mock('../../../../lib/principal.ts', () => ({ currentCaller: () => currentCaller() }))
+vi.mock('../../../../lib/principal.ts', () => ({
+  currentCaller: () => currentCaller(),
+  // The trial guard's argument. Billing is off in tests, so the guard returns on it unread.
+  currentOrgId: async () => null,
+}))
 vi.mock('../../../../lib/studio-logo.ts', () => ({
   startLogoUpload: (...a: unknown[]) => startLogoUpload(...a),
   confirmLogo: (...a: unknown[]) => confirmLogo(...a),

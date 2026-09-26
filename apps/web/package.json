@@ -11,6 +11,7 @@
     "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@guestnote/billing": "*",
     "@guestnote/core": "*",
     "@guestnote/db": "*",
     "@guestnote/ui": "*",

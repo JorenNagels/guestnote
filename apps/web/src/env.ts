@@ -239,6 +239,20 @@ const schema = z.object({
         .regex(/^\d{4}-\d{2}-\d{2}$/, 'must be YYYY-MM-DD')
         .optional(),
     ),
+
+  /**
+   * The bearer token the daily trial-reminder cron presents to
+   * `app/api/cron/trial-reminders` (spec 0005, "Trial"). **Optional, and unset means that route
+   * refuses every request** -- the safe value by omission (invariant 6): an environment that
+   * forgets it sends no reminders, where a default secret would let anyone who read this file
+   * trigger mail to every studio owner. Deployed from SSM `/guestnote/<stage>/CRON_SECRET`;
+   * `sst.config.ts` wires the route's env var and the `Cron` only when that parameter exists.
+   * Empty is folded into unset, so `CRON_SECRET=` can never be matched by an empty header.
+   */
+  CRON_SECRET: z
+    .string()
+    .optional()
+    .transform((v) => (v ? v : undefined)),
 })
 
 const parsed = schema.safeParse(process.env)
@@ -277,5 +291,7 @@ export const env = {
   filesBucket: parsed.data.GUESTNOTE_FILES_BUCKET,
   // `undefined` is demo mode, and `lib/billing-mode.ts` is where that is decided.
   billingFrom: parsed.data.GUESTNOTE_BILLING_FROM,
+  // `undefined` is "refuse everything", decided in the cron route.
+  cronSecret: parsed.data.CRON_SECRET,
   devPort: parsed.data.PORT,
 } as const

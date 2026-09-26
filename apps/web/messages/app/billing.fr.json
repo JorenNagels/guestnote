@@ -1,0 +1,79 @@
+{
+  "title": "Facturation",
+  "status": {
+    "running": "Votre essai court jusqu’au {date} inclus.",
+    "lastDays": "Votre essai se termine le {date}.",
+    "ended": "Votre essai s’est terminé le {date}. Vos mariages sont en lecture seule jusqu’à ce que vous choisissiez un abonnement.",
+    "canceled": "Votre abonnement a été résilié. Vos mariages sont en lecture seule jusqu’à ce que vous choisissiez à nouveau un abonnement.",
+    "paid": "Studio, facturé {cycle}.",
+    "paidNext": "Studio, facturé {cycle}. Prochaine facture le {date}.",
+    "cycle": {
+      "monthly": "mensuellement",
+      "yearly": "annuellement"
+    }
+  },
+  "success": "Paiement reçu. {studio} est sur Studio, et le reçu est en route vers {email}.",
+  "plan": {
+    "title": "Abonnement Studio",
+    "pill": {
+      "running": "Essai",
+      "lastDays": "Fin d’essai proche",
+      "ended": "Essai terminé",
+      "paid": "Actif"
+    },
+    "cycle": {
+      "label": "Période de facturation",
+      "monthly": "Mensuel",
+      "yearly": "Annuel · 2 mois offerts"
+    },
+    "base": "Studio",
+    "baseDetail": "Vous inclus, {owner}",
+    "extra": "{count, plural, one {# planificateur en plus} other {# planificateurs en plus}}",
+    "pending": "{count, plural, one {# invitation en attente compte} other {# invitations en attente comptent}} après acceptation.",
+    "perMonth": "/ mois",
+    "perYear": "/ an",
+    "total": "Total",
+    "vat": "Prix hors TVA. La TVA belge de 21 % s’ajoute : {amount}.",
+    "vatNone": "Prix hors TVA. Aucune TVA n’est ajoutée avec un numéro de TVA.",
+    "checkout": "Continuer vers le paiement",
+    "checkoutBusy": "Ouverture du paiement…",
+    "secure": "Les données de carte se saisissent sur la page sécurisée de notre prestataire de paiement.",
+    "portal": "Moyen de paiement et factures ↗",
+    "portalBusy": "Ouverture…",
+    "errors": {
+      "unavailable": "Le paiement n’est pas encore disponible. Rien n’a été débité.",
+      "failed": "Cela n’a pas fonctionné. Réessayez dans un instant.",
+      "forbidden": "Seul le propriétaire ou un administrateur du studio peut faire cela."
+    }
+  },
+  "details": {
+    "title": "Données de facturation",
+    "name": "Facturé à",
+    "email": "E-mail de facturation",
+    "vat": "Numéro de TVA",
+    "vatHelp": "Facultatif, p. ex. BE0123456789.",
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "saved": "Enregistré",
+    "errors": {
+      "tooLong": "C’est trop long.",
+      "invalidEmail": "Cela ne ressemble pas à une adresse e-mail.",
+      "invalidVat": "Cela ne ressemble pas à un numéro de TVA, p. ex. BE0123456789.",
+      "failed": "Les données n’ont pas pu être enregistrées. Réessayez."
+    }
+  },
+  "invoices": {
+    "title": "Factures",
+    "empty": "Rien pour l’instant. La première facture est émise le jour où vous choisissez un abonnement.",
+    "date": "Date",
+    "number": "Numéro",
+    "amount": "Montant",
+    "pdf": "PDF"
+  },
+  "notes": {
+    "title": "Comment fonctionne la facturation",
+    "seats": "Vous payez par planificateur : le studio vous inclut, et chaque collègue est une place. Les couples et les fournisseurs ne comptent jamais.",
+    "change": "Ajoutez ou retirez des planificateurs quand vous voulez ; la facture suivante s’adapte.",
+    "readOnly": "Si un essai se termine sans abonnement, rien n’est supprimé. Les mariages sont en lecture seule jusqu’à ce que vous en choisissiez un."
+  }
+}

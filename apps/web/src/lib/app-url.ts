@@ -81,6 +81,14 @@ export function appHomeUrl(): string {
 }
 
 /**
+ * `https://app.guestnote.be/billing` -- the trial-reminder mail's button, and where a payment
+ * provider sends the browser back to after checkout or the portal (spec 0005).
+ */
+export function appBillingUrl(): string {
+  return `${appOrigin()}${app.billing()}`
+}
+
+/**
  * `https://app.guestnote.be/invite/<token>` -- the link inside an invitation email.
  *
  * Absolute because the recipient opens it from a mail client, not from the dashboard. The

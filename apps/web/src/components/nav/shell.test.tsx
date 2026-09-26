@@ -98,6 +98,7 @@ const LABELS: ShellLabels = {
   vendors: 'Leveranciers',
   team: 'Team',
   studio: 'Studio',
+  billing: 'Facturatie',
   weddingsSection: 'Jouw bruiloften',
   newWedding: 'Nieuwe bruiloft',
   wedding: {
@@ -197,6 +198,7 @@ function shellTree(over: Partial<Parameters<typeof Shell>[0]> = {}) {
       banner={null}
       canReport={false}
       canManage={false}
+      billingOn={false}
       labels={LABELS}
       {...over}
     >
@@ -509,6 +511,27 @@ describe('the organisation-level items', () => {
       ['Team', '/team'],
       ['Studio', '/studio'],
     ])
+  })
+
+  it('adds Billing after Studio for an owner or admin, only while billing is on', () => {
+    renderShell({ canManage: true, billingOn: true })
+    const nav = screen.getByRole('navigation', { name: 'Hoofdnavigatie' })
+    const links = within(nav)
+      .getAllByRole('link')
+      .slice(5, 7)
+      .map((a) => [a.textContent, a.getAttribute('href')])
+    expect(links).toEqual([
+      ['Studio', '/studio'],
+      ['Facturatie', '/billing'],
+    ])
+  })
+
+  it('shows no Billing item while billing is off, nor to a member when it is on', () => {
+    renderShell({ canManage: true, billingOn: false })
+    const nav = () => screen.getByRole('navigation', { name: 'Hoofdnavigatie' })
+    expect(within(nav()).queryByRole('link', { name: 'Facturatie' })).toBeNull()
+    rerender(shellTree({ canManage: false, billingOn: true }))
+    expect(within(nav()).queryByRole('link', { name: 'Facturatie' })).toBeNull()
   })
 
   it('shows a member no Studio item', () => {
@@ -1242,5 +1265,46 @@ describe('the passkey enrollment offer', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Menu openen' }))
 
     expect(prompt.closest('[inert]')).not.toBeNull()
+  })
+})
+
+describe('the trial banner (spec 0005)', () => {
+  const trial = (tone: 'neutral' | 'warning' | 'danger', action = true) =>
+    ({
+      kind: 'trial',
+      tone,
+      pill: `PILL-${tone}`,
+      message: `MSG-${tone}`,
+      action: action ? { label: 'Kies een abonnement', href: '/billing' } : null,
+    }) as const
+
+  it.each(['neutral', 'warning', 'danger'] as const)(
+    'shows the %s state inside main, with its button to Billing',
+    (tone) => {
+      renderShell({ banner: trial(tone) })
+      const banner = screen.getByRole('region', { name: `PILL-${tone}` })
+      expect(banner).toHaveTextContent(`MSG-${tone}`)
+      expect(banner).toHaveAttribute('data-tone', tone)
+      expect(banner.closest('main')).not.toBeNull()
+      expect(within(banner).getByRole('link', { name: 'Kies een abonnement' })).toHaveAttribute(
+        'href',
+        '/billing',
+      )
+      // One slot: never the demo banner beside it.
+      expect(screen.queryByRole('region', { name: 'DEMO' })).toBeNull()
+    },
+  )
+
+  it('offers a member no button, since Billing is not theirs', () => {
+    renderShell({ banner: trial('danger', false) })
+    const banner = screen.getByRole('region', { name: 'PILL-danger' })
+    expect(within(banner).queryByRole('link')).toBeNull()
+  })
+
+  it('hides itself on Billing, which says the same thing at length', () => {
+    pathname = '/billing'
+    renderShell({ banner: trial('warning') })
+    expect(screen.queryByRole('region', { name: 'PILL-warning' })).toBeNull()
+    pathname = '/weddings'
   })
 })

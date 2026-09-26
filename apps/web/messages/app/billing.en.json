@@ -1,0 +1,79 @@
+{
+  "title": "Billing",
+  "status": {
+    "running": "Your trial runs until the end of {date}.",
+    "lastDays": "Your trial ends {date}.",
+    "ended": "Your trial ended on {date}. Your weddings are read-only until you choose a plan.",
+    "canceled": "Your plan was cancelled. Your weddings are read-only until you choose a plan again.",
+    "paid": "Studio, billed {cycle}.",
+    "paidNext": "Studio, billed {cycle}. Next invoice {date}.",
+    "cycle": {
+      "monthly": "monthly",
+      "yearly": "yearly"
+    }
+  },
+  "success": "Payment received. {studio} is on Studio, and the receipt is on its way to {email}.",
+  "plan": {
+    "title": "Studio plan",
+    "pill": {
+      "running": "Trial",
+      "lastDays": "Trial ends soon",
+      "ended": "Trial ended",
+      "paid": "Active"
+    },
+    "cycle": {
+      "label": "Billing cycle",
+      "monthly": "Monthly",
+      "yearly": "Yearly · 2 months free"
+    },
+    "base": "Studio",
+    "baseDetail": "Includes you, {owner}",
+    "extra": "{count, plural, one {# more planner} other {# more planners}}",
+    "pending": "{count, plural, one {# pending invite starts} other {# pending invites start}} when accepted.",
+    "perMonth": "/ month",
+    "perYear": "/ year",
+    "total": "Total",
+    "vat": "Prices exclude VAT. Belgian VAT (21%) of {amount} is added.",
+    "vatNone": "Prices exclude VAT. No VAT is added when a VAT number is given.",
+    "checkout": "Continue to checkout",
+    "checkoutBusy": "Opening checkout…",
+    "secure": "Card details go on our payment provider’s secure page.",
+    "portal": "Payment method and invoices ↗",
+    "portalBusy": "Opening…",
+    "errors": {
+      "unavailable": "Checkout isn’t available yet. Nothing has been charged.",
+      "failed": "That didn’t work. Try again in a moment.",
+      "forbidden": "Only the studio’s owner or an admin can do this."
+    }
+  },
+  "details": {
+    "title": "Invoice details",
+    "name": "Billed to",
+    "email": "Billing email",
+    "vat": "VAT number",
+    "vatHelp": "Optional, e.g. BE0123456789.",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "errors": {
+      "tooLong": "That’s too long.",
+      "invalidEmail": "That doesn’t look like an email address.",
+      "invalidVat": "That doesn’t look like a VAT number, e.g. BE0123456789.",
+      "failed": "The details could not be saved. Try again."
+    }
+  },
+  "invoices": {
+    "title": "Invoices",
+    "empty": "Nothing yet. The first invoice is issued the day you choose a plan.",
+    "date": "Date",
+    "number": "Number",
+    "amount": "Amount",
+    "pdf": "PDF"
+  },
+  "notes": {
+    "title": "How billing works",
+    "seats": "You pay per planner: the studio includes you, and each colleague is a seat. Couples and vendors never count.",
+    "change": "Add or remove planners any time; the next invoice follows.",
+    "readOnly": "When a trial ends without a plan, nothing is deleted. Weddings are read-only until you choose one."
+  }
+}

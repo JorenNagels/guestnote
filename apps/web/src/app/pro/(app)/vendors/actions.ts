@@ -3,7 +3,8 @@
 import { archiveVendor, createVendor, updateVendor, vendorDirectoryAccess } from '@guestnote/db'
 import { revalidatePath } from 'next/cache'
 import { getDb } from '../../../../lib/db.ts'
-import { currentCaller } from '../../../../lib/principal.ts'
+import { currentCaller, currentOrgId } from '../../../../lib/principal.ts'
+import { assertWritable } from '../../../../lib/trial.ts'
 import {
   answer,
   parseId,
@@ -40,6 +41,7 @@ async function writer() {
 }
 
 export async function createDirectoryVendor(input: unknown): Promise<VendorActionResult> {
+  await assertWritable(await currentOrgId())
   const ctx = await writer()
   if (!ctx) return { ok: false, error: 'forbidden' }
   const parsed = parseVendorInput(input)
@@ -53,6 +55,7 @@ export async function updateDirectoryVendor(
   vendorId: unknown,
   input: unknown,
 ): Promise<VendorActionResult> {
+  await assertWritable(await currentOrgId())
   const ctx = await writer()
   if (!ctx) return { ok: false, error: 'forbidden' }
   const id = parseId(vendorId)
@@ -64,6 +67,7 @@ export async function updateDirectoryVendor(
 }
 
 export async function archiveDirectoryVendor(vendorId: unknown): Promise<VendorActionResult> {
+  await assertWritable(await currentOrgId())
   const ctx = await writer()
   if (!ctx) return { ok: false, error: 'forbidden' }
   const id = parseId(vendorId)

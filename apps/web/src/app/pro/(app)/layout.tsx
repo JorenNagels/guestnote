@@ -3,10 +3,12 @@ import { cookies, headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { getLocale, getTranslations } from 'next-intl/server'
 import type { ReactNode } from 'react'
+import type { TrialBannerProps } from '../../../components/banners/trial-banner.tsx'
 import { Shell, type ShellWedding } from '../../../components/nav/shell.tsx'
 import { apexOrigin } from '../../../lib/app-url.ts'
 import { getAuth } from '../../../lib/auth.ts'
 import { billingMode } from '../../../lib/billing-mode.ts'
+import { formatCivilDate } from '../../../lib/civil-date.ts'
 import { getDb } from '../../../lib/db.ts'
 import { DEFAULT_LOCALE, isLocale } from '../../../lib/locales.ts'
 import { feedbackAvailable } from '../../../lib/observability.ts'
@@ -21,6 +23,7 @@ import {
 import { currentMemberships, currentOrgId, currentOrgs } from '../../../lib/principal.ts'
 import { app } from '../../../lib/routes.ts'
 import { logoUrl } from '../../../lib/studio-logo.ts'
+import { orgTrialState } from '../../../lib/trial.ts'
 
 /**
  * The authenticated branch of root layout B, and now the shell itself. Its sibling
@@ -104,16 +107,51 @@ export default async function AppShellLayout({ children }: { children: ReactNode
   // The logo (spec 0005) beside the weddings, not after them: both need only `orgId`.
   // `studioSettings` answers for any staff of the org -- every member's sidebar shows the logo
   // -- and `logoUrl` signs it here, per render, for 5 minutes.
-  const [weddings, settings] = memberships
+  // The trial state joins them for the banner: `off` without a query while billing is off.
+  const [weddings, settings, trial] = memberships
     ? await Promise.all([
         listWeddings(getDb(), memberships, orgId),
         studioSettings(getDb(), memberships, orgId),
+        orgTrialState(memberships, orgId),
       ])
-    : [[], null]
+    : [[], null, { kind: 'off' } as const]
   const org = { ...current, logoUrl: settings ? await logoUrl(orgId, settings.logoKey) : null }
   // Owner or admin, by the same function every org-wide write asks. It decides whether the
   // Studio item is drawn; the page and its Server Functions ask again for themselves.
   const canManage = memberships ? principalForOrg(memberships, orgId) !== null : false
+  const billingOn = billingMode().on
+
+  // Spec 0005, "At most one banner shows: demo, or else trial, or else nothing." Formatted here,
+  // where the catalogue and the locale are, so the shell draws finished strings.
+  const shellLocale = isLocale(locale) ? locale : DEFAULT_LOCALE
+  let banner: 'demo' | TrialBannerProps | null = null
+  if (!billingOn) banner = 'demo'
+  else if (trial.kind === 'running' || trial.kind === 'lastDays' || trial.kind === 'ended') {
+    const date = formatCivilDate(shellLocale, trial.endsOn)
+    // Live weddings only: "keep all 3 weddings open" should not count one archived last year.
+    const count = weddings.filter((w) => w.status !== 'archived').length
+    banner = {
+      kind: 'trial',
+      tone: trial.kind === 'running' ? 'neutral' : trial.kind === 'lastDays' ? 'warning' : 'danger',
+      // Split keys rather than `=0` branches: `i18n/messages.test.ts` compares placeholders
+      // across locales, and a branch that starts with a word reads to it as a placeholder.
+      pill:
+        trial.kind !== 'lastDays'
+          ? bannerT(`trial.pill.${trial.kind}`)
+          : trial.daysLeft === 0
+            ? bannerT('trial.pill.lastDay')
+            : bannerT('trial.pill.lastDays', { days: trial.daysLeft }),
+      message:
+        trial.kind === 'running'
+          ? bannerT('trial.running', { date })
+          : trial.kind === 'ended'
+            ? bannerT('trial.ended')
+            : count === 0
+              ? bannerT('trial.lastDaysNone', { date })
+              : bannerT('trial.lastDays', { date, count }),
+      action: canManage ? { label: bannerT('trial.action'), href: app.billing() } : null,
+    }
+  }
 
   return (
     <Shell
@@ -124,19 +162,17 @@ export default async function AppShellLayout({ children }: { children: ReactNode
       offerPasskey={getAuth().passkeysAvailable() && !hasPasskey}
       productHref={apexOrigin()}
       initialNav={parseNavState(store.get(NAV_COOKIE)?.value)}
-      // Narrowed through `isLocale`, not cast. `getLocale()` is typed `string`, and
+      // `shellLocale` is narrowed through `isLocale` above, not cast. `getLocale()` is `string`, and
       // next-intl can only ever return a configured locale -- but `as Locale` was a bare
       // assertion in a repo where `any` and non-null assertions are lint errors, so it read
       // as an oversight. This costs one comparison and the reader nothing.
-      locale={isLocale(locale) ? locale : DEFAULT_LOCALE}
+      locale={shellLocale}
       theme={parseTheme(store.get(THEME_COOKIE)?.value)}
       density={parseDensity(store.get(DENSITY_COOKIE)?.value)}
-      // Spec 0005: while billing is off the product is a demo and says so on every page. The
-      // trial banner will take this slot once billing is on ("Trial banner"); until it is
-      // built, billing on shows no banner at all.
-      banner={billingMode().on ? null : 'demo'}
+      banner={banner}
       canReport={feedbackAvailable()}
       canManage={canManage}
+      billingOn={billingOn}
       labels={{
         nav: t('nav.label'),
         weddings: t('weddings.title'),
@@ -145,6 +181,7 @@ export default async function AppShellLayout({ children }: { children: ReactNode
         vendors: shellT('nav.vendors'),
         team: shellT('nav.team'),
         studio: shellT('nav.studio'),
+        billing: shellT('nav.billing'),
         weddingsSection: shellT('nav.weddingsSection'),
         newWedding: shellT('nav.newWedding'),
         wedding: {

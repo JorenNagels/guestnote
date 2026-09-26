@@ -16,6 +16,7 @@ import {
   normaliseInviteEmail,
   parseStaffRole,
 } from '../../../../lib/staff-invite.ts'
+import { assertWritable } from '../../../../lib/trial.ts'
 import { isUuid } from '../../../../lib/uuid.ts'
 
 /**
@@ -39,6 +40,7 @@ export async function inviteTeamMember(input: {
   email: string
   role: string
 }): Promise<InviteOutcome> {
+  await assertWritable(await currentOrgId())
   const email = normaliseInviteEmail(input.email)
   if (!email) return { ok: false, reason: 'invalidEmail' }
   const role = parseStaffRole(input.role)
@@ -67,6 +69,7 @@ export async function inviteTeamMember(input: {
 }
 
 export async function revokeInvite(invitationId: string): Promise<{ ok: boolean }> {
+  await assertWritable(await currentOrgId())
   if (!isUuid(invitationId)) return { ok: false }
 
   const [memberships, orgId] = await Promise.all([currentMemberships(), currentOrgId()])

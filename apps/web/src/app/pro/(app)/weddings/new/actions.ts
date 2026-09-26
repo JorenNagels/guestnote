@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { createWeddingFromForm } from '../../../../../lib/create-wedding.ts'
 import { currentMemberships, currentOrgId } from '../../../../../lib/principal.ts'
 import { app } from '../../../../../lib/routes.ts'
+import { assertWritable } from '../../../../../lib/trial.ts'
 import type { FormState } from '../../../../../lib/wedding-form-state.ts'
 
 /**
@@ -21,6 +22,7 @@ export async function createWeddingAction(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
+  await assertWritable(await currentOrgId())
   const [memberships, orgId] = await Promise.all([currentMemberships(), currentOrgId()])
   if (!memberships || !orgId) return { form: 'forbidden' }
 

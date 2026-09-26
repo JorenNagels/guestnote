@@ -2,6 +2,7 @@ import { createElement } from 'react'
 import { renderEmail } from './render.ts'
 import { SignInCode, type SignInCodeCopy } from './templates/sign-in-code.tsx'
 import { StaffInvite, type StaffInviteCopy } from './templates/staff-invite.tsx'
+import { TrialReminder, type TrialReminderCopy } from './templates/trial-reminder.tsx'
 import type { DeliveryRecord, EmailMessage, MailTransport, SendResult } from './types.ts'
 
 export { type ConsoleTransportConfig, createConsoleTransport } from './console.ts'
@@ -11,6 +12,7 @@ export { type ConsoleTransportConfig, createConsoleTransport } from './console.t
 export { createSesTransport } from './ses.ts'
 export type { SignInCodeCopy } from './templates/sign-in-code.tsx'
 export type { StaffInviteCopy } from './templates/staff-invite.tsx'
+export type { TrialReminderCopy } from './templates/trial-reminder.tsx'
 export type {
   DeliveryRecord,
   EmailMessage,
@@ -70,8 +72,38 @@ export type StaffInviteInput = {
   readonly copy: StaffInviteCopy
 }
 
+export type TrialReminderInput = {
+  readonly to: string
+  readonly locale: string
+  /** The Billing page, absolute, on the app host. */
+  readonly url: string
+  readonly copy: TrialReminderCopy
+}
+
 export function createMailer(config: MailerConfig) {
   return {
+    async sendTrialReminder(input: TrialReminderInput): Promise<SendResult> {
+      const rendered = await renderEmail(
+        createElement(TrialReminder, { url: input.url, locale: input.locale, copy: input.copy }),
+      )
+      const result = await config.transport.send({
+        to: input.to,
+        subject: input.copy.subject,
+        html: rendered.html,
+        text: rendered.text,
+        tags: { template: TEMPLATE_TRIAL_REMINDER },
+      })
+      await record(config, {
+        toEmail: input.to,
+        template: TEMPLATE_TRIAL_REMINDER,
+        locale: input.locale,
+        providerMessageId: result.ok ? result.messageId : null,
+        status: result.ok ? 'sent' : 'failed',
+        error: result.ok ? null : result.detail,
+      })
+      return result
+    },
+
     async sendStaffInvite(input: StaffInviteInput): Promise<SendResult> {
       const rendered = await renderEmail(
         createElement(StaffInvite, { url: input.url, locale: input.locale, copy: input.copy }),
@@ -151,6 +183,11 @@ export type Mailer = ReturnType<typeof createMailer>
 /** Also the `mail_deliveries.template` value, so the column and the tag cannot disagree. */
 const TEMPLATE_SIGN_IN_CODE = 'sign-in-code'
 const TEMPLATE_STAFF_INVITE = 'staff-invite'
+/**
+ * Exported, unlike the other two, because the cron deduplicates on it: "was this owner already
+ * sent this template" is a `mail_deliveries` read by this value (`lib/mailer.ts`).
+ */
+export const TEMPLATE_TRIAL_REMINDER = 'trial-reminder'
 
 async function record(config: MailerConfig, entry: DeliveryRecord): Promise<void> {
   if (config.record === undefined) return

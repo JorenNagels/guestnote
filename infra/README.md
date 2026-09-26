@@ -76,6 +76,13 @@ for STAGE in production staging; do
   # URL, not merely present, so this placeholder means "reporting off" rather than "broken".
   aws ssm put-parameter --type SecureString --name /guestnote/$STAGE/SENTRY_DSN \
     --value 'unset-see-apps-web-src-env-ts'
+  # The trial-reminder cron's bearer token (spec 0005). OPTIONAL, unlike everything above:
+  # sst.config.ts lists the stage's parameter names and, with this one absent, deploys without
+  # the `TrialReminders` cron and without CRON_SECRET on the web function -- whose
+  # /api/cron/trial-reminders then refuses every request. Create it, then deploy, to switch the
+  # cron on. It sends nothing while GUESTNOTE_BILLING_FROM is unset either way.
+  aws ssm put-parameter --type SecureString --name /guestnote/$STAGE/CRON_SECRET \
+    --value "$(openssl rand -base64 32)"                                                # distinct per stage
   # The migration marker -- see "First deploy" for the value. String, not SecureString:
   # it holds a git SHA, nothing secret.
   aws ssm put-parameter --type String --name /guestnote/$STAGE/MIGRATED_THROUGH --value '<sha>'

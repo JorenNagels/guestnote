@@ -15,5 +15,8 @@
   // Without `test/**`, the setup file and the server-only stub are typechecked by nothing
   // at all -- they are loaded by Vitest, which does not typecheck, and are outside every
   // workspace tsconfig.
-  "include": ["vitest.config.ts", "test/**/*.ts"]
+  //
+  // `infra/cron/**` is the `TrialReminders` cron's Lambda handler, bundled by SST from source;
+  // outside every workspace, so without this line nothing would typecheck it either.
+  "include": ["vitest.config.ts", "test/**/*.ts", "infra/cron/**/*.ts"]
 }
