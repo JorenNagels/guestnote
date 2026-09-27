@@ -1,6 +1,6 @@
 # ADR 0002 — SES: domain verified now, production access deferred
 
-**Date:** 2026-08-17 · **Status:** Domain done. Production access requested 2026-09-27, pending review.
+**Date:** 2026-08-17 · **Status:** Domain done. Production access granted 2026-09-27 (case 179051178700854).
 **Updated 2026-08-19:** the application now sends. See `0004-sign-in-mail-sends-for-real.md`;
 two of the five gates below moved, and the configuration set gained an event destination.
 **Updated 2026-08-19 (later the same day):** the apex now receives mail and DMARC is published.
@@ -61,6 +61,11 @@ SES falls back to `amazonses.com` and mail still goes out with DKIM intact.
 > complaints to SNS plus account-level suppression for both (checked 2026-09-27), reputation
 > metrics on, per-address and per-IP rate limits on sign-in, under 1,000 messages a month in
 > the demo.
+>
+> **Granted the same day**, with no follow-up questions: case 179051178700854, out of the
+> sandbox in eu-central-1, 50,000 a day at 14 per second (read back via `get-account`,
+> `ReviewDetails.Status: GRANTED`). The reply above was not needed; it stays as the answer to
+> give if a quota increase is ever questioned.
 
 ## Why production access was NOT requested yet
 
