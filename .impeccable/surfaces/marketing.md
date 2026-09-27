@@ -22,6 +22,14 @@ related_targets: ["apps/web/src/components/marketing"]
 >   Voice is "we", anonymous, per the user.
 >
 > Kept: Fraunces for headings, the self-drawing mark, the mini-UIs and their motion.
+>
+> **Then, same day: more colour and illustration** (the user, pointing at introw.io; also read
+> HoneyBook, Tally and the 2026 "warm B2B" counter-trend of Notion and PostHog). Every product
+> preview stands on a tinted **stage** (`.mk-stage`, teal / gold / sage, two neighbouring steps
+> of one token ramp), the hero is a small **collage** (Today plus an overlapping budget card),
+> the "why" section is a gold band, and a small **line illustration set** in the mark's own
+> stroke style -- sprig, rings, envelope (`components/marketing/illustrations.tsx`) --
+> replaces stock art. Rejected: purple or blue glows, 3D shapes, character illustrations.
 
 Design brief for spec 0006. Concept locked 2026-09-27: **The editorial shell around the working
 tool.** The page talks like a well-set magazine. The product inside it looks exactly like the

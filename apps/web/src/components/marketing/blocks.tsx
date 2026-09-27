@@ -2,9 +2,41 @@ import { getTranslations } from 'next-intl/server'
 import type { ReactNode } from 'react'
 import type { Locale } from '../../lib/locales.ts'
 import { CONTACT_EMAIL } from '../../lib/operator.ts'
+import { Sprig } from './illustrations.tsx'
 import { StartLink } from './site-frame.tsx'
 
 /** Shared building blocks for the marketing pages. Presentational; copy comes from the caller. */
+
+export type StageTone = 'teal' | 'gold' | 'sage'
+
+/**
+ * A tinted panel a product preview stands on, with a sprig in one corner (`marketing.css`,
+ * `.mk-stage`). The sprig's corner alternates with the tone so a page of stages does not repeat.
+ */
+export function Stage({
+  tone,
+  children,
+  className = '',
+  deco = true,
+}: {
+  tone: StageTone
+  children: ReactNode
+  className?: string
+  deco?: boolean
+}) {
+  const corner = tone === 'gold' ? '-top-4 -left-6 rotate-[200deg]' : '-right-6 -bottom-6'
+  return (
+    <div className={`mk-stage mk-stage-${tone} ${className}`}>
+      {deco ? (
+        <Sprig
+          className={`mk-stage-deco h-40 w-32 text-[var(--teal-600)] opacity-70 ${corner}`}
+          accent="var(--gold-500)"
+        />
+      ) : null}
+      {children}
+    </div>
+  )
+}
 
 export function Container({
   children,
@@ -62,14 +94,18 @@ export function Faq({
 export async function ClosingCta({ locale }: { locale: Locale }) {
   const t = await getTranslations({ locale, namespace: 'marketing' })
   return (
-    <section className="border-border bg-muted/50 border-t">
-      <Container className="py-16 sm:py-20">
-        <h2 className="mk-display mk-h2">{t('home.closing.title')}</h2>
-        <p className="mk-lede text-muted-foreground mt-4">{t('home.closing.body')}</p>
-        <div className="mt-8 flex flex-wrap items-center gap-3">
-          <StartLink label={t('cta.start')} />
-          <DemoLink label={t('cta.demo')} subject={t('cta.demoSubject')} />
-        </div>
+    <section>
+      <Container className="py-12 sm:py-16">
+        <Stage tone="teal" className="px-6 py-12 sm:px-14 sm:py-16">
+          <div className="relative z-10">
+            <h2 className="mk-display mk-h2">{t('home.closing.title')}</h2>
+            <p className="mk-lede text-foreground/80 mt-4">{t('home.closing.body')}</p>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <StartLink label={t('cta.start')} />
+              <DemoLink label={t('cta.demo')} subject={t('cta.demoSubject')} />
+            </div>
+          </div>
+        </Stage>
       </Container>
     </section>
   )

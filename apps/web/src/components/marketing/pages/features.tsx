@@ -1,6 +1,6 @@
 import { getTranslations } from 'next-intl/server'
 import type { Locale } from '../../../lib/locales.ts'
-import { ClosingCta, Container, PageHead } from '../blocks.tsx'
+import { ClosingCta, Container, PageHead, Stage } from '../blocks.tsx'
 import { ChecklistDemo, RunSheetDemo, VendorLinkDemo } from '../mini-uis.tsx'
 
 /**
@@ -29,9 +29,15 @@ export async function FeaturesPage({ locale }: { locale: Locale }) {
       <PageHead title={t('features.title')} lede={t('features.lede')} />
 
       <Container className="grid gap-6 pb-16 md:grid-cols-3">
-        <ChecklistDemo locale={locale} />
-        <RunSheetDemo locale={locale} />
-        <VendorLinkDemo locale={locale} />
+        <Stage tone="teal" deco={false}>
+          <ChecklistDemo locale={locale} />
+        </Stage>
+        <Stage tone="gold" deco={false}>
+          <RunSheetDemo locale={locale} />
+        </Stage>
+        <Stage tone="sage" deco={false}>
+          <VendorLinkDemo locale={locale} />
+        </Stage>
       </Container>
 
       <Container className="pb-20 sm:pb-28">

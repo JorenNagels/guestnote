@@ -5,9 +5,17 @@ import type { ReactNode } from 'react'
 import type { Locale } from '../../../lib/locales.ts'
 import { pagePath } from '../../../lib/marketing-pages.ts'
 import { AnimatedMark } from '../animated-mark.tsx'
-import { ClosingCta, Container, DemoLink, Faq } from '../blocks.tsx'
+import { ClosingCta, Container, DemoLink, Faq, Stage, type StageTone } from '../blocks.tsx'
+import { Envelope, Rings } from '../illustrations.tsx'
 import { JsonLd } from '../json-ld.tsx'
-import { BudgetDemo, ChecklistDemo, RunSheetDemo, TodayDemo, VendorLinkDemo } from '../mini-uis.tsx'
+import {
+  BudgetChip,
+  BudgetDemo,
+  ChecklistDemo,
+  RunSheetDemo,
+  TodayDemo,
+  VendorLinkDemo,
+} from '../mini-uis.tsx'
 import { StartLink } from '../site-frame.tsx'
 
 const BANDS = ['checklist', 'runSheet', 'vendors', 'budget'] as const
@@ -17,6 +25,12 @@ const DEMOS = {
   vendors: VendorLinkDemo,
   budget: BudgetDemo,
 } as const
+const TONES: Record<(typeof BANDS)[number], StageTone> = {
+  checklist: 'teal',
+  runSheet: 'gold',
+  vendors: 'sage',
+  budget: 'teal',
+}
 const FAQ = ['free', 'data', 'couples', 'languages', 'leave'] as const
 
 /**
@@ -53,13 +67,39 @@ export async function HomePage({ locale }: { locale: Locale }) {
               {t('cta.noCard')}
             </p>
           </div>
-          <div className="mk-rise mk-rise-2">
-            <TodayDemo locale={locale} />
+          {/* The collage: Today on a teal stage, a budget card overlapping its corner, rings in
+              gold -- two screens of the product and one mark of what it is for. */}
+          <div className="mk-rise mk-rise-2 relative pb-10 lg:pb-0">
+            <Stage tone="teal" deco={false} className="pb-16 sm:pb-20">
+              <Rings
+                className="mk-stage-deco -top-2 right-4 h-20 w-28 text-[var(--gold-500)]"
+                accent="var(--teal-600)"
+              />
+              <div className="relative z-10 pt-10">
+                <TodayDemo locale={locale} />
+              </div>
+            </Stage>
+            <div className="absolute -bottom-2 left-4 z-20 sm:left-8 lg:-bottom-6">
+              <BudgetChip locale={locale} />
+            </div>
           </div>
         </Container>
       </section>
 
-      <Prose id="problem" title={t('home.problem.title')} body={t('home.problem.body')} />
+      <section aria-labelledby="problem-title" className="mk-band-gold">
+        <Container className="grid items-center gap-10 py-16 sm:py-20 lg:grid-cols-[1.5fr_1fr]">
+          <div>
+            <h2 id="problem-title" className="mk-display mk-h2">
+              {t('home.problem.title')}
+            </h2>
+            <p className="mk-lede text-muted-foreground mt-4">{t('home.problem.body')}</p>
+          </div>
+          <Envelope
+            className="mx-auto h-auto w-48 text-[var(--teal-700)] sm:w-60"
+            accent="var(--gold-600)"
+          />
+        </Container>
+      </section>
 
       {BANDS.map((band, i) => {
         const Demo = DEMOS[band]
@@ -72,7 +112,9 @@ export async function HomePage({ locale }: { locale: Locale }) {
                 </h2>
                 <p className="mk-lede text-muted-foreground mt-4">{t(`home.bands.${band}.body`)}</p>
               </div>
-              <Demo locale={locale} />
+              <Stage tone={TONES[band]}>
+                <Demo locale={locale} />
+              </Stage>
             </Container>
           </section>
         )

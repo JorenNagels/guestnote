@@ -295,3 +295,37 @@
     text-decoration-color: currentColor;
   }
 }
+
+/* -- Colour stages and illustrations (2026-09-27, the user's "more colour") ----------------
+   Every product preview stands on a tinted stage from the token ramps -- teal, gold and sage,
+   the brand's own colours, never a purple glow -- with a line illustration tucked into a corner.
+   The two tints of a stage are neighbouring steps of one ramp, so the gradient reads as light on
+   a surface, not as decoration. */
+.mk-stage {
+  position: relative;
+  overflow: hidden;
+  border-radius: 28px;
+  padding: clamp(20px, 4vw, 44px);
+}
+.mk-stage > .mk-window,
+.mk-stage > [data-inview] {
+  position: relative;
+  z-index: 1;
+}
+.mk-stage-teal {
+  background: linear-gradient(160deg, var(--teal-200), var(--teal-100));
+}
+.mk-stage-gold {
+  background: linear-gradient(160deg, var(--gold-200), var(--gold-100));
+}
+.mk-stage-sage {
+  background: linear-gradient(160deg, var(--success-200), var(--success-100));
+}
+.mk-stage-deco {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+}
+.mk-band-gold {
+  background: var(--gold-100);
+}

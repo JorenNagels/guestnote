@@ -238,3 +238,32 @@ export async function VendorLinkDemo({ locale }: Props) {
     </Window>
   )
 }
+
+/**
+ * A single budget line, small, for the hero collage: it overlaps the Today window the way a
+ * second screen of the product would. Not inside `Window` -- it is a card, not a screen.
+ */
+export async function BudgetChip({ locale }: Props) {
+  const t = await getTranslations({ locale, namespace: 'marketing.demo' })
+  const format = await getFormatter({ locale })
+  const eur = (n: number) =>
+    format.number(n, { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
+  return (
+    <div aria-hidden="true" className="mk-window w-60 p-4 text-sm">
+      <div className="flex items-baseline justify-between">
+        <span className="text-muted-foreground text-xs">
+          {t('budget.title')} · {t('wedding')}
+        </span>
+      </div>
+      <p className="mt-1 font-mono text-lg font-semibold tabular-nums">
+        {eur(25150)}{' '}
+        <span className="text-muted-foreground text-xs font-normal">
+          {t('budget.of', { amount: eur(27800) })}
+        </span>
+      </p>
+      <div className="bg-muted mt-2 h-2 overflow-hidden rounded-full">
+        <div className="bg-primary h-full w-[90%] rounded-full" />
+      </div>
+    </div>
+  )
+}
