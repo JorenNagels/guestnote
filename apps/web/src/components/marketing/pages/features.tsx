@@ -26,11 +26,7 @@ export async function FeaturesPage({ locale }: { locale: Locale }) {
   const t = await getTranslations({ locale, namespace: 'marketing' })
   return (
     <>
-      <PageHead
-        eyebrow={t('features.eyebrow')}
-        title={t('features.title')}
-        lede={t('features.lede')}
-      />
+      <PageHead title={t('features.title')} lede={t('features.lede')} />
 
       <Container className="grid gap-6 pb-16 md:grid-cols-3">
         <ChecklistDemo locale={locale} />

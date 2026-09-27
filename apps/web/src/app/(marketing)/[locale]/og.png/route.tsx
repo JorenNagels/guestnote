@@ -32,8 +32,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ loc
   const { locale: raw } = await params
   const locale = isLocale(raw) ? raw : DEFAULT_LOCALE
   const t = await getTranslations({ locale, namespace: 'marketing' })
-  // The headline's `<em>` tags are for the page; the card is plain text.
-  const headline = t.raw('home.headline').replace(/<\/?em>/g, '') as string
+  const headline = t('home.headline')
 
   return new ImageResponse(
     <div
@@ -56,12 +55,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ loc
         </svg>
         <span style={{ fontSize: 34, letterSpacing: 6, color: '#94CFC9' }}>GUESTNOTE</span>
       </div>
-      <div style={{ display: 'flex', fontSize: 72, lineHeight: 1.08, maxWidth: 980 }}>
+      <div style={{ display: 'flex', fontSize: 60, lineHeight: 1.12, maxWidth: 1000 }}>
         {headline}
       </div>
-      <div style={{ display: 'flex', fontSize: 28, color: '#D6B776' }}>
-        {t('home.eyebrow')} · guestnote.be
-      </div>
+      <div style={{ display: 'flex', fontSize: 28, color: '#D6B776' }}>guestnote.be</div>
     </div>,
     size,
   )

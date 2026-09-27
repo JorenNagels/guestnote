@@ -79,6 +79,12 @@ which the layout's comment already expected as a "second entry point". Rejected:
 dashboard's look unchanged (too plain to sell), and a separate marketing palette (two token
 sets that drift).
 
+**Revised 2026-09-27, the same day:** the user asked that neither the copy nor the page read
+as AI-made. The uppercase section labels, the italic accent word, the dark glowing hero, the
+numbered steps and the before/after cards were removed, and the NL/EN/FR copy rewritten in
+plain "we" with concrete detail (no founder name, no S'e parti, no invented figures, all by the
+user's choice). The brief's header lists the rules.
+
 ### Product visuals are coded mini-UIs, animated
 
 **Screens are recreated in React from the app's own `@guestnote/ui` primitives and tokens, not

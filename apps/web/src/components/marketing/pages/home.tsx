@@ -18,10 +18,16 @@ const DEMOS = {
   budget: BudgetDemo,
 } as const
 const FAQ = ['free', 'data', 'couples', 'languages', 'leave'] as const
-const STEPS = ['one', 'two', 'three'] as const
-const ITEMS = ['one', 'two', 'three'] as const
 
-/** `/nl`, `/en`, `/fr` (spec 0006, "Home"). */
+/**
+ * `/nl`, `/en`, `/fr` (spec 0006, "Home").
+ *
+ * Rewritten 2026-09-27 to drop the patterns that read as AI-made (the user's request, checked
+ * against Wikipedia's "Signs of AI writing" and the AI-design-slop lists): no uppercase label
+ * above each heading, no italic accent word in the headline, no dark hero with a glow, no
+ * numbered 01/02/03 steps, no before/after cards. A plain descriptive headline, prose where
+ * there was a list, and the product screens carrying the page.
+ */
 export async function HomePage({ locale }: { locale: Locale }) {
   const t = await getTranslations({ locale, namespace: 'marketing' })
   const format = await getFormatter({ locale })
@@ -31,60 +37,37 @@ export async function HomePage({ locale }: { locale: Locale }) {
   return (
     <>
       <JsonLd description={t('meta.homeDescription')} />
-      <section className="mk-hero overflow-hidden">
-        <Container className="grid items-center gap-12 py-16 sm:py-24 lg:grid-cols-[1.05fr_1fr]">
+      <section className="border-border border-b">
+        <Container className="grid items-center gap-12 py-14 sm:py-20 lg:grid-cols-[1.1fr_1fr]">
           <div>
-            <AnimatedMark className="h-auto w-16 drop-shadow-[0_18px_46px_rgba(0,0,0,0.45)] sm:w-20" />
-            <p className="mk-eyebrow mk-rise mk-rise-1 mt-8">{t('home.eyebrow')}</p>
-            <h1 className="mk-display mk-h1 mk-rise mk-rise-2 mt-4 max-w-[16ch]">
-              {t.rich('home.headline', { em: (c: ReactNode) => <em>{c}</em> })}
+            <AnimatedMark className="h-auto w-12 sm:w-14" />
+            <h1 className="mk-display mk-h1 mk-rise mk-rise-1 mt-8 max-w-[20ch]">
+              {t('home.headline')}
             </h1>
-            <p className="mk-lede mk-rise mk-rise-3 mt-6">{t('home.lede')}</p>
-            <div className="mk-rise mk-rise-4 mt-8 flex flex-wrap items-center gap-3">
-              <StartLink label={t('cta.start')} tone="gold" />
-              <DemoLink label={t('cta.demo')} subject={t('cta.demoSubject')} dark />
+            <p className="mk-lede text-muted-foreground mk-rise mk-rise-2 mt-5">{t('home.lede')}</p>
+            <div className="mk-rise mk-rise-3 mt-8 flex flex-wrap items-center gap-3">
+              <StartLink label={t('cta.start')} />
+              <DemoLink label={t('cta.demo')} subject={t('cta.demoSubject')} />
             </div>
-            <p className="mk-rise mk-rise-4 mt-4 text-sm opacity-80">{t('cta.noCard')}</p>
+            <p className="text-muted-foreground mk-rise mk-rise-3 mt-4 text-sm">
+              {t('cta.noCard')}
+            </p>
           </div>
-          <div className="mk-rise mk-rise-3 lg:pl-6">
+          <div className="mk-rise mk-rise-2">
             <TodayDemo locale={locale} />
           </div>
         </Container>
       </section>
 
-      <section aria-labelledby="problem-title" className="py-20 sm:py-28">
-        <Container>
-          <h2 id="problem-title" className="mk-display mk-h2 max-w-[22ch]">
-            {t('home.problem.title')}
-          </h2>
-          <p className="mk-lede text-muted-foreground mt-5">{t('home.problem.body')}</p>
-          <div className="mt-12 grid gap-6 md:grid-cols-2">
-            <Compare
-              title={t('home.problem.before')}
-              items={ITEMS.map((k) => t(`home.problem.beforeItems.${k}`))}
-              tone="before"
-            />
-            <Compare
-              title={t('home.problem.after')}
-              items={ITEMS.map((k) => t(`home.problem.afterItems.${k}`))}
-              tone="after"
-            />
-          </div>
-        </Container>
-      </section>
+      <Prose id="problem" title={t('home.problem.title')} body={t('home.problem.body')} />
 
       {BANDS.map((band, i) => {
         const Demo = DEMOS[band]
         return (
-          <section
-            key={band}
-            aria-labelledby={`band-${band}`}
-            className={i % 2 === 0 ? 'bg-muted/50 py-20 sm:py-24' : 'py-20 sm:py-24'}
-          >
-            <Container className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
+          <section key={band} aria-labelledby={`band-${band}`} className="border-border border-t">
+            <Container className="grid items-center gap-10 py-16 sm:py-20 lg:grid-cols-2 lg:gap-16">
               <div className={i % 2 === 1 ? 'lg:order-2' : ''}>
-                <p className="mk-eyebrow text-primary">{t(`home.bands.${band}.kicker`)}</p>
-                <h2 id={`band-${band}`} className="mk-display mk-h2 mt-3">
+                <h2 id={`band-${band}`} className="mk-display mk-h2">
                   {t(`home.bands.${band}.title`)}
                 </h2>
                 <p className="mk-lede text-muted-foreground mt-4">{t(`home.bands.${band}.body`)}</p>
@@ -95,94 +78,65 @@ export async function HomePage({ locale }: { locale: Locale }) {
         )
       })}
 
-      <section aria-labelledby="how-title" className="py-20 sm:py-28">
-        <Container>
-          <h2 id="how-title" className="mk-display mk-h2">
-            {t('home.how.title')}
-          </h2>
-          <ol className="mt-10 grid gap-8 md:grid-cols-3">
-            {STEPS.map((s, i) => (
-              <li key={s} className="border-border border-t pt-6">
-                <span className="text-primary font-mono text-sm">0{i + 1}</span>
-                <h3 className="mk-display mk-h3 mt-2">{t(`home.how.steps.${s}.title`)}</h3>
-                <p className="text-muted-foreground mt-2">{t(`home.how.steps.${s}.body`)}</p>
-              </li>
-            ))}
-          </ol>
+      <Prose id="how" title={t('home.how.title')} body={t('home.how.body')} border />
+
+      <Prose
+        id="price"
+        title={t('home.pricingTeaser.title')}
+        body={t('home.pricingTeaser.body', {
+          base: eur(PRICING.baseMonthlyCents),
+          seat: eur(PRICING.seatMonthlyCents),
+        })}
+        border
+      >
+        <Link
+          href={pagePath('pricing', locale)}
+          className="text-primary mt-4 inline-block font-semibold underline underline-offset-4"
+        >
+          {t('home.pricingTeaser.link')}
+        </Link>
+      </Prose>
+
+      <section className="border-border border-t">
+        <Container className="py-16 sm:py-20">
+          <Faq
+            title={t('home.faq.title')}
+            items={FAQ.map((k) => ({
+              q: t(`home.faq.items.${k}.q`),
+              a: t(`home.faq.items.${k}.a`),
+            }))}
+          />
         </Container>
       </section>
-
-      <section aria-labelledby="price-title" className="bg-muted/50 py-20">
-        <Container className="flex flex-col items-start gap-5 md:flex-row md:items-end md:justify-between">
-          <div>
-            <h2 id="price-title" className="mk-display mk-h2">
-              {t('home.pricingTeaser.title')}
-            </h2>
-            <p className="mk-lede text-muted-foreground mt-4">
-              {t('home.pricingTeaser.body', {
-                base: eur(PRICING.baseMonthlyCents),
-                seat: eur(PRICING.seatMonthlyCents),
-              })}
-            </p>
-          </div>
-          <Link
-            href={pagePath('pricing', locale)}
-            className="text-primary shrink-0 font-semibold underline underline-offset-4"
-          >
-            {t('home.pricingTeaser.link')} →
-          </Link>
-        </Container>
-      </section>
-
-      <Container className="py-20 sm:py-28">
-        <Faq
-          title={t('home.faq.title')}
-          items={FAQ.map((k) => ({ q: t(`home.faq.items.${k}.q`), a: t(`home.faq.items.${k}.a`) }))}
-        />
-      </Container>
 
       <ClosingCta locale={locale} />
     </>
   )
 }
 
-function Compare({
+/** A heading and a paragraph. The plain alternative to a card grid. */
+function Prose({
+  id,
   title,
-  items,
-  tone,
+  body,
+  border = false,
+  children,
 }: {
+  id: string
   title: string
-  items: readonly string[]
-  tone: 'before' | 'after'
+  body: string
+  border?: boolean
+  children?: ReactNode
 }) {
   return (
-    <div
-      className={
-        tone === 'after'
-          ? 'bg-card border-primary/30 rounded-[calc(var(--radius)+6px)] border p-6 shadow-sm'
-          : 'border-border rounded-[calc(var(--radius)+6px)] border border-dashed p-6'
-      }
-    >
-      <h3
-        className={
-          tone === 'after' ? 'text-primary font-semibold' : 'text-muted-foreground font-semibold'
-        }
-      >
-        {title}
-      </h3>
-      <ul className="mt-4 flex flex-col gap-3">
-        {items.map((item) => (
-          <li key={item} className="flex gap-3">
-            <span
-              aria-hidden="true"
-              className={tone === 'after' ? 'text-primary' : 'text-muted-foreground'}
-            >
-              {tone === 'after' ? '✓' : '–'}
-            </span>
-            {item}
-          </li>
-        ))}
-      </ul>
-    </div>
+    <section aria-labelledby={`${id}-title`} className={border ? 'border-border border-t' : ''}>
+      <Container className="py-16 sm:py-20">
+        <h2 id={`${id}-title`} className="mk-display mk-h2">
+          {title}
+        </h2>
+        <p className="mk-lede text-muted-foreground mt-4">{body}</p>
+        {children}
+      </Container>
+    </section>
   )
 }

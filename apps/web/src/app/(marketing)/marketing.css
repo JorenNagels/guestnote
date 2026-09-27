@@ -22,12 +22,9 @@
   line-height: 1.02;
   text-wrap: balance;
 }
-.mk-display em {
-  font-style: italic;
-  color: var(--mk-em, var(--primary));
-}
 .mk-h1 {
-  font-size: clamp(2.4rem, 6vw, 4.25rem);
+  font-size: clamp(2rem, 4.4vw, 3.25rem);
+  line-height: 1.08;
 }
 .mk-h2 {
   font-size: clamp(1.75rem, 3.6vw, 2.6rem);
@@ -41,25 +38,6 @@
   font-size: 1.125rem;
   line-height: 1.55;
   max-width: 62ch;
-}
-.mk-eyebrow {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-}
-
-/* The hero band: the coming-soon ground, the one dark surface on the site. */
-.mk-hero {
-  --mk-em: #94cfc9;
-  background: radial-gradient(120% 90% at 85% 0%, #0a312e 0%, transparent 60%), #06211f;
-  color: #b9e6e1;
-}
-.mk-hero .mk-display {
-  color: #ecfaf9;
-}
-.mk-hero .mk-eyebrow {
-  color: #d6b776;
 }
 
 /* -- The mark drawing on (ported from coming-soon/index.html, timings measured there) ------- */

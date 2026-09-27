@@ -16,19 +16,10 @@ export function Container({
   return <div className={`mx-auto max-w-[1120px] px-4 sm:px-6 ${className}`}>{children}</div>
 }
 
-export function PageHead({
-  eyebrow,
-  title,
-  lede,
-}: {
-  eyebrow: string
-  title: string
-  lede?: string
-}) {
+export function PageHead({ title, lede }: { title: string; lede?: string }) {
   return (
-    <Container className="pt-16 pb-10 sm:pt-24">
-      <p className="mk-eyebrow text-primary">{eyebrow}</p>
-      <h1 className="mk-display mk-h1 mt-4 max-w-[18ch]">{title}</h1>
+    <Container className="pt-14 pb-10 sm:pt-20">
+      <h1 className="mk-display mk-h1 max-w-[20ch]">{title}</h1>
       {lede ? <p className="mk-lede text-muted-foreground mt-5">{lede}</p> : null}
     </Container>
   )
@@ -71,37 +62,24 @@ export function Faq({
 export async function ClosingCta({ locale }: { locale: Locale }) {
   const t = await getTranslations({ locale, namespace: 'marketing' })
   return (
-    <section className="mk-hero">
-      <Container className="flex flex-col items-start gap-6 py-20 sm:py-24">
-        <h2 className="mk-display mk-h2 max-w-[20ch]">{t('home.closing.title')}</h2>
-        <p className="mk-lede">{t('home.closing.body')}</p>
-        <div className="flex flex-wrap items-center gap-3">
-          <StartLink label={t('cta.start')} tone="gold" />
-          <DemoLink label={t('cta.demo')} subject={t('cta.demoSubject')} dark />
+    <section className="border-border bg-muted/50 border-t">
+      <Container className="py-16 sm:py-20">
+        <h2 className="mk-display mk-h2">{t('home.closing.title')}</h2>
+        <p className="mk-lede text-muted-foreground mt-4">{t('home.closing.body')}</p>
+        <div className="mt-8 flex flex-wrap items-center gap-3">
+          <StartLink label={t('cta.start')} />
+          <DemoLink label={t('cta.demo')} subject={t('cta.demoSubject')} />
         </div>
-        <p className="text-sm opacity-80">{t('cta.noCard')}</p>
       </Container>
     </section>
   )
 }
 
-export function DemoLink({
-  label,
-  subject,
-  dark = false,
-}: {
-  label: string
-  subject: string
-  dark?: boolean
-}) {
+export function DemoLink({ label, subject }: { label: string; subject: string }) {
   return (
     <a
       href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}`}
-      className={`inline-flex h-11 items-center justify-center rounded-[var(--radius)] border px-5 text-sm font-semibold ${
-        dark
-          ? 'border-[#94cfc9]/40 text-[#ecfaf9] hover:border-[#94cfc9]'
-          : 'border-border hover:border-foreground'
-      }`}
+      className="border-border hover:border-foreground inline-flex h-11 items-center justify-center rounded-[var(--radius)] border px-5 text-sm font-semibold"
     >
       {label}
     </a>

@@ -7,6 +7,22 @@ related_targets: ["apps/web/src/components/marketing"]
 
 # Marketing: `guestnote.be/{nl,en,fr}`
 
+> **Revised 2026-09-27 (same day): "don't read as AI-made."** The user asked for the copy and
+> the page to stop reading as generated. Checked against Wikipedia's *Signs of AI writing* and
+> the AI-design-slop lists, the first version hit most of them. What changed, and what the rest
+> of this brief should be read through:
+>
+> - **No uppercase mono label above headings** (it was on every section).
+> - **No italic accent word in the headline**, and no `<em>` device anywhere.
+> - **No dark hero with a glow**: the hero is the page background with a rule under it.
+> - **No numbered 01/02/03 steps, no before/after cards, no checkmark lists**: prose instead.
+> - **Copy rules:** no "not X, it's Y" contrasts, no em dashes as pivots, no reflexive lists of
+>   three, no slogan fragments ending in a full stop. Headings say what the section is about in
+>   plain words ("Wat het kost", not "Eén studio, één prijs."). Concrete detail beats adjectives.
+>   Voice is "we", anonymous, per the user.
+>
+> Kept: Fraunces for headings, the self-drawing mark, the mini-UIs and their motion.
+
 Design brief for spec 0006. Concept locked 2026-09-27: **The editorial shell around the working
 tool.** The page talks like a well-set magazine. The product inside it looks exactly like the
 product.

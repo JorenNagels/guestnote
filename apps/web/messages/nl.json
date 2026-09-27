@@ -3,17 +3,17 @@
     "language": "Taal",
     "login": "Inloggen",
     "dashboard": "Dashboard",
-    "tagline": "Het planningsplatform voor weddingplanners: al je bruiloften, taken, draaiboeken en leveranciers op één plek.",
+    "tagline": "Planningssoftware voor weddingplanners en trouwlocaties, gemaakt in België.",
     "meta": {
       "siteName": "Guestnote",
-      "homeTitle": "Guestnote — plan elke trouw vanuit één plek",
-      "homeDescription": "Checklists, draaiboeken, budgetten en leveranciers voor al je bruiloften. Gemaakt in België voor weddingplanners. Nu gratis tijdens de early access.",
+      "homeTitle": "Guestnote, planningssoftware voor weddingplanners",
+      "homeDescription": "Guestnote houdt per trouw de takenlijst, het draaiboek, het budget en de leveranciers bij. Voor weddingplanners en trouwlocaties. Gratis tijdens de early access.",
       "featuresTitle": "Functies",
-      "featuresDescription": "Alles wat een weddingplanner vandaag in Excel en WhatsApp doet, in één tool: vandaag-overzicht, checklists met sjablonen, draaiboek, leveranciers, budget en moodboard.",
+      "featuresDescription": "Wat vandaag in Guestnote zit: een dagoverzicht over al je bruiloften, takenlijsten met sjablonen, een draaiboek per dag, leverancierslinks, budget en bestanden.",
       "pricingTitle": "Prijzen",
-      "pricingDescription": "Eén prijs per studio, plus een kleine prijs per extra planner. Koppels en leveranciers tellen nooit mee.",
+      "pricingDescription": "49 euro per maand per studio, 19 euro per extra planner. Koppels en leveranciers betalen niets.",
       "aboutTitle": "Over ons",
-      "aboutDescription": "Guestnote is gemaakt in België, naast een werkende trouwplanningspraktijk. Wie erachter zit en hoe je ons bereikt.",
+      "aboutDescription": "Wie Guestnote maakt, waar je gegevens staan en hoe je ons bereikt.",
       "notFoundTitle": "Pagina niet gevonden"
     },
     "nav": {
@@ -32,162 +32,130 @@
       "noCard": "Geen kredietkaart nodig."
     },
     "home": {
-      "eyebrow": "Voor weddingplanners en locaties",
-      "headline": "Plan elke trouw vanuit <em>één plek</em>.",
-      "lede": "Je checklists, draaiboeken, budgetten en leveranciers voor al je koppels bij elkaar — in plaats van verspreid over tien Excel-bestanden en een WhatsApp-groep per bruiloft.",
+      "headline": "Planningssoftware voor weddingplanners en trouwlocaties",
+      "lede": "Guestnote houdt per trouw je takenlijst, draaiboek, budget en leveranciers bij. Deadlines rekenen terug vanaf de trouwdatum, en elke leverancier krijgt een eigen link naar zijn deel van de dag.",
       "problem": {
-        "title": "Je concurrent is geen andere app. Het is een spreadsheet.",
-        "body": "De meeste planners werken vandaag met een Excel per koppel, een WhatsApp-groep per leverancier en een geheugen dat nooit mag falen. Dat werkt, tot je vijftien bruiloften tegelijk loopt.",
-        "before": "Vandaag",
-        "beforeItems": {
-          "one": "Een Excel per koppel, elk net iets anders",
-          "two": "Leveranciers die het draaiboek via WhatsApp vragen",
-          "three": "Deadlines die alleen in je hoofd staan"
-        },
-        "after": "Met Guestnote",
-        "afterItems": {
-          "one": "Eén overzicht van wat vandaag aandacht nodig heeft",
-          "two": "Elke leverancier een eigen link naar zijn deel van de dag",
-          "three": "Taken die meeschuiven met de trouwdatum"
-        }
+        "title": "Waarom we het maken",
+        "body": "De meeste planners die we spreken, werken met een Excel-bestand per koppel en een WhatsApp-groep per trouw. Dat gaat goed tot er iets verschuift: een nieuwe datum, een extra feestdag, een fotograaf die nog het oude draaiboek heeft. In Guestnote staat die informatie op één plaats, dus pas je een wijziging maar één keer aan."
       },
       "bands": {
         "checklist": {
-          "kicker": "Checklist",
-          "title": "Taken die weten wanneer de trouw is.",
-          "body": "Zet deadlines relatief tegenover de trouwdatum — „drie maanden vooraf” — en verschuift de datum, dan schuiven je taken mee. Start elk koppel vanuit je eigen sjabloon."
+          "title": "Deadlines die meeschuiven met de trouwdatum",
+          "body": "Je zet een taak op „drie maanden voor de trouw” in plaats van op een vaste datum. Verandert het koppel de datum, dan schuiven de taken mee. Een nieuw koppel start je vanuit je eigen sjabloon of vanuit een van de startsjablonen die we meeleveren."
         },
         "runSheet": {
-          "kicker": "Draaiboek",
-          "title": "Het draaiboek dat iedereen dezelfde dag geeft.",
-          "body": "Tijd, duur, wie en waar, per dag van de trouw. Overlappingen zie je meteen, en elk item heeft een eigenaar: jij, het koppel of een leverancier."
+          "title": "Een draaiboek per feestdag",
+          "body": "Elk item heeft een tijd, een duur, een plaats en iemand die ervoor verantwoordelijk is. Als twee items elkaar overlappen, zie je dat meteen in de lijst."
         },
         "vendors": {
-          "kicker": "Leveranciers",
-          "title": "Een link, geen WhatsApp-groep.",
-          "body": "Stuur de fotograaf, de cateraar of de DJ een eigen link. Zonder account zien ze hun stuk van het draaiboek, het aantal gasten en wat jij van hen nodig hebt — met jouw logo erboven."
+          "title": "Leveranciers krijgen een eigen link",
+          "body": "De fotograaf of de cateraar hoeft geen account aan te maken. Via de link ziet hij het aantal gasten, zijn momenten in het draaiboek en wat je nog van hem nodig hebt. Je kunt een link op elk moment intrekken."
         },
         "budget": {
-          "kicker": "Budget",
-          "title": "Weten wat er over is, op de euro.",
-          "body": "Toegewezen, uitgegeven en betaald per categorie, met de betalingen die nog openstaan. Het getal dat je koppel vraagt, heb je in één oogopslag."
+          "title": "Het budget per categorie",
+          "body": "Per categorie zie je wat voorzien is, wat al uitgegeven is en wat betaald is. Betalingen die nog openstaan, staan in een aparte lijst."
         }
       },
       "how": {
-        "title": "In drie stappen aan de slag",
-        "steps": {
-          "one": {
-            "title": "Start je studio",
-            "body": "Naam, logo, klaar. Je sjablonen staan al voor je klaar."
-          },
-          "two": {
-            "title": "Voeg je eerste trouw toe",
-            "body": "Datum, koppel, dagen van het feest. De checklist vult zich vanuit je sjabloon."
-          },
-          "three": {
-            "title": "Deel met je team en leveranciers",
-            "body": "Nodig collega’s uit en stuur elke leverancier zijn eigen link."
-          }
-        }
+        "title": "Zo begin je",
+        "body": "Je maakt een studio aan met je naam en, als je wilt, je logo. Daarna voeg je een trouw toe met de datum en de namen van het koppel, en kies je een sjabloon voor de takenlijst. Collega’s en leveranciers nodig je uit wanneer het je uitkomt."
       },
       "pricingTeaser": {
-        "title": "Eén eerlijke prijs per studio",
-        "body": "{base} per maand voor je studio, {seat} per maand voor elke extra planner. Koppels en leveranciers tellen nooit mee.",
-        "link": "Bekijk de prijzen"
+        "title": "Wat het kost",
+        "body": "{base} per maand voor je studio, plus {seat} per maand voor elke extra planner in je team. Koppels en leveranciers betalen niets en tellen niet mee.",
+        "link": "Alle prijzen"
       },
       "faq": {
-        "title": "Vaak gestelde vragen",
+        "title": "Vragen",
         "items": {
           "free": {
             "q": "Is het echt gratis?",
-            "a": "Tijdens de early access is alles gratis, zonder kredietkaart. We laten het je ruim op voorhand weten voor we iets aanrekenen, en je beslist dan zelf of je blijft."
+            "a": "Ja, zolang Guestnote in early access is. Je hebt geen kredietkaart nodig. We laten minstens 30 dagen op voorhand weten wanneer we beginnen aan te rekenen, en dan kies je of je blijft."
           },
           "data": {
             "q": "Waar staan mijn gegevens?",
-            "a": "In de Europese Unie, in datacenters in Frankfurt. Je gegevens en die van je koppels worden nooit verkocht of gebruikt voor reclame."
+            "a": "Op servers in Frankfurt, binnen de Europese Unie. We verkopen je gegevens en die van je koppels niet, en gebruiken ze niet voor reclame."
           },
           "couples": {
             "q": "Moet mijn koppel een account aanmaken?",
-            "a": "Nog niet. Het koppelportaal komt later. Vandaag werk jij in Guestnote en deel je met leveranciers via een link."
+            "a": "Nee. Een portaal voor koppels komt later. Vandaag werk jij in Guestnote en deel je met leveranciers via een link."
           },
           "languages": {
             "q": "In welke talen werkt Guestnote?",
-            "a": "In het Nederlands, Frans en Engels. Elke planner kiest zijn eigen taal."
+            "a": "In het Nederlands, het Frans en het Engels. Elke planner kiest zijn eigen taal."
           },
           "leave": {
             "q": "Wat als ik wil stoppen?",
-            "a": "Dan stop je. Er is geen minimumduur, en op vraag bezorgen we je je gegevens."
+            "a": "Er is geen minimumduur. Wil je je gegevens meenemen, vraag ons dan om een export."
           }
         }
       },
       "closing": {
-        "title": "Probeer het op je volgende trouw.",
-        "body": "Zet één bruiloft in Guestnote en kijk of je de spreadsheet nog mist."
+        "title": "Gratis zolang we in early access zijn",
+        "body": "Maak een studio aan en zet er een trouw in waar je nu aan werkt. Zo zie je het snelst of Guestnote voor jou werkt."
       }
     },
     "features": {
-      "eyebrow": "Functies",
-      "title": "Alles voor de trouw, niets voor de show.",
-      "lede": "Guestnote doet wat een planner vandaag in Excel, Word en WhatsApp doet, maar dan samen, gedeeld en op tijd.",
+      "title": "Wat Guestnote vandaag doet",
+      "lede": "Alles hieronder werkt nu. Wat nog niet klaar is, staat onderaan.",
       "items": {
         "today": {
-          "title": "Vandaag-overzicht",
-          "body": "Wat vandaag nodig is, wat deze week vervalt en wat eraan komt, over al je bruiloften heen."
+          "title": "Dagoverzicht",
+          "body": "Eén lijst over al je bruiloften heen met wat vandaag moet en wat deze week vervalt."
         },
         "weddings": {
-          "title": "Al je bruiloften",
-          "body": "Per trouw de dagen van het feest, het koppel, de locatie, notities voor je team en de stand van zaken."
+          "title": "Bruiloften",
+          "body": "Per trouw de feestdagen, het koppel, de locatie en notities die alleen je team ziet."
         },
         "checklist": {
-          "title": "Checklist met relatieve deadlines",
-          "body": "Deadlines tegenover de trouwdatum, die meeschuiven als de datum verandert. Filter op achterstallig, intern of gedeeld."
+          "title": "Takenlijst",
+          "body": "Deadlines relatief tegenover de trouwdatum. Je filtert op achterstallig, intern of gedeeld met het koppel."
         },
         "templates": {
-          "title": "Je eigen sjablonen",
-          "body": "Bouw je werkwijze één keer op en start elk nieuw koppel ermee. Startsjablonen staan al klaar."
+          "title": "Sjablonen",
+          "body": "Leg je vaste werkwijze één keer vast en start er elk nieuw koppel mee."
         },
         "runSheet": {
-          "title": "Draaiboek per dag",
-          "body": "Tijd, duur, wat, wie en waar. Met eigenaars per item en een waarschuwing wanneer items overlappen."
+          "title": "Draaiboek",
+          "body": "Per feestdag, met een verantwoordelijke per item en een waarschuwing bij overlappingen."
         },
         "vendorLink": {
-          "title": "Leverancierslink",
-          "body": "Een ondertekende link per leverancier, zonder account: hun deel van de dag, het aantal gasten en wat je van hen nodig hebt."
+          "title": "Leverancierslinks",
+          "body": "Een link zonder account, die je kunt intrekken en die vanzelf vervalt."
         },
         "budget": {
           "title": "Budget en betalingen",
-          "body": "Toegewezen, uitgegeven en betaald per categorie, en welke betalingen nog openstaan."
+          "body": "Voorzien, uitgegeven en betaald per categorie, met de openstaande betalingen apart."
         },
         "files": {
           "title": "Bestanden en moodboard",
-          "body": "Offertes, contracten en inspiratie bij de trouw waar ze bij horen, niet in je downloads."
+          "body": "Offertes, contracten en inspiratiebeelden bij de trouw waar ze bij horen."
         },
         "team": {
-          "title": "Je team",
-          "body": "Nodig collega-planners uit. Eigenaars en beheerders zien de hele studio, iedereen werkt in dezelfde bruiloft."
+          "title": "Team",
+          "body": "Nodig collega-planners uit. Eigenaars en beheerders zien de hele studio."
         },
         "studio": {
-          "title": "Jouw studio, jouw logo",
-          "body": "Leveranciers zien jouw naam en logo, niet het onze."
+          "title": "Je eigen naam en logo",
+          "body": "Leveranciers zien je studio, niet Guestnote."
         },
         "languages": {
           "title": "Nederlands, Frans en Engels",
-          "body": "Elke planner werkt in zijn eigen taal. Gemaakt voor België, van bij het begin."
+          "body": "Elke planner werkt in zijn eigen taal."
         },
         "passkeys": {
           "title": "Inloggen zonder wachtwoord",
-          "body": "Met een passkey (Face ID, vingerafdruk) of een code per e-mail. Er is geen wachtwoord om te vergeten of te lekken."
+          "body": "Met een passkey, zoals Face ID of je vingerafdruk, of met een code per e-mail."
         }
       },
       "later": {
-        "title": "Wat eraan komt",
-        "body": "Een koppelportaal, en een trouwwebsite met RSVP voor elk koppel, met jouw logo erop. Nog niet klaar, en we beloven geen datum."
+        "title": "Nog niet klaar",
+        "body": "Een portaal voor het koppel en een trouwwebsite met RSVP. We werken eraan, maar hebben nog geen datum."
       }
     },
     "pricing": {
-      "eyebrow": "Prijzen",
-      "title": "Eén studio, één prijs.",
-      "lede": "Je betaalt voor je studio en voor elke extra planner in je team. Koppels en leveranciers zijn altijd gratis.",
+      "title": "Prijzen",
+      "lede": "Je betaalt per studio en per planner. Koppels en leveranciers zijn gratis.",
       "earlyAccess": "Tijdens de early access is alles gratis. We laten het je ruim op voorhand weten voor we iets aanrekenen.",
       "trial": "Probeer het een maand gratis, zonder kredietkaart.",
       "card": {
@@ -208,7 +176,7 @@
         "exclVat": "excl. btw"
       },
       "included": {
-        "title": "Alles inbegrepen",
+        "title": "Inbegrepen",
         "items": {
           "weddings": "Onbeperkt bruiloften",
           "vendors": "Onbeperkt leveranciers en leverancierslinks",
@@ -241,12 +209,11 @@
       }
     },
     "about": {
-      "eyebrow": "Over ons",
-      "title": "Gemaakt naast een echte trouwpraktijk.",
-      "body1": "Guestnote komt uit België. Het ontstond naast een werkend trouwplanningsbureau, waar we zagen hoeveel van het werk van een planner in spreadsheets, e-mails en WhatsApp-berichten verdwijnt.",
-      "body2": "We bouwen het rustig en grondig: elke functie wordt gebruikt op een echte trouw voor ze naar buiten gaat. Je gegevens staan in de EU, en we verkopen niets aan niemand.",
+      "title": "Over Guestnote",
+      "body1": "Guestnote is een Belgisch product voor weddingplanners en trouwlocaties. We maken het omdat we zagen hoeveel planningswerk in losse Excel-bestanden, mails en chatgroepen zit, en hoeveel tijd het kost om die gelijk te houden.",
+      "body2": "Je gegevens staan op servers in Frankfurt. We verkopen ze niet en gebruiken ze niet voor reclame. Nieuwe functies testen we eerst op echte bruiloften.",
       "contactTitle": "Contact",
-      "contactBody": "Een vraag, een idee of een demo? Mail ons. Je krijgt antwoord van de mensen die Guestnote bouwen.",
+      "contactBody": "Voor een vraag, een demo of een fout die je tegenkwam. Je krijgt antwoord van iemand die aan Guestnote werkt.",
       "legalTitle": "Wettelijke gegevens"
     },
     "footer": {
@@ -276,7 +243,7 @@
       "address": "Adres",
       "kbo": "Ondernemingsnummer",
       "vat": "Btw",
-      "vatExempt": "Vrijgesteld van btw — bijzondere vrijstellingsregeling kleine ondernemingen",
+      "vatExempt": "Vrijgesteld van btw (bijzondere vrijstellingsregeling kleine ondernemingen)",
       "email": "E-mail",
       "pending": "De wettelijke gegevens van de onderneming volgen hier zodra de inschrijving afgerond is. Tot dan kun je ons bereiken via {email}."
     },

@@ -19,26 +19,12 @@ type Props = {
   readonly children: ReactNode
 }
 
-/**
- * The solid "Start free" button. A plain `<a>`: it crosses to the app host (`app-url.ts`).
- * `gold` is for the dark hero band, where the teal primary would sink into the teal ground; it
- * is the coming-soon page's button colour, gold-400 under dark gold text (7.9:1).
- */
-export function StartLink({
-  label,
-  tone = 'primary',
-  className = '',
-}: {
-  label: string
-  tone?: 'primary' | 'gold'
-  className?: string
-}) {
-  const colours =
-    tone === 'gold' ? 'bg-[#d6b776] text-[#3f2a06]' : 'bg-primary text-primary-foreground'
+/** The solid "Start free" button. A plain `<a>`: it crosses to the app host (`app-url.ts`). */
+export function StartLink({ label, className = '' }: { label: string; className?: string }) {
   return (
     <a
       href={appSignupUrl()}
-      className={`${colours} inline-flex h-11 items-center justify-center rounded-[var(--radius)] px-5 text-sm font-semibold hover:brightness-110 ${className}`}
+      className={`bg-primary text-primary-foreground inline-flex h-11 items-center justify-center rounded-[var(--radius)] px-5 text-sm font-semibold hover:brightness-110 ${className}`}
     >
       {label}
     </a>

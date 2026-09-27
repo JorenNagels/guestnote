@@ -11,7 +11,7 @@ export async function AboutPage({ locale }: { locale: Locale }) {
   const operator = completeOperator()
   return (
     <>
-      <PageHead eyebrow={t('about.eyebrow')} title={t('about.title')} />
+      <PageHead title={t('about.title')} />
       <Container className="grid gap-16 pb-24 lg:grid-cols-[1.4fr_1fr]">
         <div className="mk-lede flex flex-col gap-5">
           <p>{t('about.body1')}</p>

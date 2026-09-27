@@ -51,11 +51,7 @@ export async function PricingPage({ locale, billingOn }: { locale: Locale; billi
   return (
     <>
       <JsonLd description={t('meta.pricingDescription')} />
-      <PageHead
-        eyebrow={t('pricing.eyebrow')}
-        title={t('pricing.title')}
-        lede={t('pricing.lede')}
-      />
+      <PageHead title={t('pricing.title')} lede={t('pricing.lede')} />
 
       <Container className="pb-20">
         <p
@@ -73,14 +69,9 @@ export async function PricingPage({ locale, billingOn }: { locale: Locale; billi
           />
           <div>
             <h2 className="mk-display mk-h3">{t('pricing.included.title')}</h2>
-            <ul className="mt-5 flex flex-col gap-3">
+            <ul className="mt-4 flex list-disc flex-col gap-2 pl-5">
               {INCLUDED.map((k) => (
-                <li key={k} className="flex gap-3">
-                  <span aria-hidden="true" className="text-primary">
-                    ✓
-                  </span>
-                  {t(`pricing.included.items.${k}`)}
-                </li>
+                <li key={k}>{t(`pricing.included.items.${k}`)}</li>
               ))}
             </ul>
           </div>

@@ -3,17 +3,17 @@
     "language": "Langue",
     "login": "Se connecter",
     "dashboard": "Tableau de bord",
-    "tagline": "La plateforme de planification des wedding planners : tous vos mariages, tâches, déroulés et prestataires au même endroit.",
+    "tagline": "Logiciel de planification pour wedding planners et lieux de réception, conçu en Belgique.",
     "meta": {
       "siteName": "Guestnote",
-      "homeTitle": "Guestnote — organisez chaque mariage depuis un seul endroit",
-      "homeDescription": "Checklists, déroulés, budgets et prestataires pour tous vos mariages. Conçu en Belgique pour les wedding planners. Gratuit pendant l’accès anticipé.",
+      "homeTitle": "Guestnote, logiciel de planification pour wedding planners",
+      "homeDescription": "Guestnote tient à jour, pour chaque mariage, la liste de tâches, le déroulé, le budget et les prestataires. Pour les wedding planners et les lieux de réception. Gratuit pendant l’accès anticipé.",
       "featuresTitle": "Fonctionnalités",
-      "featuresDescription": "Tout ce qu’un wedding planner fait aujourd’hui dans Excel et WhatsApp, dans un seul outil : vue du jour, checklists avec modèles, déroulé, prestataires, budget et moodboard.",
+      "featuresDescription": "Ce que fait Guestnote aujourd’hui : une vue du jour sur tous vos mariages, des listes de tâches avec modèles, un déroulé par jour, des liens prestataires, le budget et les fichiers.",
       "pricingTitle": "Tarifs",
-      "pricingDescription": "Un prix par studio, plus un petit prix par planner supplémentaire. Les couples et les prestataires ne comptent jamais.",
+      "pricingDescription": "49 euros par mois par studio, 19 euros par planner supplémentaire. Les couples et les prestataires ne paient rien.",
       "aboutTitle": "À propos",
-      "aboutDescription": "Guestnote est conçu en Belgique, à côté d’une vraie agence de mariage. Qui est derrière et comment nous joindre.",
+      "aboutDescription": "Qui fait Guestnote, où sont vos données et comment nous joindre.",
       "notFoundTitle": "Page introuvable"
     },
     "nav": {
@@ -32,83 +32,53 @@
       "noCard": "Pas de carte de crédit nécessaire."
     },
     "home": {
-      "eyebrow": "Pour les wedding planners et les lieux de réception",
-      "headline": "Organisez chaque mariage depuis <em>un seul endroit</em>.",
-      "lede": "Vos checklists, déroulés, budgets et prestataires pour tous vos couples, réunis — au lieu d’être éparpillés dans dix fichiers Excel et un groupe WhatsApp par mariage.",
+      "headline": "Logiciel de planification pour wedding planners et lieux de réception",
+      "lede": "Guestnote tient à jour, pour chaque mariage, votre liste de tâches, votre déroulé, votre budget et vos prestataires. Les échéances se calculent à partir de la date du mariage, et chaque prestataire reçoit son propre lien vers sa partie de la journée.",
       "problem": {
-        "title": "Votre concurrent n’est pas une autre app. C’est un tableur.",
-        "body": "La plupart des planners travaillent aujourd’hui avec un Excel par couple, un groupe WhatsApp par prestataire et une mémoire qui ne doit jamais flancher. Ça marche, jusqu’au jour où vous gérez quinze mariages en même temps.",
-        "before": "Aujourd’hui",
-        "beforeItems": {
-          "one": "Un Excel par couple, chacun un peu différent",
-          "two": "Des prestataires qui demandent le déroulé sur WhatsApp",
-          "three": "Des échéances qui n’existent que dans votre tête"
-        },
-        "after": "Avec Guestnote",
-        "afterItems": {
-          "one": "Une seule vue de ce qui vous attend aujourd’hui",
-          "two": "Chaque prestataire reçoit son propre lien vers sa partie de la journée",
-          "three": "Des tâches qui suivent la date du mariage"
-        }
+        "title": "Pourquoi nous le faisons",
+        "body": "La plupart des planners avec qui nous parlons tiennent un Excel par couple et un groupe WhatsApp par mariage. Cela fonctionne jusqu’au jour où quelque chose change : une nouvelle date, un jour de fête en plus, un photographe qui a encore l’ancien déroulé. Dans Guestnote, ces informations sont au même endroit, donc une modification ne se fait qu’une fois."
       },
       "bands": {
         "checklist": {
-          "kicker": "Checklist",
-          "title": "Des tâches qui connaissent la date du mariage.",
-          "body": "Fixez vos échéances par rapport à la date du mariage — « trois mois avant » — et si la date change, vos tâches suivent. Démarrez chaque couple depuis votre propre modèle."
+          "title": "Des échéances qui suivent la date du mariage",
+          "body": "Vous placez une tâche à « trois mois avant le mariage » plutôt qu’à une date fixe. Si le couple change la date, les tâches suivent. Un nouveau couple démarre à partir de votre propre modèle ou d’un des modèles de départ fournis."
         },
         "runSheet": {
-          "kicker": "Déroulé",
-          "title": "Un seul déroulé, une seule version de la journée.",
-          "body": "Heure, durée, qui et où, pour chaque jour du mariage. Les chevauchements sautent aux yeux, et chaque élément a un responsable : vous, le couple ou un prestataire."
+          "title": "Un déroulé par jour de fête",
+          "body": "Chaque élément a une heure, une durée, un lieu et une personne responsable. Quand deux éléments se chevauchent, la liste le montre tout de suite."
         },
         "vendors": {
-          "kicker": "Prestataires",
-          "title": "Un lien, pas un groupe WhatsApp.",
-          "body": "Envoyez au photographe, au traiteur ou au DJ son propre lien. Sans compte, il voit sa partie du déroulé, le nombre d’invités et ce que vous attendez de lui — sous votre logo."
+          "title": "Chaque prestataire reçoit son lien",
+          "body": "Le photographe ou le traiteur n’a pas besoin de compte. Le lien lui montre le nombre d’invités, ses moments dans le déroulé et ce que vous attendez encore de lui. Vous pouvez révoquer un lien à tout moment."
         },
         "budget": {
-          "kicker": "Budget",
-          "title": "Savoir ce qu’il reste, à l’euro près.",
-          "body": "Alloué, dépensé et payé par catégorie, avec les paiements encore dus. Le chiffre que votre couple vous demande est à portée d’un coup d’œil."
+          "title": "Le budget par catégorie",
+          "body": "Pour chaque catégorie, vous voyez ce qui est prévu, ce qui est dépensé et ce qui est payé. Les paiements encore dus sont listés à part."
         }
       },
       "how": {
-        "title": "Opérationnel en trois étapes",
-        "steps": {
-          "one": {
-            "title": "Créez votre studio",
-            "body": "Un nom, un logo, c’est fait. Vos modèles de départ sont prêts."
-          },
-          "two": {
-            "title": "Ajoutez votre premier mariage",
-            "body": "Date, couple, jours de fête. La checklist se remplit depuis votre modèle."
-          },
-          "three": {
-            "title": "Partagez avec votre équipe et vos prestataires",
-            "body": "Invitez vos collègues et envoyez à chaque prestataire son propre lien."
-          }
-        }
+        "title": "Pour commencer",
+        "body": "Vous créez un studio avec votre nom et, si vous le souhaitez, votre logo. Ensuite, vous ajoutez un mariage avec la date et les noms du couple, et vous choisissez un modèle pour la liste de tâches. Vous invitez vos collègues et vos prestataires quand cela vous convient."
       },
       "pricingTeaser": {
-        "title": "Un prix juste par studio",
-        "body": "{base} par mois pour votre studio, {seat} par mois par planner supplémentaire. Les couples et les prestataires ne comptent jamais.",
-        "link": "Voir les tarifs"
+        "title": "Ce que cela coûte",
+        "body": "{base} par mois pour votre studio, plus {seat} par mois pour chaque planner supplémentaire. Les couples et les prestataires ne paient rien et ne comptent pas.",
+        "link": "Tous les tarifs"
       },
       "faq": {
-        "title": "Questions fréquentes",
+        "title": "Questions",
         "items": {
           "free": {
             "q": "C’est vraiment gratuit ?",
-            "a": "Pendant l’accès anticipé, tout est gratuit, sans carte de crédit. Nous vous prévenons bien à l’avance avant de facturer quoi que ce soit, et vous décidez alors de rester ou non."
+            "a": "Oui, tant que Guestnote est en accès anticipé. Pas besoin de carte de crédit. Nous vous prévenons au moins 30 jours à l’avance avant de facturer, et vous décidez alors de rester ou non."
           },
           "data": {
             "q": "Où sont mes données ?",
-            "a": "Dans l’Union européenne, dans des centres de données à Francfort. Vos données et celles de vos couples ne sont jamais vendues ni utilisées à des fins publicitaires."
+            "a": "Sur des serveurs à Francfort, dans l’Union européenne. Nous ne vendons pas vos données ni celles de vos couples, et ne les utilisons pas pour de la publicité."
           },
           "couples": {
             "q": "Mon couple doit-il créer un compte ?",
-            "a": "Pas encore. Le portail couple arrivera plus tard. Aujourd’hui, vous travaillez dans Guestnote et partagez avec les prestataires par lien."
+            "a": "Non. Un portail couple arrivera plus tard. Aujourd’hui, vous travaillez dans Guestnote et partagez avec les prestataires par lien."
           },
           "languages": {
             "q": "Dans quelles langues fonctionne Guestnote ?",
@@ -116,78 +86,76 @@
           },
           "leave": {
             "q": "Et si je veux arrêter ?",
-            "a": "Vous arrêtez. Il n’y a pas de durée minimale, et nous vous remettons vos données sur demande."
+            "a": "Il n’y a pas de durée minimale. Si vous voulez emporter vos données, demandez-nous un export."
           }
         }
       },
       "closing": {
-        "title": "Essayez-le sur votre prochain mariage.",
-        "body": "Mettez un mariage dans Guestnote et voyez si le tableur vous manque encore."
+        "title": "Gratuit pendant l’accès anticipé",
+        "body": "Créez un studio et ajoutez un mariage sur lequel vous travaillez en ce moment. C’est le moyen le plus rapide de voir si Guestnote vous convient."
       }
     },
     "features": {
-      "eyebrow": "Fonctionnalités",
-      "title": "Tout pour le mariage, rien pour la frime.",
-      "lede": "Guestnote fait ce qu’un planner fait aujourd’hui dans Excel, Word et WhatsApp, mais ensemble, partagé et à temps.",
+      "title": "Ce que fait Guestnote aujourd’hui",
+      "lede": "Tout ce qui suit fonctionne déjà. Ce qui n’est pas encore prêt figure en bas de page.",
       "items": {
         "today": {
           "title": "Vue du jour",
-          "body": "Ce qui vous attend aujourd’hui, ce qui arrive à échéance cette semaine et ce qui suit, pour tous vos mariages."
+          "body": "Une liste pour tous vos mariages, avec ce qui est dû aujourd’hui et cette semaine."
         },
         "weddings": {
-          "title": "Tous vos mariages",
-          "body": "Pour chaque mariage : les jours de fête, le couple, le lieu, des notes pour votre équipe et l’état d’avancement."
+          "title": "Mariages",
+          "body": "Pour chaque mariage : les jours de fête, le couple, le lieu et des notes que seule votre équipe voit."
         },
         "checklist": {
-          "title": "Checklist aux échéances relatives",
-          "body": "Des échéances relatives à la date du mariage, qui suivent quand la date change. Filtrez par en retard, interne ou partagé."
+          "title": "Liste de tâches",
+          "body": "Des échéances relatives à la date du mariage. Filtrez par retard, interne ou partagé avec le couple."
         },
         "templates": {
-          "title": "Vos propres modèles",
-          "body": "Construisez votre méthode une fois et démarrez chaque nouveau couple avec. Des modèles de départ sont inclus."
+          "title": "Modèles",
+          "body": "Notez une fois votre façon de travailler et démarrez chaque nouveau couple avec."
         },
         "runSheet": {
-          "title": "Déroulé par jour",
-          "body": "Heure, durée, quoi, qui et où. Avec un responsable par élément et une alerte en cas de chevauchement."
+          "title": "Déroulé",
+          "body": "Par jour, avec un responsable par élément et une alerte en cas de chevauchement."
         },
         "vendorLink": {
-          "title": "Lien prestataire",
-          "body": "Un lien signé par prestataire, sans compte : sa partie de la journée, le nombre d’invités et ce que vous attendez de lui."
+          "title": "Liens prestataires",
+          "body": "Un lien sans compte, révocable, qui expire de lui-même."
         },
         "budget": {
           "title": "Budget et paiements",
-          "body": "Alloué, dépensé et payé par catégorie, et les paiements encore dus."
+          "body": "Prévu, dépensé et payé par catégorie, avec les paiements dus à part."
         },
         "files": {
           "title": "Fichiers et moodboard",
-          "body": "Devis, contrats et inspiration avec le mariage auquel ils appartiennent, pas dans vos téléchargements."
+          "body": "Devis, contrats et images d’inspiration avec le mariage auquel ils appartiennent."
         },
         "team": {
-          "title": "Votre équipe",
-          "body": "Invitez d’autres planners. Propriétaires et administrateurs voient tout le studio ; chacun travaille dans le même mariage."
+          "title": "Équipe",
+          "body": "Invitez d’autres planners. Propriétaires et administrateurs voient tout le studio."
         },
         "studio": {
-          "title": "Votre studio, votre logo",
-          "body": "Les prestataires voient votre nom et votre logo, pas les nôtres."
+          "title": "Votre nom et votre logo",
+          "body": "Les prestataires voient votre studio, pas Guestnote."
         },
         "languages": {
           "title": "Néerlandais, français et anglais",
-          "body": "Chaque planner travaille dans sa langue. Conçu pour la Belgique dès le départ."
+          "body": "Chaque planner travaille dans sa langue."
         },
         "passkeys": {
           "title": "Connexion sans mot de passe",
-          "body": "Avec une clé d’accès (Face ID, empreinte) ou un code par e-mail. Pas de mot de passe à oublier ni à divulguer."
+          "body": "Avec une clé d’accès, comme Face ID ou votre empreinte, ou avec un code par e-mail."
         }
       },
       "later": {
-        "title": "À venir",
-        "body": "Un portail couple, et un site de mariage avec RSVP pour chaque couple, à votre logo. Pas encore prêt, et nous ne promettons pas de date."
+        "title": "Pas encore prêt",
+        "body": "Un portail couple et un site de mariage avec RSVP. Nous y travaillons, sans date pour l’instant."
       }
     },
     "pricing": {
-      "eyebrow": "Tarifs",
-      "title": "Un studio, un prix.",
-      "lede": "Vous payez pour votre studio et pour chaque planner supplémentaire de votre équipe. Les couples et les prestataires sont toujours gratuits.",
+      "title": "Tarifs",
+      "lede": "Vous payez par studio et par planner. Les couples et les prestataires sont gratuits.",
       "earlyAccess": "Pendant l’accès anticipé, tout est gratuit. Nous vous prévenons bien à l’avance avant de facturer quoi que ce soit.",
       "trial": "Essayez gratuitement pendant un mois, sans carte de crédit.",
       "card": {
@@ -208,7 +176,7 @@
         "exclVat": "HTVA"
       },
       "included": {
-        "title": "Tout est inclus",
+        "title": "Inclus",
         "items": {
           "weddings": "Mariages illimités",
           "vendors": "Prestataires et liens prestataires illimités",
@@ -241,12 +209,11 @@
       }
     },
     "about": {
-      "eyebrow": "À propos",
-      "title": "Conçu à côté d’une vraie agence de mariage.",
-      "body1": "Guestnote vient de Belgique. Il est né à côté d’une agence de wedding planning en activité, où nous avons vu combien du travail d’un planner disparaît dans des tableurs, des e-mails et des messages WhatsApp.",
-      "body2": "Nous le construisons calmement et soigneusement : chaque fonctionnalité est utilisée sur un vrai mariage avant d’être publiée. Vos données restent dans l’UE, et nous ne vendons rien à personne.",
+      "title": "À propos de Guestnote",
+      "body1": "Guestnote est un produit belge pour les wedding planners et les lieux de réception. Nous le faisons parce que nous avons vu combien de travail de planification se trouve dans des Excel, des e-mails et des groupes de discussion séparés, et combien de temps il faut pour les garder à jour.",
+      "body2": "Vos données sont conservées sur des serveurs à Francfort. Nous ne les vendons pas et ne les utilisons pas pour de la publicité. Les nouvelles fonctionnalités sont d’abord essayées sur de vrais mariages.",
       "contactTitle": "Contact",
-      "contactBody": "Une question, une idée ou une démo ? Écrivez-nous. Vous recevrez une réponse de ceux qui construisent Guestnote.",
+      "contactBody": "Pour une question, une démo ou un bug rencontré. Vous recevrez une réponse de quelqu’un qui travaille sur Guestnote.",
       "legalTitle": "Informations légales"
     },
     "footer": {
@@ -276,7 +243,7 @@
       "address": "Adresse",
       "kbo": "Numéro d’entreprise",
       "vat": "TVA",
-      "vatExempt": "Exonéré de TVA — régime particulier de franchise des petites entreprises",
+      "vatExempt": "Exonéré de TVA (régime particulier de franchise des petites entreprises)",
       "email": "E-mail",
       "pending": "Les informations légales de l’entreprise figureront ici dès la fin de l’inscription. D’ici là, vous pouvez nous joindre à {email}."
     },
