@@ -218,7 +218,8 @@ Scoped to the **planner platform**. Tenant wedding-site theming is parked.
   `infra/README.md`.
 - `coming-soon/` — the holding page for `guestnote.be`. One self-contained `index.html`,
   NL/EN, no external requests. Deploy notes in `coming-soon/README.md`. Still the live apex;
-  the app's marketing surface is a placeholder until there is real copy.
+  the app's marketing site replaced its placeholder on 2026-09-27 (`docs/specs/0006`) and goes
+  live at the apex cutover (`infra/README.md`).
 - `waitlist/` — email capture behind it: Lambda Function URL → DynamoDB, SNS email on
   planner/venue leads. Entirely inside AWS perpetual free tiers; costs verified, not
   assumed. `waitlist/README.md`.
@@ -280,9 +281,12 @@ the permanent free tiers (CloudFront 1 TB, Lambda 1M requests) absorb it comfort
 
 - [x] ~~Name~~ → **Guestnote**
 - [x] ~~Tech stack and hosting~~ → see above
-- [ ] Belgium-only vs Benelux at launch
-- [ ] Legal entity vs side project under existing structure (founder name belongs here —
-      e.g. "Nagels BV" — not on the customer-facing brand)
+- [x] ~~Belgium-only vs Benelux at launch~~ → **Belgium-first, open to the EU**, no NL-specific
+      copy (2026-09-27, `docs/specs/0006`)
+- [x] ~~Legal entity vs side project under existing structure~~ → **a personal eenmanszaak**,
+      not yet registered (2026-09-27, spec 0006). The consequence this line did not foresee: an
+      eenmanszaak's imprint must print the founder's own name (WER art. XII.6), so it IS on the
+      customer-facing site, in the legal notice -- a BV later would move it off.
 - [ ] Designer budget for 5–6 templates — **€2,000–5,000, and the highest-ROI euro available**
 - [x] ~~Is French a launch requirement or a Wallonia-expansion feature?~~ → **launch
       requirement, decided 2026-08-17.** The interface ships NL + EN + FR from day one via

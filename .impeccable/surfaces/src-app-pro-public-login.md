@@ -559,14 +559,15 @@ added here that must survive a re-render has to move, or the guard has to go aga
 page load. It is excluded from proxy.ts's matcher, so nothing rewrote or 404'd it early; it
 fell through to `(marketing)/[locale]`, a ROOT layout, whose `notFound()` has no boundary
 above it and renders a 500. `apps/web/public/favicon.ico` now exists, and returns 200
-`image/x-icon` on all three hosts (measured 2026-09-01). `robots.txt` and `sitemap.xml` are
-excluded by the same matcher and still do not exist — same route, 404 locally, deployed
-behaviour not read back; crawlers only. Recorded in proxy.ts rather than fixed blind, because
-an empty `robots.txt` is a decision about indexing.
+`image/x-icon` on all three hosts (measured 2026-09-01). `robots.txt` and `sitemap.xml` were
+excluded by the same matcher and did not exist — same route, 404 locally. *Correction
+2026-09-27:* spec 0006 took them out of the exclusion list; they are route handlers now, and
+the proxy answers them per host.
 
 **Also found while building:** a file in `apps/web/public/` is unreachable on the app host.
 proxy.ts rewrites every non-`/api` path to `/pro/*` and its matcher excludes only
-`_next/static`, `_next/image`, `favicon.ico`, `robots.txt` and `sitemap.xml`. The mark is
+`_next/static`, `_next/image`, `favicon.ico`, `robots.txt` and `sitemap.xml` (the last two
+left the list on 2026-09-27). The mark is
 inlined instead, which is better here anyway; the finding is recorded in proxy.ts beside
 the matcher.
 

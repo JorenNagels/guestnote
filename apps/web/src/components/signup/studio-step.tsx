@@ -24,8 +24,20 @@ export type StudioLabels = Readonly<{
   creating: string
   /** The button once the studio exists and only the logo failed. */
   continue: string
-  errors: Readonly<Record<'required' | 'tooLong' | 'failed' | 'forbidden', string>>
+  errors: Readonly<Record<'required' | 'tooLong' | 'failed' | 'forbidden' | 'terms', string>>
   logo: LogoFieldLabels & { readonly afterCreate: string }
+  /**
+   * Spec 0006. `sentence` carries `{terms}` and `{dpa}` where the two links go, so each locale
+   * orders them itself; the hrefs are absolute apex URLs (`apexPageUrl`), opened in a new tab so
+   * reading them does not lose the half-filled form.
+   */
+  terms: Readonly<{
+    sentence: string
+    termsLink: string
+    dpaLink: string
+    termsHref: string
+    dpaHref: string
+  }>
 }>
 
 type Props = {
@@ -58,9 +70,10 @@ export function StudioStep({ labels, ownerName: initialOwner, action, logoAction
   const [logo, setLogo] = useState<Held | null>(null)
   const [uploading, setUploading] = useState(false)
   const [logoFailed, setLogoFailed] = useState(false)
+  const [accepted, setAccepted] = useState(false)
   const posted = useRef<FormData | null>(null)
   const handled = useRef(false)
-  const ready = name.trim() !== '' && ownerName.trim() !== ''
+  const ready = name.trim() !== '' && ownerName.trim() !== '' && accepted
 
   // The held logo's object URL dies with it: on replace, on remove, and on leaving the step.
   useEffect(() => (logo ? () => URL.revokeObjectURL(logo.url) : undefined), [logo])
@@ -106,6 +119,7 @@ export function StudioStep({ labels, ownerName: initialOwner, action, logoAction
 
   const nameError = state.errors?.name
   const ownerError = state.errors?.ownerName
+  const termsError = state.errors?.terms
   const shown = name.trim() || labels.previewFallback
 
   return (
@@ -188,6 +202,38 @@ export function StudioStep({ labels, ownerName: initialOwner, action, logoAction
           </span>
         </Card>
 
+        <div>
+          <label className="flex items-start gap-2.5 text-[13.5px] leading-snug">
+            <input
+              type="checkbox"
+              name="terms"
+              checked={accepted}
+              onChange={(e) => setAccepted(e.currentTarget.checked)}
+              aria-invalid={termsError ? true : undefined}
+              aria-describedby={termsError ? 'signup-terms-error' : undefined}
+              className="mt-0.5 size-4 shrink-0 accent-[var(--primary)]"
+            />
+            <span>
+              {termsSentence(labels.terms).map((part) =>
+                typeof part === 'string' ? (
+                  part
+                ) : (
+                  <a
+                    key={part.href}
+                    href={part.href}
+                    target="_blank"
+                    rel="noopener"
+                    className="text-primary underline underline-offset-2"
+                  >
+                    {part.label}
+                  </a>
+                ),
+              )}
+            </span>
+          </label>
+          {termsError && <InlineError id="signup-terms-error">{labels.errors.terms}</InlineError>}
+        </div>
+
         {state.form && <InlineError>{labels.errors[state.form]}</InlineError>}
         {logoFailed && <InlineError>{labels.logo.afterCreate}</InlineError>}
 
@@ -202,4 +248,13 @@ export function StudioStep({ labels, ownerName: initialOwner, action, logoAction
       </form>
     </>
   )
+}
+
+/** The terms sentence with its two placeholders swapped for links, in the locale's own order. */
+function termsSentence(t: StudioLabels['terms']): Array<string | { href: string; label: string }> {
+  return t.sentence.split(/(\{terms\}|\{dpa\})/).map((chunk) => {
+    if (chunk === '{terms}') return { href: t.termsHref, label: t.termsLink }
+    if (chunk === '{dpa}') return { href: t.dpaHref, label: t.dpaLink }
+    return chunk
+  })
 }

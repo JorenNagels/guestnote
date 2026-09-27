@@ -30,7 +30,20 @@ const STUDIO: StudioLabels = {
   create: 'CREATE',
   creating: 'CREATING',
   continue: 'CONTINUE',
-  errors: { required: 'E-REQ', tooLong: 'E-LONG', failed: 'E-FAILED', forbidden: 'E-FORBIDDEN' },
+  errors: {
+    required: 'E-REQ',
+    tooLong: 'E-LONG',
+    failed: 'E-FAILED',
+    forbidden: 'E-FORBIDDEN',
+    terms: 'E-TERMS',
+  },
+  terms: {
+    sentence: 'ACCEPT {terms} AND {dpa}.',
+    termsLink: 'TERMS',
+    dpaLink: 'DPA',
+    termsHref: 'https://guestnote.be/nl/algemene-voorwaarden',
+    dpaHref: 'https://guestnote.be/nl/verwerkersovereenkomst',
+  },
   logo: {
     label: 'L-LOGO',
     upload: 'UPLOAD',
@@ -47,6 +60,9 @@ const STUDIO: StudioLabels = {
 }
 
 const noLogo = { start: vi.fn(), confirm: vi.fn() }
+
+/** Ticks the terms box (spec 0006), which every post from the Studio step now needs. */
+const accept = () => fireEvent.click(screen.getByRole('checkbox'))
 
 const WEDDING: WeddingLabels = {
   title: 'T-WEDDING',
@@ -124,8 +140,43 @@ describe('StudioStep', () => {
     fireEvent.change(screen.getByLabelText('L-OWNER'), { target: { value: '   ' } })
     expect(create).toBeDisabled()
     fireEvent.change(screen.getByLabelText('L-OWNER'), { target: { value: 'Ilse' } })
+    // Both names, and still not without the terms (spec 0006).
+    expect(create).toBeDisabled()
+    accept()
     expect(create).toBeEnabled()
+    accept()
+    expect(create).toBeDisabled()
     expect(screen.getByText('Studio Wit')).toBeInTheDocument()
+  })
+
+  it('links the terms and the DPA in the sentence, in a new tab, and posts the tick', async () => {
+    const action = vi.fn(async () => ({}))
+    render(<StudioStep labels={STUDIO} ownerName="Ilse" action={action} logoActions={noLogo} />)
+    expect(screen.getByRole('link', { name: 'TERMS' })).toHaveAttribute(
+      'href',
+      STUDIO.terms.termsHref,
+    )
+    expect(screen.getByRole('link', { name: 'DPA' })).toHaveAttribute('href', STUDIO.terms.dpaHref)
+    expect(screen.getByRole('link', { name: 'TERMS' })).toHaveAttribute('target', '_blank')
+    fireEvent.change(screen.getByLabelText('L-NAME'), { target: { value: 'Studio Wit' } })
+    accept()
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'CREATE' }))
+    })
+    const fd = (action.mock.calls[0] as unknown as [unknown, FormData])[1]
+    expect(fd.get('terms')).toBe('on')
+  })
+
+  it('shows a terms refusal from the server on the box', async () => {
+    const action = vi.fn(async () => ({ errors: { terms: 'required' as const } }))
+    render(<StudioStep labels={STUDIO} ownerName="Ilse" action={action} logoActions={noLogo} />)
+    fireEvent.change(screen.getByLabelText('L-NAME'), { target: { value: 'Studio Wit' } })
+    accept()
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'CREATE' }))
+    })
+    await waitFor(() => expect(screen.getByText('E-TERMS')).toBeInTheDocument())
+    expect(screen.getByRole('checkbox')).toHaveAttribute('aria-describedby', 'signup-terms-error')
   })
 
   it('prefills the name already on the account', () => {
@@ -137,6 +188,7 @@ describe('StudioStep', () => {
     const action = vi.fn(async () => ({ form: 'failed' as const }))
     render(<StudioStep labels={STUDIO} ownerName="Ilse" action={action} logoActions={noLogo} />)
     fireEvent.change(screen.getByLabelText('L-NAME'), { target: { value: 'Studio Wit' } })
+    accept()
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'CREATE' }))
     })
@@ -151,6 +203,7 @@ describe('StudioStep', () => {
     const action = vi.fn(async () => ({}))
     render(<StudioStep labels={STUDIO} ownerName="Ilse" action={action} logoActions={noLogo} />)
     fireEvent.change(screen.getByLabelText('L-NAME'), { target: { value: 'Studio Wit' } })
+    accept()
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'CREATE' }))
     })
@@ -216,6 +269,7 @@ describe('StudioStep logo', () => {
     }
     render(<StudioStep labels={STUDIO} ownerName="Ilse" action={action} logoActions={logo} />)
     fireEvent.change(screen.getByLabelText('L-NAME'), { target: { value: 'Studio Wit' } })
+    accept()
     await pick(png())
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'CREATE' }))
@@ -240,6 +294,7 @@ describe('StudioStep logo', () => {
     }
     render(<StudioStep labels={STUDIO} ownerName="Ilse" action={action} logoActions={logo} />)
     fireEvent.change(screen.getByLabelText('L-NAME'), { target: { value: 'Studio Wit' } })
+    accept()
     await pick(png())
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'CREATE' }))
@@ -256,6 +311,7 @@ describe('StudioStep logo', () => {
     }
     render(<StudioStep labels={STUDIO} ownerName="Ilse" action={action} logoActions={logo} />)
     fireEvent.change(screen.getByLabelText('L-NAME'), { target: { value: 'Studio Wit' } })
+    accept()
     await pick(png())
     await act(async () => {
       fireEvent.click(screen.getByRole('button', { name: 'CREATE' }))

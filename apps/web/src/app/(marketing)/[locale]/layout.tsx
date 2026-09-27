@@ -1,8 +1,55 @@
+import type { Metadata } from 'next'
+import { Fraunces } from 'next/font/google'
 import { notFound } from 'next/navigation'
 import { setRequestLocale } from 'next-intl/server'
 import type { ReactNode } from 'react'
+import { apexOrigin } from '../../../lib/app-url.ts'
 import { isLocale, LOCALES } from '../../../lib/locales.ts'
 import '../../globals.css'
+import '../marketing.css'
+
+/**
+ * The display face, for headlines only (spec 0006, marketing brief section 3). Self-hosted by
+ * next/font at build: the browser never contacts Google, which the privacy page promises and the
+ * coming-soon page's "no external requests" rule already asked for. Variable, with the `opsz` and
+ * `SOFT` axes the brief uses, and a real italic for the `<em>` emphasis device.
+ */
+const display = Fraunces({
+  subsets: ['latin', 'latin-ext'],
+  style: ['normal', 'italic'],
+  axes: ['opsz', 'SOFT'],
+  variable: '--font-display',
+  display: 'swap',
+})
+
+/**
+ * Before first paint, mark the page as having JavaScript, so the in-view animations may start
+ * from their hidden frame (`marketing.css`, `.mk-js`). Inline and synchronous on purpose: set
+ * after hydration, every mini-UI above the fold would flash its final frame and then hide.
+ *
+ * The timeout is the way back out: if no `InView` has mounted within four seconds -- a chunk
+ * that failed to load, stale HTML behind the CDN's stale-while-revalidate pointing at assets a
+ * deploy removed -- the flag comes off and every final frame shows. Without it, the hidden start
+ * states would have hidden the product screens for good on exactly the page load that went
+ * wrong (review panel, 2026-09-27).
+ */
+const JS_FLAG =
+  "document.documentElement.classList.add('mk-js');" +
+  "setTimeout(function(){if(!window.__mkInView)document.documentElement.classList.remove('mk-js')},4000)"
+
+/**
+ * `metadataBase` for the whole marketing tree, so the file-based `opengraph-image.tsx` in this
+ * segment gets an absolute URL on the apex. Not verifiable under `next dev`: there Next always
+ * resolves social images against `http://localhost:<PORT>` whatever the base says (read in
+ * `next/dist/lib/metadata/resolvers/resolve-url.js`, 2026-09-27) -- only a production build
+ * shows the real host. A function because `apexOrigin()` reads the environment.
+ */
+export function generateMetadata(): Metadata {
+  return {
+    metadataBase: new URL(apexOrigin()),
+    title: { template: '%s · Guestnote', default: 'Guestnote' },
+  }
+}
 
 /**
  * ROOT LAYOUT A -- marketing, on the apex host.
@@ -25,10 +72,11 @@ import '../../globals.css'
  * per-wedding theme must not inherit a data tool's palette. Marketing and the dashboard
  * are the same brand talking to the same person.
  *
- * design-system/tokens.css still says "Scope: the planner dashboard only". When marketing
- * grows a real editorial scale -- a larger type ramp, a different radius -- that scope
- * note becomes true again and this import becomes a second entry point. Not yet: one
- * token layer with one verified contrast run beats two that drift.
+ * This used to predict that an editorial scale would make this import a second entry point.
+ * **2026-09-27, spec 0006: the scale arrived and did not** -- it is `../marketing.css`,
+ * imported above: the display face, the type ramp, the hero ground and the motion. It adds;
+ * it redefines no token, so the one contrast-verified colour layer is still the only one, and
+ * `tokens.css`'s scope line now names both consumers.
  */
 
 /** Prerenders /nl, /en and /fr as static HTML rather than rendering them per request. */
@@ -58,7 +106,14 @@ export default async function MarketingRootLayout({
   setRequestLocale(locale)
 
   return (
-    <html lang={locale}>
+    // `suppressHydrationWarning` because JS_FLAG adds `mk-js` to this element before React
+    // hydrates, so the class list the server sent and the one React finds differ by design.
+    // It silences this one element's attributes only, not its children.
+    <html lang={locale} className={display.variable} suppressHydrationWarning>
+      <head>
+        {/* biome-ignore lint/security/noDangerouslySetInnerHtml: a constant, see JS_FLAG */}
+        <script dangerouslySetInnerHTML={{ __html: JS_FLAG }} />
+      </head>
       <body>{children}</body>
     </html>
   )

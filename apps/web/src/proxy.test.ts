@@ -238,6 +238,42 @@ describe('a tenant host', () => {
   })
 })
 
+describe('robots.txt and sitemap.xml (spec 0006)', () => {
+  // These were matcher exclusions until 2026-09-27, with no file behind either -- the
+  // favicon.ico trap (CLAUDE.md invariant 12). Now they pass through the proxy, because the
+  // answer depends on the host and this file is the only one that reads it.
+
+  it.each(['/robots.txt', '/sitemap.xml'])('passes %s through on the apex to its route', (path) => {
+    const response = proxy(request(`https://guestnote.be${path}`))
+    expect(response.status).not.toBe(404)
+    expect(passedThrough(response)).toBe(true)
+    expect(rewrittenPath(response)).toBeNull()
+    expect(response.headers.get('cache-control')).toBe(
+      // Never `public`: robots.txt answers differently per host at one path, and the shared
+      // CloudFront cache is not known to key on the host.
+      'private, max-age=3600',
+    )
+  })
+
+  it.each([
+    ['the app host', 'https://app.guestnote.be'],
+    ['a tenant host', 'https://els-en-jan.guestnote.be'],
+  ])('keeps crawlers out of %s entirely', async (_name, origin) => {
+    const robots = proxy(request(`${origin}/robots.txt`))
+    expect(robots.status).toBe(200)
+    expect(rewrittenPath(robots)).toBeNull()
+    expect(await robots.text()).toBe('User-agent: *\nDisallow: /\n')
+
+    const sitemap = proxy(request(`${origin}/sitemap.xml`))
+    expect(sitemap.status).toBe(404)
+    expect(rewrittenPath(sitemap)).toBeNull()
+  })
+
+  it('still 404s other root files on the apex, which are not locales', () => {
+    expect(proxy(request('https://guestnote.be/humans.txt')).status).toBe(404)
+  })
+})
+
 describe('redirects', () => {
   it('sends www to the apex, permanently and absolutely', () => {
     const response = proxy(request('https://www.guestnote.be/nl/prijzen'))

@@ -16,7 +16,10 @@ export const MAX_OWNER_NAME = 120
 export type StudioField = 'name' | 'ownerName'
 
 export type StudioFormState = {
-  readonly errors?: Partial<Record<StudioField, 'required' | 'tooLong'>>
+  readonly errors?: Partial<Record<StudioField, 'required' | 'tooLong'>> & {
+    /** The terms box was not ticked (spec 0006) -- checked here and again by `create_studio`. */
+    readonly terms?: 'required'
+  }
   /** `forbidden`: no session. `failed`: the database refused a name the form accepted. */
   readonly form?: 'forbidden' | 'failed'
   readonly values?: Readonly<Partial<Record<StudioField, string>>>

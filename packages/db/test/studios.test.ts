@@ -88,12 +88,15 @@ const orgCount = async () =>
 const orgRow = async (orgId: string) =>
   (await seedRows('select * from organizations where id = $1', [orgId]))[0]
 
+/** Any non-blank version: the function stores it, it does not interpret it (migration 0011). */
+const TERMS = '2026-09-27'
+
 const createRaw = (actor: string | null, userId: string, slug: string, name = 'Studio Noord') =>
   asPrincipal(
     h,
     actor ? { userId: actor } : {},
-    'select * from create_studio(gen_random_uuid(), $1, $2, $3, $4)',
-    [userId, name, slug, 'Lotte'],
+    'select * from create_studio(gen_random_uuid(), $1, $2, $3, $4, $5)',
+    [userId, name, slug, 'Lotte', TERMS],
   ).then((rows) => rows[0] as { outcome: string; created_org_id: string | null })
 
 describe('create_studio', () => {
@@ -105,6 +108,7 @@ describe('create_studio', () => {
       name: '  Studio Noord ',
       slugBase: 'studio-noord',
       ownerName: ' Lotte Peeters ',
+      termsVersion: TERMS,
     })
     expect(out).toMatchObject({ ok: true, value: { slug: 'studio-noord' } })
     if (!out.ok) return
@@ -116,7 +120,9 @@ describe('create_studio', () => {
       type: 'planner',
       logo_key: null,
       billing_status: null,
+      terms_version: TERMS,
     })
+    expect((await orgRow(out.value.orgId))?.terms_accepted_at).toBeInstanceOf(Date)
     expect(await ownedOrgs(NEWBIE)).toEqual([out.value.orgId])
     const m = await resolveMemberships(h.db, NEWBIE)
     expect(m.orgs).toEqual([{ orgId: out.value.orgId, role: 'owner' }])
@@ -133,6 +139,7 @@ describe('create_studio', () => {
       name: 'Second studio',
       slugBase: 'second-studio',
       ownerName: 'X',
+      termsVersion: TERMS,
     })
     expect(out).toEqual({ ok: false, reason: 'alreadyOwner' })
     expect(await orgCount()).toBe(before)
@@ -152,6 +159,7 @@ describe('create_studio', () => {
       name: 'Studio A again',
       slugBase: 'org-a',
       ownerName: '',
+      termsVersion: TERMS,
     })
     // The dead org's slug is free again: the unique index is partial on `deleted_at is null`.
     expect(out).toMatchObject({ ok: true, value: { slug: 'org-a' } })
@@ -163,12 +171,14 @@ describe('create_studio', () => {
       name: 'Eigen zaak',
       slugBase: 'eigen-zaak',
       ownerName: 'Mira',
+      termsVersion: TERMS,
     })
     expect(out.ok).toBe(true)
     const dual = await createStudio(h.db, F.staffDual, {
       name: 'Third',
       slugBase: 'third',
       ownerName: '',
+      termsVersion: TERMS,
     })
     expect(dual).toEqual({ ok: false, reason: 'alreadyOwner' })
   })
@@ -179,6 +189,7 @@ describe('create_studio', () => {
       name: 'A',
       slugBase: 'org-a',
       ownerName: '',
+      termsVersion: TERMS,
     })
     expect(first).toMatchObject({ ok: true, value: { slug: 'org-a-2' } })
 
@@ -186,6 +197,7 @@ describe('create_studio', () => {
       name: 'A',
       slugBase: 'org-a',
       ownerName: '',
+      termsVersion: TERMS,
     })
     expect(out).toMatchObject({ ok: true, value: { slug: 'org-a-3' } })
   })
@@ -200,24 +212,81 @@ describe('create_studio', () => {
       ['   ', 'blank-name'],
       ['x'.repeat(81), 'long-name'],
     ] as const) {
-      expect(await createStudio(h.db, NEWBIE, { name, slugBase, ownerName: '' })).toEqual({
+      expect(
+        await createStudio(h.db, NEWBIE, { name, slugBase, ownerName: '', termsVersion: TERMS }),
+      ).toEqual({
         ok: false,
         reason: 'invalid',
       })
     }
     expect(await orgCount()).toBe(before)
     expect(
-      await createStudio(h.db, NEWBIE, { name: 'x'.repeat(80), slugBase: 'ok', ownerName: '' }),
+      await createStudio(h.db, NEWBIE, {
+        name: 'x'.repeat(80),
+        slugBase: 'ok',
+        ownerName: '',
+        termsVersion: TERMS,
+      }),
     ).toMatchObject({ ok: true })
   })
 
   it('keeps the existing display name when the owner name is blank', async () => {
     await addUser(NEWBIE, NEWBIE_EMAIL, 'From Google')
-    await createStudio(h.db, NEWBIE, { name: 'S', slugBase: 'sss', ownerName: '   ' })
+    await createStudio(h.db, NEWBIE, {
+      name: 'S',
+      slugBase: 'sss',
+      ownerName: '   ',
+      termsVersion: TERMS,
+    })
     const [me] = await asPrincipal(h, { userId: NEWBIE }, 'select name from users where id = $1', [
       NEWBIE,
     ])
     expect(me).toMatchObject({ name: 'From Google' })
+  })
+
+  it('refuses without accepted terms, and writes nothing (migration 0011)', async () => {
+    await addUser(NEWBIE, NEWBIE_EMAIL)
+    const before = await orgCount()
+    for (const termsVersion of ['', '   ', 'x'.repeat(41)]) {
+      expect(
+        await createStudio(h.db, NEWBIE, {
+          name: 'S',
+          slugBase: 'sss',
+          ownerName: '',
+          termsVersion,
+        }),
+      ).toEqual({ ok: false, reason: 'terms' })
+    }
+    // NULL, which the typed repo cannot send and a hand-written call can.
+    const raw = await asPrincipal(
+      h,
+      { userId: NEWBIE },
+      'select outcome from create_studio(gen_random_uuid(), $1, $2, $3, $4, null)',
+      [NEWBIE, 'S', 'sss', ''],
+    )
+    expect(raw[0]).toMatchObject({ outcome: 'terms' })
+    expect(await orgCount()).toBe(before)
+    expect(await ownedOrgs(NEWBIE)).toEqual([])
+  })
+
+  it('stores the trimmed version it was given', async () => {
+    await addUser(NEWBIE, NEWBIE_EMAIL)
+    const out = await createStudio(h.db, NEWBIE, {
+      name: 'S',
+      slugBase: 'sss',
+      ownerName: '',
+      termsVersion: ` ${TERMS} `,
+    })
+    expect(out.ok).toBe(true)
+    if (!out.ok) return
+    expect(await orgRow(out.value.orgId)).toMatchObject({ terms_version: TERMS })
+  })
+
+  it('leaves no five-argument create_studio behind to make a studio without terms', async () => {
+    const rows = await seedRows(
+      "select pronargs from pg_proc where proname = 'create_studio' order by pronargs",
+    )
+    expect(rows.map((r) => Number(r.pronargs))).toEqual([6])
   })
 
   it('is forbidden when app.user_id is not the user it creates for, and writes nothing', async () => {
@@ -235,8 +304,8 @@ describe('create_studio', () => {
     // removing the `for update` on the users row left that version green. Here the first
     // call's transaction is still open when the second starts, which is the race.
     await addUser(NEWBIE, NEWBIE_EMAIL)
-    const call = 'select outcome from create_studio(gen_random_uuid(), $1, $2, $3, $4)'
-    const args = [NEWBIE, 'Twice', 'twice', '']
+    const call = 'select outcome from create_studio(gen_random_uuid(), $1, $2, $3, $4, $5)'
+    const args = [NEWBIE, 'Twice', 'twice', '', TERMS]
     const first = await h.pool.connect()
     const second = await h.pool.connect()
     try {
@@ -705,7 +774,12 @@ describe('seedTemplates', () => {
 
   it('writes every template and its items, in order, for the owner of a fresh studio', async () => {
     await addUser(NEWBIE, NEWBIE_EMAIL)
-    const made = await createStudio(h.db, NEWBIE, { name: 'N', slugBase: 'nnn', ownerName: '' })
+    const made = await createStudio(h.db, NEWBIE, {
+      name: 'N',
+      slugBase: 'nnn',
+      ownerName: '',
+      termsVersion: TERMS,
+    })
     if (!made.ok) throw new Error('fixture')
     const m = await resolveMemberships(h.db, NEWBIE)
 

@@ -33,6 +33,10 @@ set -a; . ./.env.local; set +a
 REQUIRE_NEON_TIER=1 npm run test:db
 ```
 
+**Latest, 2026-09-27: 633 passed on the local container** (tier 1) with `0011_terms_acceptance`
+applied; the Neon tier waits for 0011 to reach the branch through the deploy workflow. The 142
+below is the run that settled the pooler question, kept for what it measured.
+
 **Result, 2026-08-20: 142 passed** against `-pooler` on PostgreSQL **18.4**, and 142 on the
 local container — both with `0005_org_read_for_members` applied, which made `organizations`
 the first table here to carry two policies. That the OR of two permissive policies composes
@@ -387,3 +391,12 @@ Recorded because each one was a test that passed for the wrong reason, or nearly
   that leak exists, which is what makes `withTenant`'s guard load-bearing instead of
   decorative. The `app.wedding_role` clause does limit the blast radius — internal tasks
   stay hidden — but leaking a sibling couple's task list is still a breach.
+
+## Migration 0011: terms acceptance (spec 0006)
+
+`organizations.terms_version` and `terms_accepted_at`, both nullable and not backfilled (null is
+"made before the terms existed"). `create_studio` is dropped and recreated with a sixth argument,
+`p_terms_version`; blank or over 40 characters is the outcome `terms` and writes nothing, so an
+unticked box fails closed in the database. Same install guard, revoke and grant as 0010.
+`studios.test.ts` covers the refusal, the bound, the trimmed stored value and that no five-argument
+overload survives; the refusal was mutation-checked on 2026-09-27.

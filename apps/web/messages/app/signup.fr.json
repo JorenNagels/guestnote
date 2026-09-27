@@ -50,7 +50,13 @@
       "required": "Complétez ce champ.",
       "tooLong": "C’est trop long.",
       "failed": "Votre studio n’a pas pu être créé. Réessayez.",
-      "forbidden": "Votre session a expiré. Reconnectez-vous."
+      "forbidden": "Votre session a expiré. Reconnectez-vous.",
+      "terms": "Acceptez les conditions pour créer votre studio."
+    },
+    "terms": {
+      "sentence": "J’accepte les {terms} et l’{dpa}.",
+      "termsLink": "conditions générales",
+      "dpaLink": "accord de traitement des données"
     }
   },
   "wedding": {

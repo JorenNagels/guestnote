@@ -1,4 +1,5 @@
 import { DEFAULT_LOCALE, type Locale } from './locales.ts'
+import { type MarketingPageId, pagePath } from './marketing-pages.ts'
 
 /**
  * Href builders. The substitute for `typedRoutes`, which is off in `next.config.ts`.
@@ -88,10 +89,14 @@ export const app = {
   vendorLink: (token: string) => `/vendor/${encodeURIComponent(token)}`,
 } as const
 
-/** Marketing paths. The locale IS part of the URL here, always. */
+/**
+ * Marketing paths. The locale IS part of the URL here, always, and so is a translated slug
+ * (spec 0006) -- `lib/marketing-pages.ts` holds the slug table and this only forwards to it.
+ * `pricing` used to return `/<locale>/prijzen` for every locale, before the slugs were decided.
+ */
 export const marketing = {
-  home: (locale: Locale = DEFAULT_LOCALE) => `/${locale}`,
-  pricing: (locale: Locale = DEFAULT_LOCALE) => `/${locale}/prijzen`,
+  home: (locale: Locale = DEFAULT_LOCALE) => pagePath('home', locale),
+  page: (id: MarketingPageId, locale: Locale = DEFAULT_LOCALE) => pagePath(id, locale),
 } as const
 
 /**

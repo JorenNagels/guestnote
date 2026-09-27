@@ -1,10 +1,341 @@
 {
   "marketing": {
-    "tagline": "Wedding websites with RSVP and guest management, for planners and venues.",
-    "placeholder": "This page is a placeholder. The real marketing site is still the holding page for now.",
     "language": "Language",
     "login": "Log in",
-    "dashboard": "Dashboard"
+    "dashboard": "Dashboard",
+    "tagline": "The planning platform for wedding planners: every wedding, task, run sheet and vendor in one place.",
+    "meta": {
+      "siteName": "Guestnote",
+      "homeTitle": "Guestnote — plan every wedding from one place",
+      "homeDescription": "Checklists, run sheets, budgets and vendors for every wedding you run. Made in Belgium for wedding planners. Free during early access.",
+      "featuresTitle": "Features",
+      "featuresDescription": "Everything a wedding planner does in Excel and WhatsApp today, in one tool: a Today view, checklists with templates, run sheets, vendors, budget and moodboard.",
+      "pricingTitle": "Pricing",
+      "pricingDescription": "One price per studio, plus a small price per extra planner. Couples and vendors never count.",
+      "aboutTitle": "About",
+      "aboutDescription": "Guestnote is made in Belgium, alongside a working wedding-planning practice. Who is behind it and how to reach us.",
+      "notFoundTitle": "Page not found"
+    },
+    "nav": {
+      "label": "Main navigation",
+      "menu": "Menu",
+      "features": "Features",
+      "pricing": "Pricing",
+      "about": "About",
+      "skip": "Skip to content",
+      "home": "Guestnote, go to the home page"
+    },
+    "cta": {
+      "start": "Start free",
+      "demo": "Book a demo",
+      "demoSubject": "Guestnote demo",
+      "noCard": "No credit card needed."
+    },
+    "home": {
+      "eyebrow": "For wedding planners and venues",
+      "headline": "Plan every wedding from <em>one place</em>.",
+      "lede": "Your checklists, run sheets, budgets and vendors for every couple, together — instead of spread across ten spreadsheets and a WhatsApp group per wedding.",
+      "problem": {
+        "title": "Your competitor isn’t another app. It’s a spreadsheet.",
+        "body": "Most planners today run a spreadsheet per couple, a WhatsApp group per vendor and a memory that must never fail. That works, until you are running fifteen weddings at once.",
+        "before": "Today",
+        "beforeItems": {
+          "one": "A spreadsheet per couple, each slightly different",
+          "two": "Vendors asking for the run sheet on WhatsApp",
+          "three": "Deadlines that live only in your head"
+        },
+        "after": "With Guestnote",
+        "afterItems": {
+          "one": "One view of what needs you today",
+          "two": "Every vendor gets their own link to their part of the day",
+          "three": "Tasks that move when the wedding date moves"
+        }
+      },
+      "bands": {
+        "checklist": {
+          "kicker": "Checklist",
+          "title": "Tasks that know when the wedding is.",
+          "body": "Set deadlines relative to the wedding date — “three months before” — and when the date moves, your tasks move with it. Start every couple from your own template."
+        },
+        "runSheet": {
+          "kicker": "Run sheet",
+          "title": "One run sheet, one version of the day.",
+          "body": "Time, length, who and where, for every day of the wedding. Overlaps show up at once, and every item has an owner: you, the couple or a vendor."
+        },
+        "vendors": {
+          "kicker": "Vendors",
+          "title": "A link, not a WhatsApp group.",
+          "body": "Send the photographer, the caterer or the DJ their own link. Without an account they see their part of the run sheet, the guest count and what you need from them — under your logo."
+        },
+        "budget": {
+          "kicker": "Budget",
+          "title": "Know what’s left, to the euro.",
+          "body": "Allocated, spent and paid per category, with the payments still due. The number your couple asks for is one glance away."
+        }
+      },
+      "how": {
+        "title": "Up and running in three steps",
+        "steps": {
+          "one": {
+            "title": "Start your studio",
+            "body": "A name, a logo, done. Your starter templates are ready."
+          },
+          "two": {
+            "title": "Add your first wedding",
+            "body": "Date, couple, days of the celebration. The checklist fills itself from your template."
+          },
+          "three": {
+            "title": "Share with your team and vendors",
+            "body": "Invite colleagues and send each vendor their own link."
+          }
+        }
+      },
+      "pricingTeaser": {
+        "title": "One fair price per studio",
+        "body": "{base} a month for your studio, {seat} a month for each extra planner. Couples and vendors never count.",
+        "link": "See pricing"
+      },
+      "faq": {
+        "title": "Frequently asked questions",
+        "items": {
+          "free": {
+            "q": "Is it really free?",
+            "a": "Everything is free during early access, no credit card needed. We’ll tell you well in advance before we charge anything, and you decide then whether to stay."
+          },
+          "data": {
+            "q": "Where is my data?",
+            "a": "In the European Union, in data centres in Frankfurt. Your data and your couples’ data are never sold or used for advertising."
+          },
+          "couples": {
+            "q": "Does my couple need an account?",
+            "a": "Not yet. The couple portal comes later. Today you work in Guestnote and share with vendors by link."
+          },
+          "languages": {
+            "q": "Which languages does Guestnote speak?",
+            "a": "Dutch, French and English. Every planner picks their own."
+          },
+          "leave": {
+            "q": "What if I want to stop?",
+            "a": "Then you stop. There is no minimum term, and we hand over your data on request."
+          }
+        }
+      },
+      "closing": {
+        "title": "Try it on your next wedding.",
+        "body": "Put one wedding in Guestnote and see whether you miss the spreadsheet."
+      }
+    },
+    "features": {
+      "eyebrow": "Features",
+      "title": "Everything for the wedding, nothing for show.",
+      "lede": "Guestnote does what a planner does in Excel, Word and WhatsApp today, but together, shared and on time.",
+      "items": {
+        "today": {
+          "title": "Today view",
+          "body": "What needs you today, what is due this week and what is coming up, across all your weddings."
+        },
+        "weddings": {
+          "title": "All your weddings",
+          "body": "For each wedding: the days of the celebration, the couple, the venue, notes for your team and where things stand."
+        },
+        "checklist": {
+          "title": "Checklist with relative deadlines",
+          "body": "Deadlines relative to the wedding date that move when the date changes. Filter by overdue, internal or shared."
+        },
+        "templates": {
+          "title": "Your own templates",
+          "body": "Build your way of working once and start every new couple from it. Starter templates are included."
+        },
+        "runSheet": {
+          "title": "Run sheet per day",
+          "body": "Time, length, what, who and where. With an owner per item and a warning when items overlap."
+        },
+        "vendorLink": {
+          "title": "Vendor link",
+          "body": "A signed link per vendor, no account needed: their part of the day, the guest count and what you need from them."
+        },
+        "budget": {
+          "title": "Budget and payments",
+          "body": "Allocated, spent and paid per category, and which payments are still due."
+        },
+        "files": {
+          "title": "Files and moodboard",
+          "body": "Quotes, contracts and inspiration with the wedding they belong to, not in your downloads."
+        },
+        "team": {
+          "title": "Your team",
+          "body": "Invite fellow planners. Owners and admins see the whole studio; everyone works in the same wedding."
+        },
+        "studio": {
+          "title": "Your studio, your logo",
+          "body": "Vendors see your name and logo, not ours."
+        },
+        "languages": {
+          "title": "Dutch, French and English",
+          "body": "Every planner works in their own language. Made for Belgium from the start."
+        },
+        "passkeys": {
+          "title": "Sign in without a password",
+          "body": "With a passkey (Face ID, fingerprint) or a code by email. There is no password to forget or leak."
+        }
+      },
+      "later": {
+        "title": "Coming later",
+        "body": "A couple portal, and a wedding website with RSVP for every couple, with your logo on it. Not ready yet, and we don’t promise a date."
+      }
+    },
+    "pricing": {
+      "eyebrow": "Pricing",
+      "title": "One studio, one price.",
+      "lede": "You pay for your studio and for each extra planner on your team. Couples and vendors are always free.",
+      "earlyAccess": "Everything is free during early access. We’ll tell you well in advance before we charge anything.",
+      "trial": "Try it free for a month, no credit card needed.",
+      "card": {
+        "name": "Studio",
+        "cycle": "Billing",
+        "monthly": "Monthly",
+        "yearly": "Yearly",
+        "yearlyNote": "2 months free",
+        "perMonth": "per month",
+        "perYear": "per year",
+        "seats": "Planners",
+        "seatsHelp": "You, plus each colleague who signs in to plan.",
+        "fewer": "One planner fewer",
+        "more": "One planner more",
+        "base": "Studio, you included",
+        "extra": "{count, plural, one {# extra planner} other {# extra planners}}",
+        "total": "Total",
+        "exclVat": "excl. VAT"
+      },
+      "included": {
+        "title": "Everything included",
+        "items": {
+          "weddings": "Unlimited weddings",
+          "vendors": "Unlimited vendors and vendor links",
+          "templates": "Your own templates",
+          "languages": "Dutch, French and English",
+          "eu": "Data kept in the EU",
+          "support": "Support from the people who build it"
+        }
+      },
+      "faq": {
+        "title": "Questions about pricing",
+        "items": {
+          "planner": {
+            "q": "Who counts as a planner?",
+            "a": "Everyone on your team who signs in to plan weddings, you included. Couples and vendors never count."
+          },
+          "vat": {
+            "q": "What about VAT?",
+            "a": "Our prices exclude VAT. Your invoice shows any VAT that applies to you."
+          },
+          "cancel": {
+            "q": "Can I cancel?",
+            "a": "Any time. There is no minimum term; your subscription runs to the end of the paid period."
+          },
+          "yearly": {
+            "q": "What’s different about yearly?",
+            "a": "Pay for ten months, get twelve."
+          }
+        }
+      }
+    },
+    "about": {
+      "eyebrow": "About",
+      "title": "Built next to a real wedding practice.",
+      "body1": "Guestnote comes from Belgium. It started alongside a working wedding-planning agency, where we saw how much of a planner’s work disappears into spreadsheets, emails and WhatsApp messages.",
+      "body2": "We build it calmly and carefully: every feature is used on a real wedding before it ships. Your data stays in the EU, and we sell nothing to anyone.",
+      "contactTitle": "Contact",
+      "contactBody": "A question, an idea or a demo? Email us. You’ll hear back from the people who build Guestnote.",
+      "legalTitle": "Legal details"
+    },
+    "footer": {
+      "product": "Product",
+      "legal": "Legal",
+      "contact": "Contact",
+      "madeIn": "Made in Belgium."
+    },
+    "legalPages": {
+      "terms": "Terms of service",
+      "privacy": "Privacy policy",
+      "dpa": "Data processing agreement",
+      "subprocessors": "Subprocessors",
+      "cookies": "Cookies",
+      "accessibility": "Accessibility",
+      "legal": "Legal notice",
+      "updated": "Last updated {date}",
+      "version": "Version {version}",
+      "contents": "Contents",
+      "print": "Print"
+    },
+    "imprint": {
+      "name": "Name",
+      "tradeName": "Trade name",
+      "form": "Legal form",
+      "formValue": "Sole proprietorship (eenmanszaak)",
+      "address": "Address",
+      "kbo": "Enterprise number",
+      "vat": "VAT",
+      "vatExempt": "VAT exempt — Belgian small-business exemption scheme",
+      "email": "Email",
+      "pending": "The business’s legal details will appear here once registration is complete. Until then, you can reach us at {email}."
+    },
+    "demo": {
+      "label": "Example from Guestnote",
+      "wedding": "Els & Jan",
+      "date": "Sat 13 June",
+      "checklist": {
+        "title": "Checklist",
+        "one": "Tasting with the caterer",
+        "oneDue": "3 months before",
+        "two": "Run sheet to photographer",
+        "twoDue": "2 weeks before",
+        "three": "Finish the seating plan",
+        "threeDue": "1 week before",
+        "four": "Confirm the flowers",
+        "fourDue": "10 days before",
+        "shared": "Shared"
+      },
+      "runSheet": {
+        "title": "Run sheet · wedding day",
+        "one": "Ceremony",
+        "oneWhere": "Castle garden",
+        "two": "Reception",
+        "twoWhere": "Orangery",
+        "three": "First dance",
+        "threeWhere": "Ballroom",
+        "planner": "Planner",
+        "dj": "DJ"
+      },
+      "budget": {
+        "title": "Budget",
+        "venue": "Venue",
+        "catering": "Catering",
+        "photo": "Photography",
+        "flowers": "Flowers",
+        "spent": "Spent",
+        "of": "of {amount}"
+      },
+      "vendor": {
+        "shared": "Shared with you by Atelier Mooi",
+        "title": "Your part of the day",
+        "guests": "Guests",
+        "needs": "What the planner needs from you",
+        "need": "Confirm the shot list by 1 June"
+      },
+      "today": {
+        "title": "Today",
+        "needsYou": "Needs you today",
+        "one": "Forward the florist’s quote",
+        "two": "Floor plan to the caterer",
+        "weddings": "6 active weddings"
+      }
+    },
+    "notFound": {
+      "title": "This page doesn’t exist.",
+      "body": "The link may be out of date, or a letter may have gone missing.",
+      "home": "Go to the home page"
+    }
   },
   "app": {
     "placeholder": "Dashboard placeholder.",

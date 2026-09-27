@@ -16,7 +16,7 @@ import { DEFAULT_LOCALE, isLocale } from './lib/locales.ts'
  * (sitemap.ts, robots.ts, opengraph-image) must resolve against real paths. The
  * dashboard and guest sites get invisible prefixes.
  *
- *   guestnote.be/nl/prijzen         -> (no rewrite)          (marketing)/[locale]/prijzen
+ *   guestnote.be/nl/prijzen         -> (no rewrite)          (marketing)/[locale]/[slug]
  *   app.guestnote.be/weddings       -> /pro/weddings          pro/weddings
  *   app.guestnote.be/api/health     -> (no rewrite)           api/health
  *   els-en-jan.guestnote.be/story   -> /sites/els-en-jan/story sites/[tenant]/[[...slug]]
@@ -86,14 +86,17 @@ export const config = {
     // to dynamic at runtime /favicon.ico, reason: headers` on every request. Dismissed as
     // noise three times during the passkey debugging.
     //
-    // So the three conventional names below are a promise that those files exist.
-    // `favicon.ico` now does. `robots.txt` and `sitemap.xml` still do not, and they take
-    // this same route -- locally they 404 (measured 2026-09-01, same as favicon.ico did),
-    // and the deployed behaviour has not been read back. Only crawlers ask for them.
-    // Recorded rather than fixed blind: Next's `robots.ts` / `sitemap.ts` conventions on
-    // the marketing surface are the right answer, and an empty `robots.txt` is a decision
-    // about indexing rather than a bug fix.
-    '/((?!_next/static|_next/image|favicon\\.ico|robots\\.txt|sitemap\\.xml).*)',
+    // So the conventional name below is a promise that the file exists, and
+    // `public/favicon.ico` does.
+    //
+    // `robots.txt` and `sitemap.xml` WERE excluded here too, with no file behind either,
+    // and took the favicon's route (locally a 404, measured 2026-09-01; deployed, never
+    // read back). Spec 0006, 2026-09-27, took them OUT of the exclusion instead of adding
+    // files: they are `app/robots.ts` and `app/sitemap.ts` now, and they have to pass
+    // through this proxy, because the right answer differs by host -- the apex lists its
+    // pages, while the app host and every tenant host must tell crawlers to stay out, and
+    // an excluded path never learns which host it was asked on. See `keepCrawlersOut` below.
+    '/((?!_next/static|_next/image|favicon\\.ico).*)',
   ],
 }
 
@@ -132,8 +135,22 @@ export function proxy(request: NextRequest): Response {
       if (pathname === '/') {
         return permanentRedirect(canonicalUrl(request, hostOf(request), `/${DEFAULT_LOCALE}`))
       }
-      // No public API yet. When the waitlist form moves into this app it gets an
-      // explicit allow-list entry rather than a blanket opening.
+      // `app/robots.ts` and `app/sitemap.ts`, which are not under `[locale]` and would
+      // otherwise hit the unknown-locale guard below.
+      //
+      // `private`, not `public` like the pages: `/robots.txt` now has a different answer per
+      // host at one path on one shared CloudFront distribution, and nothing yet shows the
+      // cache key includes the host (research/05 Trap 1 put that off to M1b). A shared
+      // copy of the apex's "allow" served on the app host, or the app's "disallow" served on
+      // the apex, would be wrong in a way nobody sees. So the edge never stores either;
+      // crawlers may still cache for an hour. The cost is a Lambda hit per crawler fetch.
+      if (isCrawlerFile(pathname)) {
+        const file = NextResponse.next(forward)
+        file.headers.set('Cache-Control', 'private, max-age=3600')
+        return file
+      }
+      // No public API. The waitlist form this once anticipated was replaced by sign-up plus a
+      // mailto (spec 0006), so any future endpoint gets an explicit allow-list entry.
       if (pathname.startsWith('/api/')) return notFound('no public api')
 
       // `[locale]` is a top-level dynamic segment, so it acts as a catch-all: without
@@ -163,6 +180,7 @@ export function proxy(request: NextRequest): Response {
       // credential model is a passkey with a six-digit email code beneath it. See
       // .impeccable/surfaces/src-app-pro-public-login.md, Appendix A, for why.)
       if (pathname.startsWith('/api/')) return noStore(NextResponse.next(forward))
+      if (isCrawlerFile(pathname)) return keepCrawlersOut(pathname)
 
       const rewritten = NextResponse.rewrite(
         new URL(`/pro${pathname}${search}`, request.nextUrl),
@@ -175,6 +193,9 @@ export function proxy(request: NextRequest): Response {
       // The slug becomes a ROUTE PARAM, which is the point: research/05-architecture.md
       // section 1 notes that a `use cache` scope cannot read headers, so the tenant has
       // to arrive as part of the cache key. PH4 depends on this shape.
+      // Guest sites are a couple's wedding, reachable by link and not meant to be found by
+      // search (PH4 may revisit that per wedding; until then, nothing on a tenant is indexed).
+      if (isCrawlerFile(pathname)) return keepCrawlersOut(pathname)
       headers.set('x-gn-tenant', target.slug)
       return NextResponse.rewrite(
         new URL(`/sites/${target.slug}${pathname}${search}`, request.nextUrl),
@@ -191,6 +212,34 @@ export function proxy(request: NextRequest): Response {
     default:
       return notFound(target.reason)
   }
+}
+
+const CRAWLER_FILES = ['/robots.txt', '/sitemap.xml'] as const
+
+function isCrawlerFile(pathname: string): boolean {
+  return (CRAWLER_FILES as readonly string[]).includes(pathname)
+}
+
+/**
+ * `robots.txt` and `sitemap.xml` on a host that is not the apex (spec 0006, "SEO"): a robots
+ * file that disallows everything, and no sitemap.
+ *
+ * Answered here, as a constant, rather than by a route handler that reads the Host header:
+ * this file is the only reader of the request's hostname (CLAUDE.md), and a handler would need
+ * to be a second. Building a fixed response is not I/O, so the proxy stays pure (invariant 7).
+ * The app host already sends `X-Robots-Tag: noindex` on every page; this is the same answer in
+ * the file crawlers ask for first.
+ */
+function keepCrawlersOut(pathname: string): Response {
+  if (pathname !== '/robots.txt') return notFound('no sitemap off the apex')
+  return new Response('User-agent: *\nDisallow: /\n', {
+    status: 200,
+    headers: {
+      'Content-Type': 'text/plain; charset=utf-8',
+      // `private` for the reason the apex branch gives: one path, several answers, one cache.
+      'Cache-Control': 'private, max-age=3600',
+    },
+  })
 }
 
 function isInternalPrefix(pathname: string): boolean {

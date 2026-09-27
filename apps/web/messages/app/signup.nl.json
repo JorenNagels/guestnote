@@ -50,7 +50,13 @@
       "required": "Vul dit in.",
       "tooLong": "Dat is te lang.",
       "failed": "Je studio kon niet worden aangemaakt. Probeer het opnieuw.",
-      "forbidden": "Je sessie is verlopen. Meld je opnieuw aan."
+      "forbidden": "Je sessie is verlopen. Meld je opnieuw aan.",
+      "terms": "Ga akkoord met de voorwaarden om je studio aan te maken."
+    },
+    "terms": {
+      "sentence": "Ik ga akkoord met de {terms} en de {dpa}.",
+      "termsLink": "algemene voorwaarden",
+      "dpaLink": "verwerkersovereenkomst"
     }
   },
   "wedding": {

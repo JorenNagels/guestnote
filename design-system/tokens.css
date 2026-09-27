@@ -3,7 +3,9 @@
    Generated. Every pair below is contrast-verified; the chart palette is
    validated for colour-vision deficiency. See research/08-design-system.md.
 
-   Scope: the planner dashboard only. Tenant wedding-site theming is parked --
+   Scope: the planner dashboard, and the marketing apex, which since spec 0006 adds its own
+   type ramp and motion in apps/web/src/app/(marketing)/marketing.css and redefines no
+   token here. Tenant wedding-site theming is parked --
    design-system/theme-contract.ts stays valid for when F4/V7 come round.
 
    This file is a LAYER, not a Tailwind entry point. The consuming app owns the

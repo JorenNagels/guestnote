@@ -24,6 +24,7 @@ import {
 import { seatsChanged } from '../../../../lib/billing.ts'
 import { createWeddingFromForm } from '../../../../lib/create-wedding.ts'
 import { getDb } from '../../../../lib/db.ts'
+import { TERMS_VERSION } from '../../../../lib/legal.ts'
 import { DEFAULT_LOCALE, isLocale } from '../../../../lib/locales.ts'
 import { reportSilentFailure } from '../../../../lib/observability.ts'
 import { ORG_COOKIE, PREF_COOKIE_OPTIONS } from '../../../../lib/prefs.ts'
@@ -104,18 +105,24 @@ export async function createStudioAction(
 
   const name = text(formData, 'name')
   const ownerName = text(formData, 'ownerName')
+  // A checkbox posts `on` when ticked and nothing at all when not (spec 0006).
+  const acceptedTerms = formData.get('terms') === 'on'
   const values = { name, ownerName }
   const errors: NonNullable<StudioFormState['errors']> = {}
   if (name === '') errors.name = 'required'
   else if (name.length > MAX_STUDIO_NAME) errors.name = 'tooLong'
   if (ownerName === '') errors.ownerName = 'required'
   else if (ownerName.length > MAX_OWNER_NAME) errors.ownerName = 'tooLong'
-  if (Object.keys(errors).length > 0) return { errors, values }
+  const allErrors = acceptedTerms ? errors : { ...errors, terms: 'required' as const }
+  if (Object.keys(allErrors).length > 0) return { errors: allErrors, values }
 
   const created = await createStudio(getDb(), session.userId, {
     name,
     slugBase: studioSlugFromName(name),
     ownerName,
+    // Only ever the current version, and only after the box was ticked: the database stores
+    // what it is given, so the check above is what makes the stored version mean "accepted".
+    termsVersion: TERMS_VERSION,
   })
   if (!created.ok) {
     if (created.reason === 'alreadyOwner') {
@@ -127,6 +134,9 @@ export async function createStudioAction(
       if (owned) await actIn(owned.orgId)
       redirect(app.signupStep('wedding'))
     }
+    // Unreachable while the box is checked above; kept so a refusal the function adds later
+    // lands on the box rather than on "could not be created".
+    if (created.reason === 'terms') return { errors: { terms: 'required' }, values }
     return { form: created.reason === 'forbidden' ? 'forbidden' : 'failed', values }
   }
 

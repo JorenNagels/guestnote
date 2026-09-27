@@ -50,7 +50,13 @@
       "required": "Fill this in.",
       "tooLong": "That’s too long.",
       "failed": "Your studio couldn’t be created. Try again.",
-      "forbidden": "Your session has expired. Sign in again."
+      "forbidden": "Your session has expired. Sign in again.",
+      "terms": "Accept the terms to create your studio."
+    },
+    "terms": {
+      "sentence": "I accept the {terms} and the {dpa}.",
+      "termsLink": "terms of service",
+      "dpaLink": "data processing agreement"
     }
   },
   "wedding": {

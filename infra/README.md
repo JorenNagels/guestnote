@@ -292,10 +292,15 @@ a revert safe.
 ## The apex cutover
 
 `production` deploys with `dns: false`, so the live `guestnote.be` apex keeps serving
-`coming-soon/` until this deliberate step. **CLAUDE.md invariant 12**: Route 53 replaces a
+`coming-soon/` until this deliberate step. **CLAUDE.md invariant 13** (invariant 12 until 2026-09-01, when the
+favicon rule was inserted above it; this line caught up 2026-09-27): Route 53 replaces a
 whole record set on write, and the apex `TXT` holds three load-bearing values (Google +
 Zoho verification, SPF). Read before you write.
 
+0. **`hello@guestnote.be` receives mail** (every page names it), and **the operator's details are filled in** (`apps/web/src/lib/operator.ts`: name, address,
+   KBO number, VAT status). Belgian law (WER art. XII.6) requires them on the public site, and
+   while any is null the imprint renders nothing -- nothing mechanical stops this step being
+   skipped, which is why it is step 0 (spec 0006, "Operator").
 1. `npx sst deploy --stage production`, then get the distribution domain:
    `npx sst outputs --stage production` (or the CloudFront console).
 2. Verify against that `*.cloudfront.net` name with a spoofed `Host` **before any DNS
@@ -310,8 +315,12 @@ Zoho verification, SPF). Read before you write.
    - You can bring `app.guestnote.be` over first, on its own, and test the dashboard on the
      real hostname while the apex still serves `coming-soon/`. The apex + `www` + wildcard
      go in a later batch.
-5. Re-verify on the real hostnames. Then the `coming-soon/` S3 bucket and its CloudFront
-   distribution can be torn down (the `waitlist/` Lambda stays).
+5. Re-verify on the real hostnames, including `curl https://guestnote.be/robots.txt` (it must
+   allow crawling and name the sitemap only on production, `apps/web/src/lib/indexing.ts`).
+   Then the `coming-soon/` S3 bucket and its CloudFront distribution can be torn down, and --
+   since spec 0006 replaced the waitlist form with sign-up -- the waitlist with it: export its
+   DynamoDB table first, then run `waitlist/README.md`'s Teardown **with `--profile guestnote`**
+   on every command (the `default` profile here is not this account).
 
 Once this is trusted, `sst.config.ts` can switch production to
 `dns: sst.aws.dns({ zone: zoneId, override: true })` and a normal deploy will do the apex

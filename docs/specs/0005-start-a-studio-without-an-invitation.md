@@ -17,6 +17,8 @@ vendor-link header; the trial, the lock and billing, all switched off while
 correction notes in `research/05`, `research/07` and the login brief, plus sign-up's pass against
 the design handoff. Where the build differs from the first draft, the text says so with "(as
 built)".
+*Correction 2026-09-27: spec 0006 made the `PRICING` placeholders the public prices (`/prijzen`, JSON-LD), and migration 0011 redefined `create_studio` with a sixth argument, the accepted terms version, and a `terms` refusal. Where this spec gives prices as placeholders or the five-argument signature, 0006 and 0011 are what exists.*
+
 **Phase:** `research/05-architecture.md` M8 (self-serve onboarding) and the UI half of M9 (billing),
 plus a demo-period bug channel · **Bar:** a planner runs one real wedding here instead of a
 spreadsheet — which first means a planner can get in without the founder seeding their org.

@@ -23,13 +23,13 @@ warning once let `npm install` write a dependency into `package.json` without in
 | `packages/email/` | The mail seam. `ses.ts` is the only AWS SDK contact. |
 | `packages/storage/` | The file-storage seam: presigned PUT/GET. `s3.ts` is the only S3 SDK contact. |
 | `packages/billing/` | The billing seam: plain data, `pricing.ts`/`quote()`, and a no-op provider. No provider SDK yet. |
-| `apps/web/src/proxy.ts` | The only file that reads the request's hostname. (`lib/app-url.ts` composes the app origin for cross-host links.) Its matcher's exclusion list is a promise those files exist — see invariant 13. |
+| `apps/web/src/proxy.ts` | The only file that reads the request's hostname. (`lib/app-url.ts` composes the app origin for cross-host links.) Its matcher's exclusion list is a promise those files exist — see invariant 12. |
 | `apps/web/src/env.ts` | The only file that reads `process.env`. |
 | `docs/adr/` | Decisions that were **measured**. Supersede `research/` where they overlap. |
 | `docs/specs/` | What a feature must do, settled by interrogation **before** it is built. Written by `/feature`. |
 | `research/` | The reasoning: market, architecture, auth/tenancy, planner spec. |
 | `design-system/` | Tokens for the planner platform. Tenant theming is parked. |
-| `.impeccable/surfaces/` | Per-surface design briefs. The login brief is the live one. |
+| `.impeccable/surfaces/` | Per-surface design briefs: the login brief, and `marketing.md` for the public site (spec 0006). |
 | `infra/` | Hand-applied CloudFormation (SES events, GitHub OIDC, budgets) — not CDK, see the header in `mail-events.yaml`. |
 | `sst.config.ts` | The hosting stack — SST v3 (`sst.aws.Nextjs`), one per stage. Pulumi engine, not CloudFormation. Runbook: `infra/README.md`. |
 | `test/` | The shared Vitest setup and the `server-only` stub. Named by `vitest.config.ts`. |
@@ -109,7 +109,8 @@ stop and ask. The rest are held by convention alone, which is why they are writt
    event, deliberately: nothing on that table is sensitive today, and the migration's own
    comment says so plainly, with a test proving a link principal can read a sibling event's venue.
    **Migration 0010 added four more `SECURITY DEFINER` doors, no policies:** `create_studio`
-   (a user makes an org and becomes its owner, one owned studio each), `my_pending_invitations`
+   (a user makes an org and becomes its owner, one owned studio each; 0011 redefined it with a
+   sixth argument, the accepted terms version, and a `terms` refusal), `my_pending_invitations`
    (the caller's own invitations, matched on their `users.email` and never an email argument),
    `accept_invitation_by_id` (hands on to `accept_invitation`), and `orgs_with_trial_ending` —
    the **only cross-tenant read in the schema**, for the trial-reminder cron, returning org id,
@@ -193,17 +194,18 @@ stop and ask. The rest are held by convention alone, which is why they are writt
     exactly why it is here. `packages/email/README.md` and ADR 0004 have the numbers.
 
 12. **A name excluded from `proxy.ts`'s matcher must exist in `apps/web/public/`.** The
-    exclusions are `_next/static`, `_next/image`, `favicon.ico`, `robots.txt` and
-    `sitemap.xml`. Excluding a name means nothing rewrites it and nothing 404s it early, so a
-    missing file falls through to the router, where `[locale]` is a top-level dynamic segment
+    exclusions are `_next/static`, `_next/image` and `favicon.ico`. Excluding a name means
+    nothing rewrites it and nothing 404s it early, so a missing file falls through to the router, where `[locale]` is a top-level dynamic segment
     and matches it — and `(marketing)/[locale]/layout.tsx` is a ROOT layout, whose
     `notFound()` has no boundary above it and renders a **500, not a 404** -- that layout's
     own comment records the measurement. `/favicon.ico` was a 500 on every deployed page load
     from 2026-08-19 to 2026-09-01 for exactly this reason (staging Lambda log, alongside
     `Page changed from static to dynamic at runtime /favicon.ico, reason: headers`),
-    dismissed three times as log noise. `robots.txt` and `sitemap.xml` are still missing and
-    take the same route; locally they 404, and the deployed behaviour has not been read back.
-    The mirror of this — a file in `public/` that is NOT
+    dismissed three times as log noise. `robots.txt` and `sitemap.xml` took the same route
+    until 2026-09-27, when spec 0006 took them OUT of the exclusion list rather than adding
+    files: they are `app/robots.ts` and `app/sitemap.ts`, and the proxy answers them per host
+    (the apex lists its pages; the app host and every tenant disallow everything), which an
+    excluded path could not. The mirror of this — a file in `public/` that is NOT
     excluded gets rewritten to `/pro/<file>` and 404s — is why `wordmark.tsx` inlines the
     mark. **This one has no mechanism**, in either direction; both are recorded in
     `proxy.ts`'s matcher comment.

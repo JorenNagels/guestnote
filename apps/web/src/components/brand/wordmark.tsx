@@ -7,7 +7,8 @@
  *
  * 1. **`public/` does not work on the app host.** proxy.ts rewrites every non-`/api`
  *    path on `app.guestnote.be` to `/pro/*`, and its matcher excludes only
- *    `_next/static`, `_next/image`, `favicon.ico`, `robots.txt` and `sitemap.xml`. A
+ *    `_next/static`, `_next/image` and `favicon.ico` (robots and sitemap left the list in
+ *    spec 0006, 2026-09-27; they are route handlers now). A
  *    file in `public/` is none of those, so `/guestnote-logo.svg` becomes
  *    `/pro/guestnote-logo.svg` and 404s. Measured, not assumed. Any future static asset
  *    on this host needs a matcher entry or the same treatment as this one.

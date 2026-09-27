@@ -1,6 +1,7 @@
 import { MAX_STUDIO_NAME } from '@guestnote/db'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { STUDIO_NAME_MAX } from '../../../../components/signup/state.ts'
+import { TERMS_VERSION } from '../../../../lib/legal.ts'
 
 /**
  * Sign-up's Server Functions. Mocked: the repo, the session, the mailer core, cookies and the
@@ -105,7 +106,7 @@ it('keeps the client bound on the studio name equal to the database one', () => 
 })
 
 describe('createStudioAction', () => {
-  const valid = () => form({ name: '  Studio Wit ', ownerName: 'Ilse Verhoeven' })
+  const valid = () => form({ name: '  Studio Wit ', ownerName: 'Ilse Verhoeven', terms: 'on' })
 
   it('creates, seeds the starters in the request locale, opens the studio, moves on', async () => {
     await expect(createStudioAction({}, valid())).rejects.toThrow('REDIRECT /signup?step=wedding')
@@ -113,6 +114,7 @@ describe('createStudioAction', () => {
       name: 'Studio Wit',
       slugBase: 'studio-wit',
       ownerName: 'Ilse Verhoeven',
+      termsVersion: TERMS_VERSION,
     })
     const [, m, orgId, templates] = seedTemplates.mock.calls[0] ?? []
     expect(m).toBe(OWNER)
@@ -128,10 +130,16 @@ describe('createStudioAction', () => {
   })
 
   it.each([
-    [{ name: '', ownerName: 'Ilse' }, { name: 'required' }],
-    [{ name: 'Studio', ownerName: '   ' }, { ownerName: 'required' }],
-    [{ name: 'x'.repeat(81), ownerName: 'Ilse' }, { name: 'tooLong' }],
-    [{ name: 'Studio', ownerName: 'x'.repeat(121) }, { ownerName: 'tooLong' }],
+    [{ name: '', ownerName: 'Ilse', terms: 'on' }, { name: 'required' }],
+    [{ name: 'Studio', ownerName: '   ', terms: 'on' }, { ownerName: 'required' }],
+    [{ name: 'x'.repeat(81), ownerName: 'Ilse', terms: 'on' }, { name: 'tooLong' }],
+    [{ name: 'Studio', ownerName: 'x'.repeat(121), terms: 'on' }, { ownerName: 'tooLong' }],
+    // Spec 0006: an unticked box posts nothing, and nothing is created without it.
+    [{ name: 'Studio', ownerName: 'Ilse' }, { terms: 'required' }],
+    [
+      { name: '', ownerName: 'Ilse' },
+      { name: 'required', terms: 'required' },
+    ],
   ])('refuses %o with %o and writes nothing', async (entries, errors) => {
     const state = await createStudioAction({}, form(entries))
     expect(state.errors).toEqual(errors)
@@ -151,6 +159,14 @@ describe('createStudioAction', () => {
     createStudio.mockResolvedValue({ ok: false, reason: 'invalid' })
     expect(await createStudioAction({}, valid())).toEqual({
       form: 'failed',
+      values: { name: 'Studio Wit', ownerName: 'Ilse Verhoeven' },
+    })
+  })
+
+  it('puts a database terms refusal on the box, not on "could not be created"', async () => {
+    createStudio.mockResolvedValue({ ok: false, reason: 'terms' })
+    expect(await createStudioAction({}, valid())).toEqual({
+      errors: { terms: 'required' },
       values: { name: 'Studio Wit', ownerName: 'Ilse Verhoeven' },
     })
   })

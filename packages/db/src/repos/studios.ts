@@ -34,11 +34,16 @@ export type CreateStudioInput = {
   readonly slugBase: string
   /** The owner's display name; blank leaves `users.name` as it is. */
   readonly ownerName: string
+  /**
+   * The terms the owner accepted (spec 0006) -- the app's `TERMS_VERSION`, passed only once the
+   * box is ticked. Blank is refused as `terms` by the function itself (migration 0011).
+   */
+  readonly termsVersion: string
 }
 
 export type CreateStudioResult = Result<
   { readonly orgId: string; readonly slug: string },
-  'alreadyOwner' | 'invalid' | 'forbidden'
+  'alreadyOwner' | 'invalid' | 'forbidden' | 'terms'
 >
 
 export type StudioSettings = {
@@ -83,11 +88,12 @@ const CREATE_REFUSALS = {
   already_owner: 'alreadyOwner',
   invalid: 'invalid',
   forbidden: 'forbidden',
+  terms: 'terms',
 } as const
 
 /**
  * Creates a planner org with `userId` as its owner and sets their display name, in one
- * transaction (migration 0010, `create_studio`). `alreadyOwner` when the user already owns a
+ * transaction (`create_studio`, migration 0010, with the terms since 0011). `alreadyOwner` when the user already owns a
  * live studio -- which is also what a double submit gets on its second call.
  *
  * The caller's `Memberships` are stale afterwards: re-resolve them before seeding templates
@@ -102,20 +108,20 @@ export async function createStudio(
   const [row] = await withUser(db, userId, (tx: TenantDb) =>
     rowsOf<CreateRow>(
       tx.execute(
-        sql`select * from public.create_studio(${orgId}::uuid, ${userId}::uuid, ${input.name}, ${input.slugBase}, ${input.ownerName})`,
+        sql`select * from public.create_studio(${orgId}::uuid, ${userId}::uuid, ${input.name}, ${input.slugBase}, ${input.ownerName}, ${input.termsVersion})`,
       ),
     ),
   )
-  if (!row) throw new Error('create_studio returned no row (migration 0010)')
+  if (!row) throw new Error('create_studio returned no row (migration 0011)')
   if (row.outcome === 'created') {
     if (!row.created_org_id || !row.created_slug) {
-      throw new Error('create_studio said created with no org or slug (migration 0010)')
+      throw new Error('create_studio said created with no org or slug (migration 0011)')
     }
     return ok({ orgId: row.created_org_id, slug: row.created_slug })
   }
   const reason = CREATE_REFUSALS[row.outcome as keyof typeof CREATE_REFUSALS]
   if (!reason) {
-    throw new Error(`create_studio returned an unknown outcome '${row.outcome}' (migration 0010)`)
+    throw new Error(`create_studio returned an unknown outcome '${row.outcome}' (migration 0011)`)
   }
   return fail(reason)
 }

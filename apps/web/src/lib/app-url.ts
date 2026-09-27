@@ -1,4 +1,6 @@
 import { env } from '../env.ts'
+import type { Locale } from './locales.ts'
+import { type MarketingPageId, pagePath } from './marketing-pages.ts'
 import { app } from './routes.ts'
 
 /**
@@ -53,6 +55,15 @@ function appOrigin(): string {
  */
 export function apexOrigin(): string {
   return originFor(env.rootDomain)
+}
+
+/**
+ * `https://guestnote.be/nl/algemene-voorwaarden` -- a marketing page, from the app host (spec
+ * 0006: sign-up links the terms and the DPA). Absolute, because the app host rewrites every path
+ * to `/pro/*` and has no marketing pages of its own.
+ */
+export function apexPageUrl(id: MarketingPageId, locale: Locale): string {
+  return `${apexOrigin()}${pagePath(id, locale)}`
 }
 
 /** `https://app.guestnote.be/login` -- where a planner signs in, from anywhere. */

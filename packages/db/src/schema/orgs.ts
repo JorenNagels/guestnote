@@ -62,6 +62,17 @@ export const organizations = pgTable(
     /** Provider-neutral names: null until a provider exists behind `packages/billing`. */
     billingCustomerId: text('billing_customer_id'),
     billingSubscriptionId: text('billing_subscription_id'),
+    /**
+     * Spec 0006 (migration 0011). Which terms the owner accepted when creating the studio, and
+     * when -- written only by `create_studio`, which refuses without a version. "Only" by
+     * convention: `tenant_isolation` is FOR ALL, so a scoped update could overwrite them, and no
+     * repo does. A column-level REVOKE is the fix if the record must be tamper-evident. Null means the
+     * studio predates the terms (seeded, or made under spec 0005 before 2026-09-27); not
+     * backfilled, because nobody accepted anything. The terms include the DPA, so this is also
+     * the record of the processing agreement.
+     */
+    termsVersion: text('terms_version'),
+    termsAcceptedAt: tstz('terms_accepted_at'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
     deletedAt: deletedAt(),

@@ -20,6 +20,7 @@ import { SignupFrame } from '@/components/signup/signup-frame.tsx'
 import { StudioStep } from '@/components/signup/studio-step.tsx'
 import { TeamStep } from '@/components/signup/team-step.tsx'
 import { type PlanOption, WeddingStep } from '@/components/signup/wedding-step.tsx'
+import { apexPageUrl } from '../../../../lib/app-url.ts'
 import { getAuth } from '../../../../lib/auth.ts'
 import { billingMode } from '../../../../lib/billing-mode.ts'
 import { getDb } from '../../../../lib/db.ts'
@@ -218,6 +219,14 @@ export default async function SignupPage({
                 tooLong: t('studio.errors.tooLong'),
                 failed: t('studio.errors.failed'),
                 forbidden: t('studio.errors.forbidden'),
+                terms: t('studio.errors.terms'),
+              },
+              terms: {
+                sentence: t.raw('studio.terms.sentence') as string,
+                termsLink: t('studio.terms.termsLink'),
+                dpaLink: t('studio.terms.dpaLink'),
+                termsHref: apexPageUrl('terms', locale),
+                dpaHref: apexPageUrl('dpa', locale),
               },
             }}
             ownerName={session.name ?? ''}

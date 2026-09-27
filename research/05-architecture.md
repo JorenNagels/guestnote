@@ -793,6 +793,7 @@ deployment"; the stage is `staging` — see the 2026-08-29 note above). **Rollba
 | **M8** | Self-serve onboarding, slug uniqueness + reserved words | 1–2 | **← the day-90 goal** |
 | **M9** | Mollie checkout + subscriptions, feature gating on `organizations.plan` | 1–2 | |
 | **M10** | Reminders, bounce pipeline, retention job, DPA + privacy policy | 1 | |
+  *2026-09-27: spec 0006 shipped the DPA and privacy policy (unreviewed drafts, the user's call); the retention job is still missing -- see spec 0006, "Still open".*
 
 > **Status 2026-09-26 (spec 0005).** **M8 is built:** a planner signs up at `/pro/signup`, creates a
 > studio through the `create_studio` definer function (slug from the name, `-2`/`-3` on collision,

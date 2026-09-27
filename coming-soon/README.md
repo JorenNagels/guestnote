@@ -72,5 +72,7 @@ Leave these free for the real product — `05-architecture.md` needs them:
 So scope this distribution to the apex and `www` only. A wildcard alias here would
 collide with the multi-tenant distribution later.
 
+*2026-09-27: decided -- it dies at the cutover; the marketing site is `apps/web` (spec 0006), which also names `hello@guestnote.be`, so that alias is due now.*
+
 When the real app ships, this page either dies or becomes the marketing site — either way
 it is deliberately throwaway, and nothing else should depend on it.

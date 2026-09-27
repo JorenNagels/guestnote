@@ -13,9 +13,9 @@ Two of the three hosts served by `apps/web`:
 - **`app.guestnote.be` — the planner application.** The PH0–PH3 product in
   `research/09-planner-app.md`. Currently a token-proof placeholder at
   `apps/web/src/app/pro/page.tsx`.
-- **`guestnote.be` — the marketing apex.** `apps/web/src/app/(marketing)/[locale]/`,
-  today a placeholder; `coming-soon/index.html` is what actually serves the apex until
-  there is real copy.
+- **`guestnote.be` — the marketing apex.** `apps/web/src/app/(marketing)/[locale]/`, the
+  public site since 2026-09-27 (spec 0006); `coming-soon/index.html` still serves the apex
+  until the production cutover.
 
 `<slug>.guestnote.be` — the per-tenant guest wedding sites — is a **known PH4 surface,
 not in scope now**. Its route is a stub, and `design-system/theme-contract.ts` holds the
