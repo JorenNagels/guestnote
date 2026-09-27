@@ -1,6 +1,6 @@
 # ADR 0002 — SES: domain verified now, production access deferred
 
-**Date:** 2026-08-17 · **Status:** Domain done. Production access pending, deliberately.
+**Date:** 2026-08-17 · **Status:** Domain done. Production access requested 2026-09-27, pending review.
 **Updated 2026-08-19:** the application now sends. See `0004-sign-in-mail-sends-for-real.md`;
 two of the five gates below moved, and the configuration set gained an event destination.
 **Updated 2026-08-19 (later the same day):** the apex now receives mail and DMARC is published.
@@ -47,6 +47,20 @@ SES falls back to `amazonses.com` and mail still goes out with DKIM intact.
 > Zoho verification strings were repeated verbatim in the UPSERT rather than replaced — but the
 > apex is a live record set now, and **every future write to its `TXT` set must carry all three
 > values**. See `0005-the-apex-receives-mail.md`.
+
+> **Requested 2026-09-27.** Self-serve sign-up (spec 0005) made sandbox a blocker: a new
+> address gets no sign-in code. Filed with the `put-account-details` call below; status read
+> back as `PENDING`. Before filing, a Gmail search showed no earlier request for this account
+> (929219061071) -- the cases that looked like one were other accounts. The Flowsha account's
+> history is the one to learn from: AWS asked for more information, the reply was thin, it was
+> denied with no reason given ("could have a negative impact"), and only a later appeal was
+> granted, six weeks after the first ask. So when AWS's follow-up arrives, answer it in the
+> Support Center the same day with the full picture: transactional only (sign-in codes valid
+> 5 minutes, team invitations, the trial reminder), every address typed by its owner or a
+> named colleague, the verified domain with DKIM / custom MAIL FROM / SPF / DMARC, bounces and
+> complaints to SNS plus account-level suppression for both (checked 2026-09-27), reputation
+> metrics on, per-address and per-IP rate limits on sign-in, under 1,000 messages a month in
+> the demo.
 
 ## Why production access was NOT requested yet
 
