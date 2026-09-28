@@ -87,7 +87,7 @@
       "deep": {
         "checklist": {
           "points": {
-            "one": "Deadlines like “3 months before”, not a fixed date",
+            "one": "A deadline reads “3 months before” and counts back from the wedding date",
             "two": "When the wedding date moves, everything moves with it",
             "three": "Every new couple starts from your own template",
             "four": "Filter by overdue, internal or shared"
@@ -99,7 +99,7 @@
         },
         "runSheet": {
           "points": {
-            "one": "A run sheet for each day of the celebration",
+            "one": "Separate run sheets for the ceremony, the party and the brunch the day after",
             "two": "Time, length, place and a person responsible for each moment",
             "three": "A warning as soon as two moments overlap",
             "four": "Vendors only see their own moments through their link"
@@ -126,7 +126,7 @@
             "one": "Planned, spent and paid, per category",
             "two": "Every line linked to a vendor",
             "three": "Outstanding payments in a separate list",
-            "four": "The number your couple asks for, at a glance"
+            "four": "The total and what is left, at the top of the page"
           },
           "chips": {
             "one": "€25,150",
@@ -136,7 +136,7 @@
       },
       "together": {
         "title": "Everyone around the same wedding",
-        "body": "The couple, your team and every vendor look at the same wedding. When something changes in the run sheet, the photographer sees it in their link and your colleague in the app.",
+        "body": "Your team works in the same wedding, and every vendor sees their part through their own link. When a colleague changes the run sheet, the change is in the photographer’s link straight away.",
         "orbit": {
           "couple": "Couple",
           "photographer": "Photographer",
@@ -195,7 +195,7 @@
         },
         "studio": {
           "title": "Your own name and logo",
-          "body": "Vendors see your studio, not Guestnote."
+          "body": "Vendors see your name and logo at the top of their link."
         },
         "languages": {
           "title": "Dutch, French and English",

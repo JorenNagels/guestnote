@@ -87,7 +87,7 @@
       "deep": {
         "checklist": {
           "points": {
-            "one": "Des échéances comme « 3 mois avant », pas une date fixe",
+            "one": "Une échéance s’écrit « 3 mois avant » et se calcule à partir de la date du mariage",
             "two": "Si la date du mariage change, tout suit",
             "three": "Chaque nouveau couple démarre de votre propre modèle",
             "four": "Filtrez par retard, interne ou partagé"
@@ -99,7 +99,7 @@
         },
         "runSheet": {
           "points": {
-            "one": "Un déroulé par jour de fête",
+            "one": "Des déroulés séparés pour la cérémonie, la fête et le brunch du lendemain",
             "two": "Heure, durée, lieu et un responsable par moment",
             "three": "Une alerte dès que deux moments se chevauchent",
             "four": "Les prestataires ne voient que leurs moments via leur lien"
@@ -126,7 +126,7 @@
             "one": "Prévu, dépensé et payé, par catégorie",
             "two": "Chaque ligne liée à un prestataire",
             "three": "Les paiements dus dans une liste à part",
-            "four": "Le chiffre que votre couple demande, d’un coup d’œil"
+            "four": "Le total et ce qui reste, en haut de la page"
           },
           "chips": {
             "one": "25 150 €",
@@ -136,7 +136,7 @@
       },
       "together": {
         "title": "Tout le monde autour du même mariage",
-        "body": "Le couple, votre équipe et chaque prestataire regardent le même mariage. Quand le déroulé change, le photographe le voit dans son lien et votre collègue dans l’application.",
+        "body": "Votre équipe travaille dans le même mariage, et chaque prestataire voit sa partie via son propre lien. Quand un collègue modifie le déroulé, le changement apparaît aussitôt dans le lien du photographe.",
         "orbit": {
           "couple": "Couple",
           "photographer": "Photographe",
@@ -195,7 +195,7 @@
         },
         "studio": {
           "title": "Votre nom et votre logo",
-          "body": "Les prestataires voient votre studio, pas Guestnote."
+          "body": "Les prestataires voient votre nom et votre logo en haut de leur lien."
         },
         "languages": {
           "title": "Néerlandais, français et anglais",

@@ -87,7 +87,7 @@
       "deep": {
         "checklist": {
           "points": {
-            "one": "Deadlines als „3 maanden vooraf”, niet als vaste datum",
+            "one": "Een deadline staat als „3 maanden vooraf” en rekent terug vanaf de trouwdatum",
             "two": "Verschuift de trouwdatum, dan schuift alles mee",
             "three": "Elk nieuw koppel start vanuit je eigen sjabloon",
             "four": "Filter op achterstallig, intern of gedeeld"
@@ -99,7 +99,7 @@
         },
         "runSheet": {
           "points": {
-            "one": "Een draaiboek per feestdag",
+            "one": "Aparte draaiboeken voor de ceremonie, het feest en de brunch de dag erna",
             "two": "Tijd, duur, plaats en een verantwoordelijke per moment",
             "three": "Een waarschuwing zodra twee momenten overlappen",
             "four": "Leveranciers zien via hun link alleen hun eigen momenten"
@@ -126,7 +126,7 @@
             "one": "Voorzien, uitgegeven en betaald, per categorie",
             "two": "Elke lijn gekoppeld aan een leverancier",
             "three": "Openstaande betalingen in een aparte lijst",
-            "four": "Het getal dat het koppel vraagt, in één oogopslag"
+            "four": "Het totaal en wat er nog over is, bovenaan de pagina"
           },
           "chips": {
             "one": "€ 25.150",
@@ -136,7 +136,7 @@
       },
       "together": {
         "title": "Iedereen rond dezelfde trouw",
-        "body": "Het koppel, je team en elke leverancier kijken naar dezelfde trouw. Verandert er iets in het draaiboek, dan ziet de fotograaf het in zijn link en je collega in de app.",
+        "body": "Je team werkt in dezelfde trouw, en elke leverancier ziet zijn deel via een eigen link. Past een collega het draaiboek aan, dan staat die wijziging meteen ook in de link van de fotograaf.",
         "orbit": {
           "couple": "Koppel",
           "photographer": "Fotograaf",
@@ -195,7 +195,7 @@
         },
         "studio": {
           "title": "Je eigen naam en logo",
-          "body": "Leveranciers zien je studio, niet Guestnote."
+          "body": "Leveranciers zien je naam en logo bovenaan hun link."
         },
         "languages": {
           "title": "Nederlands, Frans en Engels",

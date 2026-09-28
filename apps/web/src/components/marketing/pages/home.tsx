@@ -21,7 +21,9 @@ import { TiltCard } from '../tilt-card.tsx'
  *   price      a card that tilts toward the pointer, beside what it costs
  *   close      the early-access line and the FAQ, on the hero's gradient
  *
- * No illustrations and no "why we make it" section -- both removed at the user's request.
+ * No illustrations and no "why we make it" section -- both removed at the user's request. And
+ * no small numbered label above each deep-dive heading ("01 · Takenlijst"): the same AI-made
+ * tell the first rewrite removed, and it crept back in with the variants (2026-09-28).
  */
 
 const FEATURES = ['checklist', 'runSheet', 'couple', 'budget'] as const
@@ -37,13 +39,6 @@ const TONE: Record<Feature, StageTone> = {
   runSheet: 'gold',
   couple: 'sage',
   budget: 'teal',
-}
-/** The scene label that names each feature, shared with the hero's tabs. */
-const SCENE: Record<Feature, 'tasks' | 'runSheet' | 'couple' | 'budget'> = {
-  checklist: 'tasks',
-  runSheet: 'runSheet',
-  couple: 'couple',
-  budget: 'budget',
 }
 const POINTS = ['one', 'two', 'three', 'four'] as const
 const ORBIT = [
@@ -82,10 +77,7 @@ export async function HomePage({ locale }: { locale: Locale }) {
             return (
               <div key={f} className="grid items-center gap-14 lg:grid-cols-2">
                 <div className={i % 2 ? 'lg:order-2' : ''}>
-                  <p className="text-primary font-mono text-sm">
-                    {String(i + 1).padStart(2, '0')} · {d(`live.scenes.${SCENE[f]}`)}
-                  </p>
-                  <h3 className="mk-display mt-3 text-[clamp(1.8rem,3.5vw,2.8rem)] leading-[1.06]">
+                  <h3 className="mk-display text-[clamp(1.8rem,3.5vw,2.8rem)] leading-[1.06]">
                     {t(`home.bands.${f}.title`)}
                   </h3>
                   <ul className="mt-6 flex flex-col gap-3">
