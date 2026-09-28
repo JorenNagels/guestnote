@@ -34,10 +34,6 @@
     "home": {
       "headline": "Planningssoftware voor weddingplanners en trouwlocaties",
       "lede": "Guestnote houdt per trouw je takenlijst, draaiboek, budget en leveranciers bij. Deadlines rekenen terug vanaf de trouwdatum, en elke leverancier krijgt een eigen link naar zijn deel van de dag.",
-      "problem": {
-        "title": "Waarom we het maken",
-        "body": "De meeste planners die we spreken, werken met een Excel-bestand per koppel en een WhatsApp-groep per trouw. Dat gaat goed tot er iets verschuift: een nieuwe datum, een extra feestdag, een fotograaf die nog het oude draaiboek heeft. In Guestnote staat die informatie op één plaats, dus pas je een wijziging maar één keer aan."
-      },
       "bands": {
         "checklist": {
           "title": "Deadlines die meeschuiven met de trouwdatum",
@@ -47,23 +43,17 @@
           "title": "Een draaiboek per feestdag",
           "body": "Elk item heeft een tijd, een duur, een plaats en iemand die ervoor verantwoordelijk is. Als twee items elkaar overlappen, zie je dat meteen in de lijst."
         },
-        "vendors": {
-          "title": "Leveranciers krijgen een eigen link",
-          "body": "De fotograaf of de cateraar hoeft geen account aan te maken. Via de link ziet hij het aantal gasten, zijn momenten in het draaiboek en wat je nog van hem nodig hebt. Je kunt een link op elk moment intrekken."
-        },
         "budget": {
           "title": "Het budget per categorie",
           "body": "Per categorie zie je wat voorzien is, wat al uitgegeven is en wat betaald is. Betalingen die nog openstaan, staan in een aparte lijst."
+        },
+        "couple": {
+          "title": "Jij kiest wat het koppel ziet",
+          "body": "Elke taak en elk bestand staat op intern of gedeeld. Interne notities en kostenramingen blijven bij je team. Taken voor het koppel wijs je aan het koppel toe. Het portaal waar koppels dit bekijken, opent binnenkort."
         }
       },
-      "how": {
-        "title": "Zo begin je",
-        "body": "Je maakt een studio aan met je naam en, als je wilt, je logo. Daarna voeg je een trouw toe met de datum en de namen van het koppel, en kies je een sjabloon voor de takenlijst. Collega’s en leveranciers nodig je uit wanneer het je uitkomt."
-      },
       "pricingTeaser": {
-        "title": "Wat het kost",
-        "body": "{base} per maand voor je studio, plus {seat} per maand voor elke extra planner in je team. Koppels en leveranciers betalen niets en tellen niet mee.",
-        "link": "Alle prijzen"
+        "title": "Wat het kost"
       },
       "faq": {
         "title": "Vragen",
@@ -93,6 +83,74 @@
       "closing": {
         "title": "Gratis zolang we in early access zijn",
         "body": "Maak een studio aan en zet er een trouw in waar je nu aan werkt. Zo zie je het snelst of Guestnote voor jou werkt."
+      },
+      "deep": {
+        "checklist": {
+          "points": {
+            "one": "Deadlines als „3 maanden vooraf”, niet als vaste datum",
+            "two": "Verschuift de trouwdatum, dan schuift alles mee",
+            "three": "Elk nieuw koppel start vanuit je eigen sjabloon",
+            "four": "Filter op achterstallig, intern of gedeeld"
+          },
+          "chips": {
+            "one": "3 maanden vooraf",
+            "two": "za 19 juni"
+          }
+        },
+        "runSheet": {
+          "points": {
+            "one": "Een draaiboek per feestdag",
+            "two": "Tijd, duur, plaats en een verantwoordelijke per moment",
+            "three": "Een waarschuwing zodra twee momenten overlappen",
+            "four": "Leveranciers zien via hun link alleen hun eigen momenten"
+          },
+          "chips": {
+            "one": "14:00 · Ceremonie",
+            "two": "Overlapt 15 min"
+          }
+        },
+        "couple": {
+          "points": {
+            "one": "Intern of gedeeld, per taak en per bestand",
+            "two": "Taken voor het koppel wijs je aan het koppel toe",
+            "three": "Notities en kostenramingen blijven bij je team",
+            "four": "Het koppelportaal opent binnenkort"
+          },
+          "chips": {
+            "one": "Gedeeld met koppel",
+            "two": "Intern"
+          }
+        },
+        "budget": {
+          "points": {
+            "one": "Voorzien, uitgegeven en betaald, per categorie",
+            "two": "Elke lijn gekoppeld aan een leverancier",
+            "three": "Openstaande betalingen in een aparte lijst",
+            "four": "Het getal dat het koppel vraagt, in één oogopslag"
+          },
+          "chips": {
+            "one": "€ 25.150",
+            "two": "+ € 500 betaald"
+          }
+        }
+      },
+      "together": {
+        "title": "Iedereen rond dezelfde trouw",
+        "body": "Het koppel, je team en elke leverancier kijken naar dezelfde trouw. Verandert er iets in het draaiboek, dan ziet de fotograaf het in zijn link en je collega in de app.",
+        "orbit": {
+          "couple": "Koppel",
+          "photographer": "Fotograaf",
+          "caterer": "Cateraar",
+          "dj": "DJ",
+          "team": "Team",
+          "runSheet": "Draaiboek",
+          "budget": "Budget",
+          "florist": "Bloemist"
+        }
+      },
+      "price": {
+        "body": "Koppels en leveranciers betalen niets en tellen niet mee. Tijdens de early access is alles gratis, zonder kredietkaart.",
+        "perSeat": "+ {amount} per extra planner"
       }
     },
     "features": {
@@ -290,12 +348,29 @@
         "needs": "Wat de planner van je nodig heeft",
         "need": "Shotlist bevestigen voor 1 juni"
       },
-      "today": {
-        "title": "Vandaag",
-        "needsYou": "Heeft je vandaag nodig",
-        "one": "Offerte bloemist doorsturen",
-        "two": "Zaalplan naar cateraar",
-        "weddings": "6 actieve bruiloften"
+      "live": {
+        "dateLabel": "Trouwdatum",
+        "moved": "Datum een week verschoven. Alle deadlines zijn mee verschoven.",
+        "scenes": {
+          "tasks": "Takenlijst",
+          "runSheet": "Draaiboek",
+          "budget": "Budget",
+          "couple": "Koppel"
+        },
+        "rsNew": "Taart aansnijden",
+        "rsNewWhere": "Feestzaal",
+        "rsCaterer": "Cateraar",
+        "rsAdded": "Nieuw item toegevoegd. Iedereen met een link ziet het meteen.",
+        "paid": "Aanbetaling bloemist betaald",
+        "paidNote": "Betaling geboekt. Uitgegeven en openstaand zijn bijgewerkt.",
+        "internal": "Intern",
+        "sharedCouple": "Gedeeld met koppel",
+        "coupleNote": "Het koppel ziet alleen wat je deelt.",
+        "coupleTasks": {
+          "one": "Menukeuze doorgeven",
+          "two": "Kostenraming locatie",
+          "three": "Draaiboek ceremonie nalezen"
+        }
       }
     },
     "notFound": {

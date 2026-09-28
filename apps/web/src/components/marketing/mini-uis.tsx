@@ -38,31 +38,6 @@ function Window({ title, children }: { title: string; children: ReactNode }) {
   )
 }
 
-export async function TodayDemo({ locale }: Props) {
-  const t = await getTranslations({ locale, namespace: 'marketing.demo' })
-  const rows = [
-    { label: t('today.one'), wedding: t('wedding') },
-    { label: t('today.two'), wedding: 'Sara & Tom' },
-  ]
-  return (
-    <Window title={t('today.title')}>
-      <p className="text-muted-foreground mk-step text-xs">{t('today.weddings')}</p>
-      <h3 className="mk-step mt-3 flex items-center gap-2 font-semibold" style={step(1)}>
-        {t('today.needsYou')} <Badge tone="accent">2</Badge>
-      </h3>
-      <ul className="mt-2 divide-y divide-[var(--border)]">
-        {rows.map((r, i) => (
-          <li key={r.label} className="mk-step flex items-center gap-3 py-2.5" style={step(i + 2)}>
-            <span className="border-border size-4 shrink-0 rounded border" />
-            <span className="flex-1">{r.label}</span>
-            <span className="text-muted-foreground text-xs">{r.wedding}</span>
-          </li>
-        ))}
-      </ul>
-    </Window>
-  )
-}
-
 export async function ChecklistDemo({ locale }: Props) {
   const t = await getTranslations({ locale, namespace: 'marketing.demo' })
   const rows = [
@@ -265,5 +240,39 @@ export async function BudgetChip({ locale }: Props) {
         <div className="bg-primary h-full w-[90%] rounded-full" />
       </div>
     </div>
+  )
+}
+
+/** What the couple sees: tasks marked internal or shared (the per-task visibility that exists). */
+export async function CoupleDemo({ locale }: Props) {
+  const t = await getTranslations({ locale, namespace: 'marketing.demo' })
+  const rows = [
+    { key: 'one', shared: true },
+    { key: 'two', shared: false },
+    { key: 'three', shared: true },
+  ] as const
+  return (
+    <Window title={`${t('checklist.title')} · ${t('wedding')}`}>
+      <ul className="divide-y divide-[var(--border)]">
+        {rows.map((r, i) => (
+          <li key={r.key} className="mk-step flex items-center gap-3 py-3" style={step(i)}>
+            <span className="border-border size-4 shrink-0 rounded border" />
+            <span className="flex-1">{t(`live.coupleTasks.${r.key}`)}</span>
+            <span
+              className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
+                r.shared
+                  ? 'bg-[var(--teal-100)] text-[var(--teal-900)]'
+                  : 'bg-muted text-muted-foreground'
+              }`}
+            >
+              {r.shared ? t('live.sharedCouple') : t('live.internal')}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="text-muted-foreground mk-step mt-3 text-xs" style={step(3)}>
+        {t('live.coupleNote')}
+      </p>
+    </Window>
   )
 }

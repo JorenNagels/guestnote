@@ -40,71 +40,6 @@
   max-width: 62ch;
 }
 
-/* -- The mark drawing on (ported from coming-soon/index.html, timings measured there) ------- */
-.mk-ink {
-  stroke: #fff;
-  fill: none;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-dasharray: 1000;
-  stroke-dashoffset: 1000;
-}
-@keyframes mk-draw {
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-@keyframes mk-draw-gold {
-  0% {
-    stroke-dashoffset: 1000;
-    animation-timing-function: cubic-bezier(0.34, 0.14, 0.48, 0.9);
-  }
-  68% {
-    stroke-dashoffset: 362;
-    animation-timing-function: cubic-bezier(0.2, 0.92, 0.26, 1);
-  }
-  100% {
-    stroke-dashoffset: 0;
-  }
-}
-.mk-ink-card {
-  animation: mk-draw 0.56s cubic-bezier(0.4, 0.06, 0.3, 0.98) 0.04s forwards;
-}
-.mk-ink-flap {
-  animation: mk-draw 0.26s cubic-bezier(0.25, 0.85, 0.3, 1) 0.54s forwards;
-}
-.mk-ink-gold {
-  animation: mk-draw-gold 0.64s 0.16s forwards;
-}
-
-/* Hero copy rises in after the mark, as it did on coming-soon. */
-@keyframes mk-rise {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-.mk-rise {
-  opacity: 0;
-  animation: mk-rise 0.55s cubic-bezier(0.22, 1, 0.28, 1) forwards;
-}
-.mk-rise-1 {
-  animation-delay: 0.7s;
-}
-.mk-rise-2 {
-  animation-delay: 0.8s;
-}
-.mk-rise-3 {
-  animation-delay: 0.9s;
-}
-.mk-rise-4 {
-  animation-delay: 1s;
-}
-
 /* -- The product window around every mini-UI ----------------------------------------------- */
 .mk-window {
   background: var(--card);
@@ -260,14 +195,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mk-ink {
-    stroke-dashoffset: 0;
-    animation: none;
-  }
-  .mk-rise {
-    opacity: 1;
-    animation: none;
-  }
   .mk-js [data-inview] .mk-step,
   .mk-js [data-inview] .mk-slide {
     opacity: 1;
@@ -321,11 +248,188 @@
 .mk-stage-sage {
   background: linear-gradient(160deg, var(--success-200), var(--success-100));
 }
-.mk-stage-deco {
-  position: absolute;
-  z-index: 0;
-  pointer-events: none;
+
+/* -- The live hero (variant E, 2026-09-28): a warm moving gradient, a floor grid, glass ---- */
+.mk-hero-live {
+  --mk-peach: #f0b89c;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(55% 65% at 10% 15%, var(--gold-300) 0%, transparent 62%),
+    radial-gradient(50% 60% at 90% 20%, var(--teal-300) 0%, transparent 62%),
+    radial-gradient(65% 60% at 72% 100%, var(--mk-peach) 0%, transparent 66%),
+    radial-gradient(50% 55% at 15% 95%, var(--success-200) 0%, transparent 62%), var(--background);
+  background-size: 140% 140%;
+  animation: mk-drift 20s ease-in-out infinite alternate;
 }
-.mk-band-gold {
-  background: var(--gold-100);
+@keyframes mk-drift {
+  from {
+    background-position: 0% 0%;
+  }
+  to {
+    background-position: 100% 60%;
+  }
+}
+.mk-floor {
+  position: absolute;
+  z-index: -1;
+  left: -30%;
+  right: -30%;
+  bottom: -5%;
+  height: 65%;
+  background-image:
+    linear-gradient(rgb(32 101 96 / 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(32 101 96 / 0.1) 1px, transparent 1px);
+  background-size: 72px 72px;
+  transform: perspective(700px) rotateX(62deg);
+  transform-origin: top center;
+  mask-image: linear-gradient(to bottom, transparent, black 35%, black 60%, transparent);
+}
+.mk-glass {
+  background: rgb(255 255 255 / 0.86);
+  backdrop-filter: blur(14px) saturate(1.2);
+  border: 1px solid rgb(255 255 255 / 0.85);
+  border-radius: 20px;
+  box-shadow: 0 24px 60px -24px rgb(6 33 31 / 0.35);
+}
+@keyframes mk-roll {
+  from {
+    opacity: 0;
+    transform: translateY(70%);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.mk-roll {
+  animation: mk-roll 0.45s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+@keyframes mk-flash {
+  from {
+    background-color: var(--gold-200);
+  }
+  to {
+    background-color: var(--card);
+  }
+}
+.mk-flash {
+  animation: mk-flash 1.2s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .mk-hero-live,
+  .mk-roll,
+  .mk-flash {
+    animation: none;
+  }
+}
+@keyframes mk-progress {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+.mk-progress {
+  animation: mk-progress 6.5s linear forwards;
+}
+
+/* -- Homepage depth (2026-09-28): tilt card, floating chips, the orbit ------------------- */
+.mk-pr3d {
+  transform-style: preserve-3d;
+}
+.mk-3d {
+  perspective: 1600px;
+}
+
+/* The price card tilts toward the pointer; `.mk-lift` children float above it in depth. */
+.mk-tilt {
+  transform-style: preserve-3d;
+  transition: transform 0.2s ease-out;
+  will-change: transform;
+}
+.mk-tilt-glare {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    500px circle at var(--gx, 50%) var(--gy, 0%),
+    rgb(255 255 255 / 0.45),
+    transparent 40%
+  );
+  mix-blend-mode: soft-light;
+}
+.mk-lift {
+  transform: translateZ(50px);
+}
+
+/* Detail chips that float off the deep-dive screens, at their own depth (`--z`). */
+@keyframes mk-bob {
+  0%,
+  100% {
+    transform: translateZ(var(--z, 60px)) translateY(0);
+  }
+  50% {
+    transform: translateZ(var(--z, 60px)) translateY(-8px);
+  }
+}
+.mk-pop {
+  position: absolute;
+  animation: mk-bob 5s ease-in-out infinite;
+}
+
+/* The orbit: chips travel an ellipse; scale and opacity fake the depth of a tilted ring. */
+.mk-orbit-item {
+  position: absolute;
+  top: 0;
+  left: 0;
+  offset-path: ellipse(46% 30% at 50% 50%);
+  offset-rotate: 0deg;
+  animation: mk-orbit 36s linear infinite;
+}
+@keyframes mk-orbit {
+  0% {
+    offset-distance: 0%;
+    transform: scale(1);
+    opacity: 1;
+    z-index: 3;
+  }
+  25% {
+    transform: scale(1.12);
+    opacity: 1;
+    z-index: 4;
+  }
+  50% {
+    transform: scale(0.94);
+    opacity: 0.9;
+    z-index: 2;
+  }
+  75% {
+    transform: scale(0.78);
+    opacity: 0.55;
+    z-index: 1;
+  }
+  100% {
+    offset-distance: 100%;
+    transform: scale(1);
+    opacity: 1;
+    z-index: 3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mk-tilt {
+    transition: none;
+  }
+  .mk-pop {
+    animation: none;
+  }
+  /* Paused, not removed: each chip's negative delay is its place on the ring, and without the
+     animation they would all sit at the start of the path, on top of each other. */
+  .mk-orbit-item {
+    animation-play-state: paused;
+  }
 }

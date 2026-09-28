@@ -29,13 +29,13 @@ export async function FeaturesPage({ locale }: { locale: Locale }) {
       <PageHead title={t('features.title')} lede={t('features.lede')} />
 
       <Container className="grid gap-6 pb-16 md:grid-cols-3">
-        <Stage tone="teal" deco={false}>
+        <Stage tone="teal">
           <ChecklistDemo locale={locale} />
         </Stage>
-        <Stage tone="gold" deco={false}>
+        <Stage tone="gold">
           <RunSheetDemo locale={locale} />
         </Stage>
-        <Stage tone="sage" deco={false}>
+        <Stage tone="sage">
           <VendorLinkDemo locale={locale} />
         </Stage>
       </Container>

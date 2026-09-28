@@ -2,40 +2,23 @@ import { getTranslations } from 'next-intl/server'
 import type { ReactNode } from 'react'
 import type { Locale } from '../../lib/locales.ts'
 import { CONTACT_EMAIL } from '../../lib/operator.ts'
-import { Sprig } from './illustrations.tsx'
 import { StartLink } from './site-frame.tsx'
 
 /** Shared building blocks for the marketing pages. Presentational; copy comes from the caller. */
 
 export type StageTone = 'teal' | 'gold' | 'sage'
 
-/**
- * A tinted panel a product preview stands on, with a sprig in one corner (`marketing.css`,
- * `.mk-stage`). The sprig's corner alternates with the tone so a page of stages does not repeat.
- */
+/** A tinted panel a product preview stands on (`marketing.css`, `.mk-stage`). */
 export function Stage({
   tone,
   children,
   className = '',
-  deco = true,
 }: {
   tone: StageTone
   children: ReactNode
   className?: string
-  deco?: boolean
 }) {
-  const corner = tone === 'gold' ? '-top-4 -left-6 rotate-[200deg]' : '-right-6 -bottom-6'
-  return (
-    <div className={`mk-stage mk-stage-${tone} ${className}`}>
-      {deco ? (
-        <Sprig
-          className={`mk-stage-deco h-40 w-32 text-[var(--teal-600)] opacity-70 ${corner}`}
-          accent="var(--gold-500)"
-        />
-      ) : null}
-      {children}
-    </div>
-  )
+  return <div className={`mk-stage mk-stage-${tone} ${className}`}>{children}</div>
 }
 
 export function Container({

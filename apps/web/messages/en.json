@@ -34,10 +34,6 @@
     "home": {
       "headline": "Planning software for wedding planners and venues",
       "lede": "Guestnote keeps the task list, run sheet, budget and vendors for every wedding you plan. Deadlines count back from the wedding date, and every vendor gets their own link to their part of the day.",
-      "problem": {
-        "title": "Why we make it",
-        "body": "Most planners we talk to keep a spreadsheet per couple and a WhatsApp group per wedding. That works until something moves: a new date, an extra day, a photographer still holding last week’s run sheet. Guestnote keeps that information in one place, so a change is made once."
-      },
       "bands": {
         "checklist": {
           "title": "Deadlines that move with the wedding date",
@@ -47,23 +43,17 @@
           "title": "A run sheet for each day",
           "body": "Every item has a time, a length, a place and someone responsible for it. When two items overlap, the list shows it straight away."
         },
-        "vendors": {
-          "title": "Vendors get their own link",
-          "body": "The photographer or caterer doesn’t need an account. The link shows them the guest count, their moments in the run sheet and what you still need from them. You can revoke a link at any time."
-        },
         "budget": {
           "title": "The budget by category",
           "body": "For each category you see what is planned, what has been spent and what has been paid. Payments still due are listed separately."
+        },
+        "couple": {
+          "title": "You choose what the couple sees",
+          "body": "Every task and every file is either internal or shared. Internal notes and cost estimates stay with your team. Tasks for the couple you assign to the couple. The portal where couples see this opens soon."
         }
       },
-      "how": {
-        "title": "Getting started",
-        "body": "You create a studio with your name and, if you like, your logo. Then you add a wedding with the date and the couple’s names, and pick a template for the task list. Invite colleagues and vendors whenever it suits you."
-      },
       "pricingTeaser": {
-        "title": "What it costs",
-        "body": "{base} a month for your studio, plus {seat} a month for each extra planner on your team. Couples and vendors pay nothing and never count.",
-        "link": "All pricing"
+        "title": "What it costs"
       },
       "faq": {
         "title": "Questions",
@@ -93,6 +83,74 @@
       "closing": {
         "title": "Free while we are in early access",
         "body": "Create a studio and add a wedding you are working on now. That is the quickest way to find out whether Guestnote works for you."
+      },
+      "deep": {
+        "checklist": {
+          "points": {
+            "one": "Deadlines like “3 months before”, not a fixed date",
+            "two": "When the wedding date moves, everything moves with it",
+            "three": "Every new couple starts from your own template",
+            "four": "Filter by overdue, internal or shared"
+          },
+          "chips": {
+            "one": "3 months before",
+            "two": "Sat 19 June"
+          }
+        },
+        "runSheet": {
+          "points": {
+            "one": "A run sheet for each day of the celebration",
+            "two": "Time, length, place and a person responsible for each moment",
+            "three": "A warning as soon as two moments overlap",
+            "four": "Vendors only see their own moments through their link"
+          },
+          "chips": {
+            "one": "14:00 · Ceremony",
+            "two": "Overlaps 15 min"
+          }
+        },
+        "couple": {
+          "points": {
+            "one": "Internal or shared, per task and per file",
+            "two": "Tasks for the couple are assigned to the couple",
+            "three": "Notes and cost estimates stay with your team",
+            "four": "The couple portal opens soon"
+          },
+          "chips": {
+            "one": "Shared with couple",
+            "two": "Internal"
+          }
+        },
+        "budget": {
+          "points": {
+            "one": "Planned, spent and paid, per category",
+            "two": "Every line linked to a vendor",
+            "three": "Outstanding payments in a separate list",
+            "four": "The number your couple asks for, at a glance"
+          },
+          "chips": {
+            "one": "€25,150",
+            "two": "+ €500 paid"
+          }
+        }
+      },
+      "together": {
+        "title": "Everyone around the same wedding",
+        "body": "The couple, your team and every vendor look at the same wedding. When something changes in the run sheet, the photographer sees it in their link and your colleague in the app.",
+        "orbit": {
+          "couple": "Couple",
+          "photographer": "Photographer",
+          "caterer": "Caterer",
+          "dj": "DJ",
+          "team": "Team",
+          "runSheet": "Run sheet",
+          "budget": "Budget",
+          "florist": "Florist"
+        }
+      },
+      "price": {
+        "body": "Couples and vendors pay nothing and never count. During early access everything is free, no credit card needed.",
+        "perSeat": "+ {amount} per extra planner"
       }
     },
     "features": {
@@ -290,12 +348,29 @@
         "needs": "What the planner needs from you",
         "need": "Confirm the shot list by 1 June"
       },
-      "today": {
-        "title": "Today",
-        "needsYou": "Needs you today",
-        "one": "Forward the florist’s quote",
-        "two": "Floor plan to the caterer",
-        "weddings": "6 active weddings"
+      "live": {
+        "dateLabel": "Wedding date",
+        "moved": "Date moved a week. Every deadline moved with it.",
+        "scenes": {
+          "tasks": "Task list",
+          "runSheet": "Run sheet",
+          "budget": "Budget",
+          "couple": "Couple"
+        },
+        "rsNew": "Cutting the cake",
+        "rsNewWhere": "Ballroom",
+        "rsCaterer": "Caterer",
+        "rsAdded": "New item added. Everyone with a link sees it straight away.",
+        "paid": "Florist deposit paid",
+        "paidNote": "Payment recorded. Spent and outstanding are up to date.",
+        "internal": "Internal",
+        "sharedCouple": "Shared with couple",
+        "coupleNote": "The couple only sees what you share.",
+        "coupleTasks": {
+          "one": "Send the menu choice",
+          "two": "Venue cost estimate",
+          "three": "Review the ceremony run sheet"
+        }
       }
     },
     "notFound": {

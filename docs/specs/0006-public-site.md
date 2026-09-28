@@ -85,6 +85,12 @@ numbered steps and the before/after cards were removed, and the NL/EN/FR copy re
 plain "we" with concrete detail (no founder name, no S'e parti, no invented figures, all by the
 user's choice). The brief's header lists the rules.
 
+**Revised again 2026-09-28:** the homepage is the one the user assembled from four rounds of
+local variants -- the scene-cycling hero, 3D deep dives per feature, the orbit, a tilting price
+card, and the close on the hero gradient; no illustrations. The couple section describes the
+per-task and per-file internal/shared marking that exists, and says the portal opens soon. The
+brief's header records the choice.
+
 ### Product visuals are coded mini-UIs, animated
 
 **Screens are recreated in React from the app's own `@guestnote/ui` primitives and tokens, not

@@ -7,6 +7,18 @@ related_targets: ["apps/web/src/components/marketing"]
 
 # Marketing: `guestnote.be/{nl,en,fr}`
 
+> **Superseded in part, 2026-09-28: the homepage chosen from four variant rounds.** The user
+> reviewed ~20 homepage variants and picked: a hero on a slowly moving warm gradient (gold,
+> teal, peach, sage) over a faint perspective floor grid, with **four product scenes that play
+> in turn** (tasks: the date moves and deadlines recalculate; run sheet: an item slides in;
+> budget: a payment lands; couple: a task goes from internal to shared); then **one 3D deep-dive
+> row per feature** (screen turned ~16°, two glass chips floating off it at their own depth);
+> a dark **orbit** section (the wedding at the centre, people and parts circling); a **price
+> card that tilts toward the pointer**; and the close plus FAQ on the hero's gradient.
+> **All illustrations were removed** (sprig, rings, envelope) and so was "Waarom we het maken".
+> The vendor-link section became "what the couple sees". Everything moving has a reduced-motion
+> state that is complete and still. Where this contradicts the sections below, this wins.
+
 > **Revised 2026-09-27 (same day): "don't read as AI-made."** The user asked for the copy and
 > the page to stop reading as generated. Checked against Wikipedia's *Signs of AI writing* and
 > the AI-design-slop lists, the first version hit most of them. What changed, and what the rest

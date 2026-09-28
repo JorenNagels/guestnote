@@ -34,10 +34,6 @@
     "home": {
       "headline": "Logiciel de planification pour wedding planners et lieux de réception",
       "lede": "Guestnote tient à jour, pour chaque mariage, votre liste de tâches, votre déroulé, votre budget et vos prestataires. Les échéances se calculent à partir de la date du mariage, et chaque prestataire reçoit son propre lien vers sa partie de la journée.",
-      "problem": {
-        "title": "Pourquoi nous le faisons",
-        "body": "La plupart des planners avec qui nous parlons tiennent un Excel par couple et un groupe WhatsApp par mariage. Cela fonctionne jusqu’au jour où quelque chose change : une nouvelle date, un jour de fête en plus, un photographe qui a encore l’ancien déroulé. Dans Guestnote, ces informations sont au même endroit, donc une modification ne se fait qu’une fois."
-      },
       "bands": {
         "checklist": {
           "title": "Des échéances qui suivent la date du mariage",
@@ -47,23 +43,17 @@
           "title": "Un déroulé par jour de fête",
           "body": "Chaque élément a une heure, une durée, un lieu et une personne responsable. Quand deux éléments se chevauchent, la liste le montre tout de suite."
         },
-        "vendors": {
-          "title": "Chaque prestataire reçoit son lien",
-          "body": "Le photographe ou le traiteur n’a pas besoin de compte. Le lien lui montre le nombre d’invités, ses moments dans le déroulé et ce que vous attendez encore de lui. Vous pouvez révoquer un lien à tout moment."
-        },
         "budget": {
           "title": "Le budget par catégorie",
           "body": "Pour chaque catégorie, vous voyez ce qui est prévu, ce qui est dépensé et ce qui est payé. Les paiements encore dus sont listés à part."
+        },
+        "couple": {
+          "title": "Vous choisissez ce que le couple voit",
+          "body": "Chaque tâche et chaque fichier est interne ou partagé. Les notes internes et les estimations de coûts restent dans votre équipe. Les tâches du couple, vous les attribuez au couple. Le portail où les couples verront cela ouvre bientôt."
         }
       },
-      "how": {
-        "title": "Pour commencer",
-        "body": "Vous créez un studio avec votre nom et, si vous le souhaitez, votre logo. Ensuite, vous ajoutez un mariage avec la date et les noms du couple, et vous choisissez un modèle pour la liste de tâches. Vous invitez vos collègues et vos prestataires quand cela vous convient."
-      },
       "pricingTeaser": {
-        "title": "Ce que cela coûte",
-        "body": "{base} par mois pour votre studio, plus {seat} par mois pour chaque planner supplémentaire. Les couples et les prestataires ne paient rien et ne comptent pas.",
-        "link": "Tous les tarifs"
+        "title": "Ce que cela coûte"
       },
       "faq": {
         "title": "Questions",
@@ -93,6 +83,74 @@
       "closing": {
         "title": "Gratuit pendant l’accès anticipé",
         "body": "Créez un studio et ajoutez un mariage sur lequel vous travaillez en ce moment. C’est le moyen le plus rapide de voir si Guestnote vous convient."
+      },
+      "deep": {
+        "checklist": {
+          "points": {
+            "one": "Des échéances comme « 3 mois avant », pas une date fixe",
+            "two": "Si la date du mariage change, tout suit",
+            "three": "Chaque nouveau couple démarre de votre propre modèle",
+            "four": "Filtrez par retard, interne ou partagé"
+          },
+          "chips": {
+            "one": "3 mois avant",
+            "two": "sam. 19 juin"
+          }
+        },
+        "runSheet": {
+          "points": {
+            "one": "Un déroulé par jour de fête",
+            "two": "Heure, durée, lieu et un responsable par moment",
+            "three": "Une alerte dès que deux moments se chevauchent",
+            "four": "Les prestataires ne voient que leurs moments via leur lien"
+          },
+          "chips": {
+            "one": "14:00 · Cérémonie",
+            "two": "Chevauche 15 min"
+          }
+        },
+        "couple": {
+          "points": {
+            "one": "Interne ou partagé, par tâche et par fichier",
+            "two": "Les tâches du couple sont attribuées au couple",
+            "three": "Les notes et estimations de coûts restent dans votre équipe",
+            "four": "Le portail couple ouvre bientôt"
+          },
+          "chips": {
+            "one": "Partagé avec le couple",
+            "two": "Interne"
+          }
+        },
+        "budget": {
+          "points": {
+            "one": "Prévu, dépensé et payé, par catégorie",
+            "two": "Chaque ligne liée à un prestataire",
+            "three": "Les paiements dus dans une liste à part",
+            "four": "Le chiffre que votre couple demande, d’un coup d’œil"
+          },
+          "chips": {
+            "one": "25 150 €",
+            "two": "+ 500 € payés"
+          }
+        }
+      },
+      "together": {
+        "title": "Tout le monde autour du même mariage",
+        "body": "Le couple, votre équipe et chaque prestataire regardent le même mariage. Quand le déroulé change, le photographe le voit dans son lien et votre collègue dans l’application.",
+        "orbit": {
+          "couple": "Couple",
+          "photographer": "Photographe",
+          "caterer": "Traiteur",
+          "dj": "DJ",
+          "team": "Équipe",
+          "runSheet": "Déroulé",
+          "budget": "Budget",
+          "florist": "Fleuriste"
+        }
+      },
+      "price": {
+        "body": "Les couples et les prestataires ne paient rien et ne comptent pas. Pendant l’accès anticipé, tout est gratuit, sans carte de crédit.",
+        "perSeat": "+ {amount} par planner supplémentaire"
       }
     },
     "features": {
@@ -290,12 +348,29 @@
         "needs": "Ce que le planner attend de vous",
         "need": "Confirmer la liste de photos avant le 1er juin"
       },
-      "today": {
-        "title": "Aujourd’hui",
-        "needsYou": "Vous attend aujourd’hui",
-        "one": "Transmettre le devis du fleuriste",
-        "two": "Plan de salle au traiteur",
-        "weddings": "6 mariages actifs"
+      "live": {
+        "dateLabel": "Date du mariage",
+        "moved": "Date décalée d’une semaine. Toutes les échéances ont suivi.",
+        "scenes": {
+          "tasks": "Tâches",
+          "runSheet": "Déroulé",
+          "budget": "Budget",
+          "couple": "Couple"
+        },
+        "rsNew": "Découpe du gâteau",
+        "rsNewWhere": "Salle de fête",
+        "rsCaterer": "Traiteur",
+        "rsAdded": "Nouvel élément ajouté. Tous ceux qui ont un lien le voient tout de suite.",
+        "paid": "Acompte fleuriste payé",
+        "paidNote": "Paiement enregistré. Dépensé et restant dû sont à jour.",
+        "internal": "Interne",
+        "sharedCouple": "Partagé avec le couple",
+        "coupleNote": "Le couple ne voit que ce que vous partagez.",
+        "coupleTasks": {
+          "one": "Transmettre le choix du menu",
+          "two": "Estimation des coûts du lieu",
+          "three": "Relire le déroulé de la cérémonie"
+        }
       }
     },
     "notFound": {
