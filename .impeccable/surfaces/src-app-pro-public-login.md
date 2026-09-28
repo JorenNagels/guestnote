@@ -655,7 +655,10 @@ restyled every control on this surface. What this brief says that is now differe
   existed because the form once stood on a descending ground; the descent had already moved
   to the stage (`descent.css` header), so the form's ground is constant and `--primary` on
   `--background` (6.61:1) holds.
-- **LocaleSwitcher** is a segmented control with a sliding pill; **StepIndicator** stretches
+- **LocaleSwitcher** was a segmented control with a sliding pill, then (same day, at the
+  user's request) a dropdown: the trigger shows the current code, the list names each language
+  in its own words. Three languages are no longer visible at a glance before login -- the
+  competitive claim this brief gave the switcher now takes one click; **StepIndicator** stretches
   the current pip and adds a muted "2/3".
 
 Sources: Auth0 and Okta magic-link documentation · Better Auth magic-link, email-OTP and

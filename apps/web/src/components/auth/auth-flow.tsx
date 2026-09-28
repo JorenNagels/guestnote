@@ -9,7 +9,7 @@ import { LiveRegion } from '@guestnote/ui/live-region'
 import { LocaleSwitcher } from '@guestnote/ui/locale-switcher'
 import { StepIndicator } from '@guestnote/ui/step-indicator'
 import { type ReactNode, useCallback, useEffect, useRef, useState, useTransition } from 'react'
-import type { Locale } from '../../lib/locales.ts'
+import { LOCALE_NAMES, type Locale } from '../../lib/locales.ts'
 import { app } from '../../lib/routes.ts'
 import { Wordmark } from '../brand/wordmark.tsx'
 import {
@@ -679,6 +679,7 @@ export function AuthFlow({
           </div>
           <LocaleSwitcher
             locales={locales}
+            names={LOCALE_NAMES}
             current={locale}
             label={copy.language}
             disabled={pending}

@@ -3,7 +3,7 @@
 import { LocaleSwitcher } from '@guestnote/ui/locale-switcher'
 import { StepIndicator } from '@guestnote/ui/step-indicator'
 import { type ReactNode, useTransition } from 'react'
-import type { Locale } from '../../lib/locales.ts'
+import { LOCALE_NAMES, type Locale } from '../../lib/locales.ts'
 import { setLocale } from '../auth/actions.ts'
 import { Stage, type StageContent } from '../auth/stage.tsx'
 import { Wordmark } from '../brand/wordmark.tsx'
@@ -52,6 +52,7 @@ export function SignupFrame({
           </div>
           <LocaleSwitcher
             locales={locales}
+            names={LOCALE_NAMES}
             current={locale}
             label={language}
             disabled={pending}

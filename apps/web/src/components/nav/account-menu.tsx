@@ -1,10 +1,9 @@
 'use client'
 
 import { cx } from '@guestnote/ui/cx'
-import { LocaleSwitcher } from '@guestnote/ui/locale-switcher'
 import { useTransition } from 'react'
 import { setDensity, setTheme, signOut } from '../../app/pro/(app)/actions.ts'
-import { LOCALES, type Locale } from '../../lib/locales.ts'
+import { LOCALE_NAMES, LOCALES, type Locale } from '../../lib/locales.ts'
 import type { Density, Theme } from '../../lib/prefs.ts'
 import { setLocale } from '../auth/actions.ts'
 import { CheckIcon, ChevronIcon } from './icons.tsx'
@@ -110,22 +109,28 @@ export function AccountMenu({
       {(close) => (
         <>
           <MenuLabel>{labels.language}</MenuLabel>
-          <div className="px-2 pb-1.5">
-            {/* The one primitive reused from packages/ui. Its `onSelect` branch exists
-                precisely for a surface whose URLs carry no language prefix. */}
-            <LocaleSwitcher
-              locales={LOCALES}
-              current={locale}
-              label={labels.language}
-              disabled={pending}
-              onSelect={(next) => {
+          {/* Rows like Theme and Density below, not `@guestnote/ui/locale-switcher`: that
+              became a dropdown on 2026-09-28, and a dropdown inside this menu would be a
+              menu in a menu. Names in their own language, as in the switcher. */}
+          {LOCALES.map((value) => (
+            <MenuRow
+              key={value}
+              selected={locale === value}
+              onClick={() => {
                 close()
-                startTransition(() => {
-                  void setLocale(next)
-                })
+                if (locale !== value) {
+                  startTransition(() => {
+                    void setLocale(value)
+                  })
+                }
               }}
-            />
-          </div>
+            >
+              <span lang={value} className="min-w-0 flex-1">
+                {LOCALE_NAMES[value]}
+              </span>
+              {locale === value ? <CheckIcon className="size-[0.9em] shrink-0" /> : null}
+            </MenuRow>
+          ))}
 
           <MenuSeparator />
           <MenuLabel>{labels.theme}</MenuLabel>

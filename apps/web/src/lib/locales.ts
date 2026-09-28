@@ -14,6 +14,16 @@ export const LOCALES = ['nl', 'en', 'fr'] as const
 export type Locale = (typeof LOCALES)[number]
 
 /**
+ * Each language in its own words, for the switcher's list. Never translated: someone looking
+ * for "Français" on a Dutch page is exactly the person who cannot read "Frans".
+ */
+export const LOCALE_NAMES: Readonly<Record<Locale, string>> = {
+  nl: 'Nederlands',
+  en: 'English',
+  fr: 'Français',
+}
+
+/**
  * Dutch, always -- never `Accept-Language` negotiation.
  *
  * coming-soon/ already settled this: browser sniffing "sends Belgian planners running

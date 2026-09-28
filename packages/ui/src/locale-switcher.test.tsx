@@ -1,29 +1,75 @@
-import { render } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { fireEvent, render, screen, within } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 import { LocaleSwitcher } from './locale-switcher.tsx'
 
-/**
- * The sliding pill is decoration, but a wrong index puts it under the wrong language while
- * `aria-current` says otherwise -- the eye and the screen reader then disagree. So its
- * position is asserted, by the one inline style the component has.
- */
-function pill(current: string) {
-  const { container } = render(
-    <LocaleSwitcher locales={['nl', 'en', 'fr']} current={current} label="Language" />,
+const NAMES = { nl: 'Nederlands', en: 'English', fr: 'Français' }
+
+function renderSwitcher(props: Partial<Parameters<typeof LocaleSwitcher<string>>[0]> = {}) {
+  const onSelect = vi.fn()
+  const utils = render(
+    <LocaleSwitcher
+      locales={['nl', 'en', 'fr']}
+      current="nl"
+      label="Language"
+      names={NAMES}
+      onSelect={onSelect}
+      {...props}
+    />,
   )
-  return container.querySelector<HTMLElement>('nav > span[aria-hidden="true"]')
+  const details = utils.container.querySelector('details')
+  if (!details) throw new Error('no <details>')
+  return { ...utils, onSelect, details }
 }
 
+/**
+ * The dropdown's contract: the trigger names the current language, the current one is
+ * marked and is not a control, and every way of leaving the list closes it.
+ */
 describe('LocaleSwitcher', () => {
-  it('slides the pill one segment per index', () => {
-    expect(pill('en')?.style.transform).toBe('translateX(100%)')
+  it('shows the current code on the trigger and marks the current language', () => {
+    renderSwitcher()
+    const nav = screen.getByRole('navigation', { name: 'Language' })
+    expect(within(nav).getByText('NL').tagName).toBe('SUMMARY')
+    const current = within(nav).getByText('Nederlands').closest('[aria-current]')
+    expect(current).toHaveAttribute('aria-current', 'true')
+    expect(current?.tagName).toBe('SPAN')
   })
 
-  it('slides it to the last segment', () => {
-    expect(pill('fr')?.style.transform).toBe('translateX(200%)')
+  it('names each language in its own words, with its lang', () => {
+    renderSwitcher()
+    expect(screen.getByRole('button', { name: 'Français' })).toHaveAttribute('lang', 'fr')
   })
 
-  it('parks it on the first segment when current is not in the list', () => {
-    expect(pill('de')?.style.transform).toBe('translateX(0%)')
+  it('calls onSelect and closes after a choice', () => {
+    const { details, onSelect } = renderSwitcher()
+    details.open = true
+    fireEvent.click(screen.getByRole('button', { name: 'English' }))
+    expect(onSelect).toHaveBeenCalledWith('en')
+    expect(details.open).toBe(false)
+  })
+
+  it('renders links, not buttons, when given hrefs', () => {
+    renderSwitcher({ hrefs: { nl: '/nl', en: '/en', fr: '/fr' } })
+    const link = screen.getByRole('link', { name: 'English' })
+    expect(link).toHaveAttribute('href', '/en')
+    expect(link).toHaveAttribute('hreflang', 'en')
+    expect(screen.queryByRole('button', { name: 'English' })).not.toBeInTheDocument()
+  })
+
+  it('closes on Escape and hands focus back to the trigger', () => {
+    const { details } = renderSwitcher()
+    details.open = true
+    fireEvent.keyDown(screen.getByRole('button', { name: 'English' }), { key: 'Escape' })
+    expect(details.open).toBe(false)
+    expect(document.activeElement?.tagName).toBe('SUMMARY')
+  })
+
+  it('closes on a press outside, and not on one inside', () => {
+    const { details } = renderSwitcher()
+    details.open = true
+    fireEvent.pointerDown(screen.getByText('Nederlands'))
+    expect(details.open).toBe(true)
+    fireEvent.pointerDown(document.body)
+    expect(details.open).toBe(false)
   })
 })

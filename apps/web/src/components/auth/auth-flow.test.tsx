@@ -239,9 +239,13 @@ describe('rung 0 — identify', () => {
   it('shows the language switcher, because it is the one claim provable before login', () => {
     renderFlow()
     const nav = screen.getByRole('navigation', { name: 'Taal' })
-    expect(within(nav).getByText('NL')).toHaveAttribute('aria-current', 'true')
-    expect(within(nav).getByRole('button', { name: 'EN' })).toBeInTheDocument()
-    expect(within(nav).getByRole('button', { name: 'FR' })).toBeInTheDocument()
+    expect(within(nav).getByText('NL')).toBeInTheDocument()
+    expect(within(nav).getByText('Nederlands').closest('[aria-current]')).toHaveAttribute(
+      'aria-current',
+      'true',
+    )
+    expect(within(nav).getByRole('button', { name: 'English' })).toBeInTheDocument()
+    expect(within(nav).getByRole('button', { name: 'Français' })).toBeInTheDocument()
   })
 
   it('does not make the current language a control that does nothing', () => {
@@ -252,7 +256,8 @@ describe('rung 0 — identify', () => {
 
   it('writes a language choice through the action', async () => {
     const { user } = renderFlow()
-    await user.click(screen.getByRole('button', { name: 'FR' }))
+    await user.click(screen.getByText('NL'))
+    await user.click(screen.getByRole('button', { name: 'Français' }))
     await waitFor(() => expect(setLocale).toHaveBeenCalledWith('fr'))
   })
 })

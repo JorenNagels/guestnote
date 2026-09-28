@@ -1,8 +1,9 @@
+import { LocaleSwitcher } from '@guestnote/ui/locale-switcher'
 import Link from 'next/link'
 import { getTranslations } from 'next-intl/server'
 import type { ReactNode } from 'react'
 import { appHomeUrl, appLoginUrl, appSignupUrl, sessionHintUrl } from '../../lib/app-url.ts'
-import { LOCALES, type Locale } from '../../lib/locales.ts'
+import { LOCALE_NAMES, LOCALES, type Locale } from '../../lib/locales.ts'
 import { type MarketingPageId, PAGE_IDS, pagePath } from '../../lib/marketing-pages.ts'
 import { CONTACT_EMAIL, completeOperator } from '../../lib/operator.ts'
 import { Wordmark } from '../brand/wordmark.tsx'
@@ -61,35 +62,13 @@ export async function SiteFrame({ locale, page, children }: Props) {
   ))
 
   const switcher = (
-    // The same segmented look as `@guestnote/ui/locale-switcher`, minus its sliding pill: every
-    // switch here is a full navigation, so there is nothing on screen to slide. Kept separate
-    // because these links need `hrefLang` and `next/link`, which the shared one does not take.
-    <nav
-      aria-label={t('language')}
-      className="bg-surface-container flex rounded-[var(--radius)] p-1 text-xs tracking-[0.06em]"
-    >
-      {LOCALES.map((l) =>
-        l === locale ? (
-          <span
-            key={l}
-            aria-current="true"
-            className="bg-primary-container text-on-primary-container flex h-8 w-11 items-center justify-center rounded-[var(--radius)] font-bold"
-          >
-            {l.toUpperCase()}
-          </span>
-        ) : (
-          <Link
-            key={l}
-            href={pagePath(page, l)}
-            hrefLang={l}
-            lang={l}
-            className="text-muted-foreground hover:text-foreground flex h-8 w-11 items-center justify-center rounded-[var(--radius)] font-medium"
-          >
-            {l.toUpperCase()}
-          </Link>
-        ),
-      )}
-    </nav>
+    <LocaleSwitcher
+      locales={LOCALES}
+      current={locale}
+      label={t('language')}
+      names={LOCALE_NAMES}
+      hrefs={Object.fromEntries(LOCALES.map((l) => [l, pagePath(page, l)]))}
+    />
   )
 
   return (

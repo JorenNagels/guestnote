@@ -1199,10 +1199,10 @@ describe('the account menu writes', () => {
     expect(setDensity).toHaveBeenCalledWith('compact')
   })
 
-  it('writes the locale through the shared switcher', () => {
+  it('writes the locale through a language row', () => {
     renderShell()
     openAccount()
-    fireEvent.click(screen.getByRole('button', { name: 'FR' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Français' }))
     expect(setLocale).toHaveBeenCalledWith('fr')
   })
 
