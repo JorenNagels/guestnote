@@ -45,7 +45,6 @@ function copyFor(id: MarketingPageId, t: (key: string) => string) {
   switch (id) {
     case 'home':
       return { title: t('meta.homeTitle'), description: t('meta.homeDescription') }
-    case 'features':
     case 'pricing':
     case 'about':
       return { title: t(`meta.${id}Title`), description: t(`meta.${id}Description`) }

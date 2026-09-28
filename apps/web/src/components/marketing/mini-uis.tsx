@@ -180,40 +180,6 @@ export async function BudgetDemo({ locale }: Props) {
   )
 }
 
-export async function VendorLinkDemo({ locale }: Props) {
-  const t = await getTranslations({ locale, namespace: 'marketing.demo' })
-  return (
-    <Window title="app.guestnote.be/vendor/…">
-      <p className="text-muted-foreground mk-step text-xs">{t('vendor.shared')}</p>
-      <div className="mk-step mt-2 flex items-center justify-between" style={step(1)}>
-        <span className="font-semibold">
-          {t('wedding')} · {t('date')}
-        </span>
-        <span className="text-xs">
-          {t('vendor.guests')} <Badge tone="primary">120</Badge>
-        </span>
-      </div>
-      <h3 className="mk-step mt-4 text-xs font-semibold uppercase tracking-wide" style={step(2)}>
-        {t('vendor.title')}
-      </h3>
-      <div
-        className="mk-step border-border mt-2 grid grid-cols-[3.5rem_1fr] gap-3 rounded-[var(--radius)] border px-3 py-2.5"
-        style={step(3)}
-      >
-        <span className="font-mono font-semibold tabular-nums">13:30</span>
-        <span>
-          {t('runSheet.one')} · {t('runSheet.oneWhere')}
-        </span>
-      </div>
-      <div className="mk-slide bg-accent text-accent-foreground mt-3 rounded-[var(--radius)] px-3 py-2.5 text-xs">
-        <span className="font-semibold">{t('vendor.needs')}</span>
-        <br />
-        {t('vendor.need')}
-      </div>
-    </Window>
-  )
-}
-
 /**
  * A single budget line, small, for the hero collage: it overlaps the Today window the way a
  * second screen of the product would. Not inside `Window` -- it is a card, not a screen.

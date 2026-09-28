@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation'
 import { setRequestLocale } from 'next-intl/server'
 import { isLegalTextId } from '../../../../components/marketing/legal/index.ts'
 import { AboutPage } from '../../../../components/marketing/pages/about.tsx'
-import { FeaturesPage } from '../../../../components/marketing/pages/features.tsx'
 import { LegalNoticePage, LegalTextPage } from '../../../../components/marketing/pages/legal.tsx'
 import { PricingPage } from '../../../../components/marketing/pages/pricing.tsx'
 import { SiteFrame } from '../../../../components/marketing/site-frame.tsx'
@@ -56,7 +55,6 @@ export default async function MarketingPage({ params }: Params) {
 }
 
 function Body({ locale, id }: { locale: Locale; id: PageId }) {
-  if (id === 'features') return <FeaturesPage locale={locale} />
   if (id === 'pricing') return <PricingPage locale={locale} billingOn={billingMode().on} />
   if (id === 'about') return <AboutPage locale={locale} />
   if (id === 'legal') return <LegalNoticePage locale={locale} />

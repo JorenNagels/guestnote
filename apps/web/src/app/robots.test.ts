@@ -38,7 +38,7 @@ describe('sitemap.xml', () => {
   it('lists every page in every locale with absolute URLs and absolute alternates', () => {
     env.rootDomain = 'guestnote.be'
     const entries = sitemap()
-    expect(entries).toHaveLength(33)
+    expect(entries).toHaveLength(30)
     const pricingEn = entries.find((e) => e.url === 'https://guestnote.be/en/pricing')
     expect(pricingEn?.alternates?.languages).toEqual({
       nl: 'https://guestnote.be/nl/prijzen',

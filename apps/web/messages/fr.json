@@ -8,8 +8,6 @@
       "siteName": "Guestnote",
       "homeTitle": "Guestnote, logiciel de planification pour wedding planners",
       "homeDescription": "Guestnote tient à jour, pour chaque mariage, la liste de tâches, le déroulé, le budget et les prestataires. Pour les wedding planners et les lieux de réception. Gratuit pendant l’accès anticipé.",
-      "featuresTitle": "Fonctionnalités",
-      "featuresDescription": "Ce que fait Guestnote aujourd’hui : une vue du jour sur tous vos mariages, des listes de tâches avec modèles, un déroulé par jour, des liens prestataires, le budget et les fichiers.",
       "pricingTitle": "Tarifs",
       "pricingDescription": "49 euros par mois par studio, 19 euros par planner supplémentaire. Les couples et les prestataires ne paient rien.",
       "aboutTitle": "À propos",
@@ -19,7 +17,6 @@
     "nav": {
       "label": "Navigation principale",
       "menu": "Menu",
-      "features": "Fonctionnalités",
       "pricing": "Tarifs",
       "about": "À propos",
       "skip": "Aller au contenu",
@@ -151,69 +148,8 @@
       "price": {
         "body": "Les couples et les prestataires ne paient rien et ne comptent pas. Pendant l’accès anticipé, tout est gratuit, sans carte de crédit.",
         "perSeat": "+ {amount} par planner supplémentaire"
-      }
-    },
-    "features": {
-      "title": "Ce que fait Guestnote aujourd’hui",
-      "lede": "Tout ce qui suit fonctionne déjà. Ce qui n’est pas encore prêt figure en bas de page.",
-      "items": {
-        "today": {
-          "title": "Vue du jour",
-          "body": "Une liste pour tous vos mariages, avec ce qui est dû aujourd’hui et cette semaine."
-        },
-        "weddings": {
-          "title": "Mariages",
-          "body": "Pour chaque mariage : les jours de fête, le couple, le lieu et des notes que seule votre équipe voit."
-        },
-        "checklist": {
-          "title": "Liste de tâches",
-          "body": "Des échéances relatives à la date du mariage. Filtrez par retard, interne ou partagé avec le couple."
-        },
-        "templates": {
-          "title": "Modèles",
-          "body": "Notez une fois votre façon de travailler et démarrez chaque nouveau couple avec."
-        },
-        "runSheet": {
-          "title": "Déroulé",
-          "body": "Par jour, avec un responsable par élément et une alerte en cas de chevauchement."
-        },
-        "vendorLink": {
-          "title": "Liens prestataires",
-          "body": "Un lien sans compte, révocable, qui expire de lui-même."
-        },
-        "budget": {
-          "title": "Budget et paiements",
-          "body": "Prévu, dépensé et payé par catégorie, avec les paiements dus à part."
-        },
-        "files": {
-          "title": "Fichiers et moodboard",
-          "body": "Devis, contrats et images d’inspiration avec le mariage auquel ils appartiennent."
-        },
-        "team": {
-          "title": "Équipe",
-          "body": "Invitez d’autres planners. Propriétaires et administrateurs voient tout le studio."
-        },
-        "studio": {
-          "title": "Votre nom et votre logo",
-          "body": "Les prestataires voient votre nom et votre logo en haut de leur lien."
-        },
-        "languages": {
-          "title": "Néerlandais, français et anglais",
-          "body": "Chaque planner travaille dans sa langue."
-        },
-        "passkeys": {
-          "title": "Connexion sans mot de passe",
-          "body": "Avec une clé d’accès, comme Face ID ou votre empreinte, ou avec un code par e-mail."
-        }
       },
-      "later": {
-        "title": "Pas encore prêt",
-        "body": "Un portail couple et un site de mariage avec RSVP. Nous y travaillons, sans date pour l’instant."
-      },
-      "vendorChips": {
-        "one": "Sans compte",
-        "two": "Révocable"
-      }
+      "deepTitle": "Ce que fait Guestnote"
     },
     "pricing": {
       "title": "Tarifs",
@@ -344,13 +280,6 @@
         "flowers": "Fleurs",
         "spent": "Dépensé",
         "of": "sur {amount}"
-      },
-      "vendor": {
-        "shared": "Partagé avec vous par Atelier Mooi",
-        "title": "Votre partie de la journée",
-        "guests": "Invités",
-        "needs": "Ce que le planner attend de vous",
-        "need": "Confirmer la liste de photos avant le 1er juin"
       },
       "live": {
         "dateLabel": "Date du mariage",

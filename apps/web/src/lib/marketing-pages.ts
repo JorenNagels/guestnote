@@ -14,7 +14,6 @@ import { LOCALES, type Locale } from './locales.ts'
  * anything else.
  */
 export const PAGES = {
-  features: { nl: 'functies', en: 'features', fr: 'fonctionnalites' },
   pricing: { nl: 'prijzen', en: 'pricing', fr: 'tarifs' },
   about: { nl: 'over-ons', en: 'about', fr: 'a-propos' },
   terms: { nl: 'algemene-voorwaarden', en: 'terms', fr: 'conditions-generales' },

@@ -61,18 +61,15 @@ export function PageHead({
 
 /**
  * A product screen on a tinted stage, turned in 3D, with up to two glass chips floating off it at
- * their own depth -- the homepage's deep-dive look, shared with the features page.
+ * their own depth -- the homepage's deep-dive look.
  */
 export function TiltedScreen({
   tone,
   angle,
   chips = [],
-  stageClassName = '',
   children,
 }: {
   tone: StageTone
-  /** Extra classes for the stage, e.g. tighter padding where three screens share a row. */
-  stageClassName?: string
   /** Degrees around the vertical axis; negative turns the screen toward the right. */
   angle: number
   chips?: readonly string[]
@@ -85,7 +82,7 @@ export function TiltedScreen({
         className="relative w-full max-w-[460px]"
         style={{ transformStyle: 'preserve-3d', transform: `rotateY(${angle}deg) rotateX(10deg)` }}
       >
-        <Stage tone={tone} className={`mk-pr3d ${stageClassName}`}>
+        <Stage tone={tone} className="mk-pr3d">
           {children}
         </Stage>
         {first ? (

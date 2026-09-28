@@ -9,7 +9,11 @@ import { Wordmark } from '../brand/wordmark.tsx'
 import { AppEntryLink } from './app-entry-link.tsx'
 import { Imprint } from './imprint.tsx'
 
-const NAV = ['features', 'pricing', 'about'] as const
+/**
+ * Home, pricing, about. A features page existed until 2026-09-28 and was removed at the user's
+ * request: its list repeated the homepage, which already shows each main feature in depth.
+ */
+const NAV = ['pricing', 'about'] as const
 const LEGAL = PAGE_IDS.filter((id) => !(NAV as readonly string[]).includes(id))
 
 type Props = {

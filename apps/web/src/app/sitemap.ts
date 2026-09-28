@@ -17,6 +17,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       ),
     },
     changeFrequency: p.id === 'home' || p.id === 'pricing' ? 'weekly' : 'monthly',
-    priority: p.id === 'home' ? 1 : p.id === 'features' || p.id === 'pricing' ? 0.8 : 0.3,
+    priority: p.id === 'home' ? 1 : p.id === 'pricing' ? 0.8 : 0.3,
   }))
 }

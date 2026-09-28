@@ -8,7 +8,7 @@ import { DEFAULT_LOCALE, isLocale, LOCALES } from '../../../../lib/locales.ts'
  *
  * A route handler and not the `opengraph-image` file convention, which it was first: Next
  * replaces `openGraph` wholesale at each metadata level and restores a file-based image only in
- * the directory that holds the file, so every `[slug]` page -- pricing, features, the legal
+ * the directory that holds the file, so every `[slug]` page -- pricing, the legal
  * pages -- lost its image (read in Next 16.3.1's `resolve-metadata.js` by the review panel,
  * 2026-09-27). A fixed URL that `lib/marketing-metadata.ts` names explicitly cannot be dropped
  * that way. `og.png` is a static segment, so it wins over `[slug]` for that path. Generated at build

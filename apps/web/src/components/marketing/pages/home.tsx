@@ -69,7 +69,7 @@ export async function HomePage({ locale }: { locale: Locale }) {
 
       <section aria-labelledby="deep-title" className="border-border border-t">
         <h2 id="deep-title" className="sr-only">
-          {t('features.title')}
+          {t('home.deepTitle')}
         </h2>
         <Container className="flex flex-col gap-28 py-28">
           {FEATURES.map((f, i) => {

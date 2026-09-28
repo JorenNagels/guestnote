@@ -44,10 +44,15 @@ FR is a full translation, but NL is written first.
 
 ### URLs are translated per locale
 
+**Amended 2026-09-28: the features page is gone.** The user removed it: its list of twelve
+features repeated the homepage, which already shows each main feature in depth. The site is
+home, pricing and about, plus the legal pages. `/nl/functies` and its counterparts now 404; no
+redirect, because the site has never been public and nothing links there.
+
 | Page | nl | en | fr |
 |---|---|---|---|
 | Home | `/nl` | `/en` | `/fr` |
-| Features | `/nl/functies` | `/en/features` | `/fr/fonctionnalites` |
+| ~~Features~~ | ~~`/nl/functies`~~ | ~~`/en/features`~~ | ~~`/fr/fonctionnalites`~~ |
 | Pricing | `/nl/prijzen` | `/en/pricing` | `/fr/tarifs` |
 | About + contact | `/nl/over-ons` | `/en/about` | `/fr/a-propos` |
 | Terms | `/nl/algemene-voorwaarden` | `/en/terms` | `/fr/conditions-generales` |

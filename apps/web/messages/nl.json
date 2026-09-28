@@ -8,8 +8,6 @@
       "siteName": "Guestnote",
       "homeTitle": "Guestnote, planningssoftware voor weddingplanners",
       "homeDescription": "Guestnote houdt per trouw de takenlijst, het draaiboek, het budget en de leveranciers bij. Voor weddingplanners en trouwlocaties. Gratis tijdens de early access.",
-      "featuresTitle": "Functies",
-      "featuresDescription": "Wat vandaag in Guestnote zit: een dagoverzicht over al je bruiloften, takenlijsten met sjablonen, een draaiboek per dag, leverancierslinks, budget en bestanden.",
       "pricingTitle": "Prijzen",
       "pricingDescription": "49 euro per maand per studio, 19 euro per extra planner. Koppels en leveranciers betalen niets.",
       "aboutTitle": "Over ons",
@@ -19,7 +17,6 @@
     "nav": {
       "label": "Hoofdnavigatie",
       "menu": "Menu",
-      "features": "Functies",
       "pricing": "Prijzen",
       "about": "Over ons",
       "skip": "Naar de inhoud",
@@ -151,69 +148,8 @@
       "price": {
         "body": "Koppels en leveranciers betalen niets en tellen niet mee. Tijdens de early access is alles gratis, zonder kredietkaart.",
         "perSeat": "+ {amount} per extra planner"
-      }
-    },
-    "features": {
-      "title": "Wat Guestnote vandaag doet",
-      "lede": "Alles hieronder werkt nu. Wat nog niet klaar is, staat onderaan.",
-      "items": {
-        "today": {
-          "title": "Dagoverzicht",
-          "body": "Eén lijst over al je bruiloften heen met wat vandaag moet en wat deze week vervalt."
-        },
-        "weddings": {
-          "title": "Bruiloften",
-          "body": "Per trouw de feestdagen, het koppel, de locatie en notities die alleen je team ziet."
-        },
-        "checklist": {
-          "title": "Takenlijst",
-          "body": "Deadlines relatief tegenover de trouwdatum. Je filtert op achterstallig, intern of gedeeld met het koppel."
-        },
-        "templates": {
-          "title": "Sjablonen",
-          "body": "Leg je vaste werkwijze één keer vast en start er elk nieuw koppel mee."
-        },
-        "runSheet": {
-          "title": "Draaiboek",
-          "body": "Per feestdag, met een verantwoordelijke per item en een waarschuwing bij overlappingen."
-        },
-        "vendorLink": {
-          "title": "Leverancierslinks",
-          "body": "Een link zonder account, die je kunt intrekken en die vanzelf vervalt."
-        },
-        "budget": {
-          "title": "Budget en betalingen",
-          "body": "Voorzien, uitgegeven en betaald per categorie, met de openstaande betalingen apart."
-        },
-        "files": {
-          "title": "Bestanden en moodboard",
-          "body": "Offertes, contracten en inspiratiebeelden bij de trouw waar ze bij horen."
-        },
-        "team": {
-          "title": "Team",
-          "body": "Nodig collega-planners uit. Eigenaars en beheerders zien de hele studio."
-        },
-        "studio": {
-          "title": "Je eigen naam en logo",
-          "body": "Leveranciers zien je naam en logo bovenaan hun link."
-        },
-        "languages": {
-          "title": "Nederlands, Frans en Engels",
-          "body": "Elke planner werkt in zijn eigen taal."
-        },
-        "passkeys": {
-          "title": "Inloggen zonder wachtwoord",
-          "body": "Met een passkey, zoals Face ID of je vingerafdruk, of met een code per e-mail."
-        }
       },
-      "later": {
-        "title": "Nog niet klaar",
-        "body": "Een portaal voor het koppel en een trouwwebsite met RSVP. We werken eraan, maar hebben nog geen datum."
-      },
-      "vendorChips": {
-        "one": "Zonder account",
-        "two": "Intrekbaar"
-      }
+      "deepTitle": "Wat Guestnote doet"
     },
     "pricing": {
       "title": "Prijzen",
@@ -344,13 +280,6 @@
         "flowers": "Bloemen",
         "spent": "Uitgegeven",
         "of": "van {amount}"
-      },
-      "vendor": {
-        "shared": "Gedeeld met jou door Atelier Mooi",
-        "title": "Jouw deel van de dag",
-        "guests": "Gasten",
-        "needs": "Wat de planner van je nodig heeft",
-        "need": "Shotlist bevestigen voor 1 juni"
       },
       "live": {
         "dateLabel": "Trouwdatum",

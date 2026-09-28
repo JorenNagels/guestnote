@@ -8,8 +8,6 @@
       "siteName": "Guestnote",
       "homeTitle": "Guestnote, planning software for wedding planners",
       "homeDescription": "Guestnote keeps the task list, run sheet, budget and vendors for every wedding. For wedding planners and venues. Free during early access.",
-      "featuresTitle": "Features",
-      "featuresDescription": "What Guestnote does today: a daily overview across your weddings, task lists with templates, a run sheet per day, vendor links, budget and files.",
       "pricingTitle": "Pricing",
       "pricingDescription": "49 euros a month per studio, 19 euros per extra planner. Couples and vendors pay nothing.",
       "aboutTitle": "About",
@@ -19,7 +17,6 @@
     "nav": {
       "label": "Main navigation",
       "menu": "Menu",
-      "features": "Features",
       "pricing": "Pricing",
       "about": "About",
       "skip": "Skip to content",
@@ -151,69 +148,8 @@
       "price": {
         "body": "Couples and vendors pay nothing and never count. During early access everything is free, no credit card needed.",
         "perSeat": "+ {amount} per extra planner"
-      }
-    },
-    "features": {
-      "title": "What Guestnote does today",
-      "lede": "Everything below works now. What isn’t ready yet is listed at the bottom.",
-      "items": {
-        "today": {
-          "title": "Daily overview",
-          "body": "One list across all your weddings with what is due today and what is due this week."
-        },
-        "weddings": {
-          "title": "Weddings",
-          "body": "For each wedding: the days of the celebration, the couple, the venue and notes only your team sees."
-        },
-        "checklist": {
-          "title": "Task list",
-          "body": "Deadlines relative to the wedding date. Filter by overdue, internal or shared with the couple."
-        },
-        "templates": {
-          "title": "Templates",
-          "body": "Write down how you work once and start every new couple from it."
-        },
-        "runSheet": {
-          "title": "Run sheet",
-          "body": "Per day, with a person responsible for each item and a warning when items overlap."
-        },
-        "vendorLink": {
-          "title": "Vendor links",
-          "body": "A link without an account, which you can revoke and which expires on its own."
-        },
-        "budget": {
-          "title": "Budget and payments",
-          "body": "Planned, spent and paid per category, with outstanding payments listed separately."
-        },
-        "files": {
-          "title": "Files and moodboard",
-          "body": "Quotes, contracts and inspiration images with the wedding they belong to."
-        },
-        "team": {
-          "title": "Team",
-          "body": "Invite fellow planners. Owners and admins see the whole studio."
-        },
-        "studio": {
-          "title": "Your own name and logo",
-          "body": "Vendors see your name and logo at the top of their link."
-        },
-        "languages": {
-          "title": "Dutch, French and English",
-          "body": "Every planner works in their own language."
-        },
-        "passkeys": {
-          "title": "Sign in without a password",
-          "body": "With a passkey, such as Face ID or your fingerprint, or with a code by email."
-        }
       },
-      "later": {
-        "title": "Not ready yet",
-        "body": "A couple portal and a wedding website with RSVP. We are working on both, but have no date yet."
-      },
-      "vendorChips": {
-        "one": "No account needed",
-        "two": "Revocable"
-      }
+      "deepTitle": "What Guestnote does"
     },
     "pricing": {
       "title": "Pricing",
@@ -344,13 +280,6 @@
         "flowers": "Flowers",
         "spent": "Spent",
         "of": "of {amount}"
-      },
-      "vendor": {
-        "shared": "Shared with you by Atelier Mooi",
-        "title": "Your part of the day",
-        "guests": "Guests",
-        "needs": "What the planner needs from you",
-        "need": "Confirm the shot list by 1 June"
       },
       "live": {
         "dateLabel": "Wedding date",
