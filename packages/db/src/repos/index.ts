@@ -47,6 +47,7 @@ export {
   principalForWedding,
   resolveMemberships,
 } from './memberships.ts'
+export * from './moodboards.ts'
 export * from './payments.ts'
 export * from './run-sheet.ts'
 export { WeddingScope } from './scope.ts'

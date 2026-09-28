@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { check, index, pgTable, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
+import { boolean, check, index, pgTable, text, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 import { createdAt, deletedAt, oneOf, orgId, tstz, updatedAt, weddingId } from './_shared.ts'
 import { organizations } from './orgs.ts'
 import { weddings } from './weddings.ts'
@@ -75,6 +75,14 @@ export const weddingVendors = pgTable(
       .references(() => vendors.id, { onDelete: 'restrict' }),
     status: text('status').notNull().default('considering'),
     notes: text('notes'),
+    /**
+     * Spec 0007: this vendor's link shows the whole day's run sheet, not only their own rows.
+     * Here and not on `vendor_links` because any staff may set it (members cannot write
+     * `vendor_links`) and because it should survive the link being replaced. Read only by
+     * `vendor_link_run_sheet()` (migration 0012), which returns named columns -- never widened
+     * RLS, which would have handed the link every other vendor's `notes`.
+     */
+    fullRunSheet: boolean('full_run_sheet').notNull().default(false),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
     deletedAt: deletedAt(),

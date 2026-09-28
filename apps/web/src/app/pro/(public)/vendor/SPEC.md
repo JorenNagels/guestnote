@@ -36,6 +36,16 @@ unauthenticated `(public)` layout beside `login` and `invite`)
   which of those it was (for a future admin view); the page deliberately never reads that
   field. Never a 500.
 
+*(Amended 2026-09-28, spec 0007:)* with "Volledige tijdlijn tonen" on for the vendor (any staff,
+stored on `wedding_vendors.full_run_sheet`), the timeline is **the whole day** -- every row, the
+other vendors named, the vendor's own rows marked -- through `vendor_link_run_sheet()`, which
+returns named columns only. Below it, every **moodboard shared with this vendor**: a grid, tap to
+enlarge, download. Images are signed for five minutes and re-signed on error through the token,
+which is re-resolved each time, so a revoked link stops them within five minutes. The "absent by
+design" list below still holds for a vendor with the switch off; with it on, the other rows'
+time, duration, title, place, event label and vendor name are the deliberate exception, and
+nothing else. Shared boards show whether or not the switch is on.
+
 **What is absent by design** (spec 0003, the prototype's own annotation at
 `design-system/planner-prototype`, line ~1618)
 - Every other run-sheet row, every other vendor, the budget, the payment ledger, the guest
@@ -70,6 +80,8 @@ unauthenticated `(public)` layout beside `login` and `invite`)
 | Empty timeline | n/a | "Nothing on the schedule for you yet." |
 | Revoking | confirm, then "Revoked" | n/a |
 | Gone (unknown / expired / revoked / vendor removed) | n/a | "This link no longer works" |
+| Full timeline, empty sheet (spec 0007) | "Volledige tijdlijn tonen" on | "The whole day" / "Nothing planned yet." |
+| Boards shared (spec 0007) | shared from the board | one grid per board; failed tiles re-sign once, then caption + download |
 | Error (issue/revoke) | inline error, nothing lost | n/a |
 
 ## Copy

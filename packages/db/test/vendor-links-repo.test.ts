@@ -355,7 +355,8 @@ describe('getVendorLinkView', () => {
  * and `link_read`'s RLS re-checks `vendor_links.revoked_at` / `expires_at`. Only
  * `resolveVendorLinkByHash` checks it, once, reading `resolve_vendor_link`'s `status` column
  * -- and only because the public route (`apps/web/src/app/pro/(public)/vendor/[token]/page
- * .tsx`) refuses anything but `'live'` before ever constructing a principal. Build the
+ * .tsx`) and its Server Functions (`apps/web/src/lib/vendor-boards.ts`, spec 0007) refuse
+ * anything but `'live'` before ever constructing a principal. Build the
  * principal directly, the way this same file's `getVendorLinkView` tests already do, and
  * skip that check entirely: RLS itself does not know the link is dead.
  *

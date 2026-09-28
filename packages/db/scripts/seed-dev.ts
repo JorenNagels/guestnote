@@ -3,6 +3,8 @@ import { createDb, createPool } from '../src/client.ts'
 import {
   budgetLines,
   files,
+  moodboardShares,
+  moodboards,
   organizations,
   orgMembers,
   payments,
@@ -587,7 +589,32 @@ async function main(): Promise<void> {
         )
         .onConflictDoNothing()
 
-      // ---- files and moodboard ---------------------------------------------------------
+      // ---- files and moodboards (spec 0007) ---------------------------------------------
+      // Each wedding's default board, as `createWedding` makes one, plus a photographer's board
+      // on the first wedding shared with the seeded photographer -- the case spec 0007 is for.
+      const B = {
+        main: sid('16160000', 1),
+        main2: sid('16160000', 2),
+        photo: sid('16160000', 3),
+      }
+      await tx
+        .insert(moodboards)
+        .values([
+          { id: B.main, orgId: org, weddingId: ID.wedding, name: 'Moodboard', isDefault: true },
+          { id: B.main2, orgId: org, weddingId: ID.wedding2, name: 'Moodboard', isDefault: true },
+          { id: B.photo, orgId: org, weddingId: ID.wedding, name: 'Fotograaf', position: 1 },
+        ])
+        .onConflictDoNothing()
+      await tx
+        .insert(moodboardShares)
+        .values({
+          moodboardId: B.photo,
+          weddingVendorId: WV.photo,
+          orgId: org,
+          weddingId: ID.wedding,
+        })
+        .onConflictDoNothing()
+
       const file = (
         n: number,
         weddingId: string,
@@ -596,7 +623,9 @@ async function main(): Promise<void> {
         sizeBytes: number,
         mime: string,
         visibility: 'shared' | 'internal',
+        moodboardId: string | null = null,
       ) => ({
+        moodboardId,
         id: sid('12120000', n),
         orgId: org,
         weddingId,
@@ -646,6 +675,7 @@ async function main(): Promise<void> {
             1_800_000,
             'image/jpeg',
             'shared',
+            B.main,
           ),
           file(
             5,
@@ -655,6 +685,7 @@ async function main(): Promise<void> {
             1_400_000,
             'image/jpeg',
             'shared',
+            B.photo,
           ),
           file(
             6,

@@ -242,6 +242,10 @@ describe('RLS is enabled AND forced', () => {
    * See the same Part 0 for why `app.org_id` is the wrong key on purpose. FOR SELECT only;
    * `budget_lines` gets no policy at all for this principal (money stays planner-only).
    *
+   * `moodboards.link_read`, `moodboard_shares.link_read` and `files.link_read`: migration 0012
+   * (spec 0007). The same third axis: a vendor reads the boards shared with it, and their
+   * images, scoped by `app.wedding_vendor_id` through `moodboard_shares`. FOR SELECT only.
+   *
    * Why the list is here and not in `src/schema/index.ts`, where the buckets live: this is
    * not a classification. The tables' tenant keys have not changed; this is a named
    * exemption from ONE assertion, so it belongs beside the assertion it exempts. The cost is
@@ -263,6 +267,9 @@ describe('RLS is enabled AND forced', () => {
     ['run_sheet_items.link_read', 'app.wedding_vendor_id'],
     ['wedding_vendors.link_read', 'app.wedding_vendor_id'],
     ['wedding_events.link_read', 'app.wedding_id'],
+    ['moodboards.link_read', 'app.wedding_vendor_id'],
+    ['moodboard_shares.link_read', 'app.wedding_vendor_id'],
+    ['files.link_read', 'app.wedding_vendor_id'],
   ])
 
   it('every named policy exception still matches a real policy', async () => {

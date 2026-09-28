@@ -26,5 +26,10 @@
     "revoked": "Révoqué",
     "cancel": "Annuler",
     "error": "Échec. Réessayez."
-  }
+  },
+  "timelineFullTitle": "Toute la journée",
+  "fullEmpty": "Rien de prévu pour l’instant.",
+  "download": "Télécharger",
+  "close": "Fermer",
+  "openImage": "Agrandir {name}"
 }

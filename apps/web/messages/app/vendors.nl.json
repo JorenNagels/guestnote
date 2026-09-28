@@ -70,7 +70,11 @@
     "remove": "Van bruiloft halen",
     "removeConfirm": "Zeker verwijderen?",
     "removeConfirmYes": "Ja, verwijder",
-    "removeNote": "De leverancier blijft in de lijst van het bureau."
+    "removeNote": "De leverancier blijft in de lijst van het bureau.",
+    "fullRunSheet": "Volledige tijdlijn tonen",
+    "fullRunSheetHint": "Deze leverancier ziet de hele dag, niet alleen eigen momenten.",
+    "boards": "Moodboards: {names}",
+    "noBoards": "Geen moodboards gedeeld"
   },
   "status": {
     "considering": "In overweging",

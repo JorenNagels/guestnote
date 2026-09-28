@@ -120,9 +120,24 @@ const WEDDING_TABLES: WeddingTable[] = [
     ],
   },
   {
-    table: 'files',
+    // Spec 0007. Every fixture wedding has its default board; A1 also has `boardA1Photo`.
+    // `moodboard_shares` is not here: it has no `updated_at` for this block's generic UPDATE, so
+    // its writes are asserted in moodboards.test.ts instead.
+    table: 'moodboards',
     orgA: 3,
     a1: 2,
+    orgB: 1,
+    insert: (org, wedding) => [
+      `insert into moodboards (id, org_id, wedding_id, name)
+         values (gen_random_uuid(), $1, $2, 'Extra')`,
+      [org, wedding],
+    ],
+  },
+  {
+    table: 'files',
+    // A1 holds two files and, since spec 0007, two images (one per board).
+    orgA: 5,
+    a1: 4,
     orgB: 1,
     insert: (org, wedding) => [
       `insert into files (id, org_id, wedding_id, name, storage_key, size_bytes, mime)

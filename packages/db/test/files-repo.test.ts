@@ -6,6 +6,7 @@ import {
   getFile,
   listFiles,
   type Memberships,
+  type PendingFileInput,
   removeFile,
   renameFile,
   resolveMemberships,
@@ -47,17 +48,21 @@ afterAll(async () => {
   await h?.end()
 })
 
-const pending = (kind: 'file' | 'image' = 'file') => {
+function pending(
+  kind: 'file' | 'image' = 'file',
+  moodboardId: string = F.boardA1,
+): PendingFileInput {
   const id = newId()
-  return {
+  const common = {
     id,
-    kind,
     name: `s5 ${id}`,
     storageKey: `${F.orgA}/${F.weddingA1}/${id}`,
     sizeBytes: 1234,
-    mime: kind === 'image' ? 'image/png' : 'application/pdf',
     visibility: 'shared' as const,
   }
+  return kind === 'image'
+    ? { ...common, kind: 'image', moodboardId, mime: 'image/png' }
+    : { ...common, kind: 'file', mime: 'application/pdf' }
 }
 
 describe('listFiles', () => {
@@ -75,7 +80,27 @@ describe('listFiles', () => {
         (f) => f.id,
       ),
     ).toEqual([F.fileA2Shared])
-    expect(await listFiles(WeddingScope.of(h.db, owner, F.orgA, F.weddingA1), 'image')).toEqual([])
+    // A1's two images (spec 0007), one per board; the board filter separates them.
+    expect(
+      (await listFiles(WeddingScope.of(h.db, owner, F.orgA, F.weddingA1), 'image', F.boardA1))?.map(
+        (f) => f.id,
+      ),
+    ).toEqual([F.imageA1Default])
+    expect(
+      (
+        await listFiles(WeddingScope.of(h.db, owner, F.orgA, F.weddingA1), 'image', F.boardA1Photo)
+      )?.map((f) => f.id),
+    ).toEqual([F.imageA1Photo])
+  })
+
+  it('refuses an image whose board is on another wedding', async () => {
+    // A2's board, uploaded "to" A1: the FK alone would accept it (spec 0007, plain FKs).
+    expect(
+      await createPendingFile(
+        WeddingScope.of(h.db, owner, F.orgA, F.weddingA1),
+        pending('image', F.boardA2),
+      ),
+    ).toEqual(NOT_FOUND)
   })
 
   it('reads the uploader as a name or an address, never blank', async () => {

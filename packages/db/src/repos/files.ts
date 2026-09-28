@@ -1,6 +1,7 @@
 import { and, desc, eq, isNull, sql } from 'drizzle-orm'
 import { users } from '../schema/auth.ts'
 import { files } from '../schema/files.ts'
+import { moodboards } from '../schema/moodboards.ts'
 import { weddings } from '../schema/weddings.ts'
 import { withTenant } from '../tenant.ts'
 import { fail, ok, type Result } from './result.ts'
@@ -48,6 +49,8 @@ export type FileRow = {
   readonly sizeBytes: number
   readonly mime: string
   readonly visibility: FileVisibility
+  /** The board an image is on (spec 0007); `null` exactly for `kind = 'file'`. */
+  readonly moodboardId: string | null
   readonly uploadedBy: string | null
   /** The uploader's display name, falling back to their address. `null` once they are deleted. */
   readonly uploadedByName: string | null
@@ -62,6 +65,7 @@ const COLUMNS = {
   sizeBytes: files.sizeBytes,
   mime: files.mime,
   visibility: files.visibility,
+  moodboardId: files.moodboardId,
   uploadedBy: files.uploadedBy,
   uploadedByName: sql<string | null>`coalesce(${users.name}, ${users.email})`,
   createdAt: files.createdAt,
@@ -80,12 +84,17 @@ function toRow(r: Selected): FileRow {
 
 /**
  * Confirmed files of one kind, newest first. `null` means no access, `[]` means none yet.
+ * `moodboardId` narrows images to one board (spec 0007); omitted, every board's.
  *
  * The `eq(files.weddingId, ...)` is load-bearing for owner and admin, whose principal is
  * org-wide and so sees every wedding's files; it is redundant for an assigned member, whose
  * pinned GUC already narrows it. The same split `getWedding` describes.
  */
-export async function listFiles(scope: WeddingScope, kind: FileKind): Promise<FileRow[] | null> {
+export async function listFiles(
+  scope: WeddingScope,
+  kind: FileKind,
+  moodboardId?: string,
+): Promise<FileRow[] | null> {
   const { db, weddingId } = scope
   const principal = scope.principal
   if (!principal) return null
@@ -95,7 +104,14 @@ export async function listFiles(scope: WeddingScope, kind: FileKind): Promise<Fi
       .select(COLUMNS)
       .from(files)
       .leftJoin(users, eq(users.id, files.uploadedBy))
-      .where(and(eq(files.weddingId, weddingId), eq(files.kind, kind), isNull(files.deletedAt)))
+      .where(
+        and(
+          eq(files.weddingId, weddingId),
+          eq(files.kind, kind),
+          isNull(files.deletedAt),
+          moodboardId === undefined ? undefined : eq(files.moodboardId, moodboardId),
+        ),
+      )
       .orderBy(desc(files.createdAt), desc(files.id)),
   )
   return rows.map(toRow)
@@ -118,16 +134,22 @@ export async function getFile(scope: WeddingScope, fileId: string): Promise<File
   return row ? toRow(row) : null
 }
 
+/**
+ * An image names its board and a file cannot (spec 0007): a union, so the shape the
+ * `files_moodboard_kind_check` constraint refuses cannot be built in the first place.
+ */
 export type PendingFileInput = {
   /** `newId()`, and the last segment of `storageKey`. */
   readonly id: string
-  readonly kind: FileKind
   readonly name: string
   readonly storageKey: string
   readonly sizeBytes: number
   readonly mime: string
   readonly visibility: FileVisibility
-}
+} & (
+  | { readonly kind: 'file'; readonly moodboardId?: never }
+  | { readonly kind: 'image'; readonly moodboardId: string }
+)
 
 /**
  * Inserts a row that is invisible until `confirmFile`. `notFound` when the wedding is not
@@ -136,7 +158,8 @@ export type PendingFileInput = {
  * The wedding is read first because the FK from `files.wedding_id` is plain, not composite
  * (spec 0003, "Shared rules"): RLS checks that the row's `org_id` is ours and says nothing
  * about whose wedding the id names, so an insert naming another org's wedding would succeed.
- * `uploaded_by` is the caller, taken from the memberships and never from the input.
+ * `uploaded_by` is the caller, taken from the memberships and never from the input. An image's
+ * board is read the same way, and must be on this wedding -- same plain-FK reason.
  */
 export async function createPendingFile(
   scope: WeddingScope,
@@ -153,6 +176,14 @@ export async function createPendingFile(
       .where(and(eq(weddings.id, weddingId), isNull(weddings.deletedAt)))
     if (parent.length === 0) return fail('notFound')
 
+    if (input.kind === 'image') {
+      const board = await tx
+        .select({ id: moodboards.id })
+        .from(moodboards)
+        .where(and(eq(moodboards.id, input.moodboardId), eq(moodboards.weddingId, weddingId)))
+      if (board.length === 0) return fail('notFound')
+    }
+
     // One instant for all three, because equality of `deleted_at` and `created_at` is the
     // pending marker (see the header). Both are set from this value, not from `now()`.
     const at = new Date()
@@ -166,6 +197,7 @@ export async function createPendingFile(
       sizeBytes: input.sizeBytes,
       mime: input.mime,
       visibility: input.visibility,
+      moodboardId: input.kind === 'image' ? input.moodboardId : null,
       uploadedBy: m.userId,
       createdAt: at,
       updatedAt: at,

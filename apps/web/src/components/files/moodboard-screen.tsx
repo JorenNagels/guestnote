@@ -4,7 +4,9 @@ import { LinkButton } from '@guestnote/ui/button'
 import { InlineError } from '@guestnote/ui/inline-error'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import type { BoardDone } from '../../lib/moodboards.ts'
 import type { Done, StartUpload } from '../../lib/wedding-files.ts'
+import { type BoardActions, BoardBar, type BoardLabels, type Boards } from './board-bar.tsx'
 import { withoutExtension } from './format.ts'
 import { uploadFile } from './upload.ts'
 import { UploadZone, type UploadZoneLabels } from './upload-zone.tsx'
@@ -27,6 +29,8 @@ export type MoodboardActions = {
   confirm(fileId: string): Promise<Done>
   remove(fileId: string): Promise<Done>
   rename(fileId: string, name: string): Promise<Done>
+  /** To another board of the same wedding (spec 0007). */
+  move(fileId: string, boardId: string): Promise<BoardDone>
 }
 
 export type MoodboardLabels = {
@@ -42,14 +46,19 @@ export type MoodboardLabels = {
   captionField: string
   captionSave: string
   imageUnavailable: string
+  /** "Verplaats naar…": the select's first, empty option, and its accessible name per tile. */
+  moveTo: string
+  moveAria: string
+  boards: BoardLabels
   errors: Readonly<Record<string, string>> & { unknown: string }
 }
 
 const fill = (template: string, name: string) => template.replace('{name}', name)
 
 /**
- * The moodboard: image tiles, add, remove, caption. A native board (spec 0003): the couple's
- * reactions that the prototype hangs beside each tile are the couple portal's, a separate spec.
+ * The moodboard: named boards (spec 0007), and on the current one image tiles -- add, remove,
+ * caption, move to another board. A native board (spec 0003): the couple's reactions that the
+ * prototype hangs beside each tile are the couple portal's, a separate spec.
  *
  * Images are `<img>` and not `next/image`: `next.config.ts` turns the optimiser off (research/05
  * section 6), and the source is a signed URL that changes on every render, which would make
@@ -59,10 +68,14 @@ export function MoodboardScreen({
   items,
   labels,
   actions,
+  boards,
+  boardActions,
 }: {
   items: readonly MoodTile[]
   labels: MoodboardLabels
   actions: MoodboardActions
+  boards: Boards
+  boardActions: BoardActions
 }) {
   const router = useRouter()
   const [editing, setEditing] = useState<string | null>(null)
@@ -73,7 +86,9 @@ export function MoodboardScreen({
 
   const message = (code: string) => labels.errors[code] ?? labels.errors.unknown
 
-  const act = async (id: string, work: () => Promise<Done>) => {
+  const others = boards.list.filter((b) => b.id !== boards.current)
+
+  const act = async (id: string, work: () => Promise<Done | BoardDone>) => {
     setBusy(id)
     setErrors(({ [id]: _dropped, ...rest }) => rest)
     try {
@@ -95,6 +110,14 @@ export function MoodboardScreen({
   return (
     <div className="mx-auto max-w-5xl px-6 pt-6 pb-8">
       <h2 className="text-xl font-semibold tracking-tight">{labels.title}</h2>
+      {/* Keyed by board: switching is a navigation to the same route, so without a key a rename
+          or delete confirm begun on one board would still be open -- and aimed -- at the next. */}
+      <BoardBar
+        key={boards.current}
+        boards={boards}
+        actions={boardActions}
+        labels={labels.boards}
+      />
 
       <div className="mt-6">
         <UploadZone
@@ -113,7 +136,10 @@ export function MoodboardScreen({
 
       {items.length === 0 ? (
         <div className="mt-6 rounded-[var(--radius-container)] border border-border bg-card px-6 py-10 text-center">
-          <p className="font-medium">{labels.empty.title}</p>
+          {/* With one board, S5's wording; with several, it says which one is empty. */}
+          <p className="font-medium">
+            {boards.list.length > 1 ? labels.boards.empty : labels.empty.title}
+          </p>
           <p className="text-muted-foreground mx-auto mt-1.5 max-w-prose text-sm leading-relaxed">
             {labels.empty.body}
           </p>
@@ -206,6 +232,25 @@ export function MoodboardScreen({
                         {labels.tileRemove}
                       </LinkButton>
                     </span>
+                  )}
+                  {others.length > 0 && (
+                    <select
+                      aria-label={fill(labels.moveAria, t.name)}
+                      value=""
+                      disabled={isBusy}
+                      onChange={(e) => {
+                        const to = e.target.value
+                        if (to) void act(t.id, () => actions.move(t.id, to))
+                      }}
+                      className="border-input text-muted-foreground h-8 w-full rounded-[var(--radius)] border bg-transparent px-1.5 text-xs"
+                    >
+                      <option value="">{labels.moveTo}</option>
+                      {others.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name}
+                        </option>
+                      ))}
+                    </select>
                   )}
                   {error && <InlineError>{error}</InlineError>}
                 </div>

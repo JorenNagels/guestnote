@@ -33,8 +33,9 @@ set -a; . ./.env.local; set +a
 REQUIRE_NEON_TIER=1 npm run test:db
 ```
 
-**Latest, 2026-09-27: 633 passed on the local container** (tier 1) with `0011_terms_acceptance`
-applied; the Neon tier waits for 0011 to reach the branch through the deploy workflow. The 142
+**Latest, 2026-09-28: 695 passed on the local container** (tier 1) with
+`0012_moodboards_shared_with_vendors` applied (spec 0007); the Neon tier waits for 0012 to reach
+the branch through the deploy workflow. (2026-09-27: 633 with 0011.) The 142
 below is the run that settled the pooler question, kept for what it measured.
 
 **Result, 2026-08-20: 142 passed** against `-pooler` on PostgreSQL **18.4**, and 142 on the
@@ -191,6 +192,22 @@ cross-tenant read, for the reminder cron. `resolve_vendor_link` is dropped and r
 `test/studios.test.ts`; a hand sweep of 23 SQL and 6 repo mutations killed all but three
 equivalent ones, each noted beside its assertion (one of them, the double-submit lock, was
 only killed after the race test was rewritten to hold two transactions open).
+
+### Migration 0012: moodboards shared with vendors
+
+Spec 0007. **695 passed on the local tier, 2026-09-28**; **not yet on Neon or staging** -- the
+deploy workflow's migration step picks it up on the push. Two tables, both `TENANT_SCOPED` with
+FORCE and a positive staff role list: `moodboards` (one `is_default` per wedding, by partial
+unique index) and `moodboard_shares` (board x wedding vendor). `files.moodboard_id`, set exactly
+for images (`files_moodboard_kind_check`, added after the backfill gave every image its
+wedding's default board), `on delete no action` -- not `restrict`, which is checked mid-statement
+and could fail a hard wedding delete cascading to both tables. `wedding_vendors.full_run_sheet`.
+Three `link_read` policies (`moodboards`, `moodboard_shares`, `files` -- images, `shared`, live,
+on a board shared with the link's vendor) and `vendor_link_run_sheet()`, a `SECURITY DEFINER`
+function on 0008's pattern returning the whole day's run sheet, named columns only, every join
+pinned to the link's wedding. `test/moodboards.test.ts`; a hand sweep of 13 SQL and 7 repo
+mutations killed all but one, `files.link_read`'s role clause, which `moodboard_shares`' own RLS
+makes redundant today -- noted beside its assertion.
 
 ## Applying a migration
 
@@ -363,9 +380,9 @@ missing a tenant key, missing `FORCE ROW LEVEL SECURITY`, or missing a policy â€
 extending the suite is mechanical rather than something to remember.
 
 A policy may be excused from naming its tenant key only by being listed in that file's
-`USER_SCOPED_POLICY_EXCEPTIONS`, which is a one-line diff a reviewer sees. There are six
-entries as of migration `0008` (0005's `organizations.org_read_for_members`, 0007's two
-`org_staff_read` policies, and 0008's three `link_read` policies). A second assertion fails
+`USER_SCOPED_POLICY_EXCEPTIONS`, which is a one-line diff a reviewer sees. There are nine
+entries as of migration `0012` (0005's `organizations.org_read_for_members`, 0007's two
+`org_staff_read` policies, 0008's three `link_read` policies, and 0012's three). A second assertion fails
 if an exception names no live policy, because an exception matching nothing pre-authorises
 whatever is later created under that name.
 

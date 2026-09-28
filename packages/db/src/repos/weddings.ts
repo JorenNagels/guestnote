@@ -5,6 +5,7 @@ import { tasks } from '../schema/tasks.ts'
 import { type WEDDING_STATUSES, weddings } from '../schema/weddings.ts'
 import { withTenant } from '../tenant.ts'
 import { type Memberships, principalForOrg, principalForWedding } from './memberships.ts'
+import { insertDefaultBoard } from './moodboards.ts'
 import { fail, ok, type Result } from './result.ts'
 import type { WeddingScope } from './scope.ts'
 import { refreshTaskDueAt } from './task-due-refresh.ts'
@@ -272,7 +273,12 @@ export async function createWedding(
         })
         .onConflictDoNothing()
         .returning(SUMMARY)
-      if (rows[0]) return ok(rows[0])
+      if (rows[0]) {
+        // Spec 0007: every wedding has a default moodboard, made with it so there is never a
+        // wedding with nowhere to upload.
+        await insertDefaultBoard(tx, orgId, id)
+        return ok(rows[0])
+      }
     }
     return fail('notFound')
   })

@@ -43,7 +43,10 @@ export const INTERNAL_VISIBLE_ROLES = ['owner', 'admin', 'member', 'editor'] as 
  * policies key on it alone, on the two tables spec 0003 names (`run_sheet_items`,
  * `wedding_vendors`) plus `wedding_events`, added so a run-sheet item's event label can be
  * read at all -- see 0008_vendor_link.sql Part 0 for why that third one was necessary and
- * why it is scoped by `weddingId` only, not `weddingVendorId`.
+ * why it is scoped by `weddingId` only, not `weddingVendorId`. Migration 0012 (spec 0007) added
+ * three more keyed on it -- `moodboards`, `moodboard_shares`, `files`, for the boards shared with
+ * the vendor -- and `vendor_link_run_sheet()`, which reads it to return the whole day, named
+ * columns only, when the planner switched that on.
  *
  * **This variant must be rebuilt from `resolveVendorLinkByHash` (repos/vendor-links.ts) on
  * every use, and never persisted or reused across a request boundary.** Neither this type nor
@@ -53,8 +56,9 @@ export const INTERNAL_VISIBLE_ROLES = ['owner', 'admin', 'member', 'editor'] as 
  * anything but `'live'`). A `link` principal built once and kept around -- in a session, a
  * cache, a cookie -- would go on reading rows under RLS after the link it came from was
  * revoked or expired, because nothing downstream of construction asks again. This is safe
- * today only because the sole call site (`apps/web/src/app/pro/(public)/vendor/[token]/page
- * .tsx`) re-resolves fresh on every request with no caching in between --
+ * today only because both call sites -- the page (`apps/web/src/app/pro/(public)/vendor/[token]
+ * /page.tsx`) and the public Server Functions behind it (`apps/web/src/lib/vendor-boards.ts`,
+ * spec 0007) -- re-resolve fresh on every request with no caching in between --
  * `vendor-links-repo.test.ts` has a test proving the gap exists so a future caller that DOES
  * cache this principal gets caught by it, not by a production incident.
  */
@@ -114,8 +118,9 @@ function weddingIdOf(p: Principal): string | null {
  * their existing policies. `app.wedding_id` IS still set (needed for display-adjacent
  * narrowing and because `schema-coverage.test.ts` requires every policy on a
  * `TENANT_SCOPED_TABLES` table to name it), but the scope that actually matters is
- * `app.wedding_vendor_id`: 0008's two `link_read` policies are the only ones that read
- * it, and they read nothing else that would admit a wider principal. See tenant.ts's
+ * `app.wedding_vendor_id`: only `link_read` policies (0008's, and 0012's three) and
+ * `vendor_link_run_sheet()` (0012) read it, each admitting only rows tied to that one vendor --
+ * the function's whole-day rows included, since it checks that vendor's own switch first. See tenant.ts's
  * `Principal` doc for why this could not instead be "add a role clause to every
  * existing policy".
  */

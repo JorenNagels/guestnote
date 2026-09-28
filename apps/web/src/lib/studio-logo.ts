@@ -103,7 +103,7 @@ async function save(caller: LogoCaller, key: string | null): Promise<LogoDone> {
  * Best effort, and never the planner's problem: the new key is already saved, so a failure
  * here costs one orphaned object of at most 2 MB, reported so it can be cleaned up.
  * `deleteBrandObject` throws for a key outside `<org>/brand/` -- a row written by hand, say --
- * and that is caught for the same reason `signRow` in `wedding-files.ts` catches its throw.
+ * and that is caught for the same reason `signObject` in `wedding-files.ts` catches its throw.
  */
 async function deleteQuietly(orgId: string, key: string): Promise<void> {
   try {

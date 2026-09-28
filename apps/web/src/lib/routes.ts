@@ -46,7 +46,13 @@ export const app = {
   weddingVendors: (weddingId: string) => `/weddings/${weddingId}/vendors`,
   weddingRunSheet: (weddingId: string) => `/weddings/${weddingId}/run-sheet`,
   weddingFiles: (weddingId: string) => `/weddings/${weddingId}/files`,
-  weddingMoodboard: (weddingId: string) => `/weddings/${weddingId}/moodboard`,
+  /**
+   * One board of it (spec 0007); without `boardId`, the default board. `bord`, Dutch, as the
+   * spec settled -- it is in links staff paste to each other, so renaming it to `board` would
+   * need `bord` kept working.
+   */
+  weddingMoodboard: (weddingId: string, boardId?: string) =>
+    `/weddings/${weddingId}/moodboard${boardId ? `?bord=${encodeURIComponent(boardId)}` : ''}`,
   /** The org-level directory. `weddingVendors` is the per-wedding view of the same people. */
   vendors: () => '/vendors',
   templates: () => '/templates',

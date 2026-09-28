@@ -51,7 +51,37 @@
     },
     "captionField": "Légende",
     "captionSave": "Enregistrer",
-    "imageUnavailable": "Image indisponible"
+    "imageUnavailable": "Image indisponible",
+    "moveTo": "Déplacer vers…",
+    "moveAria": "Déplacer {name} vers un autre tableau",
+    "boards": {
+      "switcher": "Tableaux",
+      "new": "+ Nouveau tableau",
+      "newName": "Nouveau tableau",
+      "nameField": "Nom du tableau",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "rename": "Renommer {name}",
+      "sharedWith": "Partagé avec : {names}",
+      "notShared": "Non partagé",
+      "share": "Partager",
+      "shareTitle": "Partager {name}",
+      "shareCouple": "Couple",
+      "shareCoupleHint": "Visible dès que l’espace couple sera disponible.",
+      "shareNoLink": "pas encore de lien",
+      "shareNoVendors": "Aucun prestataire pour ce mariage.",
+      "couple": "Couple",
+      "close": "Fermer",
+      "delete": "Supprimer le tableau",
+      "deleteConfirm": "Supprimer le tableau et ses {count} images ?",
+      "deleteConfirmEmpty": "Supprimer le tableau ?",
+      "deleteYes": "Oui, supprimer",
+      "errors": {
+        "invalidName": "Donnez au tableau un nom de 80 caractères au maximum.",
+        "isDefault": "Le premier tableau ne peut pas être supprimé. Vous pouvez le renommer."
+      },
+      "empty": "Aucune image sur ce tableau pour l’instant."
+    }
   },
   "uploading": "Envoi en cours…",
   "dismiss": "Fermer",

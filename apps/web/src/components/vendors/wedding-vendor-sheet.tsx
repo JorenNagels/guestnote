@@ -4,21 +4,40 @@ import type { WeddingVendorRow } from '@guestnote/db'
 import { Button } from '@guestnote/ui/button'
 import { InlineError } from '@guestnote/ui/inline-error'
 import { Sheet } from '@guestnote/ui/sheet'
+import Link from 'next/link'
 import { useId, useState, useTransition } from 'react'
 import {
   removeVendorFromWedding,
   saveWeddingVendor,
+  setWeddingVendorFullRunSheet,
 } from '../../app/pro/(app)/weddings/[id]/vendors/actions.ts'
+import { app } from '../../lib/routes.ts'
 import { VENDOR_STATUSES, type VendorActionResult } from '../../lib/vendor-input.ts'
 import { errorText, SmallButton } from './controls.tsx'
 import type { VendorStatus } from './status.tsx'
 import { VendorLinkControls } from './vendor-link-controls.tsx'
 import type { WeddingLabels } from './wedding-vendors-view.tsx'
-/** Status, notes and unlink for one row. Unmounted when closed, like every `Sheet`. */
+export type SheetBoard = {
+  readonly id: string
+  readonly name: string
+  readonly sharedWith: readonly string[]
+}
+
+/**
+ * Status, notes and unlink for one row, and since spec 0007 what the vendor's link shows: the
+ * whole day or only their own rows, and which moodboards. Unmounted when closed, like every
+ * `Sheet`.
+ *
+ * The timeline switch saves on its own, at once, like the share ticks on the moodboard: it is a
+ * statement about what a link shows right now, and folding it into Save would leave it unsaved
+ * whenever someone closes the sheet instead. The boards are read-only here -- they are shared
+ * from the board (spec 0007), and each name links there.
+ */
 export function WeddingVendorSheet({
   weddingId,
   vendor,
   canManageLink,
+  boards,
   labels,
   onClose,
 }: {
@@ -27,6 +46,8 @@ export function WeddingVendorSheet({
   /** Owner/admin only (spec 0003 permissions table: "create signed links"). A `member` can
    *  still edit status and notes below -- this gates only the link section. */
   canManageLink: boolean
+  /** The boards shared with THIS vendor. */
+  boards: readonly SheetBoard[]
   labels: WeddingLabels
   onClose: () => void
 }) {
@@ -37,7 +58,26 @@ export function WeddingVendorSheet({
   const [pending, startTransition] = useTransition()
   const [result, setResult] = useState<VendorActionResult | null>(null)
   const [failed, setFailed] = useState(false)
+  const [fullDay, setFullDay] = useState(vendor.fullRunSheet)
   const message = failed ? labels.errors.generic : errorText(labels.errors, result)
+
+  const toggleFullDay = (on: boolean) => {
+    setFullDay(on)
+    setFailed(false)
+    setResult(null)
+    startTransition(async () => {
+      try {
+        const r = await setWeddingVendorFullRunSheet(weddingId, vendor.id, on)
+        if (!r.ok) {
+          setFullDay(!on)
+          setResult(r)
+        }
+      } catch {
+        setFullDay(!on)
+        setFailed(true)
+      }
+    })
+  }
 
   const run = (fn: () => Promise<VendorActionResult>) => {
     setFailed(false)
@@ -118,6 +158,29 @@ export function WeddingVendorSheet({
           </p>
         </div>
 
+        <div className="border-border space-y-3 border-t pt-4">
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              checked={fullDay}
+              disabled={pending}
+              onChange={(e) => toggleFullDay(e.target.checked)}
+              className="mt-1 size-4"
+            />
+            <span>
+              <span className="block text-sm font-medium">{labels.fullRunSheet}</span>
+              <span className="text-muted-foreground block text-xs">{labels.fullRunSheetHint}</span>
+            </span>
+          </label>
+          <p className="text-sm">
+            {boards.length === 0 ? (
+              <span className="text-muted-foreground">{labels.noBoards}</span>
+            ) : (
+              <BoardLinks weddingId={weddingId} boards={boards} template={labels.boards} />
+            )}
+          </p>
+        </div>
+
         {message && <InlineError>{message}</InlineError>}
 
         {canManageLink && (
@@ -154,5 +217,36 @@ export function WeddingVendorSheet({
         </div>
       </div>
     </Sheet>
+  )
+}
+
+/** "Moodboards: A, B", with each name a link to that board. The template's `{names}` is split
+ *  around, so the words either side stay translatable. */
+function BoardLinks({
+  weddingId,
+  boards,
+  template,
+}: {
+  weddingId: string
+  boards: readonly SheetBoard[]
+  template: string
+}) {
+  const [before = '', after = ''] = template.split('{names}')
+  return (
+    <>
+      {before}
+      {boards.map((b, i) => (
+        <span key={b.id}>
+          {i > 0 && ', '}
+          <Link
+            href={app.weddingMoodboard(weddingId, b.id)}
+            className="underline underline-offset-[3px]"
+          >
+            {b.name}
+          </Link>
+        </span>
+      ))}
+      {after}
+    </>
   )
 }

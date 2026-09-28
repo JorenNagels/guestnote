@@ -70,7 +70,11 @@
     "remove": "Retirer du mariage",
     "removeConfirm": "Retirer vraiment ?",
     "removeConfirmYes": "Oui, retirer",
-    "removeNote": "Le prestataire reste dans la liste du bureau."
+    "removeNote": "Le prestataire reste dans la liste du bureau.",
+    "fullRunSheet": "Afficher tout le déroulé",
+    "fullRunSheetHint": "Ce prestataire voit toute la journée, pas seulement ses propres créneaux.",
+    "boards": "Tableaux d’inspiration : {names}",
+    "noBoards": "Aucun tableau partagé"
   },
   "status": {
     "considering": "À l'étude",

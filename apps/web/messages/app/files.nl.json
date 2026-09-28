@@ -51,7 +51,37 @@
     },
     "captionField": "Bijschrift",
     "captionSave": "Opslaan",
-    "imageUnavailable": "Afbeelding niet beschikbaar"
+    "imageUnavailable": "Afbeelding niet beschikbaar",
+    "moveTo": "Verplaats naar…",
+    "moveAria": "{name} naar een ander bord verplaatsen",
+    "boards": {
+      "switcher": "Borden",
+      "new": "+ Nieuw bord",
+      "newName": "Nieuw bord",
+      "nameField": "Naam van het bord",
+      "save": "Opslaan",
+      "cancel": "Annuleren",
+      "rename": "Naam van {name} aanpassen",
+      "sharedWith": "Gedeeld met: {names}",
+      "notShared": "Niet gedeeld",
+      "share": "Delen",
+      "shareTitle": "{name} delen",
+      "shareCouple": "Koppel",
+      "shareCoupleHint": "Zichtbaar zodra het koppelportaal er is.",
+      "shareNoLink": "nog geen link",
+      "shareNoVendors": "Nog geen leveranciers voor deze bruiloft.",
+      "couple": "Koppel",
+      "close": "Sluiten",
+      "delete": "Verwijder bord",
+      "deleteConfirm": "Bord en {count} afbeeldingen verwijderen?",
+      "deleteConfirmEmpty": "Bord verwijderen?",
+      "deleteYes": "Ja, verwijderen",
+      "errors": {
+        "invalidName": "Geef het bord een naam van maximaal 80 tekens.",
+        "isDefault": "Het eerste bord kan niet worden verwijderd. Geef het gerust een andere naam."
+      },
+      "empty": "Nog geen afbeeldingen op dit bord."
+    }
   },
   "uploading": "Bezig met uploaden…",
   "dismiss": "Sluiten",

@@ -93,6 +93,26 @@ export async function setWeddingVendorStatus(
   return answer(r)
 }
 
+/**
+ * "Volledige tijdlijn tonen" (spec 0007): the vendor's link shows the whole day. Any staff, like
+ * the status -- the flag is on `wedding_vendors`, not `vendor_links`, for exactly that reason.
+ * Saved on its own so it cannot overwrite a note being edited in the same sheet.
+ */
+export async function setWeddingVendorFullRunSheet(
+  weddingId: unknown,
+  linkId: unknown,
+  on: unknown,
+): Promise<VendorActionResult> {
+  await assertWritable(await currentOrgId())
+  const ctx = await context(weddingId)
+  if (!ctx) return { ok: false, error: 'notFound' }
+  const id = parseId(linkId)
+  if (!id || typeof on !== 'boolean') return { ok: false, error: 'invalid' }
+  const r = await updateWeddingVendor(ctx, id, { fullRunSheet: on })
+  if (r.ok) refresh()
+  return answer(r)
+}
+
 /** The sheet's save: status and notes together. */
 export async function saveWeddingVendor(
   weddingId: unknown,

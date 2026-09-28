@@ -4,6 +4,7 @@ export * from './events.ts'
 export * from './files.ts'
 export * from './mail.ts'
 export * from './money.ts'
+export * from './moodboards.ts'
 export * from './orgs.ts'
 export * from './tasks.ts'
 export * from './templates.ts'
@@ -41,6 +42,10 @@ export const TENANT_SCOPED_TABLES = [
   'run_sheet_items',
   'files',
   'vendor_links',
+  // Spec 0007, migration 0012. Staff-only policies (a positive role list), plus a `link_read`
+  // each for a vendor's shared boards.
+  'moodboards',
+  'moodboard_shares',
 ] as const
 
 /**

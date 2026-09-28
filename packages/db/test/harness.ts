@@ -261,6 +261,15 @@ export const F = {
   fileA1Internal: '12121212-0000-0000-0000-0000000000a2',
   fileA2Shared: '12121212-0000-0000-0000-0000000000a3',
   fileB1Shared: '12121212-0000-0000-0000-0000000000b1',
+  /** Spec 0007: two images on wedding A1 -- one on the default board, one on `boardA1Photo`. */
+  imageA1Default: '12121212-0000-0000-0000-0000000000a4',
+  imageA1Photo: '12121212-0000-0000-0000-0000000000a5',
+  /** Every fixture wedding's default board, as `createWedding` makes one (spec 0007). */
+  boardA1: '16161616-0000-0000-0000-0000000000a1',
+  boardA2: '16161616-0000-0000-0000-0000000000a2',
+  boardB1: '16161616-0000-0000-0000-0000000000b1',
+  /** A second board on A1, shared with `wedVendorA1` -- the only share in the fixture. */
+  boardA1Photo: '16161616-0000-0000-0000-0000000000a3',
   linkA1: '13131313-0000-0000-0000-0000000000a1',
   linkA2: '13131313-0000-0000-0000-0000000000a2',
   linkB1: '13131313-0000-0000-0000-0000000000b1',
@@ -516,11 +525,29 @@ async function seedPlannerTables(pool: NodePool): Promise<void> {
     ],
   )
   await pool.query(
-    `insert into files (id, org_id, wedding_id, kind, name, storage_key, size_bytes, mime, visibility) values
-       ($1,$5,$7,'file','Venue contract.pdf','a/a1/contract',412000,'application/pdf','shared'),
-       ($2,$5,$7,'file','Rentals quote comparison.xlsx','a/a1/quotes',62000,'application/vnd.ms-excel','internal'),
-       ($3,$5,$8,'image','Chapel aisle.jpg','a/a2/aisle',900000,'image/jpeg','shared'),
-       ($4,$6,$9,'file','Contract.pdf','b/b1/contract',100000,'application/pdf','shared')`,
+    `insert into moodboards (id, org_id, wedding_id, name, is_default, position) values
+       ($1,$5,$7,'Moodboard',true,0), ($2,$5,$8,'Moodboard',true,0),
+       ($3,$6,$9,'Moodboard',true,0), ($4,$5,$7,'Fotograaf',false,1)`,
+    [
+      F.boardA1,
+      F.boardA2,
+      F.boardB1,
+      F.boardA1Photo,
+      F.orgA,
+      F.orgB,
+      F.weddingA1,
+      F.weddingA2,
+      F.weddingB1,
+    ],
+  )
+  await pool.query(
+    `insert into files (id, org_id, wedding_id, kind, name, storage_key, size_bytes, mime, visibility, moodboard_id) values
+       ($1,$5,$7,'file','Venue contract.pdf','a/a1/contract',412000,'application/pdf','shared',null),
+       ($2,$5,$7,'file','Rentals quote comparison.xlsx','a/a1/quotes',62000,'application/vnd.ms-excel','internal',null),
+       ($3,$5,$8,'image','Chapel aisle.jpg','a/a2/aisle',900000,'image/jpeg','shared',$10),
+       ($4,$6,$9,'file','Contract.pdf','b/b1/contract',100000,'application/pdf','shared',null),
+       ($11,$5,$7,'image','Tafelschikking.jpg','a/a1/tables',500000,'image/jpeg','shared',$13),
+       ($12,$5,$7,'image','Golden hour.jpg','a/a1/golden',700000,'image/jpeg','shared',$14)`,
     [
       F.fileA1Shared,
       F.fileA1Internal,
@@ -531,7 +558,17 @@ async function seedPlannerTables(pool: NodePool): Promise<void> {
       F.weddingA1,
       F.weddingA2,
       F.weddingB1,
+      F.boardA2,
+      F.imageA1Default,
+      F.imageA1Photo,
+      F.boardA1,
+      F.boardA1Photo,
     ],
+  )
+  await pool.query(
+    `insert into moodboard_shares (moodboard_id, wedding_vendor_id, org_id, wedding_id) values
+       ($1,$2,$3,$4)`,
+    [F.boardA1Photo, F.wedVendorA1, F.orgA, F.weddingA1],
   )
   await pool.query(
     `insert into vendor_links (id, org_id, wedding_id, wedding_vendor_id, token_hash, expires_at) values
@@ -571,7 +608,8 @@ export async function reseed(): Promise<void> {
   const pool = new NodePool({ connectionString: SEED_URL, max: 1 })
   try {
     await pool.query(`truncate table
-      vendor_links, run_sheet_items, payments, budget_lines, files, wedding_events,
+      moodboard_shares, vendor_links, run_sheet_items, payments, budget_lines, files, moodboards,
+      wedding_events,
       wedding_vendors, vendors, template_items, task_templates,
       task_comments, tasks, audit_log, invitations, wedding_domains,
       wedding_members, org_members, weddings, organizations, users cascade`)

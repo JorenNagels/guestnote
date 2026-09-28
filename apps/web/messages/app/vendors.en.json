@@ -70,7 +70,11 @@
     "remove": "Remove from wedding",
     "removeConfirm": "Remove for sure?",
     "removeConfirmYes": "Yes, remove",
-    "removeNote": "The vendor stays in the studio's list."
+    "removeNote": "The vendor stays in the studio's list.",
+    "fullRunSheet": "Show the full timeline",
+    "fullRunSheetHint": "This vendor sees the whole day, not just their own slots.",
+    "boards": "Moodboards: {names}",
+    "noBoards": "No moodboards shared"
   },
   "status": {
     "considering": "Considering",

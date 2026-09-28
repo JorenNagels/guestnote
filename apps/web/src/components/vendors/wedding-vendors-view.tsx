@@ -17,9 +17,15 @@ import { type ErrorLabels, errorText, Monogram, SELECT_CLASS, SmallButton } from
 import { STATUS_TONE, type StatusLabels, type VendorStatus } from './status.tsx'
 import { type FormLabels, VendorForm } from './vendor-form.tsx'
 import type { ManageLinkLabels } from './vendor-link-controls.tsx'
-import { WeddingVendorSheet } from './wedding-vendor-sheet.tsx'
+import { type SheetBoard, WeddingVendorSheet } from './wedding-vendor-sheet.tsx'
 
 export type WeddingLabels = {
+  /** Spec 0007: the per-vendor "whole day" switch, and which boards the vendor sees. */
+  fullRunSheet: string
+  fullRunSheetHint: string
+  /** `{names}`: the shared boards, comma-separated. */
+  boards: string
+  noBoards: string
   addLabel: string
   addPlaceholder: string
   addButton: string
@@ -81,11 +87,14 @@ export function WeddingVendorsView({
   canCreate,
   locale,
   labels,
+  boards = [],
 }: {
   weddingId: string
   linked: WeddingVendorRow[]
   directory: VendorRow[]
   canCreate: boolean
+  /** The wedding's moodboards and who each is shared with (spec 0007), for the sheet. */
+  boards?: readonly SheetBoard[]
   /** The wedding's own locale: amounts are written the way the budget and payments write them. */
   locale: string
   labels: WeddingLabels
@@ -145,6 +154,7 @@ export function WeddingVendorsView({
           weddingId={weddingId}
           vendor={editing}
           canManageLink={canCreate}
+          boards={boards.filter((b) => b.sharedWith.includes(editing.id))}
           labels={labels}
           onClose={() => setEditing(null)}
         />

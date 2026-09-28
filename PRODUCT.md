@@ -34,7 +34,8 @@ the day. The job: know what is due, across every wedding, without opening twelve
 - **The couple (👰).** Logs in perhaps six times a year to their own wedding only, sees
   only shared tasks and the budget. Never an org member — `wedding_members` carries them.
 - **The venue (🏛).** Same planner workflows at higher volume; a distinct paid tier.
-- **The vendor (🤝).** Sees one slice of one run sheet. Occasional to the point of
+- **The vendor (🤝).** Sees one slice of one run sheet by default — the whole day if the planner
+  opts them in (spec 0007) — plus any moodboard shared with them. Occasional to the point of
   near-anonymity; may not get an account at all.
 - **The wedding guest.** Never gets an account, ever — signed household links only. Out
   of scope until PH4.

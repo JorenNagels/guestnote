@@ -115,6 +115,16 @@ stop and ask. The rest are held by convention alone, which is why they are writt
    `accept_invitation_by_id` (hands on to `accept_invitation`), and `orgs_with_trial_ending` —
    the **only cross-tenant read in the schema**, for the trial-reminder cron, returning org id,
    name, trial end and one owner email and nothing else. Same install guard, same grants.
+   **Migration 0012 (spec 0007) added three more `link_read` policies and an eighth
+   `SECURITY DEFINER` function, the second a `link` principal calls.**
+   `moodboards.link_read`, `moodboard_shares.link_read` and `files.link_read` let a vendor link
+   read the boards shared with its own vendor and their live images, scoped by
+   `app.wedding_vendor_id` through `moodboard_shares`, `for select` only. `vendor_link_run_sheet()`
+   returns the whole day's run sheet, **named columns only**, to a link whose
+   `wedding_vendors.full_run_sheet` is on — a function rather than a wider `link_read` because
+   RLS grants whole rows, and widening `wedding_vendors.link_read` for vendor names would have
+   handed every vendor every other vendor's `notes`. It takes no arguments and reads the link
+   GUCs, so a caller cannot ask for another vendor's view.
 
 3. **`Principal` stays a discriminated union.** Never `{ orgId?, weddingId? }`. A principal
    with no `org_members` row *must* carry `weddingId`, or RLS falls through to org-wide

@@ -26,5 +26,10 @@
     "revoked": "Revoked",
     "cancel": "Cancel",
     "error": "That did not work. Try again."
-  }
+  },
+  "timelineFullTitle": "The whole day",
+  "fullEmpty": "Nothing planned yet.",
+  "download": "Download",
+  "close": "Close",
+  "openImage": "Enlarge {name}"
 }

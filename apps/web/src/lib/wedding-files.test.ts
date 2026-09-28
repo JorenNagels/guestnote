@@ -60,6 +60,7 @@ const ORG = 'aaaaaaaa-0000-0000-0000-00000000000a'
 const WEDDING = 'bbbbbbbb-0000-0000-0000-00000000000b'
 const FILE = 'cccccccc-0000-0000-0000-00000000000c'
 const KEY = `${ORG}/${WEDDING}/${FILE}`
+const BOARD = 'dddddddd-0000-0000-0000-00000000000d'
 const MEMBERSHIPS = { userId: 'u1', orgs: [{ orgId: ORG, role: 'owner' }], weddings: [] }
 
 const SIGNED = {
@@ -95,7 +96,7 @@ describe('cleanName', () => {
 
 describe('startUpload', () => {
   it('signs, then creates the row, and returns the headers the browser must send', async () => {
-    const result = await startUpload('image', WEDDING, input)
+    const result = await startUpload({ kind: 'image', moodboardId: BOARD }, WEDDING, input)
 
     expect(result).toEqual({
       ok: true,
@@ -114,8 +115,22 @@ describe('startUpload', () => {
     // The row carries the type the URL was signed for, not the raw `IMAGE/PNG` that arrived.
     expect(repo.createPendingFile).toHaveBeenCalledWith(
       expect.objectContaining({ m: MEMBERSHIPS, orgId: ORG, weddingId: WEDDING }),
-      expect.objectContaining({ kind: 'image', mime: 'image/png', storageKey: KEY }),
+      expect.objectContaining({
+        kind: 'image',
+        moodboardId: BOARD,
+        mime: 'image/png',
+        storageKey: KEY,
+      }),
     )
+  })
+
+  it('is notFound for an image whose board id is not a UUID, before signing anything', async () => {
+    expect(await startUpload({ kind: 'image', moodboardId: 'nope' }, WEDDING, input)).toEqual({
+      ok: false,
+      error: 'notFound',
+    })
+    expect(storage.presignUpload).not.toHaveBeenCalled()
+    expect(repo.createPendingFile).not.toHaveBeenCalled()
   })
 
   it('creates nothing when the storage seam refuses', async () => {
@@ -265,7 +280,7 @@ describe('a row whose key the storage seam rejects', () => {
     storage.presignDownload
       .mockRejectedValueOnce(new Error('key not in scope'))
       .mockResolvedValueOnce({ ok: true, url: 'https://get.example/g' })
-    const tiles = await listWeddingImages(WEDDING)
+    const tiles = await listWeddingImages(WEDDING, BOARD)
     expect(tiles?.map((t) => t.url)).toEqual([null, 'https://get.example/g'])
   })
 })
@@ -273,7 +288,7 @@ describe('a row whose key the storage seam rejects', () => {
 describe('listWeddingImages', () => {
   it('is null for no access and signs nothing', async () => {
     repo.listFiles.mockResolvedValue(null)
-    expect(await listWeddingImages(WEDDING)).toBeNull()
+    expect(await listWeddingImages(WEDDING, BOARD)).toBeNull()
     expect(storage.presignDownload).not.toHaveBeenCalled()
   })
 
@@ -285,9 +300,11 @@ describe('listWeddingImages', () => {
       .mockResolvedValueOnce({ ok: true, url: 'https://get.example/a' })
       .mockResolvedValueOnce({ ok: false, failure: 'unavailable', detail: 'x' })
 
-    const tiles = await listWeddingImages(WEDDING)
+    const tiles = await listWeddingImages(WEDDING, BOARD)
 
     expect(tiles?.map((t) => t.url)).toEqual(['https://get.example/a', null])
+    // One board, not every image of the wedding (spec 0007).
+    expect(repo.listFiles).toHaveBeenCalledWith(expect.anything(), 'image', BOARD)
     expect(storage.presignDownload).toHaveBeenCalledWith(
       expect.objectContaining({ disposition: 'inline' }),
     )

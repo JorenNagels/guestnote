@@ -1,12 +1,14 @@
 import type { WeddingVendorRow } from '@guestnote/db'
-import { render, screen, within } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import linkCopy from '../../../messages/app/vendorLink.en.json'
 import copy from '../../../messages/app/vendors.en.json'
 import { weddingLabels } from './labels.ts'
 import { WeddingVendorsView } from './wedding-vendors-view.tsx'
 
+const setFullRunSheet = vi.fn()
 vi.mock('../../app/pro/(app)/weddings/[id]/vendors/actions.ts', () => ({
+  setWeddingVendorFullRunSheet: (...a: unknown[]) => setFullRunSheet(...a),
   addVendorToWedding: vi.fn(),
   createVendorOnWedding: vi.fn(),
   setWeddingVendorStatus: vi.fn(),
@@ -42,13 +44,18 @@ const vendor = (over: Partial<WeddingVendorRow>): WeddingVendorRow => ({
   phone: null,
   status: 'booked',
   notes: null,
+  fullRunSheet: false,
   activeLink: null,
   outstandingCents: 0,
   openPayments: 0,
   ...over,
 })
 
-function view(linked: WeddingVendorRow[], locale = 'nl') {
+function view(
+  linked: WeddingVendorRow[],
+  locale = 'nl',
+  boards: { id: string; name: string; sharedWith: string[] }[] = [],
+) {
   render(
     <WeddingVendorsView
       weddingId="w1"
@@ -57,6 +64,7 @@ function view(linked: WeddingVendorRow[], locale = 'nl') {
       canCreate={false}
       locale={locale}
       labels={weddingLabels(lookup(copy), lookup(linkCopy))}
+      boards={boards}
     />,
   )
   return (name: string) => screen.getByText(name).closest('tr') as HTMLElement
@@ -95,5 +103,53 @@ describe('the outstanding column', () => {
     const row = view([vendor({})])
     expect(within(row('Traiteur A')).getByText('–')).toBeInTheDocument()
     expect(within(row('Traiteur A')).queryByText(/€/)).not.toBeInTheDocument()
+  })
+})
+
+describe('the sheet: what the link shows (spec 0007)', () => {
+  beforeEach(() => {
+    setFullRunSheet.mockReset()
+  })
+
+  const openSheet = () => fireEvent.click(screen.getByRole('button', { name: 'Edit Traiteur A' }))
+
+  it('saves the full-timeline switch at once, for any staff', async () => {
+    setFullRunSheet.mockResolvedValue({ ok: true })
+    view([vendor({})])
+    openSheet()
+    const toggle = screen.getByRole('checkbox', { name: /Show the full timeline/ })
+    expect(toggle).not.toBeChecked()
+    fireEvent.click(toggle)
+    await waitFor(() => expect(setFullRunSheet).toHaveBeenCalledWith('w1', 'wv1', true))
+    expect(toggle).toBeChecked()
+  })
+
+  it('puts the switch back when the save is refused', async () => {
+    setFullRunSheet.mockResolvedValue({ ok: false, error: 'notFound' })
+    view([vendor({ fullRunSheet: true })])
+    openSheet()
+    const toggle = screen.getByRole('checkbox', { name: /Show the full timeline/ })
+    fireEvent.click(toggle)
+    await waitFor(() => expect(toggle).toBeChecked())
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+  })
+
+  it("lists only this vendor's boards, each linking to the board", () => {
+    view([vendor({})], 'nl', [
+      { id: 'b1', name: 'Fotograaf', sharedWith: ['wv1'] },
+      { id: 'b2', name: 'Bloemen', sharedWith: ['other'] },
+    ])
+    openSheet()
+    expect(screen.getByRole('link', { name: 'Fotograaf' })).toHaveAttribute(
+      'href',
+      '/weddings/w1/moodboard?bord=b1',
+    )
+    expect(screen.queryByRole('link', { name: 'Bloemen' })).toBeNull()
+  })
+
+  it('says so when no board is shared', () => {
+    view([vendor({})])
+    openSheet()
+    expect(screen.getByText('No moodboards shared')).toBeInTheDocument()
   })
 })

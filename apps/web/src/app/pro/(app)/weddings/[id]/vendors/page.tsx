@@ -1,4 +1,4 @@
-import { getWedding, getWeddingVendors, WeddingScope } from '@guestnote/db'
+import { getWedding, getWeddingVendors, listBoards, WeddingScope } from '@guestnote/db'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
@@ -28,7 +28,11 @@ export default async function WeddingVendorsPage({ params }: { params: Promise<{
   if (!memberships || !orgId) notFound()
 
   const scope = WeddingScope.of(getDb(), memberships, orgId, id)
-  const [wedding, data] = await Promise.all([getWedding(scope), getWeddingVendors(scope)])
+  const [wedding, data, boards] = await Promise.all([
+    getWedding(scope),
+    getWeddingVendors(scope),
+    listBoards(scope),
+  ])
   if (!wedding || !data) notFound()
 
   return (
@@ -54,6 +58,7 @@ export default async function WeddingVendorsPage({ params }: { params: Promise<{
         canCreate={data.canCreate}
         locale={data.locale}
         labels={weddingLabels(t, t10)}
+        boards={(boards ?? []).map((b) => ({ id: b.id, name: b.name, sharedWith: b.sharedWith }))}
       />
     </div>
   )

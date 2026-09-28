@@ -3,7 +3,7 @@ import type { Db } from '../client.ts'
 import { newId } from '../id.ts'
 import { runSheetItems, weddingEvents } from '../schema/events.ts'
 import { vendorLinks, weddingVendors } from '../schema/vendors.ts'
-import { type Principal, withTenant } from '../tenant.ts'
+import { type Principal, type TenantDb, withTenant } from '../tenant.ts'
 import { principalForOrg } from './memberships.ts'
 import { fail, ok, type Result } from './result.ts'
 import type { WeddingScope } from './scope.ts'
@@ -25,7 +25,10 @@ import type { WeddingScope } from './scope.ts'
  *      returned, this is the ordinary `withTenant` read of the vendor's own rows, scoped by
  *      0008's `link_read` policies: `run_sheet_items` and `wedding_vendors` to this one
  *      `weddingVendorId`, and `wedding_events` (added so the join below has an `eventLabel`
- *      to read at all) to the wedding as a whole -- see 0008_vendor_link.sql Part 0.
+ *      to read at all) to the wedding as a whole -- see 0008_vendor_link.sql Part 0. Or, with
+ *      the vendor's `full_run_sheet` on (spec 0007), the whole day through
+ *      `vendor_link_run_sheet()` (0012), which RLS does not narrow and which returns named
+ *      columns only.
  *
  * The token itself is generated and hashed in `apps/web/src/lib/vendor-link-token.ts`, the
  * same split `invite-token.ts` / `invitations.ts` already uses: this file only ever sees a
@@ -38,8 +41,9 @@ export type VendorLinkWriteResult = Result<{ readonly id: string }, 'forbidden' 
 /**
  * What `resolve_vendor_link` (migration 0008) hands back. `status` is here for a future admin
  * view; the public route that resolves a visitor's token treats anything other than `'live'`
- * the same as `null` -- spec 0003's "never a leak of why" -- so it is the ONLY caller allowed
- * to read this field and act on it.
+ * the same as `null` -- spec 0003's "never a leak of why". The route and the vendor page's
+ * Server Functions (`apps/web/src/lib/vendor-boards.ts`, spec 0007) are the only callers that
+ * read this field, and each refuses anything but `'live'` before building a principal.
  */
 export type VendorLinkLookup = {
   readonly orgId: string
@@ -68,10 +72,22 @@ export type VendorTimelineItem = {
   readonly durationMin: number
   readonly title: string
   readonly place: string | null
+  /**
+   * The vendor named on the row, for the full day only (spec 0007); `null` on the vendor's own
+   * view, and on a full-day row with no vendor ("Speeches").
+   */
+  readonly vendorName: string | null
+  /** The row is this link's vendor's own. Always `true` on the own-rows view. */
+  readonly isOwn: boolean
 }
 
 /** Everything the vendor's own page renders, once a `link` principal exists. */
 export type VendorLinkView = {
+  /**
+   * `true` when the planner switched on "Volledige tijdlijn" for this vendor (spec 0007) and
+   * `timeline` is the whole day; `false` when it is the vendor's own rows only.
+   */
+  readonly fullDay: boolean
   readonly timeline: readonly VendorTimelineItem[]
   /**
    * "What the planner needs from you", reduced to `wedding_vendors.notes` -- a single
@@ -229,16 +245,43 @@ export async function resolveVendorLinkByHash(
 }
 
 /**
- * The vendor's own view, once a `link` `Principal` exists. RLS (0008's `link_read` policies)
- * already narrows both tables to this one `weddingVendorId`; the `where` clauses repeat that
- * as intent, the same convention `resolveMemberships` documents -- if a policy is ever wrong,
- * an agreeing clause narrows the blast radius instead of widening it.
+ * The vendor's view, once a `link` `Principal` exists. On the own-rows path RLS (0008's
+ * `link_read` policies) already narrows both tables to this one `weddingVendorId`; the `where`
+ * clauses repeat that as intent, the same convention `resolveMemberships` documents -- if a policy is ever wrong,
+ * an agreeing clause narrows the blast radius instead of widening it. The whole-day path is
+ * the function's, not RLS's, and is gated inside it on the same vendor's switch.
  */
 export async function getVendorLinkView(
   db: Db,
   principal: Extract<Principal, { kind: 'link' }>,
 ): Promise<VendorLinkView> {
   return withTenant(db, principal, async (tx) => {
+    // Spec 0007: the whole day, through the one door that returns named columns only (migration
+    // 0012 Part 0 says why it is a function and not a wider policy). The switch is read from the
+    // link's own `wedding_vendors` row, not inferred from the function's row count: zero rows is
+    // both "switched off" and "switched on over an empty sheet", and the page says different
+    // things for the two.
+    const own = await ownRowOf(tx, principal.weddingVendorId)
+    if (own.fullRunSheet) {
+      const full = await rowsOf<FullDayRow>(
+        tx.execute(sql`select * from public.vendor_link_run_sheet()`),
+      )
+      return {
+        fullDay: true,
+        timeline: full.map((r) => ({
+          id: r.id,
+          eventLabel: r.event_label,
+          startsAt: r.starts_at,
+          durationMin: r.duration_min,
+          title: r.title,
+          place: r.place,
+          vendorName: r.vendor_name,
+          isOwn: r.is_own,
+        })),
+        plannerNote: own.notes,
+      }
+    }
+
     const items = await tx
       .select({
         id: runSheetItems.id,
@@ -256,14 +299,39 @@ export async function getVendorLinkView(
       .where(eq(runSheetItems.weddingVendorId, principal.weddingVendorId))
       .orderBy(asc(runSheetItems.position), asc(runSheetItems.startsAt), asc(runSheetItems.id))
 
-    const own = await tx
-      .select({ notes: weddingVendors.notes })
-      .from(weddingVendors)
-      .where(eq(weddingVendors.id, principal.weddingVendorId))
-
     return {
-      timeline: items.map((i) => ({ ...i, startsAt: i.startsAt.slice(0, 5) })),
-      plannerNote: own[0]?.notes ?? null,
+      fullDay: false,
+      timeline: items.map((i) => ({
+        ...i,
+        startsAt: i.startsAt.slice(0, 5),
+        vendorName: null,
+        isOwn: true,
+      })),
+      plannerNote: own.notes,
     }
   })
+}
+
+type FullDayRow = {
+  id: string
+  event_id: string
+  event_label: string
+  starts_at: string
+  duration_min: number
+  title: string
+  place: string | null
+  vendor_name: string | null
+  is_own: boolean
+}
+
+/** The link's own `wedding_vendors` row, through its `link_read` (0008): the note and the switch. */
+async function ownRowOf(
+  tx: TenantDb,
+  weddingVendorId: string,
+): Promise<{ notes: string | null; fullRunSheet: boolean }> {
+  const [row] = await tx
+    .select({ notes: weddingVendors.notes, fullRunSheet: weddingVendors.fullRunSheet })
+    .from(weddingVendors)
+    .where(eq(weddingVendors.id, weddingVendorId))
+  return { notes: row?.notes ?? null, fullRunSheet: row?.fullRunSheet ?? false }
 }

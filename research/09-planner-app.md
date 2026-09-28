@@ -102,7 +102,7 @@ Where it stops being a to-do list and starts replacing the spreadsheet.
 | **P18** | Vendor gets a link to *their slice* of the run sheet | 🤝 | M | Scoped so a vendor sees their own rows, not the budget. Uses the new `vendor` role |
 | **P19** | Exports — run sheet PDF, budget CSV | 🎩 | S | Planners live in PDFs when they are on site with no signal |
 | **P20** | Team seats — a second planner in the org, assigned per wedding | 🎩 | M | **V12**; `org_members.member` + `wedding_members.editor` already express it |
-| **P21** | **Moodboard per wedding** — native image board: upload images (including ones saved off Pinterest), arrange in a grid, comment per image, share with the couple | 🎩👰 | M | Reuses **P15** file storage (S3 + signed URLs). Removes the "download from Pinterest → arrange in Canva → share a link" round-trip planners run today, and keeps the couple's feedback in Guestnote instead of a thread nobody can find later. Decided on the 2026-08-29 planner calls, reversing the "not building" line below. **Pinterest API import** — connect an account, pull a board's pins straight in — is a later additive enhancement, *not* PH3: v5 exposes only your *own* account's data, needs app review with a video demo, and its terms bar caching pin data, so it can only ever sit on top of the native board, never replace it |
+| **P21** | **Moodboard per wedding** — native image board: upload images (including ones saved off Pinterest), arrange in a grid, comment per image, share with the couple | 🎩👰 | M | Reuses **P15** file storage (S3 + signed URLs). Removes the "download from Pinterest → arrange in Canva → share a link" round-trip planners run today, and keeps the couple's feedback in Guestnote instead of a thread nobody can find later. Decided on the 2026-08-29 planner calls, reversing the "not building" line below. **Pinterest API import** — connect an account, pull a board's pins straight in — is a later additive enhancement, *not* PH3: v5 exposes only your *own* account's data, needs app review with a video demo, and its terms bar caching pin data, so it can only ever sit on top of the native board, never replace it. *Built 2026-09-21 as one board (S5); named boards, sharing a board with chosen vendors through their link, and the per-vendor full run sheet followed 2026-09-28 (spec 0007), after a photographer asked for both. Per-image comments and the couple's view are still open, with the couple portal* |
 
 ---
 
@@ -159,6 +159,10 @@ route instead — no `vendor` role, no `wedding_members` change. `WEDDING_ROLES`
 new `link` `Principal` and a `SECURITY DEFINER` lookup function (migration `0008`), read only:
 its own run sheet items and its own `wedding_vendors` row, nothing else. See §d below and the
 Open item on vendor accounts.*
+*Correction, 2026-09-28: spec `0007` / migration `0012` widened this. A vendor whose
+`wedding_vendors.full_run_sheet` is on reads the whole day's run sheet (named columns, through a
+`SECURITY DEFINER` function, never a wider policy), and any vendor reads the moodboards shared
+with it and their images. Still read only.*
 
 **b. Tasks need visibility, not just an assignee.**
 

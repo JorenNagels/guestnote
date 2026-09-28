@@ -1,16 +1,20 @@
 import { getVendorLinkView, resolveVendorLinkByHash } from '@guestnote/db'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { StudioMark } from '../../../../../components/studio/studio-mark.tsx'
+import { VendorBoards } from '../../../../../components/vendor-link/vendor-boards.tsx'
 import { hashBearerToken } from '../../../../../lib/bearer-token.ts'
 import { formatCivilDate } from '../../../../../lib/civil-date.ts'
 import { getDb } from '../../../../../lib/db.ts'
 import { formatDuration } from '../../../../../lib/run-sheet.ts'
 import { logoUrl } from '../../../../../lib/studio-logo.ts'
+import { vendorBoards } from '../../../../../lib/vendor-boards.ts'
+import { boardImageDownload, refreshBoardImages } from './actions.ts'
 
 /**
  * `app.guestnote.be/vendor/<token>` -- spec 0003, S10. The one screen a vendor with no
- * account ever sees: their own slice of one wedding's run sheet, and what the planner needs
- * from them, resolved through a `link` `Principal` (migration 0008) rather than a session.
+ * account ever sees: their own slice of one wedding's run sheet (or, spec 0007, the whole day
+ * when the planner switched that on), the moodboards shared with them, and what the planner
+ * needs from them, resolved through a `link` `Principal` (migration 0008) rather than a session.
  *
  * ## Why one function decides everything, unlike `/invite/[token]`
  *
@@ -42,7 +46,9 @@ export default async function VendorLinkPage({ params }: { params: Promise<{ tok
   // The studio's logo (spec 0005), signed with the org the lookup resolved -- the only org this
   // link can speak for -- and beside the view read, not after it. `logoUrl` refuses a key that
   // is not a brand object of that org, and answers `null` for none, which draws the monogram.
-  const [view, logo] = await Promise.all([
+  // Spec 0007: the boards shared with this vendor, their images signed here for five minutes.
+  // `VendorBoards` asks for fresh URLs through the token when they lapse.
+  const [view, logo, boards] = await Promise.all([
     getVendorLinkView(getDb(), {
       kind: 'link',
       orgId: lookup.orgId,
@@ -50,6 +56,7 @@ export default async function VendorLinkPage({ params }: { params: Promise<{ tok
       weddingVendorId: lookup.weddingVendorId,
     }),
     logoUrl(lookup.orgId, lookup.logoKey),
+    vendorBoards(lookup),
   ])
 
   const details = [
@@ -92,21 +99,36 @@ export default async function VendorLinkPage({ params }: { params: Promise<{ tok
         </div>
 
         <section className="mt-5">
-          <h2 className="mb-2 text-sm font-semibold tracking-tight">{t('timelineTitle')}</h2>
+          <h2 className="mb-2 text-sm font-semibold tracking-tight">
+            {view.fullDay ? t('timelineFullTitle') : t('timelineTitle')}
+          </h2>
           <div className="border-border bg-background overflow-hidden rounded-[var(--radius-container)] border">
             {view.timeline.length === 0 ? (
-              <p className="text-muted-foreground p-4 text-sm">{t('timelineEmpty')}</p>
+              <p className="text-muted-foreground p-4 text-sm">
+                {view.fullDay ? t('fullEmpty') : t('timelineEmpty')}
+              </p>
             ) : (
               view.timeline.map((item, i) => (
                 <div
                   key={item.id}
-                  className={`flex gap-3.5 p-3.5 ${i > 0 ? 'border-border border-t' : ''}`}
+                  // The whole day (spec 0007): the vendor's own rows carry the accent bar, so a
+                  // photographer finds their slots among everyone else's at a glance.
+                  className={`flex gap-3.5 p-3.5 ${i > 0 ? 'border-border border-t' : ''} ${
+                    view.fullDay && item.isOwn
+                      ? 'border-l-4 border-l-[color:var(--gn-action,var(--primary))] bg-muted/40'
+                      : ''
+                  }`}
                 >
                   <span className="w-14 flex-none text-right font-mono text-sm font-semibold tabular-nums">
                     {item.startsAt}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm">{item.title}</p>
+                    <p className="text-sm">
+                      {item.title}
+                      {item.vendorName && !item.isOwn && (
+                        <span className="text-muted-foreground"> · {item.vendorName}</span>
+                      )}
+                    </p>
                     <p className="text-muted-foreground mt-0.5 text-xs">
                       {[item.eventLabel, formatDuration(item.durationMin, t), item.place]
                         .filter((v): v is string => Boolean(v))
@@ -118,6 +140,21 @@ export default async function VendorLinkPage({ params }: { params: Promise<{ tok
             )}
           </div>
         </section>
+
+        {boards.length > 0 && (
+          <VendorBoards
+            boards={boards}
+            labels={{
+              download: t('download'),
+              close: t('close'),
+              open: String(t.raw('openImage')),
+            }}
+            actions={{
+              refresh: refreshBoardImages.bind(null, token),
+              download: boardImageDownload.bind(null, token),
+            }}
+          />
+        )}
 
         {view.plannerNote && (
           <section className="mt-5">

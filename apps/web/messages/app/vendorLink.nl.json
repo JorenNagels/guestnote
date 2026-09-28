@@ -26,5 +26,10 @@
     "revoked": "Ingetrokken",
     "cancel": "Annuleren",
     "error": "Dat is niet gelukt. Probeer het opnieuw."
-  }
+  },
+  "timelineFullTitle": "De hele dag",
+  "fullEmpty": "Nog niets gepland.",
+  "download": "Download",
+  "close": "Sluiten",
+  "openImage": "{name} vergroten"
 }

@@ -63,6 +63,8 @@ export type WeddingVendorRow = {
   readonly phone: string | null
   readonly status: WeddingVendorStatus
   readonly notes: string | null
+  /** Spec 0007: this vendor's link shows the whole day's run sheet, not only their own rows. */
+  readonly fullRunSheet: boolean
   /**
    * The live `vendor_links` row for this vendor, if any (spec 0003, S10). `null` both when
    * none exists and when the caller cannot see `vendor_links` at all -- its own policy is
@@ -250,6 +252,7 @@ export async function getWeddingVendors(scope: WeddingScope): Promise<{
         phone: vendors.phone,
         status: weddingVendors.status,
         notes: weddingVendors.notes,
+        fullRunSheet: weddingVendors.fullRunSheet,
         activeLinkId: vendorLinks.id,
         activeLinkExpiresAt: vendorLinks.expiresAt,
         // `sum` of an int is a bigint, which the driver returns as a string.
@@ -388,7 +391,12 @@ async function linkInTx(
 export async function updateWeddingVendor(
   scope: WeddingScope,
   linkId: string,
-  patch: { readonly status?: WeddingVendorStatus; readonly notes?: string | null },
+  patch: {
+    readonly status?: WeddingVendorStatus
+    readonly notes?: string | null
+    /** Spec 0007. Any staff, like the rest of this row -- not owner/admin like the link itself. */
+    readonly fullRunSheet?: boolean
+  },
 ): Promise<VendorWriteResult> {
   const { db, weddingId } = scope
   const principal = scope.principal
@@ -399,6 +407,7 @@ export async function updateWeddingVendor(
       .set({
         ...(patch.status !== undefined && { status: patch.status }),
         ...(patch.notes !== undefined && { notes: patch.notes }),
+        ...(patch.fullRunSheet !== undefined && { fullRunSheet: patch.fullRunSheet }),
         updatedAt: new Date(),
       })
       .where(
