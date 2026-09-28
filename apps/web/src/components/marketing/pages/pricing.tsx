@@ -51,23 +51,21 @@ export async function PricingPage({ locale, billingOn }: { locale: Locale; billi
   return (
     <>
       <JsonLd description={t('meta.pricingDescription')} />
-      <PageHead title={t('pricing.title')} lede={t('pricing.lede')} />
-
-      <Container className="pb-20">
+      <PageHead title={t('pricing.title')} lede={t('pricing.lede')}>
         <p
           role="note"
-          className="bg-accent text-accent-foreground mb-8 max-w-[62ch] rounded-[var(--radius)] px-4 py-3 text-sm"
+          className="mk-glass mx-auto mb-8 w-fit max-w-[62ch] px-5 py-3 text-center text-sm"
         >
           {billingOn ? t('pricing.trial') : t('pricing.earlyAccess')}
         </p>
-        <div className="grid items-start gap-10 lg:grid-cols-[1.15fr_1fr]">
+        <div className="grid items-start gap-6 lg:grid-cols-[1.15fr_1fr]">
           <PricingCard
             locale={locale}
             labels={labels}
             extraLabels={extraLabels}
             maxSeats={MAX_SEATS}
           />
-          <div>
+          <div className="mk-glass p-6 sm:p-8">
             <h2 className="mk-display mk-h3">{t('pricing.included.title')}</h2>
             <ul className="mt-4 flex list-disc flex-col gap-2 pl-5">
               {INCLUDED.map((k) => (
@@ -76,9 +74,9 @@ export async function PricingPage({ locale, billingOn }: { locale: Locale; billi
             </ul>
           </div>
         </div>
-      </Container>
+      </PageHead>
 
-      <Container className="pb-20 sm:pb-28">
+      <Container className="py-20 sm:py-28">
         <Faq
           title={t('pricing.faq.title')}
           items={FAQ.map((k) => ({

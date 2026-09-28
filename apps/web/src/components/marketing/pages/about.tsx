@@ -12,15 +12,15 @@ export async function AboutPage({ locale }: { locale: Locale }) {
   return (
     <>
       <PageHead title={t('about.title')} />
-      <Container className="grid gap-16 pb-24 lg:grid-cols-[1.4fr_1fr]">
+      <Container className="grid gap-16 py-20 lg:grid-cols-[1.4fr_1fr]">
         <div className="mk-lede flex flex-col gap-5">
           <p>{t('about.body1')}</p>
           <p>{t('about.body2')}</p>
         </div>
         <aside className="flex flex-col gap-10">
-          <section>
+          <section className="mk-stage mk-stage-teal">
             <h2 className="mk-display mk-h3">{t('about.contactTitle')}</h2>
-            <p className="text-muted-foreground mt-2">{t('about.contactBody')}</p>
+            <p className="text-foreground/80 mt-2">{t('about.contactBody')}</p>
             <a
               href={`mailto:${CONTACT_EMAIL}`}
               className="text-primary mt-3 inline-block font-semibold underline underline-offset-4"

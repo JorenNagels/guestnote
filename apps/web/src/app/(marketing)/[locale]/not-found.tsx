@@ -17,7 +17,7 @@ export default async function MarketingNotFound() {
   const locale = isLocale(requested) ? requested : DEFAULT_LOCALE
   const t = await getTranslations({ locale, namespace: 'marketing.notFound' })
   return (
-    <main className="bg-background text-foreground flex min-h-dvh flex-col items-start justify-center gap-5 px-6 sm:px-16">
+    <main className="mk-hero-live text-foreground flex min-h-dvh flex-col items-center justify-center gap-5 px-6 text-center">
       <p className="text-primary font-mono text-sm">404</p>
       <h1 className="mk-display mk-h2 max-w-[18ch]">{t('title')}</h1>
       <p className="text-muted-foreground">{t('body')}</p>

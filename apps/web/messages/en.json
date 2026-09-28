@@ -209,6 +209,10 @@
       "later": {
         "title": "Not ready yet",
         "body": "A couple portal and a wedding website with RSVP. We are working on both, but have no date yet."
+      },
+      "vendorChips": {
+        "one": "No account needed",
+        "two": "Revocable"
       }
     },
     "pricing": {

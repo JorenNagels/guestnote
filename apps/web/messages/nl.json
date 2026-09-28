@@ -209,6 +209,10 @@
       "later": {
         "title": "Nog niet klaar",
         "body": "Een portaal voor het koppel en een trouwwebsite met RSVP. We werken eraan, maar hebben nog geen datum."
+      },
+      "vendorChips": {
+        "one": "Zonder account",
+        "two": "Intrekbaar"
       }
     },
     "pricing": {

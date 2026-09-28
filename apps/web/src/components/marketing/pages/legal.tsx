@@ -28,39 +28,44 @@ async function LegalShell({
     timeZone: 'Europe/Brussels',
   })
   return (
-    <Container className="grid gap-12 pt-14 pb-24 lg:grid-cols-[220px_1fr]">
-      {toc && toc.length > 1 ? (
-        <nav aria-labelledby="toc-title" className="mk-no-print hidden lg:block">
-          <div className="sticky top-24">
-            <h2
-              id="toc-title"
-              className="text-muted-foreground text-xs font-semibold uppercase tracking-wide"
-            >
-              {t('contents')}
-            </h2>
-            <ol className="mt-3 flex flex-col gap-2 text-sm">
-              {toc.map((s) => (
-                <li key={s.id}>
-                  <a href={`#${s.id}`} className="text-muted-foreground hover:text-foreground">
-                    {s.title}
-                  </a>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </nav>
-      ) : (
-        <div className="hidden lg:block" />
-      )}
-      <article className="mk-prose">
-        <h1 className="mk-display mk-h2">{title}</h1>
-        <p className="text-muted-foreground mt-3 text-sm">
-          {t('updated', { date: updated })}
-          {showVersion ? ` · ${t('version', { version: TERMS_VERSION })}` : null}
-        </p>
-        <div className="mt-8">{children}</div>
-      </article>
-    </Container>
+    <>
+      {/* A calm strip of the hero gradient -- no floor grid, no motion: these pages are read. */}
+      <section className="mk-hero-live mk-hero-still">
+        <Container className="py-14 sm:py-16">
+          <h1 className="mk-display mk-h2">{title}</h1>
+          <p className="text-foreground/70 mt-3 text-sm">
+            {t('updated', { date: updated })}
+            {showVersion ? ` · ${t('version', { version: TERMS_VERSION })}` : null}
+          </p>
+        </Container>
+      </section>
+      <Container className="grid gap-12 pt-12 pb-24 lg:grid-cols-[220px_1fr]">
+        {toc && toc.length > 1 ? (
+          <nav aria-labelledby="toc-title" className="mk-no-print hidden lg:block">
+            <div className="sticky top-24">
+              <h2
+                id="toc-title"
+                className="text-muted-foreground text-xs font-semibold uppercase tracking-wide"
+              >
+                {t('contents')}
+              </h2>
+              <ol className="mt-3 flex flex-col gap-2 text-sm">
+                {toc.map((s) => (
+                  <li key={s.id}>
+                    <a href={`#${s.id}`} className="text-muted-foreground hover:text-foreground">
+                      {s.title}
+                    </a>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </nav>
+        ) : (
+          <div className="hidden lg:block" />
+        )}
+        <article className="mk-prose">{children}</article>
+      </Container>
+    </>
   )
 }
 

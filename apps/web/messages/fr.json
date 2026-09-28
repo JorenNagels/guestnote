@@ -209,6 +209,10 @@
       "later": {
         "title": "Pas encore prêt",
         "body": "Un portail couple et un site de mariage avec RSVP. Nous y travaillons, sans date pour l’instant."
+      },
+      "vendorChips": {
+        "one": "Sans compte",
+        "two": "Révocable"
       }
     },
     "pricing": {

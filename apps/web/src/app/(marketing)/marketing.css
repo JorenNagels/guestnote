@@ -433,3 +433,9 @@
     animation-play-state: paused;
   }
 }
+
+/* The legal pages' header: the gradient without the drift, for pages that are read, not shown. */
+.mk-hero-still {
+  animation: none;
+  background-size: 100% 100%;
+}

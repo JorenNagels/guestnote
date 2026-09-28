@@ -1,8 +1,8 @@
 import { PRICING } from '@guestnote/billing'
 import { getFormatter, getTranslations } from 'next-intl/server'
-import type { CSSProperties, ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import type { Locale } from '../../../lib/locales.ts'
-import { Container, DemoLink, Faq, Stage, type StageTone } from '../blocks.tsx'
+import { Container, DemoLink, Faq, type StageTone, TiltedScreen } from '../blocks.tsx'
 import { HeroShowcase, type ShowcaseLabels } from '../hero-showcase.tsx'
 import { JsonLd } from '../json-ld.tsx'
 import { BudgetChip, BudgetDemo, ChecklistDemo, CoupleDemo, RunSheetDemo } from '../mini-uis.tsx'
@@ -92,33 +92,13 @@ export async function HomePage({ locale }: { locale: Locale }) {
                     ))}
                   </ul>
                 </div>
-                <div className="flex justify-center" style={{ perspective: '1400px' }}>
-                  <div
-                    className="relative w-full max-w-[460px]"
-                    style={{
-                      transformStyle: 'preserve-3d',
-                      transform: `rotateY(${i % 2 ? 16 : -16}deg) rotateX(10deg)`,
-                    }}
-                  >
-                    <Stage tone={TONE[f]} className="mk-pr3d">
-                      <Demo locale={locale} />
-                    </Stage>
-                    <span
-                      aria-hidden="true"
-                      className="mk-pop mk-glass -top-5 right-2 px-3.5 py-2 text-sm font-semibold max-sm:hidden sm:-right-6"
-                      style={{ '--z': '90px' } as CSSProperties}
-                    >
-                      {t(`home.deep.${f}.chips.one`)}
-                    </span>
-                    <span
-                      aria-hidden="true"
-                      className="mk-pop mk-glass -bottom-5 left-2 px-3.5 py-2 font-mono text-sm max-sm:hidden sm:-left-6"
-                      style={{ '--z': '120px', animationDelay: '1.6s' } as CSSProperties}
-                    >
-                      {t(`home.deep.${f}.chips.two`)}
-                    </span>
-                  </div>
-                </div>
+                <TiltedScreen
+                  tone={TONE[f]}
+                  angle={i % 2 ? 16 : -16}
+                  chips={[t(`home.deep.${f}.chips.one`), t(`home.deep.${f}.chips.two`)]}
+                >
+                  <Demo locale={locale} />
+                </TiltedScreen>
               </div>
             )
           })}
