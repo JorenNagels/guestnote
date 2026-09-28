@@ -56,7 +56,7 @@ export function ReadyStep({ labels, studioName, weddingName, homeHref }: Props) 
 
       <a
         href={homeHref}
-        className="inline-flex h-11 w-full items-center justify-center rounded-[var(--radius)] border border-transparent bg-[var(--gn-action,var(--primary))] text-sm font-semibold text-[color:var(--gn-action-fg,var(--primary-foreground))] transition-[filter] duration-300 hover:brightness-110"
+        className="inline-flex h-11 w-full items-center justify-center rounded-[var(--radius)] border border-transparent bg-[var(--gn-action,var(--primary))] text-sm font-semibold text-[color:var(--gn-action-fg,var(--primary-foreground))] transition-[filter] duration-300 hover:shadow-[inset_0_0_0_100px_color-mix(in_srgb,currentColor_12%,transparent)]"
       >
         {labels.open}
       </a>

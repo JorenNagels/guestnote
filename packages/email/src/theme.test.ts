@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { COLOUR, type ThemeColour, TOKEN_SOURCE } from './theme.ts'
+import { COLOUR, SIZE, type ThemeColour, TOKEN_SOURCE } from './theme.ts'
 
 /**
  * The guard that makes `theme.ts` safe to copy from.
@@ -91,13 +91,13 @@ describe('the email palette matches design-system/tokens.css', () => {
   })
 
   /**
-   * `.dark` must not leak in. Under it `--foreground` is `var(--neutral-100)` (#EEECEA);
-   * in `:root` it is `var(--neutral-900)` (#474441). Asserting the light value proves the
+   * `.dark` must not leak in. Under it `--foreground` is #DEE4E2; in `:root` it is
+   * #161D1C (both literals since the Modern refresh, 2026-09-28). Asserting the light value proves the
    * selector filter works, and it is the one assertion here that would go green if the
    * parser got sloppier.
    */
   it('reads the light theme, not .dark', () => {
-    expect(resolve('--foreground', declarations)).toBe('#474441')
+    expect(resolve('--foreground', declarations)).toBe('#161D1C')
   })
 
   for (const key of Object.keys(TOKEN_SOURCE) as ThemeColour[]) {
@@ -111,4 +111,9 @@ describe('the email palette matches design-system/tokens.css', () => {
       ).toBe(resolve(token, declarations).toUpperCase())
     })
   }
+
+  // The one length with a token behind it. Every other SIZE is email-only.
+  it('SIZE.radius still equals --radius-container', () => {
+    expect(`${SIZE.radius}px`).toBe(resolve('--radius-container', declarations))
+  })
 })

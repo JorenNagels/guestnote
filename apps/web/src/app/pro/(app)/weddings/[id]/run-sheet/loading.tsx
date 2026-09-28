@@ -9,7 +9,7 @@ export default function Loading() {
         <div className="bg-muted h-7 w-56 rounded" />
         <div className="bg-muted mt-2 h-4 w-72 rounded" />
         <div className="bg-muted mt-6 h-11 w-full rounded" />
-        <div className="border-border bg-card mt-6 divide-y overflow-hidden rounded-[var(--radius)] border">
+        <div className="border-border bg-card mt-6 divide-y overflow-hidden rounded-[var(--radius-container)] border">
           {[0, 1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="h-14 px-4 py-3">
               <div className="bg-muted h-4 w-2/3 rounded" />

@@ -1,6 +1,7 @@
 /* ============================================================================
    Guestnote design tokens -- app.guestnote.be (planner platform)
-   Generated. Every pair below is contrast-verified; the chart palette is
+   Generated, then hand-edited for the Modern refresh (2026-09-28). Every pair below is
+   contrast-verified (re-measured that day); the chart palette is
    validated for colour-vision deficiency. See research/08-design-system.md.
 
    Scope: the planner dashboard, and the marketing apex, which since spec 0006 adds its own
@@ -28,8 +29,12 @@
   --teal-50: #ECFAF9; --teal-100: #D9F3F0; --teal-200: #B9E6E1; --teal-300: #9AD8D2; --teal-400: #78C6BF; --teal-500: #59B0A8; --teal-600: #3E9790; --teal-700: #2C7D77; --teal-800: #206560; --teal-900: #184E4A; --teal-950: #0A312E;
   /* gold */
   --gold-50: #FDF6E9; --gold-100: #F7ECD4; --gold-200: #EDD9B0; --gold-300: #E2C78F; --gold-400: #D2B16B; --gold-500: #BC994C; --gold-600: #A38131; --gold-700: #886A20; --gold-800: #6E5416; --gold-900: #554111; --gold-950: #362806;
-  /* neutral */
-  --neutral-50: #F7F6F5; --neutral-100: #EEECEA; --neutral-200: #DEDBD7; --neutral-300: #CDC9C5; --neutral-400: #BAB5B0; --neutral-500: #A39D98; --neutral-600: #8A8580; --neutral-700: #726E69; --neutral-800: #5C5854; --neutral-900: #474441; --neutral-950: #2C2A27; --neutral-1000: #181715;
+  /* neutral -- the Modern refresh (Claude Design "Guestnote UI", 2026-09-28) cools these from a
+     warm grey to a faint teal grey (OKLCH hue 183, chroma 0.011). Each step keeps the relative
+     luminance of the warm step it replaces to within 0.004 (computed 2026-09-28); 50, 100 and
+     900 are the refresh's own hexes and drift up to 0.0095, all toward more contrast. Every
+     pair was re-measured that day -- research/08-design-system.md has the correction note. */
+  --neutral-50: #F4F8F7; --neutral-100: #E8EFEE; --neutral-200: #D4DEDC; --neutral-300: #C3CCCA; --neutral-400: #AFB8B7; --neutral-500: #97A19F; --neutral-600: #7F8886; --neutral-700: #68716F; --neutral-800: #525B59; --neutral-900: #3F4947; --neutral-950: #252C2B; --neutral-1000: #121A19;
   /* success */
   --success-50: #EEFBF0; --success-100: #DEF4E1; --success-200: #C1E7C8; --success-300: #A6D9AF; --success-400: #88C895; --success-500: #6CB17B; --success-600: #549864; --success-700: #417E50; --success-800: #32663F; --success-900: #264F30; --success-950: #15311C;
   /* warning */
@@ -48,16 +53,16 @@
 
 /* ---------- 2. semantic ---------------------------------------------------- */
 :root {
-  --background: var(--neutral-50);
-  --foreground: var(--neutral-900);
+  --background: #FBFCFC;
+  --foreground: #161D1C;
   --card: #FFFFFF;
-  --card-foreground: var(--neutral-900);
+  --card-foreground: #161D1C;
   --popover: #FFFFFF;
-  --popover-foreground: var(--neutral-900);
+  --popover-foreground: #161D1C;
   --muted: var(--neutral-100);
-  --muted-foreground: var(--neutral-800);
+  --muted-foreground: var(--neutral-900);
   --secondary: var(--neutral-100);
-  --secondary-foreground: var(--neutral-800);
+  --secondary-foreground: var(--neutral-900);
   --primary: var(--teal-800);
   --primary-foreground: #FFFFFF;
   --accent: var(--gold-100);
@@ -65,8 +70,23 @@
   --destructive: var(--danger-700);
   --destructive-foreground: #FFFFFF;
   --border: var(--neutral-200);
-  --input: var(--neutral-600);
+  --input: #6F7977;
   --ring: var(--teal-600);
+
+  /* Tonal roles from the Modern refresh. A "container" is a soft tinted fill with its own
+     readable foreground -- the secondary button, the selected locale, the error chip -- used
+     where a solid primary would shout. `--outline` is `--input` under the refresh's name. */
+  --surface: var(--neutral-50);
+  --surface-container: var(--neutral-100);
+  --on-surface-variant: var(--neutral-900);
+  --outline: var(--input);
+  --outline-variant: var(--neutral-300);
+  --primary-container: var(--teal-200);
+  --on-primary-container: var(--teal-950);
+  --secondary-container: var(--gold-100);
+  --on-secondary-container: var(--gold-900);
+  --error-container: var(--danger-100);
+  --on-error-container: var(--danger-900);
 
   /* RSVP state. `declined` is NEUTRAL on purpose: a polite no is not an error,
      and painting it red makes a healthy guest list look like a fire. Red is
@@ -92,9 +112,20 @@
   --cell-x: 0.8rem;
   --control-h: 36px;
 
-  /* 0.5rem, not the 0.9rem inherited from se-parti-rsvp. That radius was set
-     for an editorial wedding site; a dense table grid needs a crisper corner. */
-  --radius: 0.5rem;
+  /* Two radii since the Modern refresh. `--radius` is a CONTROL's: buttons, fields, selects
+     and chips are pills. `--radius-container` is for anything that holds content -- cards,
+     tables, sheets, menus, textareas, the error chip -- where a pill would crop the corners of
+     what is inside. The old single 0.5rem served both, and a dense table was why it was small.
+     `--radius-inner` is for a thumbnail or logo, which a pill would turn into a circle. */
+  /* Nav rows, menu items and chips count as controls here: they are pills on purpose. */
+  --radius: 9999px;
+  --radius-container: 20px;
+  --radius-inner: 12px;
+  /* One motion curve for the refresh: a small overshoot on press, focus rings and the
+     sliding locale pill. Used as `ease-[var(--ease-spring)]`; not mapped into @theme, where
+     a same-named entry would be a self-reference. The reduced-motion rule in the base layer
+     turns every duration off. */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ring-width: 2px;
   --ring-offset: 2px;
 }
@@ -107,11 +138,11 @@
 
 .dark {
   --background: var(--neutral-1000);
-  --foreground: var(--neutral-100);
+  --foreground: #DEE4E2;
   --card: var(--neutral-950);
-  --card-foreground: var(--neutral-100);
+  --card-foreground: #DEE4E2;
   --popover: var(--neutral-950);
-  --popover-foreground: var(--neutral-100);
+  --popover-foreground: #DEE4E2;
   --muted: var(--neutral-900);
   --muted-foreground: var(--neutral-400);
   --secondary: var(--neutral-800);
@@ -123,8 +154,18 @@
   --destructive: var(--danger-400);
   --destructive-foreground: var(--danger-950);
   --border: var(--neutral-800);
-  --input: var(--neutral-500);
+  --input: #899391;
   --ring: var(--teal-400);
+  --surface: var(--neutral-1000);
+  --surface-container: #1C2423;
+  --on-surface-variant: var(--neutral-300);
+  --outline-variant: var(--neutral-900);
+  --primary-container: #1F4F4B;
+  --on-primary-container: var(--teal-100);
+  --secondary-container: var(--gold-900);
+  --on-secondary-container: var(--gold-100);
+  --error-container: #5A2724;
+  --on-error-container: var(--danger-100);
   --st-attending-bg: var(--success-900); --st-attending-fg: var(--success-200); --st-attending-dot: var(--success-400);
   --st-declined-bg: var(--neutral-900); --st-declined-fg: var(--neutral-200); --st-declined-dot: var(--neutral-400);
   --st-awaiting-bg: var(--warning-900); --st-awaiting-fg: var(--warning-200); --st-awaiting-dot: var(--warning-400);
@@ -161,6 +202,17 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-surface: var(--surface);
+  --color-surface-container: var(--surface-container);
+  --color-on-surface-variant: var(--on-surface-variant);
+  --color-outline: var(--outline);
+  --color-outline-variant: var(--outline-variant);
+  --color-primary-container: var(--primary-container);
+  --color-on-primary-container: var(--on-primary-container);
+  --color-secondary-container: var(--secondary-container);
+  --color-on-secondary-container: var(--on-secondary-container);
+  --color-error-container: var(--error-container);
+  --color-on-error-container: var(--on-error-container);
   --color-st-attending-bg: var(--st-attending-bg); --color-st-attending-fg: var(--st-attending-fg); --color-st-attending-dot: var(--st-attending-dot);
   --color-st-declined-bg: var(--st-declined-bg); --color-st-declined-fg: var(--st-declined-fg); --color-st-declined-dot: var(--st-declined-dot);
   --color-st-awaiting-bg: var(--st-awaiting-bg); --color-st-awaiting-fg: var(--st-awaiting-fg); --color-st-awaiting-dot: var(--st-awaiting-dot);
@@ -173,12 +225,19 @@
   --color-series-4: var(--series-4);
   --color-series-5: var(--series-5);
 
-  --radius-sm: calc(var(--radius) - 2px);
-  --radius-md: var(--radius);
-  --radius-lg: calc(var(--radius) + 2px);
-  --radius-xl: calc(var(--radius) + 6px);
+  /* Fixed steps now that `--radius` is a pill: deriving these from it would make every
+     `rounded-md` in the app a pill too. */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: var(--radius-container);
 
-  --font-sans: "Inter Variable", Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* `--font-google-sans` is set by next/font in each root layout, which self-hosts the file
+     at build so the browser never asks Google for it. The named fallbacks are for anything
+     that loads this layer without that layout -- the design-system reference pages. Inter
+     led this stack until 2026-09-28, but nothing ever loaded it: every surface rendered in
+     the system face. */
+  --font-sans: var(--font-google-sans, "Google Sans Flex"), "Google Sans Flex", "Google Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --text-xs: 0.75rem;   --text-xs--line-height: 1.5;
@@ -194,8 +253,19 @@
 @layer base {
   * { @apply border-border; }
   body { @apply bg-background text-foreground font-sans; }
-  /* a control's focus ring is a UI boundary: verified >=3:1, never remove it */
+  /* a control's focus ring is a UI boundary: verified >=3:1, never remove it. One exception,
+     packages/ui/src/field.tsx, turns the outline off and replaces it with a 2px --primary
+     edge (or its 2px error border) -- its comment argues the pair it keeps. */
   :focus-visible { outline: var(--ring-width) solid var(--ring); outline-offset: var(--ring-offset); }
   /* every guest count, headcount and money column lines up */
   td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  /* ArrivalBadge's entrance. Here because packages/ui ships no CSS of its own. */
+  @keyframes gn-arrive {
+    from { transform: scale(0.4); opacity: 0; }
+    to { transform: none; opacity: 1; }
+  }
+  /* the refresh moves more (springs, a sliding pill); none of it carries meaning */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 0ms !important; animation-duration: 0ms !important; }
+  }
 }

@@ -168,7 +168,7 @@ export function FilesScreen({
       </div>
 
       {items.length === 0 ? (
-        <div className="mt-6 rounded-[var(--radius)] border border-border bg-card px-6 py-10 text-center">
+        <div className="mt-6 rounded-[var(--radius-container)] border border-border bg-card px-6 py-10 text-center">
           <p className="font-medium">{labels.empty.title}</p>
           <p className="text-muted-foreground mx-auto mt-1.5 max-w-prose text-sm leading-relaxed">
             {labels.empty.body}

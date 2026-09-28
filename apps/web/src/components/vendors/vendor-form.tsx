@@ -166,7 +166,7 @@ export function VendorForm({ labels, vendor, onSubmit, onArchive, onClose }: Pro
             defaultValue={vendor?.notes ?? ''}
             maxLength={2000}
             rows={4}
-            className="bg-transparent block w-full rounded-[var(--radius)] border border-[var(--input)] px-3 py-2 text-sm"
+            className="bg-transparent block w-full rounded-[var(--radius-container)] border border-[var(--input)] px-3 py-2 text-sm"
           />
         </div>
 

@@ -77,7 +77,7 @@ export function BillingScreen({
       {labels.success ? (
         <p
           role="status"
-          className="bg-st-attending-bg text-st-attending-fg border-st-attending-dot/40 mt-5 rounded-[var(--radius)] border px-4 py-2.5 text-sm"
+          className="bg-st-attending-bg text-st-attending-fg border-st-attending-dot/40 mt-5 rounded-[var(--radius-container)] border px-4 py-2.5 text-sm"
         >
           {labels.success}
         </p>
@@ -103,7 +103,7 @@ export function BillingScreen({
           />
           <section
             aria-labelledby="invoices-title"
-            className="bg-card border-border rounded-[var(--radius)] border px-[18px] py-4"
+            className="bg-card border-border rounded-[var(--radius-container)] border px-[18px] py-4"
           >
             <h2 id="invoices-title" className="mb-3 text-[14.5px] font-semibold">
               {labels.invoices.title}
@@ -148,7 +148,7 @@ export function BillingScreen({
 
         <aside
           aria-labelledby="notes-title"
-          className="bg-card border-border flex-[1_1_260px] rounded-[var(--radius)] border px-[18px] py-4 text-sm"
+          className="bg-card border-border flex-[1_1_260px] rounded-[var(--radius-container)] border px-[18px] py-4 text-sm"
         >
           <h2 id="notes-title" className="mb-2 text-[14.5px] font-semibold">
             {labels.notes.title}

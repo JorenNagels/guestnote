@@ -146,7 +146,7 @@ export function ReportDialog({
               rows={6}
               aria-invalid={error === 'empty' || error === 'tooLong' || undefined}
               aria-describedby={error ? ids.error : undefined}
-              className="border-input hover:border-foreground w-full rounded-[var(--radius)] border bg-transparent px-3 py-2 text-base"
+              className="border-input hover:border-foreground w-full rounded-[var(--radius-container)] border bg-transparent px-3 py-2 text-base"
             />
           </div>
 
@@ -158,7 +158,7 @@ export function ReportDialog({
             <span id={ids.shot} className="mb-1.5 block text-sm font-medium">
               {labels.screenshot}
             </span>
-            <div className="border-input rounded-[var(--radius)] border border-dashed p-3">
+            <div className="border-input rounded-[var(--radius-container)] border border-dashed p-3">
               {shot ? (
                 <div className="flex items-center gap-3">
                   <Thumbnail blob={shot} />
@@ -227,7 +227,7 @@ function Thumbnail({ blob }: { blob: Blob }) {
     <img
       src={src}
       alt=""
-      className="border-border size-12 shrink-0 rounded-[calc(var(--radius)-2px)] border object-cover"
+      className="border-border size-12 shrink-0 rounded-[var(--radius-inner)] border object-cover"
     />
   )
 }

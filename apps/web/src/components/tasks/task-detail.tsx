@@ -99,7 +99,7 @@ export function TaskDetail({
         {t('detail.back')}
       </Link>
 
-      <div className="border-border bg-card rounded-[var(--radius)] border">
+      <div className="border-border bg-card rounded-[var(--radius-container)] border">
         <div className="flex items-center gap-3 px-4 py-3.5">
           <CompleteBox
             weddingId={task.weddingId}

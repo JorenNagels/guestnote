@@ -26,7 +26,7 @@ export function Field({ label, id, ref, errorId, invalid, numeric, ...rest }: Pr
     <div>
       <label
         htmlFor={id}
-        className="mb-1.5 block text-sm font-medium text-[color:var(--gn-fg,var(--foreground))]"
+        className="mb-2 ml-1.5 block text-sm font-medium text-[color:var(--gn-fg,var(--foreground))]"
       >
         {label}
       </label>
@@ -37,18 +37,29 @@ export function Field({ label, id, ref, errorId, invalid, numeric, ...rest }: Pr
         aria-invalid={invalid || undefined}
         aria-describedby={invalid && errorId ? errorId : undefined}
         className={cx(
-          'h-11 w-full rounded-[var(--radius)] border bg-transparent px-3',
+          'w-full rounded-[var(--radius)] bg-surface-container px-5',
           'text-base text-[color:var(--gn-fg,var(--foreground))]',
           'placeholder:text-[color:var(--gn-muted,var(--muted-foreground))] placeholder:opacity-70',
-          'transition-[border-color,background-color,color] duration-300',
+          'transition-[border-color,box-shadow] duration-[400ms] ease-[var(--ease-spring)]',
           'hover:border-[var(--gn-fg,var(--foreground))]',
           'read-only:hover:border-[var(--gn-input,var(--input))] read-only:opacity-90',
+          // Focus is the refresh's halo: the border turns primary and a 4px primary-container
+          // ring springs out. The halo alone is too pale to count as an indicator
+          // (#B9E6E1 on #FBFCFC is ~1.3:1), so a 1px primary shadow doubles the border to
+          // 2px of --primary, which holds 3:1 -- that pair is what replaces the global
+          // `:focus-visible` outline this turns off, and the one it must not lose. An invalid
+          // field already has its 2px border, in the error colour, and keeps it on focus:
+          // one branch each, because two `focus:shadow-[…]` utilities on one element would
+          // be settled by stylesheet order, not by which one was meant.
+          'focus:outline-none',
           invalid
-            ? 'border-[var(--gn-error,var(--destructive))]'
-            : 'border-[var(--gn-input,var(--input))]',
+            ? 'border-2 border-[var(--gn-error,var(--destructive))] px-[19px] focus:shadow-[0_0_0_4px_var(--error-container)]'
+            : 'border border-[var(--gn-input,var(--input))] focus:border-[var(--gn-action,var(--primary))] focus:shadow-[0_0_0_1px_var(--gn-action,var(--primary)),0_0_0_5px_var(--primary-container)]',
           // One input, never six boxes. Six boxes cannot take a pasted "194 720", fight
           // autofill, and give a screen reader six unlabelled fields instead of one.
-          numeric && 'text-center font-mono text-lg tracking-[0.3em] tabular-nums',
+          numeric
+            ? 'h-14 text-center text-[1.375rem] font-medium tracking-[0.3em] tabular-nums'
+            : 'h-13',
         )}
       />
     </div>

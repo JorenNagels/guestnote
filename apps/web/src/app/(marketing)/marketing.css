@@ -11,14 +11,13 @@
  * JavaScript the final frame shows too (the `.mk-js` guard below).
  */
 
-/* The editorial type ramp. The display face arrives as `--font-display` from next/font. */
+/* The editorial type ramp, in the one face (`--font-sans`, Google Sans Flex) at the Modern
+   refresh's heading weight: 500 with tight tracking. Fraunces carried this until 2026-09-28. */
 .mk-display {
-  font-family: var(--font-display), ui-serif, Georgia, serif;
-  font-weight: 400;
-  font-variation-settings:
-    "SOFT" 50,
-    "WONK" 0;
-  letter-spacing: -0.025em;
+  /* no font-family: it inherits the body's. `--font-sans` lives in `@theme inline`, which is
+     not emitted on :root, so `var(--font-sans)` here would be invalid at computed time. */
+  font-weight: 500;
+  letter-spacing: -0.02em;
   line-height: 1.02;
   text-wrap: balance;
 }
@@ -45,7 +44,7 @@
   background: var(--card);
   color: var(--card-foreground);
   border: 1px solid var(--border);
-  border-radius: calc(var(--radius) + 6px);
+  border-radius: var(--radius-container);
   box-shadow:
     0 1px 2px rgb(24 23 21 / 0.06),
     0 24px 60px -24px rgb(6 33 31 / 0.35);
@@ -137,7 +136,8 @@
   line-height: 1.65;
 }
 .mk-prose h2 {
-  font-family: var(--font-display), ui-serif, Georgia, serif;
+  font-weight: 500;
+  letter-spacing: -0.015em;
   font-size: 1.45rem;
   line-height: 1.2;
   margin: 2.5rem 0 0.75rem;

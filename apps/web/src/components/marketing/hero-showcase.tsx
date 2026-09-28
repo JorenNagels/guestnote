@@ -194,7 +194,7 @@ function RunSheet({ labels, changed }: { labels: ShowcaseLabels['runSheet']; cha
         {rows.map((r) => (
           <li
             key={r.what}
-            className={`${r === labels.added ? 'mk-roll border-primary/40' : 'border-border'} bg-background grid grid-cols-[3.5rem_1fr_auto] items-center gap-3 rounded-[var(--radius)] border px-3 py-2 text-sm`}
+            className={`${r === labels.added ? 'mk-roll border-primary/40' : 'border-border'} bg-background grid grid-cols-[3.5rem_1fr_auto] items-center gap-3 rounded-[var(--radius-inner)] border px-3 py-2 text-sm`}
           >
             <span className="font-mono font-semibold tabular-nums">{r.time}</span>
             <span>

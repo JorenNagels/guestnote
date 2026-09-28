@@ -114,7 +114,7 @@ export function WeddingRow({
   const days = daysUntil(wedding.date)
 
   const shared = cx(
-    'group relative flex items-center rounded-[var(--radius)] border-l-[3px] outline-none',
+    'group relative flex items-center rounded-[var(--radius-inner)] border-l-[3px] outline-none',
     'transition-colors focus-visible:outline-ring focus-visible:outline-2',
     current ? 'bg-muted text-foreground' : 'text-foreground hover:bg-muted/60',
   )

@@ -57,7 +57,8 @@
   position: relative;
   display: none;
   overflow: hidden;
-  border-radius: calc(var(--radius) * 2.5);
+  /* the refresh's panel corner (32px); `--radius` is a pill now, so no longer a multiple of it */
+  border-radius: 32px;
   /* Inset rather than full-bleed: the panel reads as an object on the page, and the
      rounded corner has somewhere to be. */
   margin: 0.75rem 0.75rem 0.75rem 0;
@@ -200,7 +201,7 @@
   width: min(20rem, 78%);
   transform: translate(-50%, -50%);
   padding: 1.25rem 1.375rem;
-  border-radius: calc(var(--radius) * 1.75);
+  border-radius: var(--radius-container);
   background-color: var(--card);
   color: var(--card-foreground);
   box-shadow:

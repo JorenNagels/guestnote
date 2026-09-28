@@ -91,7 +91,7 @@ export function PlanCard({
   return (
     <section
       aria-labelledby="plan-title"
-      className="bg-card border-border rounded-[var(--radius)] border px-[18px] py-4"
+      className="bg-card border-border rounded-[var(--radius-container)] border px-[18px] py-4"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 id="plan-title" className="text-[14.5px] font-semibold">

@@ -318,6 +318,9 @@ compile (as built; a test was the first plan).
   exemption. It blocks the cutover, not the build.
 - ~~Neon's region~~ -- settled 2026-09-27: `aws-eu-central-1`, read from the Neon API.
 - ~~The display typeface~~ -- settled 2026-09-27 by the brief: Fraunces, headlines only.
+  **Changed 2026-09-28 (the Modern refresh, Claude Design):** Google Sans Flex on every
+  surface, headlines included, loaded once in `apps/web/src/lib/fonts.ts`; Fraunces removed.
+  The display font is therefore no longer a marketing-only addition; the type ramp still is.
 - ~~How robots/sitemap answer off the apex~~ -- settled: see "SEO", as built. Both are
   `private` at the edge until the CloudFront cache key includes the host (research/05 M1b).
 - **`hello@guestnote.be` must exist.** Every page and legal text names it; ADR 0005 records only

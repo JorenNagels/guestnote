@@ -79,13 +79,13 @@ export function LogoField({ id, labels, url, onPick, onRemove, disabled = false 
             alt=""
             data-testid="logo-tile"
             onError={() => setBroken(shown)}
-            className="border-border size-12 shrink-0 rounded-[calc(var(--radius)-2px)] border bg-white object-contain"
+            className="border-border size-12 shrink-0 rounded-[var(--radius-inner)] border bg-white object-contain"
           />
         ) : (
           <span
             aria-hidden="true"
             data-testid="logo-placeholder"
-            className="border-input text-muted-foreground grid size-12 shrink-0 place-items-center rounded-[calc(var(--radius)-2px)] border border-dashed"
+            className="border-input text-muted-foreground grid size-12 shrink-0 place-items-center rounded-[var(--radius-inner)] border border-dashed"
           >
             <ImageIcon className="size-5" />
           </span>

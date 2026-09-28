@@ -120,7 +120,7 @@ export function WeddingStep({ labels, plans, skipHref, action }: Props) {
                 <label
                   key={o.id || 'empty'}
                   className={cx(
-                    'flex min-h-11 cursor-pointer items-center gap-2.5 rounded-[var(--radius)] border px-3 py-2 text-sm outline-offset-2 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring',
+                    'flex min-h-11 cursor-pointer items-center gap-2.5 rounded-[var(--radius-container)] border px-3 py-2 text-sm outline-offset-2 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-ring',
                     on ? 'border-input bg-card font-semibold' : 'border-border',
                   )}
                 >

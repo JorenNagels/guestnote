@@ -10,6 +10,11 @@
  * and every fallback applies. The mechanism stays because it is what makes that kind of
  * move a one-file change instead of a rewrite of every control.
  *
+ * Not every colour since the Modern refresh (2026-09-28): the tinted fills -- Button's
+ * secondary, InlineError's chip, the selected Tab and locale, Field's ground -- read the
+ * `--*-container` tokens directly. Each is a contrast-checked fill/foreground PAIR, and a slot
+ * overriding one half could not keep it; a moving ground would need a slot per pair.
+ *
  * The alternative was a `variant="on-dark"` prop threaded through every component, which
  * puts the surface's business in the component's API and breaks the moment there are
  * three grounds instead of two.

@@ -641,6 +641,23 @@ hurts completion**: the method should be singular and obvious, not a menu. That 
 direct argument against the original §2 proposal of putting a link *and* a code in front
 of the user at the same moment, and it is the finding that most changes this brief.
 
+
+## Amended 2026-09-28 — the Modern refresh
+
+The user's design system in Claude Design ("Guestnote UI", template *Modern refresh*)
+restyled every control on this surface. What this brief says that is now different:
+
+- **Type family:** Google Sans Flex, not Inter (which was named here but never loaded).
+- **Controls are pills and 48px tall** (`h-12`), not 44px; 2.5.8 still clears.
+- **Field** sits on `--surface-container`; focus is a 2px primary edge plus a pale
+  primary-container halo. **InlineError** is a tinted chip with a filled icon.
+- **LinkButton** is a primary-colour pill, no longer an underlined muted link. The underline
+  existed because the form once stood on a descending ground; the descent had already moved
+  to the stage (`descent.css` header), so the form's ground is constant and `--primary` on
+  `--background` (6.61:1) holds.
+- **LocaleSwitcher** is a segmented control with a sliding pill; **StepIndicator** stretches
+  the current pip and adds a muted "2/3".
+
 Sources: Auth0 and Okta magic-link documentation · Better Auth magic-link, email-OTP and
 passkey plugin docs and issues #5550 / #5552 / #8163 · Microsoft Learn, Safe Links
 overview · NN/g, *Passwordless Accounts: One-Time Passwords (OTPs) and Passkeys* · FIDO

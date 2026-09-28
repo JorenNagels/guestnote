@@ -38,7 +38,7 @@ export function StudioMark({
       data-testid="studio-logo"
       onError={() => setFailed(logoUrl)}
       className={cx(
-        'border-border size-7 shrink-0 rounded-[calc(var(--radius)-2px)] border bg-white object-contain',
+        'border-border size-7 shrink-0 rounded-[var(--radius-inner)] border bg-white object-contain',
         className,
       )}
     />

@@ -108,7 +108,7 @@ export function Tabs({ label, items, value, defaultValue, onValueChange, classNa
                 // Selected is bolder AND boxed, not just tinted: the same "never colour
                 // alone" rule as the pills, since the tint is a step of neutral.
                 isSelected
-                  ? 'border-[var(--gn-input,var(--input))] bg-secondary font-semibold text-[color:var(--gn-fg,var(--foreground))]'
+                  ? 'border-transparent bg-primary-container font-semibold text-on-primary-container'
                   : 'border-transparent text-[color:var(--gn-muted,var(--muted-foreground))] hover:bg-muted',
               )}
             >

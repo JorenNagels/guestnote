@@ -1,26 +1,16 @@
 import type { Metadata } from 'next'
-import { Fraunces } from 'next/font/google'
 import { notFound } from 'next/navigation'
 import { setRequestLocale } from 'next-intl/server'
 import type { ReactNode } from 'react'
 import { apexOrigin } from '../../../lib/app-url.ts'
+import { googleSans } from '../../../lib/fonts.ts'
 import { isLocale, LOCALES } from '../../../lib/locales.ts'
 import '../../globals.css'
 import '../marketing.css'
 
-/**
- * The display face, for headlines only (spec 0006, marketing brief section 3). Self-hosted by
- * next/font at build: the browser never contacts Google, which the privacy page promises and the
- * coming-soon page's "no external requests" rule already asked for. Variable, with the `opsz` and
- * `SOFT` axes the brief uses, and a real italic for the `<em>` emphasis device.
- */
-const display = Fraunces({
-  subsets: ['latin', 'latin-ext'],
-  style: ['normal', 'italic'],
-  axes: ['opsz', 'SOFT'],
-  variable: '--font-display',
-  display: 'swap',
-})
+// Fraunces was the display face here from spec 0006 until 2026-09-28, when the Modern refresh
+// in Claude Design made Google Sans Flex the one face for every surface, headlines included
+// (`lib/fonts.ts`). The marketing brief records the change.
 
 /**
  * Before first paint, mark the page as having JavaScript, so the in-view animations may start
@@ -109,7 +99,7 @@ export default async function MarketingRootLayout({
     // `suppressHydrationWarning` because JS_FLAG adds `mk-js` to this element before React
     // hydrates, so the class list the server sent and the one React finds differ by design.
     // It silences this one element's attributes only, not its children.
-    <html lang={locale} className={display.variable} suppressHydrationWarning>
+    <html lang={locale} className={googleSans.variable} suppressHydrationWarning>
       <head>
         {/* biome-ignore lint/security/noDangerouslySetInnerHtml: a constant, see JS_FLAG */}
         <script dangerouslySetInnerHTML={{ __html: JS_FLAG }} />

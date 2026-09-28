@@ -93,7 +93,7 @@ export default async function TodayPage() {
       </header>
 
       {weddings.length === 0 ? (
-        <section className="border-border bg-card mt-7 rounded-[var(--radius)] border px-5 py-6">
+        <section className="border-border bg-card mt-7 rounded-[var(--radius-container)] border px-5 py-6">
           <h2 className="text-base font-semibold tracking-tight">
             {t(canCreate ? 'noWeddings.title' : 'noAssignments.title')}
           </h2>
@@ -103,7 +103,7 @@ export default async function TodayPage() {
           {canCreate && (
             <Link
               href={app.weddingNew()}
-              className="bg-primary text-primary-foreground focus-visible:outline-ring mt-4 inline-flex h-9 items-center rounded-[var(--radius)] px-4 text-sm font-semibold hover:brightness-110 focus-visible:outline-2 focus-visible:outline-offset-2"
+              className="bg-primary text-primary-foreground focus-visible:outline-ring mt-4 inline-flex h-9 items-center rounded-[var(--radius)] px-4 text-sm font-semibold hover:shadow-[inset_0_0_0_100px_color-mix(in_srgb,currentColor_12%,transparent)] focus-visible:outline-2 focus-visible:outline-offset-2"
             >
               {t('noWeddings.create')}
             </Link>
@@ -125,7 +125,7 @@ export default async function TodayPage() {
           {allClear ? (
             // One sentence instead of three empty boxes: with nothing in any list, three headings
             // that each say "nothing" is the same answer given three times.
-            <section className="border-border bg-card mt-7 rounded-[var(--radius)] border px-5 py-5">
+            <section className="border-border bg-card mt-7 rounded-[var(--radius-container)] border px-5 py-5">
               <p role="status" className="text-sm">
                 {t('allClear')}
               </p>

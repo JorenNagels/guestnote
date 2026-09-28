@@ -28,7 +28,7 @@ export function StartLink({ label, className = '' }: { label: string; className?
   return (
     <a
       href={appSignupUrl()}
-      className={`bg-primary text-primary-foreground inline-flex h-11 items-center justify-center rounded-[var(--radius)] px-5 text-sm font-semibold hover:brightness-110 ${className}`}
+      className={`bg-primary text-primary-foreground inline-flex h-11 items-center justify-center rounded-[var(--radius)] px-5 text-sm font-semibold transition-[transform,box-shadow] duration-[450ms] ease-[var(--ease-spring)] hover:shadow-[inset_0_0_0_100px_color-mix(in_srgb,currentColor_12%,transparent)] active:scale-[0.96] ${className}`}
     >
       {label}
     </a>
@@ -61,13 +61,19 @@ export async function SiteFrame({ locale, page, children }: Props) {
   ))
 
   const switcher = (
-    <nav aria-label={t('language')} className="flex gap-0.5 font-mono text-xs">
+    // The same segmented look as `@guestnote/ui/locale-switcher`, minus its sliding pill: every
+    // switch here is a full navigation, so there is nothing on screen to slide. Kept separate
+    // because these links need `hrefLang` and `next/link`, which the shared one does not take.
+    <nav
+      aria-label={t('language')}
+      className="bg-surface-container flex rounded-[var(--radius)] p-1 text-xs tracking-[0.06em]"
+    >
       {LOCALES.map((l) =>
         l === locale ? (
           <span
             key={l}
             aria-current="true"
-            className="border-border rounded border px-1.5 py-1 font-semibold"
+            className="bg-primary-container text-on-primary-container flex h-8 w-11 items-center justify-center rounded-[var(--radius)] font-bold"
           >
             {l.toUpperCase()}
           </span>
@@ -77,7 +83,7 @@ export async function SiteFrame({ locale, page, children }: Props) {
             href={pagePath(page, l)}
             hrefLang={l}
             lang={l}
-            className="text-muted-foreground hover:text-foreground rounded border border-transparent px-1.5 py-1"
+            className="text-muted-foreground hover:text-foreground flex h-8 w-11 items-center justify-center rounded-[var(--radius)] font-medium"
           >
             {l.toUpperCase()}
           </Link>
@@ -128,7 +134,7 @@ export async function SiteFrame({ locale, page, children }: Props) {
               <summary className="border-border flex h-9 cursor-pointer list-none items-center rounded-[var(--radius)] border px-3 text-sm [&::-webkit-details-marker]:hidden">
                 {t('nav.menu')}
               </summary>
-              <div className="bg-card border-border absolute right-0 mt-2 flex w-56 flex-col gap-1 rounded-[var(--radius)] border p-3 text-sm shadow-lg">
+              <div className="bg-card border-border absolute right-0 mt-2 flex w-56 flex-col gap-1 rounded-[var(--radius-container)] border p-3 text-sm shadow-lg">
                 {navLinks}
                 <AppEntryLink
                   hintUrl={sessionHintUrl()}

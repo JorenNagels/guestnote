@@ -51,7 +51,7 @@ export default async function TeamPage() {
   if (!team || !pending) {
     return (
       <Page title={t('title')} subtitle={orgName ? t('subtitle', { org: orgName }) : ''}>
-        <section className="border-border bg-card max-w-xl rounded-[var(--radius)] border p-5">
+        <section className="border-border bg-card max-w-xl rounded-[var(--radius-container)] border p-5">
           <h2 className="text-base font-semibold">{t('notAllowed.title')}</h2>
           <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
             {t('notAllowed.body', { org: orgName })}

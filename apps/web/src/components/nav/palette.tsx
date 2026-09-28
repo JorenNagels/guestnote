@@ -188,7 +188,7 @@ export function Palette({
             role="dialog"
             aria-modal="true"
             aria-label={labels.title}
-            className="bg-popover border-border w-full max-w-lg overflow-hidden rounded-[var(--radius)] border shadow-2xl"
+            className="bg-popover border-border w-full max-w-lg overflow-hidden rounded-[var(--radius-container)] border shadow-2xl"
           >
             <div className="border-border flex items-center gap-2.5 border-b px-3.5">
               <SearchIcon className="text-muted-foreground size-4 shrink-0" />

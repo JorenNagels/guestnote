@@ -36,11 +36,11 @@ export async function TaskList({
         </span>
       </div>
       {tasks.length === 0 ? (
-        <p className="text-muted-foreground border-border bg-card rounded-[var(--radius)] border px-3.5 py-3 text-sm">
+        <p className="text-muted-foreground border-border bg-card rounded-[var(--radius-container)] border px-3.5 py-3 text-sm">
           {emptyText}
         </p>
       ) : (
-        <ul className="border-border bg-card overflow-hidden rounded-[var(--radius)] border">
+        <ul className="border-border bg-card overflow-hidden rounded-[var(--radius-container)] border">
           {tasks.map((task) => (
             <TodayTaskRow key={task.id} task={task} today={today} />
           ))}

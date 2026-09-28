@@ -22,7 +22,7 @@ export function Table({
   ...rest
 }: HTMLAttributes<HTMLTableElement> & { caption: ReactNode }) {
   return (
-    <div className="overflow-x-auto rounded-[var(--radius)] border border-border bg-card">
+    <div className="overflow-x-auto rounded-[var(--radius-container)] border border-border bg-card">
       <table {...rest} className={cx('w-full border-collapse text-left text-sm', className)}>
         <caption className="sr-only">{caption}</caption>
         {children}

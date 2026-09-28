@@ -68,7 +68,7 @@ export default async function VendorLinkPage({ params }: { params: Promise<{ tok
           </p>
         </div>
 
-        <div className="border-border bg-background rounded-[var(--radius)] border p-6">
+        <div className="border-border bg-background rounded-[var(--radius-container)] border p-6">
           <p className="text-muted-foreground text-xs font-semibold tracking-[0.09em] uppercase">
             {t('sliceOfDay')}
           </p>
@@ -93,7 +93,7 @@ export default async function VendorLinkPage({ params }: { params: Promise<{ tok
 
         <section className="mt-5">
           <h2 className="mb-2 text-sm font-semibold tracking-tight">{t('timelineTitle')}</h2>
-          <div className="border-border bg-background overflow-hidden rounded-[var(--radius)] border">
+          <div className="border-border bg-background overflow-hidden rounded-[var(--radius-container)] border">
             {view.timeline.length === 0 ? (
               <p className="text-muted-foreground p-4 text-sm">{t('timelineEmpty')}</p>
             ) : (
@@ -122,7 +122,7 @@ export default async function VendorLinkPage({ params }: { params: Promise<{ tok
         {view.plannerNote && (
           <section className="mt-5">
             <h2 className="mb-2 text-sm font-semibold tracking-tight">{t('plannerNeedsTitle')}</h2>
-            <div className="border-border bg-background rounded-[var(--radius)] border p-4">
+            <div className="border-border bg-background rounded-[var(--radius-container)] border p-4">
               <p className="text-sm whitespace-pre-wrap">{view.plannerNote}</p>
             </div>
           </section>
@@ -136,7 +136,7 @@ export default async function VendorLinkPage({ params }: { params: Promise<{ tok
 function Gone({ title, body }: { title: string; body: string }) {
   return (
     <div className="flex min-h-dvh items-center justify-center bg-muted/40 px-4">
-      <div className="border-border bg-background max-w-sm rounded-[var(--radius)] border p-6 text-center">
+      <div className="border-border bg-background max-w-sm rounded-[var(--radius-container)] border p-6 text-center">
         <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
         <p className="text-muted-foreground mt-2 text-sm">{body}</p>
       </div>

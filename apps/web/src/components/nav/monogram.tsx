@@ -51,7 +51,7 @@ export function tintOf(name: string): string {
 export function Monogram({
   name,
   className,
-  rounded = 'rounded-[calc(var(--radius)-2px)]',
+  rounded = 'rounded-[var(--radius-inner)]',
 }: {
   name: string
   className?: string | undefined

@@ -125,7 +125,7 @@ export function Menu({
           // announce and no information.
           tabIndex={-1}
           className={cx(
-            'bg-popover border-border absolute z-50 min-w-56 rounded-[var(--radius)] border p-1 shadow-lg outline-none',
+            'bg-popover border-border absolute z-50 min-w-56 rounded-[var(--radius-container)] border p-1 shadow-lg outline-none',
             side === 'top' ? 'bottom-full mb-1.5' : 'top-full mt-1.5',
             align === 'start' ? 'left-0' : 'right-0',
           )}

@@ -13,6 +13,19 @@ describe('StepIndicator', () => {
     expect(screen.getByText('Verifying')).toBeInTheDocument()
   })
 
+  it('counts the current step from one, out of the total', () => {
+    render(<StepIndicator steps={['Public', 'Verifying', 'Private']} current={1} />)
+    expect(screen.getByText('2/3')).toBeInTheDocument()
+  })
+
+  it('stretches only the current pip', () => {
+    const { container } = render(
+      <StepIndicator steps={['Public', 'Verifying', 'Private']} current={1} />,
+    )
+    const pips = [...container.querySelectorAll('[aria-hidden="true"] > span')]
+    expect(pips.map((p) => p.classList.contains('w-6'))).toEqual([false, true, false])
+  })
+
   it('hides the pips from assistive technology', () => {
     const { container } = render(
       <StepIndicator steps={['Public', 'Verifying', 'Private']} current={0} />,

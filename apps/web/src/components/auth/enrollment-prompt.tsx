@@ -182,7 +182,7 @@ export function EnrollmentPrompt({ labels }: { labels: EnrollmentLabels }) {
       // the very moment that moving off the login surface exists to protect. `<section>`
       // with an accessible name IS `role="region"`, and the element carries it for free.
       aria-label={labels.title}
-      className="border-border bg-background fixed inset-x-3 bottom-3 z-50 rounded-[var(--radius)] border p-4 shadow-lg md:inset-x-auto md:right-4 md:bottom-4 md:w-80 print:hidden"
+      className="border-border bg-background fixed inset-x-3 bottom-3 z-50 rounded-[var(--radius-container)] border p-4 shadow-lg md:inset-x-auto md:right-4 md:bottom-4 md:w-80 print:hidden"
     >
       <h2 className="mb-1 text-sm font-semibold">{labels.title}</h2>
       <p className="text-muted-foreground mb-3.5 text-xs leading-relaxed">{labels.body}</p>

@@ -889,7 +889,7 @@ export function AuthFlow({
  *
  * Google's sign-in branding guidelines forbid recolouring the mark and require it on a
  * white background, so it does not take `currentColor` like the icons above and it carries
- * its own white tile -- which also lets it read on the dark theme's transparent button.
+ * its own white tile -- which also lets it read on the secondary button's gold fill in either theme.
  * Paths are Google's own official asset, untouched.
  */
 function GoogleGIcon() {

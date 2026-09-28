@@ -22,7 +22,7 @@ import type { ReactNode } from 'react'
  * control rather than disappearing. An icon is never the only thing naming a target here.
  *
  * Sized in `em` so they inherit the label's colour and scale with it. `stroke-width: 1.5`
- * throughout: 2 reads heavy next to Inter at 14px, which is the only size these are used at.
+ * throughout: 2 reads heavy next to the body face at 14px, which is the only size these are used at.
  */
 const DEFAULT_SIZE = 'size-[1.15em] shrink-0'
 

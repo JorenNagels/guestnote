@@ -146,8 +146,9 @@ as a native image board.)*
 - Whether the planner dashboard is ever white-labelled (currently no — white-label is
   scoped to client sites and emails). The planner's own uploaded logo still needs a
   neutral, bounded slot in the org switcher.
-- The dashboard typeface. Inter sits in the tokens as a safe default and is acknowledged
-  as the most generic choice available; revisit alongside the PH4 template designer.
+- ~~The dashboard typeface.~~ Settled 2026-09-28: Google Sans Flex, from the Modern refresh in
+  Claude Design (research/08 has the correction). Inter sat in the tokens as a safe default,
+  acknowledged as the most generic choice available, and was never actually loaded.
 
 ## Brand Commitments
 

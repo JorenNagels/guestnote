@@ -116,7 +116,7 @@ export async function RunSheetDemo({ locale }: Props) {
         {rows.map((r, i) => (
           <li
             key={r.time}
-            className={`${i === rows.length - 1 ? 'mk-slide' : 'mk-step'} border-border bg-background grid grid-cols-[3.5rem_1fr_auto] items-center gap-3 rounded-[var(--radius)] border px-3 py-2.5`}
+            className={`${i === rows.length - 1 ? 'mk-slide' : 'mk-step'} border-border bg-background grid grid-cols-[3.5rem_1fr_auto] items-center gap-3 rounded-[var(--radius-inner)] border px-3 py-2.5`}
             style={step(i)}
           >
             <span className="font-mono text-sm font-semibold tabular-nums">{r.time}</span>

@@ -278,7 +278,7 @@ export function RunSheetView({
 
                 {/* Phone: a stacked list, the whole row a button; reorder moves to the editor's
                     own buttons there (SPEC), so the row stays uncluttered. */}
-                <ul className="border-border bg-card divide-y overflow-hidden rounded-[var(--radius)] border md:hidden">
+                <ul className="border-border bg-card divide-y overflow-hidden rounded-[var(--radius-container)] border md:hidden">
                   {schedule.map((row, i) => (
                     <li
                       key={row.item.id}

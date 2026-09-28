@@ -342,7 +342,7 @@ function Total({
   danger?: boolean
 }) {
   return (
-    <div className="bg-card rounded-[var(--radius)] border px-[15px] py-[13px]">
+    <div className="bg-card rounded-[var(--radius-container)] border px-[15px] py-[13px]">
       <dt className="text-muted-foreground text-[11px] font-semibold tracking-[0.08em] uppercase">
         {label}
       </dt>

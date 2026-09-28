@@ -89,7 +89,7 @@ export function TaskForm({
     <form
       onSubmit={submit}
       aria-label={t(editing ? 'form.editHeading' : 'form.newHeading')}
-      className="border-border bg-card mb-5 rounded-[var(--radius)] border p-4"
+      className="border-border bg-card mb-5 rounded-[var(--radius-container)] border p-4"
     >
       <p className="mb-3 text-sm font-semibold">
         {t(editing ? 'form.editHeading' : 'form.newHeading')}
@@ -117,7 +117,7 @@ export function TaskForm({
           maxLength={NOTES_MAX}
           rows={2}
           onChange={(e) => set('notes', e.target.value)}
-          className="border-input w-full rounded-[var(--radius)] border bg-transparent px-3 py-2 text-base"
+          className="border-input w-full rounded-[var(--radius-container)] border bg-transparent px-3 py-2 text-base"
         />
       </div>
 

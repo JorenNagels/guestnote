@@ -52,7 +52,7 @@ export const BLANK_WEDDING: WeddingFormValues = {
 const STATUSES = ['draft', 'live', 'archived'] as const
 
 const TEXTAREA =
-  'w-full rounded-[var(--radius)] border border-[var(--gn-input,var(--input))] bg-transparent px-3 py-2 text-base placeholder:opacity-70 hover:border-foreground'
+  'w-full rounded-[var(--radius-container)] border border-[var(--gn-input,var(--input))] bg-transparent px-3 py-2 text-base placeholder:opacity-70 hover:border-foreground'
 
 export function WeddingForm({
   mode,

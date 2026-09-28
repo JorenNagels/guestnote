@@ -27,7 +27,7 @@ export default async function Loading() {
       </p>
       <div aria-hidden="true" className="animate-pulse">
         <div className="bg-muted h-6 w-40 rounded" />
-        <div className="border-border bg-card mt-6 divide-y overflow-hidden rounded-[var(--radius)] border">
+        <div className="border-border bg-card mt-6 divide-y overflow-hidden rounded-[var(--radius-container)] border">
           {[0, 1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="h-12 px-4 py-3">
               <div className="bg-muted h-4 w-2/3 rounded" />

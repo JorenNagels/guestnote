@@ -85,7 +85,7 @@ export function StaffInvite({ url, locale, copy }: StaffInviteProps) {
               align="center"
               style={{
                 backgroundColor: COLOUR.primary,
-                borderRadius: `${SIZE.radius}px`,
+                borderRadius: `${SIZE.radiusControl}px`,
               }}
             >
               <a

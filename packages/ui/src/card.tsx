@@ -25,7 +25,7 @@ export function Card({ as = 'div', padding = 'md', className, children, ...rest 
     <Tag
       {...rest}
       className={cx(
-        'rounded-[var(--radius)] border border-border bg-card text-card-foreground',
+        'rounded-[var(--radius-container)] border border-border bg-card text-card-foreground',
         padding === 'md' ? 'px-4 py-3.5' : 'overflow-hidden',
         className,
       )}

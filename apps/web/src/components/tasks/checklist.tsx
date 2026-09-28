@@ -85,7 +85,7 @@ export function Checklist({
       )}
 
       {tasks.length === 0 && !adding && (
-        <div className="border-border bg-card rounded-[var(--radius)] border px-6 py-10 text-center">
+        <div className="border-border bg-card rounded-[var(--radius-container)] border px-6 py-10 text-center">
           <p className="text-sm font-semibold">{t('empty.title')}</p>
           <p className="text-muted-foreground mx-auto mt-1 max-w-sm text-sm">{t('empty.body')}</p>
           <Button onClick={() => setAdding(true)} className="mx-auto mt-4 w-auto! px-4">
@@ -95,7 +95,7 @@ export function Checklist({
       )}
 
       {tasks.length > 0 && groups.length === 0 && (
-        <div className="border-border bg-card rounded-[var(--radius)] border px-6 py-8 text-center">
+        <div className="border-border bg-card rounded-[var(--radius-container)] border px-6 py-8 text-center">
           <p className="text-sm font-semibold">{t('filterEmpty.title')}</p>
           <Link href={base} className="text-sm underline underline-offset-[3px]">
             {t('filterEmpty.back')}
@@ -120,7 +120,7 @@ export function Checklist({
               {group.tasks.length}
             </span>
           </div>
-          <ul className="border-border bg-card overflow-hidden rounded-[var(--radius)] border">
+          <ul className="border-border bg-card overflow-hidden rounded-[var(--radius-container)] border">
             {group.tasks.map((task) => (
               <TaskRowView key={task.id} task={task} today={today} />
             ))}

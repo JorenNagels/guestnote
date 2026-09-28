@@ -78,7 +78,7 @@ export function TrialReminder({ url, locale, copy }: TrialReminderProps) {
               align="center"
               style={{
                 backgroundColor: COLOUR.primary,
-                borderRadius: `${SIZE.radius}px`,
+                borderRadius: `${SIZE.radiusControl}px`,
               }}
             >
               <a

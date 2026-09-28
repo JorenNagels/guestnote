@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers'
 import { getLocale } from 'next-intl/server'
 import type { ReactNode } from 'react'
+import { googleSans } from '../../lib/fonts.ts'
 import { DENSITY_COOKIE, parseDensity, parseTheme, THEME_COOKIE } from '../../lib/prefs.ts'
 import '../globals.css'
 
@@ -60,7 +61,7 @@ export default async function ProRootLayout({ children }: { children: ReactNode 
     // wrong theme and no jump from a wide sidebar to a narrow one.
     <html
       lang={locale}
-      className={theme === 'dark' ? 'dark' : undefined}
+      className={theme === 'dark' ? `dark ${googleSans.variable}` : googleSans.variable}
       // research/08-design-system.md: `[data-density="compact"]` switches row height,
       // cell padding and control height together, because a 300-guest list is unusable at
       // comfortable spacing.

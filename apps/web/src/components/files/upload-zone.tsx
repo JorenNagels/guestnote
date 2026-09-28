@@ -91,7 +91,7 @@ export function UploadZone({
       onDragLeave={() => setOver(false)}
       onDrop={onDrop}
       className={cx(
-        'rounded-[var(--radius)] border border-dashed px-4 py-4 transition-colors',
+        'rounded-[var(--radius-container)] border border-dashed px-4 py-4 transition-colors',
         over ? 'border-foreground bg-muted' : 'border-input',
       )}
     >

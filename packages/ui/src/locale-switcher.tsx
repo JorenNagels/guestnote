@@ -42,12 +42,26 @@ export function LocaleSwitcher<L extends string>({
   disabled,
 }: Props<L>) {
   const base =
-    'rounded-[calc(var(--radius)-2px)] px-1.5 py-1 text-xs tracking-wide transition-colors'
+    'relative flex h-8 w-11 items-center justify-center rounded-[var(--radius)] text-xs tracking-[0.06em]'
   const inactive =
-    'text-[color:var(--gn-muted,var(--muted-foreground))] hover:text-[color:var(--gn-fg,var(--foreground))]'
+    'font-medium text-[color:var(--gn-muted,var(--muted-foreground))] transition-colors hover:text-[color:var(--gn-fg,var(--foreground))]'
+  const index = Math.max(0, locales.indexOf(current))
 
   return (
-    <nav aria-label={label} className="flex gap-0.5">
+    // A segmented control since the Modern refresh: a primary-container pill slides under the
+    // current locale. The pill is decoration, positioned by index (every segment is the same
+    // width, so one segment's width is one step); `aria-current` on the span still says which
+    // one is current. The transform is the one inline style in this package because the
+    // index is data, and one class per possible index would be a list to keep in step.
+    <nav
+      aria-label={label}
+      className="relative flex self-start rounded-[var(--radius)] bg-surface-container p-1"
+    >
+      <span
+        aria-hidden="true"
+        className="absolute top-1 left-1 h-8 w-11 rounded-[var(--radius)] bg-primary-container transition-transform duration-[550ms] ease-[var(--ease-spring)]"
+        style={{ transform: `translateX(${index * 100}%)` }}
+      />
       {locales.map((locale) => {
         const isCurrent = locale === current
         const text = locale.toUpperCase()
@@ -57,7 +71,7 @@ export function LocaleSwitcher<L extends string>({
             <span
               key={locale}
               aria-current="true"
-              className={cx(base, 'font-semibold text-[color:var(--gn-fg,var(--foreground))]')}
+              className={cx(base, 'font-bold text-on-primary-container')}
             >
               {text}
             </span>

@@ -53,7 +53,7 @@ export function AddItemForm({ templateId }: { templateId: string }) {
     <form
       onSubmit={submit}
       aria-labelledby={`${formId}-heading`}
-      className="border-border rounded-[var(--radius)] border border-dashed p-3"
+      className="border-border rounded-[var(--radius-container)] border border-dashed p-3"
     >
       {/* `-heading`, not `-title`: `idPrefix={formId}` below also names the title FIELD
           `${formId}-title`, and two elements sharing one id breaks its `label[for]`. */}

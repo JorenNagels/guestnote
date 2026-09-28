@@ -106,7 +106,7 @@ export function WeddingVendorSheet({
             maxLength={2000}
             rows={6}
             aria-describedby={`${formId}-notes-hint`}
-            className="block w-full rounded-[var(--radius)] border border-[var(--input)] bg-transparent px-3 py-2 text-sm"
+            className="block w-full rounded-[var(--radius-container)] border border-[var(--input)] bg-transparent px-3 py-2 text-sm"
           />
           {/* The vendor link (`/vendor/<token>`) renders these notes verbatim as "what the
               planner needs". Without this line a planner reads "notes for this wedding" as

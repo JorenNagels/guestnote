@@ -9,7 +9,28 @@
 > existing weddings. `design-system/theme-contract.ts` stays on disk and stays
 > correct — pick it back up at **F4** (content blocks) / **V7** (templates).
 >
-> Files: `design-system/tokens.css` (generated) · `tokens-reference.html` (visual).
+> Files: `design-system/tokens.css` (generated, hand-edited since 2026-09-28) · `tokens-reference.html` (visual).
+
+> **Correction, 2026-09-28 — the Modern refresh** (the user's design system in Claude Design,
+> "Guestnote UI"). What below is now wrong, and what replaced it:
+>
+> - **Neutrals are teal-grey, not warm grey** (OKLCH hue 183, chroma 0.011). Each step keeps
+>   the relative luminance of the step it replaced to within 0.004, so the verified pairs
+>   still hold; `neutral-1000` is `#121A19`. Light `--background` is `#FBFCFC`, `--foreground`
+>   `#161D1C`, `--input` `#6F7977`; dark `--foreground` `#DEE4E2`, `--input` `#899391`.
+> - **Two radii.** `--radius` is `9999px` -- controls are pills -- and `--radius-container:
+>   20px` holds cards, tables, menus and textareas (`--radius-inner: 12px` for thumbnails).
+>   The table argument for a crisp corner still applies to the container radius, which is
+>   why tables did not become pills.
+> - **Typeface: Google Sans Flex**, self-hosted by next/font. Inter was in the stack but was
+>   never loaded, so the dashboard had been rendering in the system face.
+> - **Tonal roles added**: `--surface`, `--surface-container`, `--primary-container`,
+>   `--secondary-container`, `--error-container` and their `--on-*` foregrounds.
+>
+> Re-measured 2026-09-28 (WCAG formula, same method that reproduces the table below):
+> `ring` on `card` 3.48 / 7.21, `input` on `card` 4.49 / 4.51, `input` on
+> `surface-container` 3.85 / 5.01, `muted-foreground` on `muted` 7.99 / 4.59, `--border` on
+> `card` 1.37 light. Every `--on-*-container` pair is 7.9:1 or better. 0 failures.
 
 The thing being designed is **V4 — the planner multi-wedding dashboard**, which
 `04-speclist.md` calls "the B2B product. Nobody in the Benelux has one." So the
@@ -144,7 +165,8 @@ Two deliberate calls, unchanged:
 
 ## Deliberately not decided
 
-- **Dashboard typeface.** Inter is in the tokens as a safe default. It is also
+- **Dashboard typeface.** *Settled 2026-09-28: Google Sans Flex (see the correction above).*
+  Inter is in the tokens as a safe default. It is also
   the single most generic choice available. Worth revisiting — but with the
   template designer at **V7**, not in isolation.
 - **Does the dashboard get white-labelled?** **V5** scopes white-label to "client

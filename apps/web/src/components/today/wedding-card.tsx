@@ -40,7 +40,7 @@ export async function WeddingCard({
   return (
     <Link
       href={app.wedding(wedding.id)}
-      className="border-border bg-card hover:bg-muted/50 focus-visible:outline-ring block rounded-[var(--radius)] border px-3.5 py-3 focus-visible:outline-2 focus-visible:-outline-offset-2"
+      className="border-border bg-card hover:bg-muted/50 focus-visible:outline-ring block rounded-[var(--radius-container)] border px-3.5 py-3 focus-visible:outline-2 focus-visible:-outline-offset-2"
     >
       <span className="flex items-center gap-2">
         <span

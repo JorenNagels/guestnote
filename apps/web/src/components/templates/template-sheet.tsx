@@ -102,7 +102,7 @@ export function TemplateSheet({ template, onSubmit, onDelete, onClose }: Props) 
             defaultValue={template?.description ?? ''}
             maxLength={TEMPLATE_LIMITS.description}
             rows={4}
-            className="bg-transparent block w-full rounded-[var(--radius)] border border-[var(--input)] px-3 py-2 text-sm"
+            className="bg-transparent block w-full rounded-[var(--radius-container)] border border-[var(--input)] px-3 py-2 text-sm"
           />
           <p className="text-muted-foreground mt-1.5 text-xs">{t('form.descriptionHint')}</p>
         </div>

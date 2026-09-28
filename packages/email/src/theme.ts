@@ -56,12 +56,12 @@ export type ThemeColour = keyof typeof TOKEN_SOURCE
 
 /** Resolved values of `TOKEN_SOURCE`, uppercase hex. Verified by `theme.test.ts`. */
 export const COLOUR: Readonly<Record<ThemeColour, string>> = {
-  background: '#F7F6F5',
+  background: '#FBFCFC',
   surface: '#FFFFFF',
-  foreground: '#474441',
-  mutedForeground: '#5C5854',
-  muted: '#EEECEA',
-  border: '#DEDBD7',
+  foreground: '#161D1C',
+  mutedForeground: '#3F4947',
+  muted: '#E8EFEE',
+  border: '#D4DEDC',
   primary: '#206560',
   accent: '#F7ECD4',
   accentForeground: '#554111',
@@ -70,33 +70,39 @@ export const COLOUR: Readonly<Record<ThemeColour, string>> = {
 }
 
 /**
- * The font stacks, minus the two webfonts.
+ * The font stacks, minus the webfont.
  *
- * `tokens.css` leads both stacks with a webfont (`Inter Variable`, `JetBrains Mono`).
- * Those are dropped here rather than `@font-face`-ed in: a webfont in email costs a
- * request that most clients block, Outlook ignores `@font-face` entirely, and a
- * mid-render fallback swap is worse than never having asked. What is left is the rest of
- * each stack verbatim, which is what the majority of recipients would have rendered
- * anyway.
+ * `tokens.css` leads the sans stack with `var(--font-google-sans)`, the self-hosted Google
+ * Sans Flex file next/font serves (the Modern refresh, 2026-09-28). An email cannot reach
+ * that file and should not try: a webfont in email costs a request that most clients block,
+ * Outlook ignores `@font-face` entirely, and a mid-render fallback swap is worse than never
+ * having asked. So the stack names the face and stops there: a recipient who happens to have
+ * it installed gets it, and everyone else -- assumed to be nearly everyone, not measured --
+ * gets the system face.
  *
  * These are NOT in TOKEN_SOURCE, because they are deliberately not equal to their token.
  */
 export const FONT = {
-  sans: 'Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
+  sans: '"Google Sans Flex", "Google Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
   mono: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
 } as const
 
 /**
  * Pixels, never rem.
  *
- * `--radius` is `0.5rem` and the type scale is in rem throughout, which is right for a
- * browser and wrong here: Outlook resolves `rem` against nothing and several clients
- * rewrite the root font size. Every length in a template is an integer px.
+ * The type scale is in rem throughout, which is right for a browser and wrong here: Outlook
+ * resolves `rem` against nothing and several clients rewrite the root font size. Every
+ * length in a template is an integer px.
+ *
+ * Two radii, as in `tokens.css` since the Modern refresh: `radius` for a container (the
+ * card, the code box) is `--radius-container`, and `radiusControl` makes the call-to-action
+ * a pill like the app's buttons. Outlook on Windows draws both square, which is fine.
  */
 export const SIZE = {
   /** The classic email column. Wider than this and Outlook's reading pane clips it. */
   containerWidth: 600,
-  radius: 8,
+  radius: 20,
+  radiusControl: 999,
   spaceSm: 8,
   spaceMd: 16,
   spaceLg: 24,

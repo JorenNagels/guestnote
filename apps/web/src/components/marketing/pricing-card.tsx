@@ -52,7 +52,7 @@ export function PricingCard({ locale, labels, extraLabels, maxSeats }: Props) {
   const per = cycle === 'monthly' ? labels.perMonth : labels.perYear
 
   return (
-    <div className="bg-card border-border rounded-[calc(var(--radius)+6px)] border p-6 shadow-sm sm:p-8">
+    <div className="bg-card border-border rounded-[var(--radius-container)] border p-6 shadow-sm sm:p-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h2 className="mk-display mk-h3">{labels.name}</h2>
         <fieldset className="bg-muted flex rounded-full p-1 text-sm">

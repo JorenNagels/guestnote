@@ -20,7 +20,8 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
  * out because a submit that vanishes mid-request on a slow venue connection reads as the
  * tap having failed, and the second tap is the one that double-sends.
  *
- * Height is 44px flat. `data-density` deliberately does not reach it: density is a
+ * Height is 48px flat: the Modern refresh's value, a taste call and not a target-size fix --
+ * 44px already cleared WCAG 2.5.8. `data-density` deliberately does not reach it: density is a
  * dashboard preference for reading three hundred rows, and every surface this button
  * appears on before then is one where the target size matters more than the row count.
  *
@@ -53,12 +54,18 @@ export function Button({
       disabled={disabled || busy}
       aria-busy={busy || undefined}
       className={cx(
-        'inline-flex h-11 w-full items-center justify-center gap-2 rounded-[var(--radius)]',
-        'text-sm font-semibold transition-[background-color,color,filter] duration-300',
+        'inline-flex h-12 w-full items-center justify-center gap-2 rounded-[var(--radius)] border-0',
+        'text-[0.9375rem] font-semibold tracking-[0.01em]',
+        // The Modern refresh's state layer: hover lays a wash of the button's OWN text colour
+        // over it (12% on primary, 6% on the tinted secondary), where `brightness-110` used to
+        // lighten it. A wash of the foreground works on both themes -- brightening the dark
+        // theme's light-teal button only made its dark label weaker. Press shrinks it to 96%
+        // on the spring curve; reduced motion zeroes the duration in tokens.css.
+        'transition-[transform,box-shadow] duration-[450ms] ease-[var(--ease-spring)] enabled:active:scale-[0.96]',
         'enabled:cursor-pointer disabled:cursor-not-allowed disabled:opacity-55',
         variant === 'primary'
-          ? 'border border-transparent bg-[var(--gn-action,var(--primary))] text-[color:var(--gn-action-fg,var(--primary-foreground))] enabled:hover:brightness-110'
-          : 'border border-[var(--gn-input,var(--input))] bg-transparent font-medium text-[color:var(--gn-fg,var(--foreground))] enabled:hover:border-[var(--gn-fg,var(--foreground))]',
+          ? 'bg-[var(--gn-action,var(--primary))] text-[color:var(--gn-action-fg,var(--primary-foreground))] enabled:hover:shadow-[inset_0_0_0_100px_color-mix(in_srgb,currentColor_12%,transparent),0_1px_3px_rgb(22_29_28/0.25)]'
+          : 'bg-secondary-container text-on-secondary-container enabled:hover:shadow-[inset_0_0_0_100px_color-mix(in_srgb,currentColor_6%,transparent)]',
         className,
       )}
     >
@@ -80,9 +87,11 @@ export function Button({
  * A text-weight action for the things beside the main one -- "different address",
  * "send a new code".
  *
- * Underlined rather than coloured, because on this surface the ground moves and a link
- * colour that reads at one depth stop does not necessarily read at the next. An
- * underline is depth-independent.
+ * A pill-shaped text button in the primary colour since the Modern refresh, with a faint
+ * primary wash on hover. It used to be an underlined muted link, because the sign-in form
+ * then stood on a ground that darkened step by step and a colour that read at one stop did
+ * not at the next. The descent moved to the stage beside the form (`descent.css`), so the
+ * form's ground is constant and the verified `--primary` on `--background` pair holds.
  */
 export function LinkButton({
   className,
@@ -94,12 +103,14 @@ export function LinkButton({
       type="button"
       {...rest}
       className={cx(
-        'text-xs text-[color:var(--gn-muted,var(--muted-foreground))] underline underline-offset-[3px]',
-        'transition-colors enabled:cursor-pointer enabled:hover:text-[color:var(--gn-fg,var(--foreground))]',
+        'inline-flex h-10 items-center rounded-[var(--radius)] px-4 text-sm font-semibold',
+        'text-[color:var(--gn-action,var(--primary))]',
+        'transition-[transform,background-color] duration-[450ms] ease-[var(--ease-spring)]',
+        'enabled:cursor-pointer enabled:hover:bg-[color-mix(in_srgb,var(--gn-action,var(--primary))_8%,transparent)] enabled:active:scale-[0.94]',
         // `cursor-default` while disabled, not `not-allowed`: the resend countdown is the
         // main user of that state and it is going to become available on its own. A barred
         // cursor would say "never", which is the wrong promise for a timer.
-        'disabled:cursor-default disabled:no-underline disabled:opacity-80',
+        'disabled:cursor-default disabled:font-medium disabled:tabular-nums disabled:text-[color:var(--gn-muted,var(--muted-foreground))]',
         className,
       )}
     >

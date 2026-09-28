@@ -55,7 +55,7 @@ export function TemplateList({
             <li key={tpl.id}>
               <Link
                 href={app.template(tpl.id)}
-                className="border-border bg-card hover:border-foreground/40 focus-visible:outline-ring block h-full rounded-[var(--radius)] border px-4 py-3.5 transition-colors focus-visible:outline-2"
+                className="border-border bg-card hover:border-foreground/40 focus-visible:outline-ring block h-full rounded-[var(--radius-container)] border px-4 py-3.5 transition-colors focus-visible:outline-2"
               >
                 <span className="block text-sm font-semibold">{tpl.name}</span>
                 {tpl.description && (

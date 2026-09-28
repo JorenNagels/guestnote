@@ -112,7 +112,7 @@ export function MoodboardScreen({
       </div>
 
       {items.length === 0 ? (
-        <div className="mt-6 rounded-[var(--radius)] border border-border bg-card px-6 py-10 text-center">
+        <div className="mt-6 rounded-[var(--radius-container)] border border-border bg-card px-6 py-10 text-center">
           <p className="font-medium">{labels.empty.title}</p>
           <p className="text-muted-foreground mx-auto mt-1.5 max-w-prose text-sm leading-relaxed">
             {labels.empty.body}
@@ -126,7 +126,7 @@ export function MoodboardScreen({
             return (
               <li
                 key={t.id}
-                className="flex flex-col overflow-hidden rounded-[var(--radius)] border border-border bg-card"
+                className="flex flex-col overflow-hidden rounded-[var(--radius-container)] border border-border bg-card"
               >
                 {t.url ? (
                   // biome-ignore lint/performance/noImgElement: see the component comment

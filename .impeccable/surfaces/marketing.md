@@ -7,6 +7,12 @@ related_targets: ["apps/web/src/components/marketing"]
 
 # Marketing: `guestnote.be/{nl,en,fr}`
 
+> **Superseded in part, 2026-09-28: the Modern refresh.** The user's design system in Claude
+> Design ("Guestnote UI", template *Modern refresh*) made **Google Sans Flex** the one face for
+> every surface, headlines included, so **Fraunces is gone**: `.mk-display` is the sans at weight
+> 500, tracking −0.02em. Controls are pills, surfaces are cool teal-grey, containers take a 20px
+> corner. Tokens in `design-system/tokens.css`; font in `apps/web/src/lib/fonts.ts`.
+
 > **Superseded in part, 2026-09-28: the homepage chosen from four variant rounds.** The user
 > reviewed ~20 homepage variants and picked: a hero on a slowly moving warm gradient (gold,
 > teal, peach, sage) over a faint perspective floor grid, with **four product scenes that play

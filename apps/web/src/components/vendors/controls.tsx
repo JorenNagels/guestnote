@@ -4,7 +4,7 @@ import type { VendorActionResult } from '../../lib/vendor-input.ts'
 /**
  * The few controls both vendor screens share and `packages/ui` does not have.
  *
- * `Button` from the ui kit is 44px and full width by design (its comment says why), which is
+ * `Button` from the ui kit is 48px and full width by design (its comment says why), which is
  * right for a sheet's footer and wrong for a row in a table that follows `[data-density]`.
  * `cx` does not merge classes, so overriding its height would be a coin flip on CSS order.
  * These are the compact ones; a second screen needing them is the signal to move them into the
@@ -29,7 +29,7 @@ export function SmallButton({
       className={[
         BUTTON,
         tone === 'primary'
-          ? 'border-transparent bg-primary text-primary-foreground enabled:hover:brightness-110'
+          ? 'border-transparent bg-primary text-primary-foreground enabled:hover:shadow-[inset_0_0_0_100px_color-mix(in_srgb,currentColor_12%,transparent)]'
           : 'border-[var(--input)] bg-transparent text-foreground enabled:hover:bg-muted',
         className,
       ]

@@ -71,7 +71,7 @@ export default async function WeddingsPage() {
           {t('weddings.empty')}
         </p>
       ) : (
-        <ul className="divide-border bg-card divide-y overflow-hidden rounded-[var(--radius)] border">
+        <ul className="divide-border bg-card divide-y overflow-hidden rounded-[var(--radius-container)] border">
           {rows.map((w) => (
             <li key={w.id}>
               <Link

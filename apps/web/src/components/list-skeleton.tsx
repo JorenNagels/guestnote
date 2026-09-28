@@ -10,7 +10,7 @@ export function ListSkeleton() {
       <div aria-hidden="true" className="animate-pulse">
         <div className="bg-muted h-7 w-48 rounded" />
         <div className="bg-muted mt-2 h-4 w-72 rounded" />
-        <div className="border-border bg-card mt-8 divide-y overflow-hidden rounded-[var(--radius)] border">
+        <div className="border-border bg-card mt-8 divide-y overflow-hidden rounded-[var(--radius-container)] border">
           {[0, 1, 2, 3, 4].map((i) => (
             <div key={i} className="h-[var(--row-h)] px-4 py-3">
               <div className="bg-muted h-4 w-2/3 rounded" />

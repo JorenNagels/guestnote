@@ -688,8 +688,8 @@ describe('the passkey control', () => {
     renderFlow({ passkeysEnabled: true })
     const passkey = await screen.findByRole('button', { name: 'ACTION-PASSKEY' })
     const primary = screen.getByRole('button', { name: 'ACTION-CONTINUE' })
-    expect(passkey.className).toContain('bg-transparent')
-    expect(primary.className).not.toContain('bg-transparent')
+    expect(passkey.className).toContain('bg-secondary-container')
+    expect(primary.className).not.toContain('bg-secondary-container')
   })
 
   it('is absent on an invitation landing, which pins the address', async () => {
@@ -1231,9 +1231,9 @@ describe('the Google button', () => {
 
   it('is secondary weight, never primary', () => {
     renderFlow({ googleEnabled: true })
-    expect(googleButton()?.className).toContain('bg-transparent')
+    expect(googleButton()?.className).toContain('bg-secondary-container')
     expect(screen.getByRole('button', { name: 'ACTION-CONTINUE' }).className).not.toContain(
-      'bg-transparent',
+      'bg-secondary-container',
     )
   })
 

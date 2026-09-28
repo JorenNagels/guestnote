@@ -53,7 +53,7 @@ export function Comments({
       {comments.length === 0 ? (
         <p className="text-muted-foreground text-sm">{t('comments.empty')}</p>
       ) : (
-        <ol className="divide-border border-border bg-card divide-y rounded-[var(--radius)] border">
+        <ol className="divide-border border-border bg-card divide-y rounded-[var(--radius-container)] border">
           {comments.map((c) => (
             <li key={c.id} className="px-4 py-3">
               <p className="flex items-baseline gap-2 text-[0.78rem]">
@@ -83,7 +83,7 @@ export function Comments({
           placeholder={t('comments.placeholder')}
           onChange={(e) => setBody(e.target.value)}
           aria-describedby={`${uid}-note`}
-          className="border-input w-full rounded-[var(--radius)] border bg-transparent px-3 py-2 text-base"
+          className="border-input w-full rounded-[var(--radius-container)] border bg-transparent px-3 py-2 text-base"
         />
         <p id={`${uid}-note`} className="text-muted-foreground mt-1 text-xs">
           {t(visibility === 'internal' ? 'comments.internalNote' : 'comments.sharedNote')}

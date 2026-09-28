@@ -16,8 +16,8 @@ import { DEFAULT_LOCALE, isLocale, LOCALES } from '../../../../lib/locales.ts'
  * Dutch only -- a card that announces a launch after the launch.
  *
  * The coming-soon ground and cream headline, and the mark in its frozen logo colours. Satori's
- * default sans, not the display face: loading Fraunces here would mean fetching a font file at
- * build, and a share card at thumbnail size does not carry a serif's detail.
+ * default sans, not the site's Google Sans Flex: loading it here would mean fetching a font file
+ * at build, for a card seen at thumbnail size.
  */
 const size = { width: 1200, height: 630 }
 

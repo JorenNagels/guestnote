@@ -64,7 +64,7 @@ export function InvoiceDetailsForm({
   return (
     <section
       aria-labelledby="details-title"
-      className="bg-card border-border rounded-[var(--radius)] border px-[18px] py-4"
+      className="bg-card border-border rounded-[var(--radius-container)] border px-[18px] py-4"
     >
       <h2 id="details-title" className="mb-3 text-[14.5px] font-semibold">
         {labels.title}
