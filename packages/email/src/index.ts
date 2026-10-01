@@ -104,6 +104,35 @@ export function createMailer(config: MailerConfig) {
       return result
     },
 
+    /**
+     * Spec 0008. The staff invitation's layout -- heading, one paragraph, a button, the raw link,
+     * the expiry -- is exactly what a couple invitation needs, so it renders the same template
+     * with its own copy. A separate method and tag so `mail_deliveries` can tell the two apart.
+     * Rejected: a second template file identical to the first but for its name.
+     */
+    async sendCoupleInvite(input: StaffInviteInput): Promise<SendResult> {
+      const rendered = await renderEmail(
+        createElement(StaffInvite, { url: input.url, locale: input.locale, copy: input.copy }),
+      )
+      const result = await config.transport.send({
+        to: input.to,
+        subject: input.copy.subject,
+        html: rendered.html,
+        text: rendered.text,
+        tags: { template: TEMPLATE_COUPLE_INVITE },
+      })
+      // The URL is not recorded, for the reason sendStaffInvite gives.
+      await record(config, {
+        toEmail: input.to,
+        template: TEMPLATE_COUPLE_INVITE,
+        locale: input.locale,
+        providerMessageId: result.ok ? result.messageId : null,
+        status: result.ok ? 'sent' : 'failed',
+        error: result.ok ? null : result.detail,
+      })
+      return result
+    },
+
     async sendStaffInvite(input: StaffInviteInput): Promise<SendResult> {
       const rendered = await renderEmail(
         createElement(StaffInvite, { url: input.url, locale: input.locale, copy: input.copy }),
@@ -183,8 +212,9 @@ export type Mailer = ReturnType<typeof createMailer>
 /** Also the `mail_deliveries.template` value, so the column and the tag cannot disagree. */
 const TEMPLATE_SIGN_IN_CODE = 'sign-in-code'
 const TEMPLATE_STAFF_INVITE = 'staff-invite'
+const TEMPLATE_COUPLE_INVITE = 'couple-invite'
 /**
- * Exported, unlike the other two, because the cron deduplicates on it: "was this owner already
+ * Exported, unlike the other three, because the cron deduplicates on it: "was this owner already
  * sent this template" is a `mail_deliveries` read by this value (`lib/mailer.ts`).
  */
 export const TEMPLATE_TRIAL_REMINDER = 'trial-reminder'

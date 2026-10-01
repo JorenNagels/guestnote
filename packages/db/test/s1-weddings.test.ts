@@ -143,9 +143,20 @@ describe('getWeddingDetail', () => {
     )
   })
 
-  // The couple can read the row under the policy; the repo is what keeps them off `notes`.
-  it('is null for a couple, who may read the row but not the planner notes', async () => {
+  // Since migration 0013 RLS hands a couple no `weddings` row, so this no longer isolates the
+  // repo's refusal -- it would pass with `staffPrincipal` admitting couples. The case that does is
+  // the outside editor below, whom the policy still lets read the row, notes included.
+  it('is null for a couple', async () => {
     expect(await getWeddingDetail(WeddingScope.of(h.db, couple, F.orgA, F.weddingA1))).toBeNull()
+  })
+
+  it('is null for an outside editor, whom RLS lets read the row: the repo keeps them off notes', async () => {
+    const outsider = {
+      userId: F.coupleA1,
+      orgs: [],
+      weddings: [{ weddingId: F.weddingA1, role: 'editor' as const }],
+    }
+    expect(await getWeddingDetail(WeddingScope.of(h.db, outsider, F.orgA, F.weddingA1))).toBeNull()
   })
 
   it('is null for a member on a wedding they are not assigned to, and for another org', async () => {

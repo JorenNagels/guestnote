@@ -8,7 +8,7 @@ import { app } from './routes.ts'
  *
  * `lib/routes.ts` is the only place a dashboard path is written, and `typedRoutes` is off, so
  * the compiler cannot say "this link goes nowhere". This is the compensation: it walks each
- * builder's output down `app/pro/(app)` and `(public)` the way the router would -- a static
+ * builder's output down `app/pro/(app)`, `(public)` and `(couple)` (spec 0008) the way the router would -- a static
  * directory first, a `[param]` directory otherwise -- and fails when nothing answers. The case
  * it exists for is a slice deleting its stub and not yet having written the replacement, or a
  * builder renamed in one place.
@@ -45,7 +45,8 @@ describe('every dashboard href has a page', () => {
       const href = build('id-1', 'id-2')
       const path = href.split('?')[0] ?? ''
       const segments = path.split('/').filter((s) => s.length > 0)
-      const found = resolve('(app)', segments) || resolve('(public)', segments)
+      const found =
+        resolve('(app)', segments) || resolve('(public)', segments) || resolve('(couple)', segments)
       expect(found, `no page.tsx answers ${href} under app/pro`).toBe(true)
     })
   }

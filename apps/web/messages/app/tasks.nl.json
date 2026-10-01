@@ -31,7 +31,8 @@
     "noWeddingDate": "Geen huwelijksdatum",
     "noDue": "Geen datum",
     "couple": "Koppel",
-    "planner": "Planner"
+    "planner": "Planner",
+    "coupleUnread": "Nieuw van het koppel"
   },
   "due": {
     "today": "Vandaag",
@@ -112,6 +113,7 @@
     "add": "Plaats reactie",
     "adding": "Plaatsen…",
     "unknownAuthor": "Onbekend",
-    "utc": "{date} UTC"
+    "utc": "{date} UTC",
+    "couple": "Koppel"
   }
 }

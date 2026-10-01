@@ -46,7 +46,7 @@
         },
         "couple": {
           "title": "Vous choisissez ce que le couple voit",
-          "body": "Chaque tâche et chaque fichier est interne ou partagé. Les notes internes et les estimations de coûts restent dans votre équipe. Les tâches du couple, vous les attribuez au couple. Le portail où les couples verront cela ouvre bientôt."
+          "body": "Chaque tâche et chaque fichier est interne ou partagé. Les notes internes restent dans votre équipe. Les tâches du couple, vous les attribuez au couple, qui les coche dans son propre portail. Pour chaque mariage, vous choisissez ce que voit le couple : planning, moodboards, déroulé, prestataires et budget."
         }
       },
       "pricingTeaser": {
@@ -65,7 +65,7 @@
           },
           "couples": {
             "q": "Mon couple doit-il créer un compte ?",
-            "a": "Non. Un portail couple arrivera plus tard. Aujourd’hui, vous travaillez dans Guestnote et partagez avec les prestataires par lien."
+            "a": "Oui, si vous l’invitez : chaque partenaire reçoit sa propre invitation et se connecte avec un code par e-mail. Il ne voit que ce que vous partagez. Les prestataires n’ont pas besoin de compte ; ils reçoivent un lien."
           },
           "languages": {
             "q": "Dans quelles langues fonctionne Guestnote ?",
@@ -110,8 +110,8 @@
           "points": {
             "one": "Interne ou partagé, par tâche et par fichier",
             "two": "Les tâches du couple sont attribuées au couple",
-            "three": "Les notes et estimations de coûts restent dans votre équipe",
-            "four": "Le portail couple ouvre bientôt"
+            "three": "Les notes internes restent dans votre équipe",
+            "four": "Pour chaque mariage, vous choisissez ce que voit le couple"
           },
           "chips": {
             "one": "Partagé avec le couple",
@@ -399,7 +399,8 @@
       "staff": "{inviter} vous invite à rejoindre {org}, en tant que {role}.",
       "locked": "Cette invitation est liée à cette adresse.",
       "roleAdmin": "administrateur",
-      "roleMember": "membre de l’équipe"
+      "roleMember": "membre de l’équipe",
+      "couple": "{studio} vous invite au planning de {couple}."
     },
     "enroll": {
       "title": "Vous connecter plus vite sur cet appareil ?",
@@ -426,7 +427,6 @@
       "passkeyGone": "Cette passkey ne fonctionne plus pour ce compte. Continuez avec un code.",
       "inviteExpired": "Cette invitation a expiré. Demandez-en une nouvelle à {inviter}.",
       "inviteAccepted": "Cette invitation a déjà été utilisée. Connectez-vous simplement.",
-      "inviteCouple": "L’espace des mariés n’est pas encore ouvert. Votre invitation reste valable.",
       "inviteUnknown": "Ce lien ne fonctionne pas. Demandez-en un nouveau à la personne qui vous a invité.",
       "inviteWrongAccount": "Cette invitation a été envoyée à une autre adresse e-mail que celle avec laquelle vous êtes connecté. Déconnectez-vous et rouvrez le lien."
     },
@@ -478,6 +478,17 @@
       "linkFallback": "Le bouton ne fonctionne pas ? Copiez ce lien dans votre navigateur :",
       "after": "Sans choix de votre part, vos mariages passent en lecture seule. Rien n’est supprimé, et choisir un abonnement débloque tout immédiatement.",
       "footer": "Guestnote · message automatique. Les réponses à cette adresse ne sont pas reçues."
+    },
+    "coupleInvite": {
+      "subject": "{studio} vous invite à votre planning de mariage",
+      "preheader": "Votre planning, déroulé et moodboards au même endroit.",
+      "heading": "Bienvenue, {couple}",
+      "intro": "{inviter} de {studio} a préparé un espace où vous suivez le planning de votre mariage : ce qu’il reste à faire, le déroulé et vos moodboards.",
+      "cta": "Ouvrir votre portail",
+      "linkFallback": "Le bouton ne fonctionne pas ? Copiez ce lien dans votre navigateur :",
+      "expiry": "Cette invitation est valable {days, plural, one {# jour} other {# jours}}.",
+      "ignore": "Vous ne vous y attendiez pas ? Vous pouvez ignorer cet e-mail.",
+      "footer": "Guestnote · message automatique au nom de {studio}. Les réponses à cette adresse ne sont pas reçues."
     }
   }
 }

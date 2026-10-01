@@ -101,6 +101,8 @@ things it settles that are easy to lose:
   before it inserts. `planner-isolation.test.ts` records today's behaviour.
 - **`weddings.notes` is couple-readable** the day a couple reaches `weddings` at all, because
   that policy is unchanged. Nothing can reach it today. The couple-portal spec must answer it.
+  *Answered 2026-10-01 (0013): `weddings`' policy got the staff list, so a couple reads no row;
+  the portal reads `couple_home()`, which never returns `notes`.*
 
 `test/planner-isolation.test.ts` covers all ten tables: couple, editor, member and cross-org, read
 and write, plus the CHECKs and foreign keys. **356 passed on the local tier, 2026-09-21**; the
@@ -117,7 +119,8 @@ Written for slice S6, which stopped on two `NEEDS-SCHEMA` gaps. **404 passed on 
 been applied to Neon.
 
 - **`org_staff_read`** on `org_members` and `wedding_members`: `for select`, keyed on `app.org_id`,
-  owner and admin only, not when a wedding is pinned. Writes stay on `own_memberships`. It is a
+  owner and admin only, not when a wedding is pinned. Writes stay on `own_memberships` *(since
+  0013 `for select`: no user writes a membership row directly)*. It is a
   second permissive policy, so `isolation.test.ts` section 9 asserts the shapes where it could add
   rows it should not (`withUser`, an unpinned member, an admin of A pinned to org C). Sweep by hand
   with `alter policy` on the local container: nine mutations plus `FOR ALL` on each table, all
@@ -208,6 +211,23 @@ function on 0008's pattern returning the whole day's run sheet, named columns on
 pinned to the link's wedding. `test/moodboards.test.ts`; a hand sweep of 13 SQL and 7 repo
 mutations killed all but one, `files.link_read`'s role clause, which `moodboard_shares`' own RLS
 makes redundant today -- noted beside its assertion.
+
+### Migration 0013: the couple portal
+
+Spec 0008. **786 passed on the local tier, 2026-10-01**; applied by hand to the Neon `dev`
+branch the same day (it had stopped at 0011, so 0012 went first). Staging picks it up on the push.
+Two halves. **What a couple gets:** `weddings.couple_modules`, the planner's unread pair
+(`couple_activity_at`, `staff_seen_at`) on `tasks` and `files`, `file_comments` (staff policy
+only), a `couple_read` `for select` policy on `tasks`/`task_comments`, and some twenty `SECURITY
+DEFINER` functions -- the couple's reads and writes, and three staff doors onto the couple section
+-- all on 0012's pattern, each re-reading the `couple` membership instead of trusting the role
+GUC. **What a couple loses:** every policy with no role clause got the staff list, and
+`own_memberships` became `for select` (`test/couple-portal.test.ts`, "0013 closed the writes");
+the old `isolation.test.ts` cases that pinned the looser behaviour were rewritten and say so. Two
+traps found by running it: the 0001 task triggers named `tasks` unqualified and failed under a
+definer caller's empty `search_path` (now pinned), and `resolve_invitation` gaining a column
+needed a drop and recreate. The dev seed joins its member and couple by invitation, since a
+membership can no longer be inserted directly.
 
 ## Applying a migration
 
@@ -404,7 +424,8 @@ Recorded because each one was a test that passed for the wrong reason, or nearly
 - **An empty table isolates perfectly.** Every cross-tenant assertion also asserts the
   fixture actually put rows in that table.
 - **The trap is real, and demonstrated rather than assumed.** A couple principal without
-  `app.wedding_id` reads *both* of the organisation's weddings. `isolation.test.ts` asserts
+  `app.wedding_id` reads *both* of the organisation's weddings. *(Since 0013 the demonstration
+  uses a `member`: a couple reads no `weddings` row, and `couple_read` pins the wedding itself.)* `isolation.test.ts` asserts
   that leak exists, which is what makes `withTenant`'s guard load-bearing instead of
   decorative. The `app.wedding_role` clause does limit the blast radius — internal tasks
   stay hidden — but leaking a sibling couple's task list is still a breach.

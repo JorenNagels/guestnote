@@ -98,6 +98,16 @@ describe('principalForWedding', () => {
     expect(principalForWedding(m, ORG_A, WEDDING_2)).toBeNull()
   })
 
+  // Spec 0008, found by the tenancy audit: a partner who later joins the studio as a member keeps
+  // their `couple` row, and that row is not an assignment.
+  it("does not read a member's own couple row as an assignment", () => {
+    const m = memberships({
+      orgs: [{ orgId: ORG_A, role: 'member' }],
+      weddings: [{ weddingId: WEDDING_1, role: 'couple' }],
+    })
+    expect(principalForWedding(m, ORG_A, WEDDING_1)).toBeNull()
+  })
+
   it('reads the couple and the outside editor off wedding_members', () => {
     for (const role of ['couple', 'editor'] as const) {
       const m = memberships({ weddings: [{ weddingId: WEDDING_1, role }] })

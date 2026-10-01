@@ -46,6 +46,8 @@ export const TENANT_SCOPED_TABLES = [
   // each for a vendor's shared boards.
   'moodboards',
   'moodboard_shares',
+  // Spec 0008, migration 0013. Staff-only policy; the couple reaches it through functions.
+  'file_comments',
 ] as const
 
 /**

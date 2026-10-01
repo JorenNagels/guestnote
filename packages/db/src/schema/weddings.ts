@@ -28,6 +28,18 @@ export const WEDDING_STATUSES = ['draft', 'live', 'archived'] as const
  */
 export const WEDDING_ROLES = ['couple', 'editor'] as const
 
+/**
+ * What a couple sees in their portal, switched per wedding (spec 0008). All five on by default,
+ * for existing and new weddings alike: the default chosen was research/09's "budget fully
+ * shared", and the switch is what the 2026-09-24 planner call asked for. Rejected: budget off by
+ * default, which was the recommendation.
+ *
+ * An array rather than five booleans, so a sixth module is a CHECK change and not a column. Every
+ * couple read path checks it inside the database (the `couple_*` functions of migration 0013,
+ * and the `couple_read` policy on `tasks`), not only in the UI.
+ */
+export const COUPLE_MODULES = ['tasks', 'moodboards', 'run_sheet', 'vendors', 'budget'] as const
+
 export const weddings = pgTable(
   'weddings',
   {
@@ -56,6 +68,12 @@ export const weddings = pgTable(
      * couple-portal spec must decide between a column-level answer and a separate table
      * before it lands. Recorded here, not fixed here, because 0006 must not change who can
      * read `weddings`.
+     *
+     * Spec 0008 decided neither: migration 0013 gave this table's policy the staff role clause,
+     * so a couple principal reads no `weddings` row at all, and the portal reads `couple_home()`,
+     * which returns named columns and not this one. Rejected: REVOKE on the column (`app_user`
+     * is the planner's role too), and a separate staff table (the biggest migration, repeated
+     * for every future private column).
      */
     venue: text('venue'),
     headcount: integer('headcount'),
@@ -74,6 +92,10 @@ export const weddings = pgTable(
     theme: jsonb('theme'),
     publishedAt: tstz('published_at'),
     retentionDeleteAfter: date('retention_delete_after'),
+    coupleModules: text('couple_modules')
+      .array()
+      .notNull()
+      .default(sql`array['tasks','moodboards','run_sheet','vendors','budget']`),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
     deletedAt: deletedAt(),
@@ -82,6 +104,10 @@ export const weddings = pgTable(
     check('weddings_status_check', oneOf('status', WEDDING_STATUSES)),
     check('weddings_headcount_check', sql.raw('headcount >= 0')),
     check('weddings_color_check', sql.raw("color ~ '^#[0-9A-F]{6}$'")),
+    check(
+      'weddings_couple_modules_check',
+      sql.raw(`couple_modules <@ array[${COUPLE_MODULES.map((m) => `'${m}'`).join(',')}]::text[]`),
+    ),
     // The slug becomes a subdomain -- <slug>.guestnote.be -- so it is globally
     // unique, not unique per org. Reserved words are enforced in the repository
     // layer, where a useful error message can be produced.

@@ -93,6 +93,20 @@ export const app = {
    * the whole credential, so it is a path segment, never a query string.
    */
   vendorLink: (token: string) => `/vendor/${encodeURIComponent(token)}`,
+  /**
+   * The couple portal (spec 0008). `/w` and not `/weddings`: `/weddings/<id>` is the planner's
+   * screen for the same wedding, and one path meaning two surfaces by role would make every link
+   * a staff member pastes to a couple (and back) land somewhere else. The module segments are
+   * English and short; a couple rarely reads them and never types them.
+   */
+  couplePicker: () => '/w',
+  couple: (weddingId: string) => `/w/${weddingId}`,
+  couplePlanning: (weddingId: string) => `/w/${weddingId}/planning`,
+  coupleMoodboards: (weddingId: string) => `/w/${weddingId}/moodboards`,
+  coupleBoard: (weddingId: string, boardId: string) => `/w/${weddingId}/moodboards/${boardId}`,
+  coupleDay: (weddingId: string) => `/w/${weddingId}/day`,
+  coupleVendors: (weddingId: string) => `/w/${weddingId}/vendors`,
+  coupleBudget: (weddingId: string) => `/w/${weddingId}/budget`,
 } as const
 
 /**

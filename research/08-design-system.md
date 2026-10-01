@@ -177,6 +177,7 @@ Two deliberate calls, unchanged:
   `wedding_members` rather than as org members, so they get *some* dashboard.
   Whether that is the same UI scoped down or a separate surface is unresolved,
   and it changes how much of this system has to work at two levels of privilege.
+  *(Settled 2026-10-01, spec 0008: a separate, phone-first surface, `app/pro/(couple)`.)*
 
 ## Parked, not discarded
 

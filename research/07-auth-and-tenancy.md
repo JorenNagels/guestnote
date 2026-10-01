@@ -268,6 +268,10 @@ planner's entire book of business. Enforce it inside `withTenant()`: if the prin
 org member, `weddingId` is required, not optional. Five lines, and the highest-risk path in the
 model — it gets its own case in the **F6** suite.
 
+*Note 2026-10-01 (migration 0013): for a couple the trap is now also closed in RLS — its only
+policy, `couple_read`, names `app.wedding_id` itself, and it reads no `weddings` row. It is still
+open for an outside editor and for a member whose pin went missing, so the guard still matters.*
+
 > **Better: make it unrepresentable.** A runtime check is a belt; the type is the braces.
 > `withTenant` takes a discriminated union, never a loose `{ orgId?, weddingId? }` bag:
 >

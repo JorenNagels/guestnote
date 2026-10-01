@@ -439,6 +439,10 @@ token*, never from user input.
 >      OR current_setting('app.wedding_role', true) IN ('owner','admin','member','editor'))
 > ```
 >
+> *Correction 2026-10-01 (migration 0013, spec 0008): the clause became a positive staff list on
+> `tenant_isolation` plus a separate `couple_read` `for select` policy, so a couple writes nothing
+> through RLS and an unset role reads nothing. `budget_lines.internal` was never built.*
+>
 > Five lines, and they belong in the **first** migration — the same retrofit argument `09 §b` makes
 > about the column itself applies to its backstop.
 

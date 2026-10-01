@@ -42,14 +42,18 @@ export function TaskRowView({ task, today }: { task: Task; today: string }) {
           href={app.weddingTask(task.weddingId, task.id)}
           className="min-w-0 flex-1 py-0.5 hover:underline"
         >
-          <span
-            className={
-              done
-                ? 'text-muted-foreground block truncate text-[0.84rem] line-through'
-                : 'block truncate text-[0.84rem]'
-            }
-          >
-            {task.title}
+          <span className="flex items-center gap-1.5 text-[0.84rem]">
+            {/* Spec 0008: the couple ticked or commented since the team last opened it. A dot
+                and words for a screen reader; the dot alone would be colour-only. */}
+            {task.coupleUnread && (
+              <span className="flex-none" data-testid="couple-unread">
+                <span aria-hidden="true" className="bg-primary block size-2 rounded-full" />
+                <span className="sr-only">{t('row.coupleUnread')}</span>
+              </span>
+            )}
+            <span className={done ? 'text-muted-foreground truncate line-through' : 'truncate'}>
+              {task.title}
+            </span>
           </span>
           <span className="text-muted-foreground mt-0.5 flex items-center gap-1.5 text-[0.72rem]">
             {owner}

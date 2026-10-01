@@ -7,9 +7,10 @@ import type { Db, TenantDb } from './client.ts'
  *
  * research/07-auth-and-tenancy.md section 3 states the trap: a principal with no
  * `org_members` row MUST also set `app.wedding_id`, because the policy's
- * `app.wedding_id IS NULL OR wedding_id = ...` branch means a couple's session that
- * omits it sees the planner's entire book of business. That section calls it "the
- * highest-risk path in the model".
+ * `app.wedding_id IS NULL OR wedding_id = ...` branch means a session that omits it
+ * sees the planner's entire book of business. That section calls it "the
+ * highest-risk path in the model". (Since migration 0013 a couple's own policy pins the
+ * wedding by itself; an outside editor's and a member's do not, which is who this guards.)
  *
  * A runtime check is the belt. The type below is the braces.
  */

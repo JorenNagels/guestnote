@@ -25,7 +25,7 @@ portal is a separate spec.
 - *(Amended 2026-09-28, spec 0007:)* a wedding has **named boards**, one of them the default
   (which cannot be deleted). A switcher above the grid (a select on a phone), `?bord=<id>` in the
   URL; rename in place; "Delen" opens who sees the board -- vendors, through their link, and a
-  stored couple flag the couple portal will read; delete asks once with the image count and
+  stored couple flag the couple portal reads (spec 0008); delete asks once with the image count and
   soft-deletes the images; each tile can move to another board. `docs/specs/0007` is the whole
   of it.
 - Image URLs are signed at render and last 5 minutes. A page left open longer shows broken tiles

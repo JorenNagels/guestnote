@@ -1,5 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 import type { InvitedLabels } from './invited-step.tsx'
 import type { StudioLabels } from './studio-step.tsx'
 import type { TeamLabels } from './team-step.tsx'
@@ -119,7 +119,6 @@ const INVITED: InvitedLabels = {
   join: 'JOIN',
   joining: 'JOINING',
   open: 'OPEN',
-  couplePortal: 'PORTAL-CLOSED',
   ownStudio: 'OWN-STUDIO',
   errors: { expired: 'E-EXPIRED', accepted: 'E-ACCEPTED', unknown: 'E-UNKNOWN' },
 }
@@ -446,8 +445,22 @@ describe('InvitedStep', () => {
     expect(screen.getByRole('link', { name: 'OWN-STUDIO' })).toHaveAttribute('href', '/own')
   })
 
-  it('opens a wedding invitation to the portal notice, and accepts nothing', () => {
-    const join = vi.fn()
+  it('opens a wedding invitation by accepting it, and goes where the action says', async () => {
+    const assign = vi.fn()
+    const original = window.location
+    onTestFinished(() => {
+      Object.defineProperty(window, 'location', {
+        value: original,
+        writable: true,
+        configurable: true,
+      })
+    })
+    Object.defineProperty(window, 'location', {
+      value: { ...window.location, assign },
+      writable: true,
+      configurable: true,
+    })
+    const join = vi.fn(async () => ({ ok: true as const, href: '/w/wed-1' }))
     render(
       <InvitedStep
         labels={INVITED}
@@ -458,9 +471,11 @@ describe('InvitedStep', () => {
         join={join}
       />,
     )
-    fireEvent.click(screen.getByRole('button', { name: 'OPEN' }))
-    expect(screen.getByText('PORTAL-CLOSED')).toBeInTheDocument()
-    expect(join).not.toHaveBeenCalled()
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'OPEN' }))
+    })
+    expect(join).toHaveBeenCalledWith('i-wedding')
+    await waitFor(() => expect(assign).toHaveBeenCalledWith('/w/wed-1'))
   })
 
   it('joins by id and shows a refusal under that invitation', async () => {

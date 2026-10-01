@@ -53,6 +53,8 @@ export type AuthCopy = Readonly<{
     title: string
     /** template, `{inviter}` `{org}` `{role}` */
     staff: string
+    /** template, `{studio}` `{couple}` (spec 0008) */
+    couple: string
     locked: string
     roleAdmin: string
     roleMember: string
@@ -93,7 +95,6 @@ export type AuthCopy = Readonly<{
     /** template, `{inviter}` */
     inviteExpired: string
     inviteAccepted: string
-    inviteCouple: string
     inviteUnknown: string
     /** Signed in as someone other than the address the invitation was sent to. */
     inviteWrongAccount: string
@@ -163,6 +164,7 @@ export async function getAuthCopy(billingOn: boolean): Promise<AuthCopy> {
     invite: {
       title: t('invite.title'),
       staff: raw('invite.staff'),
+      couple: raw('invite.couple'),
       locked: t('invite.locked'),
       roleAdmin: t('invite.roleAdmin'),
       roleMember: t('invite.roleMember'),
@@ -206,7 +208,6 @@ export async function getAuthCopy(billingOn: boolean): Promise<AuthCopy> {
       passkeyGone: t('errors.passkeyGone'),
       inviteExpired: raw('errors.inviteExpired'),
       inviteAccepted: t('errors.inviteAccepted'),
-      inviteCouple: t('errors.inviteCouple'),
       inviteUnknown: t('errors.inviteUnknown'),
       inviteWrongAccount: t('errors.inviteWrongAccount'),
     },

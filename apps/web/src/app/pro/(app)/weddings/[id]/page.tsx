@@ -1,4 +1,6 @@
 import {
+  COUPLE_MAX,
+  getCoupleAccess,
   getWeddingDetail,
   getWeddingTaskCounts,
   listTasks,
@@ -9,6 +11,8 @@ import { Card } from '@guestnote/ui/card'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { getLocale, getTranslations } from 'next-intl/server'
+import { InviteCard } from '../../../../../components/couple/invite-card.tsx'
+import { inviteCardCopy } from '../../../../../components/couple/labels.ts'
 import { TasksIntl } from '../../../../../components/tasks/provider.tsx'
 import { TaskRowView } from '../../../../../components/tasks/task-row.tsx'
 import { formatCivilDate } from '../../../../../lib/civil-date.ts'
@@ -17,6 +21,7 @@ import { currentMemberships, currentOrgId } from '../../../../../lib/principal.t
 import { app } from '../../../../../lib/routes.ts'
 import { daysUntil, todayCivil } from '../../../../../lib/tminus.ts'
 import { isUuid } from '../../../../../lib/uuid.ts'
+import { inviteCoupleAction, resendCoupleInviteAction } from './couple/actions.ts'
 
 /**
  * A wedding's landing screen: four figures, the next events, and the planner's own notes.
@@ -25,8 +30,8 @@ import { isUuid } from '../../../../../lib/uuid.ts'
  * ## `null` is a 404, and never a 403
  *
  * `getWeddingDetail` returns `null` for no such wedding, a wedding in another organisation, a
- * wedding this `member` is not assigned to, and a `couple` or outside `editor` (who can read the
- * row under RLS and must not read the notes). They are deliberately indistinguishable here, and
+ * wedding this `member` is not assigned to, a `couple` (who since migration 0013 cannot read the
+ * row at all), and an outside `editor` (who can, and must not read the notes). They are deliberately indistinguishable here, and
  * `notFound()` is what keeps them so. research/07 section 3: "neither -> 404 (not 403 -- don't
  * confirm the wedding exists)".
  *
@@ -43,11 +48,12 @@ const NEXT_EVENTS = 5
 const NEXT_TASKS = 5
 
 export default async function WeddingPage({ params }: { params: Promise<{ id: string }> }) {
-  const [{ id }, memberships, orgId, t, locale] = await Promise.all([
+  const [{ id }, memberships, orgId, t, ct, locale] = await Promise.all([
     params,
     currentMemberships(),
     currentOrgId(),
     getTranslations('app.weddingPages.overview'),
+    getTranslations('app.couple.planner'),
     getLocale(),
   ])
 
@@ -64,10 +70,13 @@ export default async function WeddingPage({ params }: { params: Promise<{ id: st
   // have to re-derive that order in SQL and could disagree with the checklist about which five
   // come first. Cost: every live task row of one wedding on each overview render, which for a
   // real wedding is tens to low hundreds.
-  const [counts, events, tasks] = await Promise.all([
+  const [counts, events, tasks, couple] = await Promise.all([
     getWeddingTaskCounts(scope),
     listWeddingEvents(scope),
     listTasks(scope),
+    // Spec 0008: the invite card, while no partner has accepted. `null` for anyone who may not
+    // invite (the repo decides), which simply leaves the card out.
+    getCoupleAccess(scope),
   ])
   const nextTasks = tasks.filter((task) => task.status !== 'done').slice(0, NEXT_TASKS)
   const today = todayCivil()
@@ -113,6 +122,27 @@ export default async function WeddingPage({ params }: { params: Promise<{ id: st
               sub={wedding.headcount === null ? t('stats.guestsUnknown') : t('stats.guestsKnown')}
             />
           </dl>
+
+          {couple && couple.partners.length === 0 ? (
+            <div className="mb-6">
+              <InviteCard
+                tasksHref={app.weddingTasks(id)}
+                pending={couple.invites.map((i) => ({
+                  id: i.id,
+                  email: i.email,
+                  sentOn: new Intl.DateTimeFormat(locale, {
+                    dateStyle: 'medium',
+                    timeZone: 'Europe/Brussels',
+                  }).format(i.sentAt),
+                  expired: i.expired,
+                }))}
+                slots={COUPLE_MAX - couple.invites.filter((i) => !i.expired).length}
+                invite={inviteCoupleAction.bind(null, id)}
+                resend={resendCoupleInviteAction.bind(null, id)}
+                copy={inviteCardCopy(ct, couple.sharedTaskCount)}
+              />
+            </div>
+          ) : null}
 
           <section aria-labelledby="tasks-h" className="mb-6">
             <div className="mb-2 flex items-baseline justify-between gap-3">

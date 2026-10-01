@@ -136,6 +136,7 @@ const LABELS: ShellLabels = {
     densityCompact: 'Compact',
     report: 'Een probleem melden',
     signOut: 'Afmelden',
+    myWedding: 'Jouw trouw',
   },
   palette: {
     open: 'Zoeken',

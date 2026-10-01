@@ -92,6 +92,13 @@
       "when": 1790624418063,
       "tag": "0012_moodboards_shared_with_vendors",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790802296715,
+      "tag": "0013_couple_portal",
+      "breakpoints": true
     }
   ]
 }

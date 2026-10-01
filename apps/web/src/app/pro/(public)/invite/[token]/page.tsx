@@ -10,18 +10,18 @@ import { isLocale, LOCALES } from '../../../../../lib/locales.ts'
 import { app } from '../../../../../lib/routes.ts'
 
 /**
- * `app.guestnote.be/invite/<token>` -- how a second planner gets an account at all.
+ * `app.guestnote.be/invite/<token>` -- how a second planner, or a couple, gets an account at all.
  *
  * ## Why this is not four routes, or a 404
  *
- * The five outcomes below are all the same screen with a different sentence on it. Three
- * of them end the flow and two continue into it, and the difference is one prop.
+ * The outcomes below are all the same screen with a different sentence on it. Two of them end
+ * the flow (expired, unknown) and three continue (staff, wedding, accepted), and the difference
+ * is one prop.
  *
- * Notably **none of them is a 404**, including a wedding-shaped invitation. The
- * `invitations` table is merged -- `wedding_id NULL` is staff, set is couple/editor
- * (research/07-auth-and-tenancy.md section 4b) -- so a planner can and will send a couple
- * invitation before the couple portal exists. A 404 there reads as a broken product to
- * the person who sent it, and it is the planner, not the couple, who will report it.
+ * Notably **none of them is a 404**. The `invitations` table is merged -- `wedding_id NULL` is
+ * staff, set is couple (research/07-auth-and-tenancy.md section 4b). Until spec 0008 a couple
+ * invitation said the portal was not open yet; it now runs the same accept-on-GET as staff and
+ * lands on the portal instead of the dashboard.
  *
  * An unknown token is the one case that *is* deliberately vague: guessed, truncated and
  * purged tokens produce one identical message, because telling them apart tells an
@@ -51,17 +51,18 @@ export default async function InvitePage({
     locale: isLocale(locale) ? locale : LOCALES[0],
     locales: LOCALES,
     passkeysEnabled: getAuth().passkeysAvailable(),
-    // Rendered only on the non-bound cases (e.g. `accepted`): the `staff` branch pins the
+    // Rendered only on the non-bound cases (e.g. `accepted`): the `staff`/`wedding` branch pins the
     // address, and `auth-flow.tsx` hides Google whenever `boundEmail` is set.
     googleEnabled: getAuth().googleAvailable(),
     // Back to THIS page, not the dashboard: signing in is only half of accepting. The visitor
-    // returns here with a session, and the `staff` branch below spends the invitation. The
+    // returns here with a session, and the `staff`/`wedding` branch below spends the invitation. The
     // `?welcome=passkey` marker `auth-flow.tsx` may append rides along to the redirect.
     continueHref: app.invite(token),
     stage,
   } as const
 
   switch (invitation.kind) {
+    case 'wedding':
     case 'staff': {
       if (session) {
         // The address on the invitation is who it is for. Comparing here saves a round trip
@@ -79,7 +80,10 @@ export default async function InvitePage({
         // while signed in as the right person IS the acceptance.
         const result = await getAuth().acceptInvitation(token, session.userId)
         if (result.outcome === 'accepted') {
-          redirect(query.welcome === 'passkey' ? `${app.home()}?welcome=passkey` : app.home())
+          // A couple lands in their portal, staff on the dashboard. `weddingId` comes from what
+          // `accept_invitation` wrote, not from the URL.
+          const home = result.weddingId ? app.couple(result.weddingId) : app.home()
+          redirect(query.welcome === 'passkey' ? `${home}?welcome=passkey` : home)
         }
         switch (result.outcome) {
           case 'already_accepted':
@@ -102,11 +106,19 @@ export default async function InvitePage({
         <AuthFlow
           {...shared}
           boundEmail={invitation.email}
-          lead={fill(copy.invite.staff, {
-            inviter: invitation.inviter,
-            org: invitation.org,
-            role: invitation.role === 'admin' ? copy.invite.roleAdmin : copy.invite.roleMember,
-          })}
+          lead={
+            invitation.kind === 'wedding'
+              ? fill(copy.invite.couple, {
+                  studio: invitation.org,
+                  couple: invitation.couple ?? invitation.org,
+                })
+              : fill(copy.invite.staff, {
+                  inviter: invitation.inviter,
+                  org: invitation.org,
+                  role:
+                    invitation.role === 'admin' ? copy.invite.roleAdmin : copy.invite.roleMember,
+                })
+          }
         />
       )
     }
@@ -116,6 +128,7 @@ export default async function InvitePage({
     //
     // Except when they are already signed in, which is what reloading the link after
     // accepting it looks like: the sign-in screen would be a screen for a task already done.
+    // `app.home()` also serves a couple: the dashboard's no-org branch sends them to the portal.
     case 'accepted':
       if (session) redirect(app.home())
       return <AuthFlow {...shared} notice={copy.errors.inviteAccepted} />
@@ -127,9 +140,6 @@ export default async function InvitePage({
           blocked={fill(copy.errors.inviteExpired, { inviter: invitation.inviter })}
         />
       )
-
-    case 'wedding':
-      return <AuthFlow {...shared} blocked={copy.errors.inviteCouple} />
 
     default:
       return <AuthFlow {...shared} blocked={copy.errors.inviteUnknown} />

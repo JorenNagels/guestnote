@@ -3,6 +3,7 @@
 import type { TaskCommentRow, TaskVisibility } from '@guestnote/db'
 import { Button } from '@guestnote/ui/button'
 import { InlineError } from '@guestnote/ui/inline-error'
+import { Pill } from '@guestnote/ui/pill'
 import { useFormatter, useTranslations } from 'next-intl'
 import { useId, useState, useTransition } from 'react'
 import { addCommentAction } from '../../app/pro/(app)/weddings/[id]/tasks/actions.ts'
@@ -21,11 +22,14 @@ export function Comments({
   taskId,
   visibility,
   comments,
+  coupleUserIds = [],
 }: {
   weddingId: string
   taskId: string
   visibility: TaskVisibility
   comments: TaskCommentRow[]
+  /** Spec 0008: authors to mark with the "Koppel" chip. */
+  coupleUserIds?: readonly string[]
 }) {
   const t = useTranslations('app.tasks')
   const format = useFormatter()
@@ -58,6 +62,9 @@ export function Comments({
             <li key={c.id} className="px-4 py-3">
               <p className="flex items-baseline gap-2 text-[0.78rem]">
                 <span className="font-semibold">{c.authorName ?? t('comments.unknownAuthor')}</span>
+                {c.authorUserId !== null && coupleUserIds.includes(c.authorUserId) && (
+                  <Pill tone="accent">{t('comments.couple')}</Pill>
+                )}
                 <time
                   dateTime={c.createdAt.toISOString()}
                   className="text-muted-foreground font-mono text-[0.7rem] tabular-nums"

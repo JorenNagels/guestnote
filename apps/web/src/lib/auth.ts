@@ -1,5 +1,5 @@
 import 'server-only'
-import { createAuth } from '@guestnote/core/auth'
+import { createAuth, type InvitationStore } from '@guestnote/core/auth'
 import { acceptInvitationByHash, newId, resolveInvitationByHash, schema } from '@guestnote/db'
 import { cookies } from 'next/headers'
 import { env } from '../env.ts'
@@ -164,34 +164,42 @@ export function getAuth() {
       }
     },
 
-    /**
-     * The database half of invitations, over `resolve_invitation` and `accept_invitation`
-     * (migration 0007). Neither touches a table from here: each is one call to a SECURITY
-     * DEFINER function, which is why this is not a third unscoped writer in `lib/db.ts`.
-     * The seam hashes the token first, so what arrives here is already the hash.
-     */
-    invitations: {
-      async resolve(tokenHash) {
-        const r = await resolveInvitationByHash(getDb(), tokenHash)
-        return (
-          r && {
-            weddingId: r.weddingId,
-            email: r.email,
-            role: r.role,
-            orgName: r.orgName,
-            inviterName: r.inviterName,
-            status: r.status,
-          }
-        )
-      },
-      async accept(tokenHash, userId) {
-        const r = await acceptInvitationByHash(getDb(), tokenHash, userId)
-        if (r.outcome !== 'accepted') return r
-        // A planner joined: the seat count moved (spec 0005). A no-op while billing is off.
-        await seatsChanged(r.orgId, userId)
-        return { outcome: 'accepted', role: r.role }
-      },
-    },
+    /** See `invitationStore` below. */
+    invitations: invitationStore,
   })
   return cached
+}
+
+/**
+ * The database half of invitations, over `resolve_invitation` and `accept_invitation`
+ * (migration 0007). Neither touches a table from here: each is one call to a SECURITY
+ * DEFINER function, which is why this is not a third unscoped writer in `lib/db.ts`.
+ * The seam hashes the token first, so what arrives here is already the hash.
+ *
+ * Exported, and out of `getAuth()`'s config, so the seat rule below is testable without
+ * building the whole auth instance (`auth-invitations.test.ts`).
+ */
+export const invitationStore: InvitationStore = {
+  async resolve(tokenHash) {
+    const r = await resolveInvitationByHash(getDb(), tokenHash)
+    return (
+      r && {
+        weddingId: r.weddingId,
+        email: r.email,
+        role: r.role,
+        orgName: r.orgName,
+        inviterName: r.inviterName,
+        status: r.status,
+        weddingName: r.weddingName,
+      }
+    )
+  },
+  async accept(tokenHash, userId) {
+    const r = await acceptInvitationByHash(getDb(), tokenHash, userId)
+    if (r.outcome !== 'accepted') return r
+    // A planner joined: the seat count moved (spec 0005). A no-op while billing is off, and
+    // skipped for a couple, who never counts as a seat (spec 0005, "Seats").
+    if (r.weddingId === null) await seatsChanged(r.orgId, userId)
+    return { outcome: 'accepted', role: r.role, weddingId: r.weddingId }
+  },
 }

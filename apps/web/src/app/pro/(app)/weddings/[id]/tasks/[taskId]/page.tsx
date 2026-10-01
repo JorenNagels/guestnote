@@ -1,8 +1,10 @@
 import {
+  getCoupleAccess,
   getTask,
   getWedding,
   listTaskComments,
   listWeddingEvents,
+  markCoupleActivitySeen,
   WeddingScope,
 } from '@guestnote/db'
 import { notFound } from 'next/navigation'
@@ -39,9 +41,14 @@ export default async function TaskPage({
   if (!wedding) notFound()
   const task = await getTask(scope, taskId)
   if (!task) notFound()
-  const [comments, events] = await Promise.all([
+  const [comments, events, couple] = await Promise.all([
     listTaskComments(scope, taskId),
     listWeddingEvents(scope),
+    getCoupleAccess(scope),
+    // Spec 0008: opening the task is reading what the couple did, so the dot clears here, on
+    // the render, rather than through a second request from the browser. A write on a GET, like
+    // the invite page's accept; it only ever moves `staff_seen_at` forward.
+    task.coupleUnread ? markCoupleActivitySeen(scope, { kind: 'task', id: taskId }) : null,
   ])
 
   return (
@@ -53,7 +60,13 @@ export default async function TaskPage({
           events={events.map(anchorOption)}
           today={todayCivil()}
         />
-        <Comments weddingId={id} taskId={taskId} visibility={task.visibility} comments={comments} />
+        <Comments
+          weddingId={id}
+          taskId={taskId}
+          visibility={task.visibility}
+          comments={comments}
+          coupleUserIds={couple?.partners.map((p) => p.userId) ?? []}
+        />
       </TasksIntl>
     </div>
   )

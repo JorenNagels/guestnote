@@ -56,6 +56,8 @@ reader — invariant 1 says stop there. Cost: a new `Principal` variant and a po
 **The couple portal and the couple-visibility toggles are a separate spec.** A couple has no
 org, so they need a new read path and invite sending. Until then **no new table is readable by
 a `couple` principal.** Every new policy excludes `app.wedding_role = 'couple'`.
+*(2026-10-01: superseded by spec 0008 / migration 0013 — a couple reads through `couple_read`
+on tasks and the `couple_*` functions; still no planner-table policy names `couple`.)*
 
 **Files use a new storage seam.** `packages/storage/src/s3.ts` is the only S3 contact, with
 presigned PUT and GET. It is banned elsewhere in `biome.json` and `no-unsafe-imports.test.ts`.
@@ -195,7 +197,7 @@ Wave 2 may start a slice as soon as its own dependencies are done, not the whole
 
 | Not building now | Why, or which phase |
 |---|---|
-| Couple portal and couple-visibility toggles | own spec; needs a couple read path and invite sending |
+| Couple portal and couple-visibility toggles | own spec; needs a couple read path and invite sending. *Built 2026-10-01 as spec 0008.* |
 | Unread counts on the sidebar | cost for `member`; needs a measurement first |
 | Assignment and digest emails (P10) | templates, schedule and unsubscribe are their own job |
 | Run sheet print, PDF, CSV (P19) | not chosen for this build |

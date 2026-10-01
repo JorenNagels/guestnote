@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import type { BoardDone } from '../../lib/moodboards.ts'
 import type { Done, StartUpload } from '../../lib/wedding-files.ts'
+import { CommentThread, type ThreadComment, type ThreadCopy } from '../couple/comment-thread.tsx'
 import { type BoardActions, BoardBar, type BoardLabels, type Boards } from './board-bar.tsx'
 import { withoutExtension } from './format.ts'
 import { uploadFile } from './upload.ts'
@@ -17,6 +18,28 @@ export type MoodTile = {
   readonly name: string
   /** A signed GET that lives five minutes, or `null` when signing failed. */
   readonly url: string | null
+  /** Spec 0008: the couple's side of this image, when the caller may see it. */
+  readonly couple?:
+    | {
+        readonly unread: boolean
+        /** The uploader's name when it was the couple, else null. */
+        readonly addedBy: string | null
+        readonly commentCount: number
+      }
+    | undefined
+}
+
+/** Spec 0008: an image's comment thread. Optional so the vendor-free tests need not pass it. */
+export type MoodboardComments = {
+  list(fileId: string): Promise<ThreadComment[] | null>
+  add(fileId: string, body: string): Promise<boolean>
+  copy: ThreadCopy & {
+    /** `{name}` */
+    addedBy: string
+    unread: string
+    /** `{n}` */
+    comments: string
+  }
 }
 
 export type MoodboardActions = {
@@ -57,8 +80,8 @@ const fill = (template: string, name: string) => template.replace('{name}', name
 
 /**
  * The moodboard: named boards (spec 0007), and on the current one image tiles -- add, remove,
- * caption, move to another board. A native board (spec 0003): the couple's reactions that the
- * prototype hangs beside each tile are the couple portal's, a separate spec.
+ * caption, move to another board. A native board (spec 0003). Spec 0008 adds the couple's side
+ * when the page passes `comments`: who added an image, the unread dot, and a comment thread.
  *
  * Images are `<img>` and not `next/image`: `next.config.ts` turns the optimiser off (research/05
  * section 6), and the source is a signed URL that changes on every render, which would make
@@ -70,12 +93,14 @@ export function MoodboardScreen({
   actions,
   boards,
   boardActions,
+  comments,
 }: {
   items: readonly MoodTile[]
   labels: MoodboardLabels
   actions: MoodboardActions
   boards: Boards
   boardActions: BoardActions
+  comments?: MoodboardComments
 }) {
   const router = useRouter()
   const [editing, setEditing] = useState<string | null>(null)
@@ -83,6 +108,19 @@ export function MoodboardScreen({
   const [confirming, setConfirming] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [errors, setErrors] = useState<Readonly<Record<string, string>>>({})
+  const [thread, setThread] = useState<{ id: string; comments: ThreadComment[] } | null>(null)
+
+  const openThread = async (id: string) => {
+    if (!comments) return
+    if (thread?.id === id) {
+      setThread(null)
+      return
+    }
+    const list = await comments.list(id)
+    setThread(list ? { id, comments: list } : null)
+    // Opening it cleared the dot on the server; redraw so the tile agrees.
+    if (list) router.refresh()
+  }
 
   const message = (code: string) => labels.errors[code] ?? labels.errors.unknown
 
@@ -169,6 +207,20 @@ export function MoodboardScreen({
                 )}
 
                 <div className="flex flex-1 flex-col gap-2 px-3 py-2.5">
+                  {t.couple && comments && (t.couple.unread || t.couple.addedBy) && (
+                    <p className="text-muted-foreground flex items-center gap-1.5 text-[11.5px]">
+                      {t.couple.unread && (
+                        <span className="flex-none" data-testid="couple-unread">
+                          <span
+                            aria-hidden="true"
+                            className="bg-primary block size-2 rounded-full"
+                          />
+                          <span className="sr-only">{comments.copy.unread}</span>
+                        </span>
+                      )}
+                      {t.couple.addedBy && fill(comments.copy.addedBy, t.couple.addedBy)}
+                    </p>
+                  )}
                   {editing === t.id ? (
                     <form
                       className="flex flex-col gap-1.5"
@@ -251,6 +303,32 @@ export function MoodboardScreen({
                         </option>
                       ))}
                     </select>
+                  )}
+                  {comments && (
+                    <span>
+                      <LinkButton
+                        aria-expanded={thread?.id === t.id}
+                        onClick={() => void openThread(t.id)}
+                      >
+                        {comments.copy.comments.replace('{n}', String(t.couple?.commentCount ?? 0))}
+                      </LinkButton>
+                    </span>
+                  )}
+                  {comments && thread?.id === t.id && (
+                    <CommentThread
+                      comments={thread.comments}
+                      copy={comments.copy}
+                      add={async (body) => {
+                        const ok = await comments.add(t.id, body)
+                        if (ok) {
+                          // Saved; a failed re-read must not report the save as failed.
+                          const list = await comments.list(t.id).catch(() => null)
+                          if (list) setThread({ id: t.id, comments: list })
+                          router.refresh()
+                        }
+                        return ok
+                      }}
+                    />
                   )}
                   {error && <InlineError>{error}</InlineError>}
                 </div>

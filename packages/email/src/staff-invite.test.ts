@@ -90,3 +90,22 @@ describe('createMailer().sendStaffInvite', () => {
     expect(rows[0]?.error).toBe('nope')
   })
 })
+
+/** Spec 0008: same template, its own tag, and the same rule about the link. */
+describe('createMailer().sendCoupleInvite', () => {
+  it('sends the link and records the delivery under its own template, without the link', async () => {
+    const { transport, sent } = fakeTransport({ ok: true, messageId: 'ses-c' })
+    const rows: DeliveryRecord[] = []
+    await createMailer({
+      transport,
+      record: async (entry) => {
+        rows.push(entry)
+      },
+    }).sendCoupleInvite(INPUT)
+
+    expect(sent[0]?.html).toContain(`href="${URL}"`)
+    expect(sent[0]?.tags).toEqual({ template: 'couple-invite' })
+    expect(rows[0]?.template).toBe('couple-invite')
+    expect(JSON.stringify(rows)).not.toContain('tok_abc')
+  })
+})

@@ -80,6 +80,11 @@ export type TaskRow = {
   readonly completedAt: Date | null
   readonly createdAt: Date
   readonly updatedAt: Date
+  /**
+   * The couple ticked or commented since any staff member last opened the task (spec 0008): the
+   * planner's unread dot. Shared by the team -- see `schema/tasks.ts`.
+   */
+  readonly coupleUnread: boolean
 }
 
 /** A task and the wedding it belongs to, for the cross-wedding list. */
@@ -162,6 +167,8 @@ const TASK_SELECT = {
   updatedAt: tasks.updatedAt,
   weddingDate: weddings.weddingDate,
   weddingName: weddings.coupleDisplayName,
+  coupleUnread: sql<boolean>`${tasks.coupleActivityAt} is not null
+    and (${tasks.staffSeenAt} is null or ${tasks.staffSeenAt} < ${tasks.coupleActivityAt})`,
 }
 
 type Selected = Awaited<ReturnType<typeof selectTasks>>[number]
@@ -186,6 +193,7 @@ function toRow(r: Selected): TaskRow {
     completedAt: r.completedAt,
     createdAt: r.createdAt,
     updatedAt: r.updatedAt,
+    coupleUnread: Boolean(r.coupleUnread),
   }
 }
 

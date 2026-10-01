@@ -43,6 +43,7 @@ export function AccountMenu({
   theme,
   density,
   onReport,
+  myWeddingHref,
   labels,
 }: {
   name: string | null
@@ -53,7 +54,10 @@ export function AccountMenu({
   density: Density
   /** Absent when there is no inbox (`SENTRY_DSN` unset): the row is then not rendered at all. */
   onReport?: (() => void) | undefined
+  /** Spec 0008: a planner who is also somebody's partner reaches their portal from here. */
+  myWeddingHref?: string | undefined
   labels: {
+    myWedding: string
     account: string
     language: string
     theme: string
@@ -175,6 +179,20 @@ export function AccountMenu({
           ))}
 
           <MenuSeparator />
+          {myWeddingHref ? (
+            // A plain link: the portal is another surface, and a full navigation leaves the
+            // planner shell behind cleanly.
+            <a
+              href={myWeddingHref}
+              className={cx(
+                'flex w-full items-center rounded-[calc(var(--radius)-2px)] px-2 py-1.5',
+                'text-left text-sm transition-colors',
+                'hover:bg-muted focus-visible:outline-ring outline-none focus-visible:outline-2',
+              )}
+            >
+              {labels.myWedding}
+            </a>
+          ) : null}
           {onReport ? (
             <MenuRow
               onClick={() => {

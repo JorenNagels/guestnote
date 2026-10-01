@@ -46,7 +46,7 @@
         },
         "couple": {
           "title": "You choose what the couple sees",
-          "body": "Every task and every file is either internal or shared. Internal notes and cost estimates stay with your team. Tasks for the couple you assign to the couple. The portal where couples see this opens soon."
+          "body": "Every task and every file is either internal or shared. Internal notes stay with your team. Tasks for the couple you assign to the couple, and they tick them off in their own portal. Per wedding you choose what the couple sees: planning, moodboards, run sheet, vendors and budget."
         }
       },
       "pricingTeaser": {
@@ -65,7 +65,7 @@
           },
           "couples": {
             "q": "Does my couple need an account?",
-            "a": "No. A couple portal comes later. Today you work in Guestnote and share with vendors by link."
+            "a": "Yes, when you invite them: each partner gets their own invitation and signs in with a code by email. They see only what you share. Vendors need no account; they get a link."
           },
           "languages": {
             "q": "Which languages does Guestnote support?",
@@ -110,8 +110,8 @@
           "points": {
             "one": "Internal or shared, per task and per file",
             "two": "Tasks for the couple are assigned to the couple",
-            "three": "Notes and cost estimates stay with your team",
-            "four": "The couple portal opens soon"
+            "three": "Internal notes stay with your team",
+            "four": "Per wedding, you choose what the couple sees"
           },
           "chips": {
             "one": "Shared with couple",
@@ -399,7 +399,8 @@
       "staff": "{inviter} is inviting you to {org}, as {role}.",
       "locked": "This invitation is tied to this address.",
       "roleAdmin": "an admin",
-      "roleMember": "a team member"
+      "roleMember": "a team member",
+      "couple": "{studio} invites you to the planning of {couple}."
     },
     "enroll": {
       "title": "Sign in faster on this device?",
@@ -426,7 +427,6 @@
       "passkeyGone": "This passkey no longer works for this account. Continue with a code.",
       "inviteExpired": "This invitation has expired. Ask {inviter} for a new one.",
       "inviteAccepted": "This invitation has already been used. Just sign in.",
-      "inviteCouple": "The couple portal isn’t open yet. Your invitation stays valid.",
       "inviteUnknown": "This link doesn’t work. Ask whoever invited you for a new one.",
       "inviteWrongAccount": "This invitation was sent to a different email address than the one you are signed in with. Sign out and open the link again."
     },
@@ -478,6 +478,17 @@
       "linkFallback": "Button not working? Copy this link into your browser:",
       "after": "If you do nothing, your weddings become read-only. Nothing is deleted, and choosing a plan unlocks everything at once.",
       "footer": "Guestnote · automated message. Replies to this address are not received."
+    },
+    "coupleInvite": {
+      "subject": "{studio} invites you to your wedding planning",
+      "preheader": "Your planning, run sheet and moodboards in one place.",
+      "heading": "Welcome, {couple}",
+      "intro": "{inviter} from {studio} has set up a place where you can follow the planning of your wedding: what is left to do, the run sheet and your moodboards.",
+      "cta": "Open your portal",
+      "linkFallback": "Button not working? Copy this link into your browser:",
+      "expiry": "This invitation is valid for {days, plural, one {# day} other {# days}}.",
+      "ignore": "Not expecting this? You can ignore this email.",
+      "footer": "Guestnote · automated message on behalf of {studio}. Replies to this address are not received."
     }
   }
 }

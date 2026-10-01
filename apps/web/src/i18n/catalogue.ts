@@ -49,6 +49,7 @@ export const SLICES = [
   'signup',
   'studio',
   'billing',
+  'couple',
 ] as const
 
 export type Slice = (typeof SLICES)[number]

@@ -125,11 +125,23 @@ stop and ask. The rest are held by convention alone, which is why they are writt
    RLS grants whole rows, and widening `wedding_vendors.link_read` for vendor names would have
    handed every vendor every other vendor's `notes`. It takes no arguments and reads the link
    GUCs, so a caller cannot ask for another vendor's view.
+   **Migration 0013 (spec 0008) made the `couple` principal real, and closed what it could write.**
+   Every policy that named no role -- `organizations`, `weddings`, `invitations`, `wedding_domains`,
+   `audit_log`, `tasks`, `task_comments` -- now carries a positive staff list, so a couple reads no
+   `weddings` row (its `notes` included) and writes nothing through RLS. `own_memberships` on both
+   membership tables is `for select`: **no user writes a membership row directly; every one is a
+   SECURITY DEFINER function** (`accept_invitation`, `create_studio`, `remove_wedding_couple`).
+   The couple's one policy is `couple_read` on `tasks`/`task_comments`, `for select`; everything
+   else it reads or writes is a `couple_*` function returning named columns, each re-reading the
+   `couple` membership rather than trusting `app.wedding_role`, and checking the wedding's status
+   and `weddings.couple_modules`. `PREDATES_ROLE_CLAUSE` in `schema-coverage.test.ts` is empty.
 
 3. **`Principal` stays a discriminated union.** Never `{ orgId?, weddingId? }`. A principal
    with no `org_members` row *must* carry `weddingId`, or RLS falls through to org-wide
-   scope and a couple reads the planner's whole book of business. That is the
+   scope and it reads the planner's whole book of business. That is the
    highest-risk path in the model: the type is the braces, `assertScoped` is the belt.
+   (Since 0013 a *couple* is also stopped by RLS, because `couple_read` pins the wedding
+   itself; an outside `editor`, and a `member` whose pin went missing, are not.)
 
 4. **GUCs are set with `is_local = true`, as the first statements in the transaction.**
    Never session-level `SET` — unsupported on Neon's transaction-mode pooler *and* a

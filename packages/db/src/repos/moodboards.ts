@@ -14,8 +14,8 @@ import type { WeddingScope } from './scope.ts'
  * (`repos/files.ts`); this file owns the boards, the shares, and moving an image between boards.
  *
  * Same contract as `files.ts`: a read returns `null` and a write `notFound` for "no access", and
- * a couple is refused before a transaction opens (spec 0003: no planner table is couple-readable
- * yet; `shared_with_couple` is stored for the couple portal, not read).
+ * a couple is refused before a transaction opens: the couple reads boards through
+ * `couple_moodboards()` (spec 0008, migration 0013), never through this file.
  *
  * Every write that names a second row -- a board, a wedding vendor, an image -- reads it under the
  * caller's `withTenant` first and checks it is on THIS wedding. The FKs are plain (spec 0003), so
@@ -129,7 +129,7 @@ export async function renameBoard(
   return updateBoard(scope, boardId, { name })
 }
 
-/** Stored for the couple portal; nothing reads it yet (spec 0007). */
+/** Whether the couple sees this board in their portal (spec 0007, read by spec 0008's functions). */
 export async function setBoardCoupleShare(
   scope: WeddingScope,
   boardId: string,

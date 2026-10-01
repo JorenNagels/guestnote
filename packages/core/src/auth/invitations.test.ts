@@ -20,6 +20,7 @@ const ROW: InvitationRecord = {
   orgName: 'Studio Wit',
   inviterName: 'Ilse Verhoeven',
   status: 'pending',
+  weddingName: null,
 }
 
 const storeReturning = (row: InvitationRecord | null): InvitationStore => ({
@@ -48,10 +49,25 @@ describe('resolveInvitationWith', () => {
     })
   })
 
-  it('maps a pending invitation that names a wedding to the wedding screen', async () => {
+  it('maps a pending couple invitation to the wedding screen, with the address and names', async () => {
     expect(
-      await resolveInvitationWith(storeReturning({ ...ROW, weddingId: 'w1', role: 'couple' }), 't'),
-    ).toEqual({ kind: 'wedding', inviter: 'Ilse Verhoeven', org: 'Studio Wit' })
+      await resolveInvitationWith(
+        storeReturning({ ...ROW, weddingId: 'w1', role: 'couple', weddingName: 'Anna & Tom' }),
+        't',
+      ),
+    ).toEqual({
+      kind: 'wedding',
+      email: 'tom@studiowit.be',
+      inviter: 'Ilse Verhoeven',
+      org: 'Studio Wit',
+      couple: 'Anna & Tom',
+    })
+  })
+
+  it('refuses a wedding invitation that is not for the couple (spec 0008)', async () => {
+    expect(
+      await resolveInvitationWith(storeReturning({ ...ROW, weddingId: 'w1', role: 'editor' }), 't'),
+    ).toEqual({ kind: 'unknown' })
   })
 
   it('maps expired, carrying who to ask', async () => {
@@ -99,10 +115,14 @@ describe('resolveInvitationWith', () => {
 })
 
 describe('acceptInvitationWith', () => {
-  it('passes the hash and user through and returns the granted role', async () => {
-    const accept = vi.fn(async () => ({ outcome: 'accepted' as const, role: 'member' }))
+  it('passes the hash and user through and returns the granted role and wedding', async () => {
+    const accept = vi.fn(async () => ({
+      outcome: 'accepted' as const,
+      role: 'couple',
+      weddingId: 'w1',
+    }))
     const out = await acceptInvitationWith({ ...storeReturning(ROW), accept }, 'tok', 'u1')
-    expect(out).toEqual({ outcome: 'accepted', role: 'member' })
+    expect(out).toEqual({ outcome: 'accepted', role: 'couple', weddingId: 'w1' })
     expect(accept).toHaveBeenCalledWith(hashInviteToken('tok'), 'u1')
   })
 
@@ -117,7 +137,11 @@ describe('acceptInvitationWith', () => {
   )
 
   it('does not call the store without a user or with an unusable token', async () => {
-    const accept = vi.fn(async () => ({ outcome: 'accepted' as const, role: 'member' }))
+    const accept = vi.fn(async () => ({
+      outcome: 'accepted' as const,
+      role: 'member',
+      weddingId: null,
+    }))
     const store = { ...storeReturning(ROW), accept }
     expect(await acceptInvitationWith(store, 'tok', '')).toEqual({ outcome: 'unknown' })
     expect(await acceptInvitationWith(store, '', 'u1')).toEqual({ outcome: 'unknown' })

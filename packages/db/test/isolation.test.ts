@@ -157,12 +157,48 @@ describe('6. the visibility dimension (app.wedding_role)', () => {
     expect(await countOf(h, AS.staffAOnA1, 'task_comments')).toBe(2)
   })
 
-  it('an unset wedding_role sees shared rows only, failing in the safe direction', async () => {
-    expect(await countOf(h, { ...AS.coupleA1, weddingRole: '' }, 'tasks')).toBe(1)
+  // Before 0013 an unset or unknown role fell through to shared rows (`visibility = 'shared' OR
+  // NULL`). Both policies now name their role positively, so it falls through to nothing.
+  it('an unset wedding_role sees no task at all', async () => {
+    expect(await countOf(h, { ...AS.coupleA1, weddingRole: '' }, 'tasks')).toBe(0)
   })
 
-  it('an unrecognised wedding_role gets no internal rows', async () => {
-    expect(await countOf(h, { ...AS.coupleA1, weddingRole: 'vendor' }, 'tasks')).toBe(1)
+  it('an unrecognised wedding_role sees no task at all', async () => {
+    expect(await countOf(h, { ...AS.coupleA1, weddingRole: 'vendor' }, 'tasks')).toBe(0)
+  })
+
+  // Each of these changes A1 and puts it back in `finally`: this file reseeds only in
+  // `beforeAll`, so a failed assertion must not leave the change for every later test.
+  it('a couple of a draft wedding sees none of its tasks (spec 0008: the portal is closed)', async () => {
+    try {
+      await seedExec(`update weddings set status = 'draft' where id = $1`, [F.weddingA1])
+      expect(await countOf(h, AS.coupleA1, 'tasks')).toBe(0)
+      expect(await countOf(h, AS.staffAOnA1, 'tasks')).toBe(2)
+    } finally {
+      await reseed()
+    }
+  })
+
+  it('a couple of an archived wedding still reads its shared tasks and comments', async () => {
+    try {
+      await seedExec(`update weddings set status = 'archived' where id = $1`, [F.weddingA1])
+      expect(await countOf(h, AS.coupleA1, 'tasks')).toBe(1)
+      expect(await countOf(h, AS.coupleA1, 'task_comments')).toBe(1)
+    } finally {
+      await reseed()
+    }
+  })
+
+  it('a couple whose wedding has the tasks module off sees none of them', async () => {
+    try {
+      await seedExec(`update weddings set couple_modules = array['budget'] where id = $1`, [
+        F.weddingA1,
+      ])
+      expect(await countOf(h, AS.coupleA1, 'tasks')).toBe(0)
+      expect(await countOf(h, AS.coupleA1, 'task_comments')).toBe(0)
+    } finally {
+      await reseed()
+    }
   })
 })
 
@@ -550,36 +586,37 @@ describe('the trap: a principal without app.wedding_id', () => {
    *
    * This test does NOT assert the leak is prevented. At the SQL layer it cannot be:
    * org-wide staff legitimately need exactly these GUCs, so the policy has no way to
-   * distinguish "owner, deliberately unpinned" from "couple, accidentally unpinned".
+   * distinguish "owner, deliberately unpinned" from "member, accidentally unpinned".
    *
    * It asserts the leak is REAL, which is what makes withTenant's guard load-bearing
    * rather than defensive decoration. If this ever starts finding zero rows, the guard
    * has become untestable and somebody should understand why before trusting it.
    */
   it('demonstrably reads the whole organisation, which is why the guard exists', async () => {
-    // Both of org A's weddings, including the one this couple has no membership in.
-    expect(await countOf(h, AS.coupleA1Unpinned, 'weddings')).toBe(2)
+    // Both of org A's weddings, including the one this member is not assigned to. This used to
+    // be shown with an unpinned couple; since 0013 a couple reads `weddings` not at all, and
+    // `couple_read` pins the wedding itself, so the leak is shown with the staff role it is
+    // still real for -- an assigned `member` whose pin went missing.
+    expect(
+      await countOf(h, { userId: F.memberA, orgId: F.orgA, weddingRole: 'member' }, 'weddings'),
+    ).toBe(2)
   })
 
   /**
-   * A better outcome than expected, and worth pinning so it is not lost.
-   *
-   * Org A holds three tasks. An unpinned couple reads TWO of them, not three: the
-   * `app.wedding_role` clause still excludes the internal one even though the wedding
-   * clause has fallen through to org-wide.
-   *
-   * So the third GUC is not only the fix for the visibility gap -- it also limits the
-   * blast radius of a missing wedding pin. The two mechanisms are genuinely
-   * independent, which is what defence in depth is supposed to mean. It does NOT make
-   * the guard optional: leaking a sibling couple's task list is still a breach.
+   * This used to pin "a better outcome than expected": an unpinned couple read two of org A's
+   * three tasks, because the role clause still held when the wedding clause fell through. Since
+   * migration 0013 the couple's only policy, `couple_read`, names `app.wedding_id` itself, so an
+   * unpinned couple reads nothing at all -- the case below. The guard is still load-bearing for
+   * the staff roles, which the test above demonstrates.
    */
-  it('but the visibility clause still holds, limiting the blast radius', async () => {
-    expect(await countOf(h, AS.coupleA1Unpinned, 'tasks')).toBe(2)
+  it('an unpinned couple reads nothing: its only policy pins the wedding itself', async () => {
+    expect(await countOf(h, AS.coupleA1Unpinned, 'tasks')).toBe(0)
+    expect(await countOf(h, AS.coupleA1Unpinned, 'weddings')).toBe(0)
     expect(await countOf(h, { ...AS.coupleA1Unpinned, weddingRole: 'owner' }, 'tasks')).toBe(3)
   })
 
-  it('correctly pinned, the same couple sees one wedding and one task', async () => {
-    expect(await countOf(h, AS.coupleA1, 'weddings')).toBe(1)
+  it('correctly pinned, the same couple sees one task and no wedding row (notes stay out)', async () => {
+    expect(await countOf(h, AS.coupleA1, 'weddings')).toBe(0)
     expect(await countOf(h, AS.coupleA1, 'tasks')).toBe(1)
   })
 })
@@ -592,18 +629,27 @@ describe('nullable wedding_id: couples never see org-level rows', () => {
    * falls out of the policy rather than needing a special case -- but only because the
    * column is NULL rather than a sentinel value, so it is worth pinning down.
    */
-  it('a couple sees only their own wedding-scoped invitation', async () => {
-    const rows = await asPrincipal(h, AS.coupleA1, 'select email, role from invitations')
-    expect(rows).toHaveLength(1)
-    expect(rows[0]?.role).toBe('couple')
+  // Since 0013 the role clause closes both tables to a couple outright; the nullable-column
+  // behaviour below is still what keeps a PINNED member off org-level rows.
+  it('a couple sees no invitation at all, not even their own', async () => {
+    expect(await countOf(h, AS.coupleA1, 'invitations')).toBe(0)
+  })
+
+  it('a member pinned to A1 sees only the A1 invitation', async () => {
+    const rows = await asPrincipal(h, AS.memberOnA1, 'select role from invitations')
+    expect(rows.map((r) => r.role)).toEqual(['couple'])
   })
 
   it('staff see both the staff invite and the wedding invite', async () => {
     expect(await countOf(h, AS.staffA, 'invitations')).toBe(2)
   })
 
-  it('a couple sees no org-level audit rows', async () => {
-    const rows = await asPrincipal(h, AS.coupleA1, 'select action from audit_log')
+  it('a couple sees no audit rows', async () => {
+    expect(await countOf(h, AS.coupleA1, 'audit_log')).toBe(0)
+  })
+
+  it('a member pinned to A1 sees no org-level audit rows', async () => {
+    const rows = await asPrincipal(h, AS.memberOnA1, 'select action from audit_log')
     expect(rows.map((r) => r.action)).toEqual(['wedding.created'])
   })
 })
@@ -666,29 +712,53 @@ describe('write-side isolation', () => {
     ).rejects.toThrow(/row-level security/i)
   })
 
+  // Since 0013 the couple has no UPDATE policy on `tasks`, so an UPDATE matches no row rather
+  // than raising: the assertion is that nothing changed, read back as staff.
   it('a couple cannot flip an existing shared task to internal', async () => {
-    await expect(
-      asPrincipal(h, AS.coupleA1, `update tasks set visibility = 'internal' where id = $1`, [
-        F.taskA1Shared,
-      ]),
-    ).rejects.toThrow(/row-level security/i)
+    const changed = await asPrincipal(
+      h,
+      AS.coupleA1,
+      `update tasks set visibility = 'internal' where id = $1 returning id`,
+      [F.taskA1Shared],
+    )
+    expect(changed).toEqual([])
+    const [row] = await asPrincipal(
+      h,
+      AS.staffAOnA1,
+      'select visibility from tasks where id = $1',
+      [F.taskA1Shared],
+    )
+    expect(row?.visibility).toBe('shared')
   })
 
   it('a couple cannot move their own task into another wedding', async () => {
+    const changed = await asPrincipal(
+      h,
+      AS.coupleA1,
+      `update tasks set wedding_id = $1 where id = $2 returning id`,
+      [F.weddingA2, F.taskA1Shared],
+    )
+    expect(changed).toEqual([])
+  })
+
+  it('a couple cannot create even an ordinary shared task in their own wedding', async () => {
+    // Spec 0008: the planner owns the plan. Before 0013 this was the mirror-image test proving a
+    // couple COULD; the product decision reversed it.
     await expect(
-      asPrincipal(h, AS.coupleA1, `update tasks set wedding_id = $1 where id = $2`, [
-        F.weddingA2,
-        F.taskA1Shared,
-      ]),
+      asPrincipal(
+        h,
+        AS.coupleA1,
+        `insert into tasks (id, org_id, wedding_id, title)
+           values (gen_random_uuid(), $1, $2, 'not theirs to add')`,
+        [F.orgA, F.weddingA1],
+      ),
     ).rejects.toThrow(/row-level security/i)
   })
 
-  it('a couple CAN write an ordinary shared task to their own wedding', async () => {
-    // The mirror image, and it matters: a WITH CHECK that rejected everything would
-    // pass every test above while making the product unusable.
+  it('staff CAN still write an ordinary task, so the policy is not simply closed', async () => {
     const rows = await asPrincipal(
       h,
-      AS.coupleA1,
+      AS.staffAOnA1,
       `insert into tasks (id, org_id, wedding_id, title)
          values (gen_random_uuid(), $1, $2, 'legitimate') returning id`,
       [F.orgA, F.weddingA1],

@@ -346,13 +346,10 @@ describe('wedding-scoped policies pin the wedding and carry the role clause', ()
    * planner-isolation.test.ts. These exist so that dropping the clause from one policy of
    * ten fails here, by name, before any fixture has to notice.
    */
-  const PREDATES_ROLE_CLAUSE = new Set([
-    'invitations',
-    'wedding_domains',
-    'tasks',
-    'task_comments',
-    'audit_log',
-  ])
+  // Emptied by migration 0013 (spec 0008), which gave all five their role clause once a couple
+  // could sign in. Kept as a set rather than deleted so a future exception is a visible diff
+  // here, not a quiet edit to the filter below.
+  const PREDATES_ROLE_CLAUSE = new Set<string>([])
   const carriesRoleClause = (t: string) => !PREDATES_ROLE_CLAUSE.has(t)
 
   const policies = async (table: string) =>

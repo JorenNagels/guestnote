@@ -22,8 +22,9 @@ import { weddings } from './weddings.ts'
  * backfill for weddings from before, and `deleteBoard` refusing it. It is where the images from
  * before spec 0007 went, so a wedding always has somewhere to upload.
  *
- * `shared_with_couple` is stored and read by nothing yet: the couple portal is its own spec, and
- * no couple principal can read this table (every policy here is a positive staff list). Storing
+ * `shared_with_couple` is what the couple portal reads (spec 0008). No couple principal can read
+ * this table (every policy here is a positive staff list), so the read goes through the
+ * `couple_moodboards()` and `gn_couple_image()` functions of migration 0013. Storing
  * it now means the portal reads a flag rather than migrating one. Rejected: waiting for the
  * portal -- planners would then set every board's audience twice.
  *

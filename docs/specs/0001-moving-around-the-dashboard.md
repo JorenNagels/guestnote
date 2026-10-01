@@ -561,11 +561,12 @@ container, that is a **measured** finding and it earns an ADR, not an amendment 
 
 - **Which operations require a fresh passkey assertion** rather than a live session.
   `src-app-pro-public-login.md:411` assigns the question to the shell and the shell now exists.
-- **The couple portal's shape** — same shell scoped down, or a separate surface. It decides
-  whether this nav becomes role-conditional or stays staff-only, and it is why nothing here
-  branches on `weddingMember` yet.
+- ~~**The couple portal's shape** — same shell scoped down, or a separate surface.~~ → a
+  separate surface; this nav stays staff-only (2026-10-01, spec 0008).
 - **How a `couple` or an outside `editor` ever gets an `orgId`.** `memberships.ts:192` calls it
   the couple-portal gap and assigns it to P7. Until then they land on the no-sidebar state.
+  *(2026-10-01, spec 0008: a couple's comes from `my_couple_weddings()`, and `/` sends a couple
+  to the portal picker. An outside editor's is still open.)*
 - **When the palette stops filtering locally.** Fine at 30 weddings, wrong at 300; nobody has
   measured where it turns.
 - **Whether `--sidebar-*` tokens are wanted at all**, or whether `--card` and `--border` are

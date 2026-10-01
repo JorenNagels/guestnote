@@ -120,6 +120,11 @@ export default async function AppShellLayout({ children }: { children: ReactNode
   // Studio item is drawn; the page and its Server Functions ask again for themselves.
   const canManage = memberships ? principalForOrg(memberships, orgId) !== null : false
   const billingOn = billingMode().on
+  // Spec 0008: a planner who is also a couple somewhere gets a link to that portal.
+  // The picker, which resolves one wedding straight through and a deleted one to a sentence.
+  const myWeddingHref = memberships?.weddings.some((w) => w.role === 'couple')
+    ? app.couplePicker()
+    : undefined
 
   // Spec 0005, "At most one banner shows: demo, or else trial, or else nothing." Formatted here,
   // where the catalogue and the locale are, so the shell draws finished strings.
@@ -173,6 +178,7 @@ export default async function AppShellLayout({ children }: { children: ReactNode
       canReport={feedbackAvailable()}
       canManage={canManage}
       billingOn={billingOn}
+      myWeddingHref={myWeddingHref}
       labels={{
         nav: t('nav.label'),
         weddings: t('weddings.title'),
@@ -219,6 +225,7 @@ export default async function AppShellLayout({ children }: { children: ReactNode
           densityCompact: t('account.densityCompact'),
           report: reportT('menu'),
           signOut: t('signOut'),
+          myWedding: shellT('myWedding'),
         },
         // Reused verbatim from the sign-in surface rather than duplicated under `app.*`:
         // it is the same offer in the same words, and the copy correction that widened it

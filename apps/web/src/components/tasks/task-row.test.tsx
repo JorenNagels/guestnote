@@ -66,6 +66,14 @@ describe('TaskRowView', () => {
     expect(screen.queryByText(/te laat/)).toBeNull()
   })
 
+  it('draws the unread dot, with words, only when the couple did something unseen (spec 0008)', () => {
+    const { unmount } = view({ coupleUnread: true })
+    expect(screen.getByTestId('couple-unread')).toHaveTextContent('Nieuw van het koppel')
+    unmount()
+    view({ coupleUnread: false })
+    expect(screen.queryByTestId('couple-unread')).toBeNull()
+  })
+
   it('marks an in-progress task', () => {
     view({ status: 'in_progress' })
     expect(screen.getByText('Bezig')).toBeInTheDocument()

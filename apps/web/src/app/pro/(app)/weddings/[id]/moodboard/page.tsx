@@ -1,4 +1,4 @@
-import { getWeddingVendors } from '@guestnote/db'
+import { getCoupleAccess, getWeddingVendors, imageCoupleInfo } from '@guestnote/db'
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { moodboardLabels } from '../../../../../../components/files/labels.ts'
@@ -7,9 +7,11 @@ import { weddingBoards } from '../../../../../../lib/moodboards.ts'
 import { listWeddingImages } from '../../../../../../lib/wedding-files.ts'
 import { currentWeddingScope } from '../../../../../../lib/wedding-scope.ts'
 import {
+  addImageCommentAction,
   confirmImageUpload,
   createMoodboard,
   deleteMoodboard,
+  imageCommentsAction,
   moveMoodboardImage,
   removeImage,
   renameImage,
@@ -33,10 +35,12 @@ export default async function MoodboardPage({
   params: Promise<{ id: string }>
   searchParams: Promise<{ bord?: string | string[] }>
 }) {
-  const [{ id }, { bord }, t] = await Promise.all([
+  const [{ id }, { bord }, t, ct, pt] = await Promise.all([
     params,
     searchParams,
     getTranslations('app.files'),
+    getTranslations('app.couple.planner'),
+    getTranslations('app.couple.portal'),
   ])
 
   const [boards, scope] = await Promise.all([weddingBoards(id), currentWeddingScope(id)])
@@ -52,10 +56,49 @@ export default async function MoodboardPage({
   ])
   if (!tiles || !vendors) notFound()
 
+  // Spec 0008: who added each image, the couple's unread dot, and the comment counts.
+  const [info, couple] = await Promise.all([
+    imageCoupleInfo(
+      scope,
+      tiles.map((r) => r.id),
+    ),
+    getCoupleAccess(scope),
+  ])
+  const partners = new Set(couple?.partners.map((p) => p.userId) ?? [])
+
   return (
     <MoodboardScreen
       labels={moodboardLabels((key) => t.raw(key))}
-      items={tiles.map((r) => ({ id: r.id, name: r.name, url: r.url }))}
+      items={tiles.map((r) => {
+        const i = info[r.id]
+        return {
+          id: r.id,
+          name: r.name,
+          url: r.url,
+          couple: i && {
+            unread: i.coupleUnread,
+            addedBy: i.uploadedBy && partners.has(i.uploadedBy) ? i.uploaderName : null,
+            commentCount: i.commentCount,
+          },
+        }
+      })}
+      comments={{
+        list: imageCommentsAction.bind(null, id),
+        add: addImageCommentAction.bind(null, id),
+        copy: {
+          empty: pt('noComments'),
+          placeholder: pt('commentPlaceholder'),
+          send: pt('commentSend'),
+          sending: ct('sending'),
+          remove: pt('commentDelete'),
+          failed: pt('commentFailed'),
+          tooLong: pt('commentTooLong'),
+          couple: ct('chip'),
+          addedBy: String(ct.raw('addedBy')),
+          unread: ct('unread'),
+          comments: String(ct.raw('comments')),
+        },
+      }}
       boards={{
         list: boards,
         current: board.id,

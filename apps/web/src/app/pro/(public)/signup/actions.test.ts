@@ -292,9 +292,25 @@ describe('joinInvitationAction', () => {
     expect(acceptInvitationById).not.toHaveBeenCalled()
   })
 
-  it('does not accept a wedding invitation from here', async () => {
+  // Spec 0008: a couple invitation is accepted here too, and opens the portal -- no seat, no
+  // studio cookie, because a couple is neither.
+  it('accepts a couple invitation and answers with the portal, without a seat or a studio', async () => {
     myPendingInvitations.mockResolvedValue([
       { invitationId: INVITE, orgId: OTHER, weddingId: 'w1', role: 'couple' },
+    ])
+    acceptInvitationById.mockResolvedValue({
+      outcome: 'accepted',
+      orgId: OTHER,
+      weddingId: 'w1',
+      role: 'couple',
+    })
+    expect(await joinInvitationAction(INVITE)).toEqual({ ok: true, href: '/w/w1' })
+    expect(cookieSet).not.toHaveBeenCalled()
+  })
+
+  it('refuses a wedding invitation that is not for the couple', async () => {
+    myPendingInvitations.mockResolvedValue([
+      { invitationId: INVITE, orgId: OTHER, weddingId: 'w1', role: 'editor' },
     ])
     expect(await joinInvitationAction(INVITE)).toEqual({ ok: false, reason: 'unknown' })
     expect(acceptInvitationById).not.toHaveBeenCalled()

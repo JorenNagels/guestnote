@@ -103,7 +103,9 @@ export const organizations = pgTable(
  * `tenant_isolation`, so a member can read their org's name before a tenant is known.
  * And since migration 0007 this table has a second policy of its own, the opposite way round:
  * `org_staff_read`, `for select`, scoped by `app.org_id`, so an owner or admin reads every
- * membership of their org. Writes are still `own_memberships` alone.
+ * membership of their org. Since migration 0013 `own_memberships` is `for select` too: no user
+ * writes a membership row directly, and every write is a SECURITY DEFINER function
+ * (`accept_invitation`, `create_studio`, `remove_wedding_couple`).
  */
 export const orgMembers = pgTable(
   'org_members',

@@ -67,6 +67,15 @@ export const tasks = pgTable(
     }),
     createdBy: uuid('created_by').references(() => users.id, { onDelete: 'set null' }),
     completedAt: tstz('completed_at'),
+    /**
+     * The planner's unread dot (spec 0008). `couple_activity_at` is stamped by the couple's write
+     * functions (tick, comment), `staff_seen_at` when any staff member opens the task; the dot
+     * shows while the first is later. Shared by the whole team, not per person: a per-user
+     * read-state table is what spec 0003 deferred until it is measured. The cost is that one
+     * planner opening the task clears the dot for a colleague.
+     */
+    coupleActivityAt: tstz('couple_activity_at'),
+    staffSeenAt: tstz('staff_seen_at'),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
     deletedAt: deletedAt(),

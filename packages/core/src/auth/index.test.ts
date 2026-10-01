@@ -66,12 +66,17 @@ describe('invitations through the seam', () => {
   })
 
   it('hands the store the hash and the signed-in user id on accept', async () => {
-    const accept = vi.fn(async () => ({ outcome: 'accepted' as const, role: 'admin' }))
+    const accept = vi.fn(async () => ({
+      outcome: 'accepted' as const,
+      role: 'admin',
+      weddingId: null,
+    }))
     const auth = createAuth({ ...BASE, invitations: { ...NO_STORE, accept } })
 
     expect(await auth.acceptInvitation('tok-123', 'user-1')).toEqual({
       outcome: 'accepted',
       role: 'admin',
+      weddingId: null,
     })
     expect(accept).toHaveBeenCalledWith(hashInviteToken('tok-123'), 'user-1')
   })

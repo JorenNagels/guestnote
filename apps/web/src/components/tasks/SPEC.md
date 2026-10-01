@@ -91,7 +91,8 @@ lines 692 to 941. Routes: `/weddings/<id>/tasks` and `/weddings/<id>/tasks/<task
 - Author and assignee names fall back to the user's email when `users.name` is null, so an invited
   planner who never typed a name is not "Onbekend" in a thread.
 - A `weddingMember` (couple, outside editor) is refused by every repo function here on purpose;
-  the couple's own reader belongs to the couple-portal spec.
+  the couple's own reader belongs to the couple-portal spec (spec 0008: `coupleTasks` in
+  `repos/couple.ts`, under `couple_read`).
 - Two-line rows are taller than compact `--row-h` (32px), so compact density only trims padding.
 - ~~Open issue: `due_at` on an offset task goes stale if S1 changes `wedding_date`.~~ Closed
   2026-09-24 by spec 0004 (see above).

@@ -190,9 +190,11 @@ export function principalForOrg(m: Memberships, orgId: string): MembershipPrinci
  *
  * `orgId` is a parameter rather than something this function looks up, because looking
  * it up is the circular read -- `weddings.org_id` is itself behind `app.org_id`. For
- * staff it comes from `org_members`. For a couple, who has no `org_members` row, it
- * cannot come from anywhere yet; that is the couple-portal gap and it is P7's problem,
- * not this function's.
+ * staff it comes from `org_members`. For a couple, who has no `org_members` row, it comes
+ * from `my_couple_weddings()` (migration 0013), and the couple portal builds its principal
+ * with `couplePrincipalFor` in `repos/couple.ts` rather than through here -- since 0013 a
+ * couple principal reads no `weddings` row, so the `weddingMember` it would get from this
+ * function is useful only for the tables `couple_read` opens.
  */
 export function principalForWedding(
   m: Memberships,
@@ -205,7 +207,11 @@ export function principalForWedding(
   if (org && (org.role === 'owner' || org.role === 'admin')) return null
 
   if (org?.role === 'member') {
-    if (!wedding) return null
+    // An assignment is an `editor` row. A `couple` row held by someone who later joined the
+    // studio as a member is their own wedding, not work: read as an assignment it handed them
+    // the wedding's notes and internal tasks. Reachable since spec 0008 made couple rows real;
+    // found by the tenancy audit, 2026-10-01.
+    if (wedding?.role !== 'editor') return null
     return { kind: 'assignedStaff', userId: m.userId, orgId, weddingId, role: 'member' }
   }
 

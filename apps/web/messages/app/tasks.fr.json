@@ -31,7 +31,8 @@
     "noWeddingDate": "Pas de date de mariage",
     "noDue": "Sans date",
     "couple": "Couple",
-    "planner": "Planner"
+    "planner": "Planner",
+    "coupleUnread": "Nouveau du couple"
   },
   "due": {
     "today": "Aujourd'hui",
@@ -112,6 +113,7 @@
     "add": "Publier le commentaire",
     "adding": "Publication…",
     "unknownAuthor": "Inconnu",
-    "utc": "{date} UTC"
+    "utc": "{date} UTC",
+    "couple": "Couple"
   }
 }

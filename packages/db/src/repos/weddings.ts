@@ -100,7 +100,7 @@ export async function listWeddings(
     // It stays as the braces to RLS's belt -- the same argument `assertScoped` makes for
     // itself -- but a reader should know which of the two is actually load-bearing here,
     // and that this test file therefore does NOT prove the pin. isolation.test.ts does,
-    // via the `coupleA1Unpinned` case that sets the GUCs by hand.
+    // via the unpinned `member` case in "the trap", which sets the GUCs by hand.
     const found = await withTenant(db, principal, async (tx) =>
       tx
         .select(SUMMARY)
@@ -187,7 +187,8 @@ export type WeddingInput = {
 
 /**
  * The summary plus what only staff may read. `notes` is the planner's own; see the column's
- * comment for why a `couple` can read the row at all and why this type is a separate read.
+ * comment for why it is a separate read (an outside `editor` can read the row under RLS; since
+ * migration 0013 a `couple` cannot).
  */
 export type WeddingDetail = WeddingSummary & {
   readonly venue: string | null
@@ -204,8 +205,9 @@ const DETAIL = {
 
 /**
  * One wedding with its notes, for staff. `null` for no such wedding, another organisation's,
- * an unassigned member's -- and for a `couple` or outside `editor`, who can read the row under
- * RLS and must not read the notes (`staffPrincipal` says why). Same 404 for all of them.
+ * an unassigned member's -- and for a `couple` or outside `editor` (`staffPrincipal` refuses
+ * both; since migration 0013 a couple could not read the row under RLS anyway, while an editor
+ * still could). Same 404 for all of them.
  */
 export async function getWeddingDetail(scope: WeddingScope): Promise<WeddingDetail | null> {
   const { db, weddingId } = scope

@@ -44,6 +44,10 @@ const ALLOWLIST: Record<string, readonly string[]> = {
   'billing/actions.ts': ['startCheckoutAction', 'openPortalAction', 'saveInvoiceDetailsAction'],
   // A presigned GET: reading a file the planner already has.
   'weddings/[id]/files/actions.ts': ['downloadFile'],
+  // Spec 0008: clearing the unread dot is a read receipt, not studio data.
+  'weddings/[id]/couple/actions.ts': ['markCoupleSeen'],
+  // Spec 0008: reading an image's thread (and clearing its dot) is a read.
+  'weddings/[id]/moodboard/actions.ts': ['imageCommentsAction'],
 }
 
 const GUARD = 'await assertWritable('

@@ -38,6 +38,7 @@ export const COPY: AuthCopy = {
   invite: {
     title: 'TITLE-INVITE',
     staff: '{inviter} / {org} / {role}',
+    couple: '{studio} / {couple}',
     locked: 'NOTE-LOCKED',
     roleAdmin: 'ROLE-ADMIN',
     roleMember: 'ROLE-MEMBER',
@@ -74,7 +75,6 @@ export const COPY: AuthCopy = {
     passkeyGone: 'ERR-PASSKEY-GONE',
     inviteExpired: 'ERR-INVITE-EXPIRED {inviter}',
     inviteAccepted: 'ERR-INVITE-ACCEPTED',
-    inviteCouple: 'ERR-INVITE-COUPLE',
     inviteUnknown: 'ERR-INVITE-UNKNOWN',
     inviteWrongAccount: 'ERR-INVITE-WRONG-ACCOUNT',
   },

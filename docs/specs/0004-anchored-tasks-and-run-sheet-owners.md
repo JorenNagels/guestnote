@@ -78,7 +78,8 @@ typos and to a template used in three languages).
 **A couple reading a shared, anchored task gets its date from `due_at`,** which the write path
 keeps current. They never learn which event it counts from, because they cannot read
 `wedding_events` and this spec does not change that. No couple reader exists yet — the couple
-portal is its own spec — so this is a constraint on that spec, recorded here.
+portal is its own spec — so this is a constraint on that spec, recorded here. *(2026-10-01:
+spec 0008 honours it; the portal shows `due_at`.)*
 
 ### A run-sheet row can have an owner
 
@@ -247,5 +248,5 @@ NL first. As built, under `app.tasks`, `app.runSheet` and `app.weddingPages` (th
 
 ## Still open
 
-- Whether a couple-assigned task should ever be anchorable by the couple themselves — belongs to
-  the couple portal spec.
+- ~~Whether a couple-assigned task should ever be anchorable by the couple themselves~~ → no;
+  the couple only ticks and comments (2026-10-01, spec 0008).

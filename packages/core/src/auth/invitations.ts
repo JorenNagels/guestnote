@@ -32,6 +32,8 @@ export function hashInviteToken(token: string): string {
 
 export type InvitationRecord = {
   readonly weddingId: string | null
+  /** The wedding's couple display name, for a wedding invitation. */
+  readonly weddingName: string | null
   readonly email: string
   readonly role: string
   readonly orgName: string
@@ -40,7 +42,7 @@ export type InvitationRecord = {
 }
 
 export type AcceptRecord =
-  | { readonly outcome: 'accepted'; readonly role: string }
+  | { readonly outcome: 'accepted'; readonly role: string; readonly weddingId: string | null }
   | {
       readonly outcome: 'unknown' | 'expired' | 'already_accepted' | 'wrong_user' | 'forbidden'
     }
@@ -78,7 +80,18 @@ export async function resolveInvitationWith(
   if (r.status === 'accepted') return { kind: 'accepted' }
   if (r.status === 'expired') return { kind: 'expired', inviter: inviterOf(r) }
 
-  if (r.weddingId !== null) return { kind: 'wedding', inviter: inviterOf(r), org: r.orgName }
+  // Spec 0008: a couple invitation. `editor` shares the wedding shape but nothing issues one
+  // (0013 keeps it off every write path), so it is `unknown` rather than a screen nobody designed.
+  if (r.weddingId !== null) {
+    if (r.role !== 'couple') return { kind: 'unknown' }
+    return {
+      kind: 'wedding',
+      email: r.email,
+      inviter: inviterOf(r),
+      org: r.orgName,
+      couple: r.weddingName,
+    }
+  }
 
   // The `invitations_scope_role_check` constraint admits only these two for a staff row. A
   // value outside them is a schema change this switch has not caught up with, and rendering
@@ -95,5 +108,7 @@ export async function acceptInvitationWith(
 ): Promise<AcceptResult> {
   if (!token || token.length > 256 || !userId) return { outcome: 'unknown' }
   const r = await store.accept(hashInviteToken(token), userId)
-  return r.outcome === 'accepted' ? { outcome: 'accepted', role: r.role } : { outcome: r.outcome }
+  return r.outcome === 'accepted'
+    ? { outcome: 'accepted', role: r.role, weddingId: r.weddingId }
+    : { outcome: r.outcome }
 }

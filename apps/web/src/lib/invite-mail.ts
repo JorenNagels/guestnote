@@ -5,7 +5,7 @@ import en from '../../messages/en.json'
 import fr from '../../messages/fr.json'
 import nl from '../../messages/nl.json'
 import { appInviteUrl } from './app-url.ts'
-import { INVITE_TTL_DAYS } from './invite-token.ts'
+import { COUPLE_INVITE_TTL_DAYS, INVITE_TTL_DAYS } from './invite-token.ts'
 import { DEFAULT_LOCALE, isLocale, type Locale } from './locales.ts'
 import { getMailer } from './mailer.ts'
 
@@ -63,6 +63,53 @@ export async function sendStaffInviteMail(input: StaffInviteMail): Promise<SendR
     footer: t('footer'),
   }
   return getMailer().sendStaffInvite({
+    to: input.to,
+    locale,
+    url: appInviteUrl(input.token),
+    copy,
+  })
+}
+
+export type CoupleInviteMail = {
+  readonly to: string
+  readonly token: string
+  /** The wedding's `locale_default`, not the inviter's (spec 0008). */
+  readonly locale: string
+  readonly inviter: string
+  readonly studio: string
+  readonly couple: string
+}
+
+/**
+ * The couple's invitation. Written in the WEDDING's language rather than the inviter's, which is
+ * where it departs from the staff mail: a French-speaking couple of a Dutch-speaking planner
+ * should not get Dutch. Sent in the studio's name, no logo (spec 0005 still defers it).
+ */
+export async function sendCoupleInviteMail(input: CoupleInviteMail): Promise<SendResult> {
+  const locale: Locale = isLocale(input.locale) ? input.locale : DEFAULT_LOCALE
+  const t = createTranslator({
+    locale,
+    messages: CATALOGUES[locale],
+    namespace: 'email.coupleInvite',
+  })
+  const values = {
+    inviter: input.inviter,
+    studio: input.studio,
+    couple: input.couple,
+    days: COUPLE_INVITE_TTL_DAYS,
+  }
+  const copy: StaffInviteCopy = {
+    subject: t('subject', values),
+    preheader: t('preheader'),
+    heading: t('heading', values),
+    intro: t('intro', values),
+    cta: t('cta'),
+    linkFallback: t('linkFallback'),
+    expiry: t('expiry', values),
+    ignore: t('ignore', values),
+    footer: t('footer', values),
+  }
+  return getMailer().sendCoupleInvite({
     to: input.to,
     locale,
     url: appInviteUrl(input.token),

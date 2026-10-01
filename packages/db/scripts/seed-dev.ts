@@ -1,12 +1,11 @@
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { createDb, createPool } from '../src/client.ts'
 import {
   budgetLines,
   files,
+  invitations,
   moodboardShares,
   moodboards,
-  organizations,
-  orgMembers,
   payments,
   runSheetItems,
   taskComments,
@@ -17,7 +16,6 @@ import {
   vendorLinks,
   vendors,
   weddingEvents,
-  weddingMembers,
   weddings,
   weddingVendors,
 } from '../src/schema/index.ts'
@@ -47,23 +45,23 @@ import { type Principal, withTenant, withUser } from '../src/tenant.ts'
  * So it runs as `app_user` over DATABASE_URL, and every insert satisfies RLS the same way
  * the real thing will:
  *
- *   organizations   `with check (id = app.org_id)`      -- the id is generated first,
- *                                                          then claimed in the GUC
- *   org_members     `with check (user_id = app.user_id)`
- *   weddings        `with check (org_id = app.org_id)`
+ *   organizations   created by `create_studio` (migration 0010), as sign-up does -- the
+ *                   caller becomes its owner in the same call
+ *   weddings        `with check (org_id = app.org_id)` plus the role clause (0013)
  *   everything else `with check (org_id = app.org_id ...)` plus the role clause -- and the
  *                   seed principal is an `owner`, which is what that clause admits
  *
  * Which means this script IS a working sketch of self-serve org creation. If it runs, that
  * flow needs no escape hatch either.
  *
- * ## The member's two membership rows go through `withUser`
+ * ## Everyone else joins by invitation
  *
- * `own_memberships` is `with check (user_id = app.user_id)`, so the OWNER's transaction
- * cannot write another user's membership -- and it should not be able to; that is the
- * property. The member's rows are written in a transaction whose `app.user_id` is the
- * member, which `withUser` provides without pretending they hold a role. (Real invitation
- * acceptance works the same way: the invitee is signed in, and writes their own row.)
+ * Since migration 0013 `own_memberships` is `for select`: no user writes a membership row
+ * directly any more, because `for all` let any signed-in user enrol themselves in any org or
+ * wedding. So the member and the couple join the way real people do -- the owner writes an
+ * invitation, and each accepts it through `accept_invitation` in a transaction whose
+ * `app.user_id` is them. Fixed token hashes keep it idempotent; on a second run the accept
+ * answers `already_accepted` and nothing changes.
  *
  * ## `users` is written directly
  *
@@ -126,7 +124,8 @@ const WEDDING = {
   coupleDisplayName: 'Emma & Joren',
   /** A `date` column: a local civil date, no timezone. 31 July 2027. */
   weddingDate: '2027-07-31',
-  status: 'draft',
+  // `live`, because it is the wedding with a couple (spec 0008): a draft wedding's portal is closed.
+  status: 'live',
   venue: 'Kasteel van Brasschaat',
   headcount: 140,
   notes: 'Two-day wedding. The couple prefer WhatsApp voice notes to email.',
@@ -161,6 +160,8 @@ async function main(): Promise<void> {
   }
   const [local = '', domain = ''] = email.split('@')
   const memberEmail = `${local}+member@${domain}`
+  // Spec 0008: a partner of the first wedding, so the couple portal has someone to sign in as.
+  const coupleEmail = `${local}+couple@${domain}`
 
   const connectionString = process.env.DATABASE_URL
   if (!connectionString) {
@@ -178,7 +179,7 @@ async function main(): Promise<void> {
   try {
     // `users` first, and outside any tenant context -- there is no tenant yet, and the
     // table has no policy to satisfy.
-    for (const address of [email, memberEmail]) {
+    for (const address of [email, memberEmail, coupleEmail]) {
       await db
         .insert(users)
         .values({ id: crypto.randomUUID(), email: address, emailVerified: true })
@@ -194,6 +195,20 @@ async function main(): Promise<void> {
       .where(eq(users.email, memberEmail))
     if (!me) throw new Error(`Could not create or find a user for ${email}`)
     if (!member) throw new Error(`Could not create or find a user for ${memberEmail}`)
+    const [couple] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, coupleEmail))
+    if (!couple) throw new Error(`Could not create or find a user for ${coupleEmail}`)
+
+    // The studio and its owner, in one call, as sign-up makes them. A second run is refused
+    // (`already_owner`) and changes nothing, which is the idempotence this needs.
+    await withUser(db, me.id, (tx) =>
+      tx.execute(
+        sql`select * from public.create_studio(${ORG.id}::uuid, ${me.id}::uuid, ${ORG.name},
+              ${ORG.slug}, null, 'seed')`,
+      ),
+    )
 
     const principal: Principal = {
       kind: 'orgStaff',
@@ -206,36 +221,71 @@ async function main(): Promise<void> {
     // statement runs, so every `with check` is evaluated against the org claimed here --
     // including the organisation row that does not exist yet when the GUC names it.
     await withTenant(db, principal, async (tx) => {
-      await tx.insert(organizations).values(ORG).onConflictDoNothing()
-
-      await tx
-        .insert(orgMembers)
-        .values({ orgId: ORG.id, userId: me.id, role: 'owner' })
-        .onConflictDoNothing()
-
       for (const w of [WEDDING, WEDDING2]) {
         await tx
           .insert(weddings)
           .values({ ...w, orgId: ORG.id })
           .onConflictDoUpdate({
             target: weddings.id,
-            set: { venue: w.venue, headcount: w.headcount, notes: w.notes, color: w.color },
+            set: {
+              venue: w.venue,
+              headcount: w.headcount,
+              notes: w.notes,
+              color: w.color,
+              status: w.status,
+            },
           })
       }
     })
 
-    // The member: staff of the org, assigned to the FIRST wedding only. `principalForWedding`
-    // needs both rows -- `org_members` for the org, `wedding_members` for the assignment.
-    await withUser(db, member.id, async (tx) => {
-      await tx
-        .insert(orgMembers)
-        .values({ orgId: ORG.id, userId: member.id, role: 'member' })
-        .onConflictDoNothing()
-      await tx
-        .insert(weddingMembers)
-        .values({ weddingId: ID.wedding, userId: member.id, role: 'editor' })
-        .onConflictDoNothing()
+    // The member: staff of the org, assigned to the FIRST wedding only -- `principalForWedding`
+    // needs both rows. And the couple of the first wedding (spec 0008). Each is an invitation the
+    // owner writes and the invitee accepts, the only way a membership row is made since 0013.
+    const joins = [
+      {
+        token: 'seed-invite-member',
+        userId: member.id,
+        to: memberEmail,
+        weddingId: null,
+        role: 'member',
+      },
+      {
+        token: 'seed-invite-editor',
+        userId: member.id,
+        to: memberEmail,
+        weddingId: ID.wedding,
+        role: 'editor',
+      },
+      {
+        token: 'seed-invite-couple',
+        userId: couple.id,
+        to: coupleEmail,
+        weddingId: ID.wedding,
+        role: 'couple',
+      },
+    ] as const
+    await withTenant(db, principal, async (tx) => {
+      for (const j of joins) {
+        await tx
+          .insert(invitations)
+          .values({
+            id: crypto.randomUUID(),
+            orgId: ORG.id,
+            weddingId: j.weddingId,
+            email: j.to,
+            role: j.role,
+            tokenHash: j.token,
+            expiresAt: new Date(Date.now() + 30 * 86_400_000),
+            invitedBy: me.id,
+          })
+          .onConflictDoNothing()
+      }
     })
+    for (const j of joins) {
+      await withUser(db, j.userId, (tx) =>
+        tx.execute(sql`select * from public.accept_invitation(${j.token}, ${j.userId}::uuid)`),
+      )
+    }
 
     await withTenant(db, principal, async (tx) => {
       const org = ORG.id
@@ -862,10 +912,11 @@ async function main(): Promise<void> {
       `\n  Seeded.\n` +
         `    owner     ${email}\n` +
         `    member    ${memberEmail}  (assigned to ${WEDDING.coupleDisplayName} only)\n` +
+        `    couple    ${coupleEmail}  (${WEDDING.coupleDisplayName}'s portal, spec 0008)\n` +
         `    org       ${ORG.name}\n` +
         `    weddings  ${WEDDING.coupleDisplayName}, ${WEDDING.weddingDate}  (full sample data)\n` +
         `              ${WEDDING2.coupleDisplayName}, ${WEDDING2.weddingDate}  (sparse)\n\n` +
-        `  Sign in at http://app.guestnote.localhost:3000/login as either address.\n`,
+        `  Sign in at http://app.guestnote.localhost:3000/login as any of them.\n`,
     )
   } finally {
     await pool.end()

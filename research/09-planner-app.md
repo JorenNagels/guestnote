@@ -85,7 +85,7 @@ Where it stops being a to-do list and starts replacing the spreadsheet.
 
 | ID | Item | Persona | Effort | Notes |
 |---|---|---|---|---|
-| **P11** | **Budget** — categories, estimated vs actual, paid / outstanding | 🎩👰 | L | **Fully shared with the couple.** Decided 2026-08-14: the planner's fee is either outside the budget or simply another line, so there is no margin to hide and no dual-visibility model to build |
+| **P11** | **Budget** — categories, estimated vs actual, paid / outstanding | 🎩👰 | L | **Fully shared with the couple.** Decided 2026-08-14: the planner's fee is either outside the budget or simply another line, so there is no margin to hide and no dual-visibility model to build. *Correction 2026-10-01: spec 0008 made budget one of five per-wedding couple modules (`weddings.couple_modules`), on by default; the couple reads it, read-only, through `couple_budget_lines()`/`couple_payments()`.* |
 | **P12** | Payment schedule — what is due, to whom, when | 🎩👰 | M | The half of budget management Excel does worst |
 | **P13** | Vendor directory per wedding — contact, category, amount, contract file | 🎩 | M | |
 | **P14** | **Day-of run sheet** — minute by minute, who does what | 🎩🏛🤝 | M | **D8 promoted.** `04-speclist.md` calls this "the gap the strategy identified" |
@@ -188,6 +188,9 @@ Retrofitting this after the couple portal ships means leaking those on the day y
 
 **c. Budget is shared, with one cheap escape hatch.**
 
+*Correction 2026-10-01: the escape hatch was never built — `budget_lines` has no `internal`
+column (`schema/money.ts`). Spec 0008 put the switch on the whole module instead, per wedding.*
+
 ```
 budget_lines   id, org_id, wedding_id, category, label, vendor_id NULL,
                estimated_cents, actual_cents, paid_cents, due_at,
@@ -209,6 +212,10 @@ Some planners do take vendor commission; one column now beats a migration later.
 | Vendors / contracts | ✅ | ✅ | assigned | read | own only |
 | Run sheet | ✅ | ✅ | assigned | ✅ | own slice |
 | Templates | ✅ | ✅ | read | ❌ | ❌ |
+
+*Correction 2026-10-01, spec 0008: the couple column is now per-wedding switchable (tasks,
+moodboards, run sheet, vendors, budget), read-only apart from ticking their own tasks,
+commenting and adding images to shared boards; vendors show name and category only.*
 
 The `withTenant()` trap from §3 applies unchanged, and gets more dangerous: a vendor
 principal has no `org_members` row, so **`app.wedding_id` is mandatory** for them too.

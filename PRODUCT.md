@@ -33,6 +33,9 @@ the day. The job: know what is due, across every wedding, without opening twelve
 
 - **The couple (👰).** Logs in perhaps six times a year to their own wedding only, sees
   only shared tasks and the budget. Never an org member — `wedding_members` carries them.
+  *(2026-10-01, spec 0008: the couple sees up to five modules the planner switches per
+  wedding — planning, moodboards, run sheet, vendors, budget — read-only apart from ticking
+  their own tasks, commenting, and adding images to shared boards.)*
 - **The venue (🏛).** Same planner workflows at higher volume; a distinct paid tier.
 - **The vendor (🤝).** Sees one slice of one run sheet by default — the whole day if the planner
   opts them in (spec 0007) — plus any moodboard shared with them. Occasional to the point of
@@ -89,6 +92,9 @@ logo lockup, never a shared identity.
   from the day the couple portal ships.
 - **The budget is fully shared with the couple.** Decided 2026-08-14: the planner's fee is
   either outside the budget or simply another line, so there is no margin to hide.
+  *(Changed 2026-10-01, spec 0008: shared by default but no longer fixed — a planner call asked
+  for configurable visibility, so budget is one of five per-wedding switches in
+  `weddings.couple_modules`, on by default.)*
 - **Printing and offline are real.** Planners live in PDFs on site with no signal, and
   venue printouts are black and white — so status must never be carried by colour alone.
 - **Density is a requirement, not a preference.** A 300-guest list and a dozen weddings are
@@ -137,13 +143,14 @@ as a native image board.)*
 
 - Belgium-only vs Benelux at launch.
 - Legal entity vs side project under an existing structure.
-- Whether the couple gets an email code every time or something longer-lived. The planner
-  side settled 2026-08-18: passkey primary, six-digit email code beneath it, no password and
-  no magic link. The couple's answer is expected to follow, but is not decided.
+- ~~Whether the couple gets an email code every time or something longer-lived.~~ → the
+  planner's stack: six-digit email code, passkey offered and never required (2026-10-01,
+  spec 0008).
 - Whether vendors get accounts at all, or a signed link like guests.
 - How many professional wedding planners actually exist in Flanders — the single number
   that decides whether planner-seat or per-wedding pricing is right.
-- Whether couple-facing views are the same UI scoped down or a separate surface.
+- ~~Whether couple-facing views are the same UI scoped down or a separate surface.~~ → a
+  separate surface, the `(couple)` route group at `app.…/w/<id>` (2026-10-01, spec 0008).
 - Whether the planner dashboard is ever white-labelled (currently no — white-label is
   scoped to client sites and emails). The planner's own uploaded logo still needs a
   neutral, bounded slot in the org switcher.

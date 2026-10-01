@@ -94,7 +94,7 @@ describe('a visitor with no session', () => {
 describe('a signed-in visitor holding the invited address', () => {
   beforeEach(() => {
     getSession.mockResolvedValue(SESSION)
-    acceptInvitation.mockResolvedValue({ outcome: 'accepted', role: 'admin' })
+    acceptInvitation.mockResolvedValue({ outcome: 'accepted', role: 'admin', weddingId: null })
   })
 
   it('accepts as the SESSION user, and lands on the dashboard', async () => {
@@ -158,14 +158,40 @@ describe('the other resolved shapes', () => {
     expect((await render()).blocked).toBe('errors.inviteExpired')
     expect(acceptInvitation).not.toHaveBeenCalled()
   })
+})
 
-  it('a wedding invitation is never accepted from here, signed in or not', async () => {
-    // The couple portal is not open, and accepting would write a wedding_members row for a
-    // surface that cannot serve it. The invitation stays valid for when it is.
-    resolveInvitation.mockResolvedValue({ kind: 'wedding', inviter: 'Ilse', org: 'Studio Wit' })
+describe('a couple invitation (spec 0008)', () => {
+  const WEDDING = {
+    kind: 'wedding',
+    email: 'tom@studiowit.be',
+    inviter: 'Ilse',
+    org: 'Studio Wit',
+    couple: 'Anna & Tom',
+  } as const
+
+  it('binds the sign-in to the invited address, with the couple lead, and spends nothing', async () => {
+    resolveInvitation.mockResolvedValue(WEDDING)
+    const props = await render()
+    expect(props.boundEmail).toBe('tom@studiowit.be')
+    expect(props.lead).toBe('invite.couple')
+    expect(props.blocked).toBeUndefined()
+    expect(acceptInvitation).not.toHaveBeenCalled()
+  })
+
+  it('accepts as the session user and lands in the portal of the wedding accepted', async () => {
+    resolveInvitation.mockResolvedValue(WEDDING)
     getSession.mockResolvedValue(SESSION)
+    acceptInvitation.mockResolvedValue({ outcome: 'accepted', role: 'couple', weddingId: 'w-9' })
+    await expect(render('tok', { welcome: 'passkey' })).rejects.toThrow(
+      'NEXT_REDIRECT:/w/w-9?welcome=passkey',
+    )
+    expect(acceptInvitation).toHaveBeenCalledWith('tok', 'u1')
+  })
 
-    expect((await render()).blocked).toBe('errors.inviteCouple')
+  it('refuses a different signed-in address before trying', async () => {
+    resolveInvitation.mockResolvedValue(WEDDING)
+    getSession.mockResolvedValue({ ...SESSION, email: 'x@y.be' })
+    expect((await render()).blocked).toBe('errors.inviteWrongAccount')
     expect(acceptInvitation).not.toHaveBeenCalled()
   })
 })

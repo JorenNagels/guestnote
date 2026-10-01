@@ -11,11 +11,12 @@ import { type Memberships, principalForOrg, principalForWedding } from './member
  *
  * ## Why the `weddingMember` refusal is here and not in a policy
  *
- * The `weddings` policy has no role clause -- `0001_rls.sql` admits a `couple` to their own
- * wedding row, whole, and that is what the couple portal will need. So for `weddings` the
- * application is the only thing between a couple and the planner's internal `notes`, and
- * this is where it is said. Tables added in 0006 do carry the role clause, so for them this is
- * belt and RLS is braces; for `weddings` it is belt alone. Do not "simplify" this into
+ * Since migration 0013 the `weddings` policy carries the staff list, so a `couple` reads no row
+ * at all -- but that list includes `editor`, because an outside editor works on the wedding. So
+ * for `weddings` the application is still the only thing between an outside editor and the
+ * planner's internal `notes`, and this is where it is said. For a couple, and for the tables
+ * added in 0006, this is belt and RLS is braces; for an editor on `weddings` it is belt alone.
+ * (Before 0013 it was belt alone for a couple too.) Do not "simplify" this into
  * `principalForOrg(...) ?? principalForWedding(...)`, which is what `getWedding` does and is
  * correct for a name and a date but not for a write.
  *

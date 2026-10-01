@@ -25,6 +25,7 @@
  * domain (`listVendors`, not `list`).
  */
 export * from './budget.ts'
+export * from './couple.ts'
 export * from './events.ts'
 export * from './files.ts'
 export type { AcceptOutcome, InvitationLookup, PendingInvitation } from './invitations.ts'

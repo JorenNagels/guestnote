@@ -37,7 +37,9 @@ stores a `shared_with_couple` flag now, which nothing reads until the portal lan
 building the couple read path here — it has to solve the `weddings.notes` exposure first
 (`0006:270-275`) and covers checklist, timeline, budget and files too, so it would hold the
 photographer's link hostage to the whole portal. Cost: a toggle a planner can set that has no
-visible effect yet, which the copy says out loud.
+visible effect yet, which the copy says out loud. *(2026-10-01: spec 0008 reads the flag
+(`couple_moodboards()`), brings image comments (`file_comments`), and the hint now says the
+board shows in the couple's portal.)*
 
 **No comments on images.** Rejected: staff-only comments (little value without the couple) and
 vendor comments (the first write by a `link` principal, reversing `0008:87`, with an
@@ -248,7 +250,7 @@ authority.)* Keys under `app.files.moodboard.*` (`messages/app/files.*.json`),
 | `boards.notShared` | Niet gedeeld | Not shared |
 | `boards.share` | Delen | Share |
 | `boards.shareCouple` | Koppel | Couple |
-| `boards.shareCoupleHint` | Zichtbaar zodra het koppelportaal er is. | Visible once the couple portal is live. |
+| `boards.shareCoupleHint` | Zichtbaar zodra het koppelportaal er is. | Visible once the couple portal is live. *(Changed 2026-10-01, spec 0008: "Zichtbaar in het portaal van het koppel." / "Visible in the couple's portal.")* |
 | `boards.shareNoLink` | nog geen link | no link yet |
 | `boards.shareNoVendors` | Nog geen leveranciers voor deze bruiloft. | No vendors for this wedding yet. |
 | `boards.delete` | Verwijder bord | Delete board |

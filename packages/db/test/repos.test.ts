@@ -136,21 +136,15 @@ describe('listWeddings', () => {
   })
 
   /**
-   * The cross-WEDDING case: the couple's `app.org_id` is the PLANNER's org, identical to
-   * what staffA sets, so nothing about the org GUC distinguishes the two.
-   *
-   * Be precise about what this proves, though. Three things independently keep A Two out
-   * of this list -- the loop over `m.weddings`, the `eq(weddings.id, ...)` clause, and
-   * the pinned `app.wedding_id` -- and removing the middle one was tried: every assertion
-   * in this file still passed, measured when there were 14 of them and this file has
-   * since grown. So this is an assertion about the REPOSITORY, not about
-   * the policy. That the pin is what saves you when the application is wrong is
-   * isolation.test.ts's `coupleA1Unpinned` case, which sets the GUCs by hand precisely
-   * because no correct caller can produce that shape.
+   * The cross-WEDDING case used to be proven here with the couple, whose `app.org_id` is the
+   * planner's. Since migration 0013 a couple reads no `weddings` row at all, so the case moved
+   * to the assigned member below, whose reads take the same per-wedding path.
    */
-  it('gives a couple their own wedding and not the other one in the same org', async () => {
-    const rows = await listWeddings(h.db, coupleA1, F.orgA)
-    expect(namesOf(rows)).toEqual(['A One'])
+  // Since migration 0013 a couple reads no `weddings` row at all -- the portal reads
+  // `couple_home()` instead, which leaves out `notes` (spec 0008). The member case below is
+  // what keeps this from passing merely because the function returns nothing to anyone.
+  it('gives a couple nothing: the wedding row is staff-only since 0013', async () => {
+    expect(await listWeddings(h.db, coupleA1, F.orgA)).toEqual([])
   })
 
   /** Same property for an assigned staff member, whose reads take the per-wedding path. */
@@ -350,11 +344,9 @@ describe('getWedding', () => {
     ).toBeNull()
   })
 
-  it('gives a couple their own wedding and not the other one', async () => {
+  it('gives a couple nothing, their own wedding included (0013; the portal uses couple_home)', async () => {
     const m = await resolveMemberships(h.db, F.coupleA1)
-    expect(
-      (await getWedding(WeddingScope.of(h.db, m, F.orgA, F.weddingA1)))?.coupleDisplayName,
-    ).toBe('A One')
+    expect(await getWedding(WeddingScope.of(h.db, m, F.orgA, F.weddingA1))).toBeNull()
     expect(await getWedding(WeddingScope.of(h.db, m, F.orgA, F.weddingA2))).toBeNull()
   })
 })

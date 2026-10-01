@@ -158,7 +158,6 @@ export default async function SignupPage({
               join: t('invited.join'),
               joining: t('invited.joining'),
               open: t('invited.open'),
-              couplePortal: t('invited.couplePortal'),
               ownStudio: t('invited.ownStudio'),
               errors: {
                 expired: t('invited.errors.expired'),

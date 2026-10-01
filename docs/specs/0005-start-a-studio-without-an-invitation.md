@@ -224,7 +224,8 @@ from a directly-called Server Function rejects its promise on the client)* *(as 
 function then hands on to `accept_invitation`, which does every other check. The list also
 leaves out an invitation whose wedding is deleted or belongs to another org, since accepting it
 could only be refused)*. A couple invite opens the existing invitation outcome, which today is `inviteCouple`
-("the portal is not open yet"). Rejected: checking the email before verification (leaks
+("the portal is not open yet"). *(2026-10-01, spec 0008: it now accepts and opens the portal;
+`inviteCouple` is gone.)* Rejected: checking the email before verification (leaks
 invitation existence to anyone who types an address); auto-redirecting (blocks a staff planner
 who also wants their own studio).
 
@@ -285,7 +286,8 @@ bucket's whole design is private-only).
 
 **Shown in**: the sidebar org chip, open and collapsed, in place of the monogram; the Studio
 page; the **vendor-link page header**, which means `resolve_vendor_link` (migration 0008) returns
-the logo key too, in a new migration. The couple portal does not exist yet, so not there.
+the logo key too, in a new migration. The couple portal does not exist yet, so not there. *(2026-10-01: it exists, spec 0008, and
+still shows no logo -- deferred there too.)*
 
 *(As built, sign-up: the studio does not exist when the logo is picked, so the Studio step holds the
 file in the browser -- checked there against the same types and 2 MB, restated in
@@ -515,7 +517,7 @@ The Billing screen's strings are the design's, translated at build.
 | A real payment provider, checkout, customer portal, webhooks | Deferred by choice; M9 proper, when the demo ends |
 | Editing the org slug | Nothing on screen uses it |
 | A template picker in the in-app new-wedding flow | Sign-up only; the in-app picker is S7's deferred block |
-| Logo on a couple portal | The portal does not exist |
+| Logo on a couple portal | The portal does not exist *(since 2026-10-01 it does, spec 0008; the logo stays deferred)* |
 | SVG logos | Storage rule, see Studio logo |
 | Couple, vendor or anonymous bug reports | Staff only |
 | Cancelling a subscription | Needs a provider |

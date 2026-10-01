@@ -570,6 +570,14 @@ async function seedPlannerTables(pool: NodePool): Promise<void> {
        ($1,$2,$3,$4)`,
     [F.boardA1Photo, F.wedVendorA1, F.orgA, F.weddingA1],
   )
+  // Spec 0008. One per org so the cross-org assertion is not vacuous; the B one hangs off a plain
+  // file because org B has no image, which the table does not forbid.
+  await pool.query(
+    `insert into file_comments (id, org_id, wedding_id, file_id, author_user_id, body) values
+       (gen_random_uuid(), $1, $2, $3, $4, 'Mooi licht'),
+       (gen_random_uuid(), $5, $6, $7, $8, 'Other tenant comment')`,
+    [F.orgA, F.weddingA1, F.imageA1Photo, F.staffA, F.orgB, F.weddingB1, F.fileB1Shared, F.staffB],
+  )
   await pool.query(
     `insert into vendor_links (id, org_id, wedding_id, wedding_vendor_id, token_hash, expires_at) values
        ($1,$7,$9,$4,'hash-link-a1', now() + interval '7 days'),
@@ -608,7 +616,7 @@ export async function reseed(): Promise<void> {
   const pool = new NodePool({ connectionString: SEED_URL, max: 1 })
   try {
     await pool.query(`truncate table
-      moodboard_shares, vendor_links, run_sheet_items, payments, budget_lines, files, moodboards,
+      file_comments, moodboard_shares, vendor_links, run_sheet_items, payments, budget_lines, files, moodboards,
       wedding_events,
       wedding_vendors, vendors, template_items, task_templates,
       task_comments, tasks, audit_log, invitations, wedding_domains,
@@ -627,10 +635,12 @@ export async function reseed(): Promise<void> {
       [F.orgA, F.orgB, F.orgC],
     )
     await pool.query(
-      `insert into weddings (id, org_id, slug, couple_display_name, wedding_date) values
-         ($1,$4,'a-one','A One','2027-07-31'),
-         ($2,$4,'a-two','A Two','2027-08-14'),
-         ($3,$5,'b-one','B One','2027-09-04')`,
+      // A1 is `live` because it is the wedding with a couple, and a draft wedding is closed to
+      // its couple (spec 0008): every couple assertion would otherwise read nothing and pass.
+      `insert into weddings (id, org_id, slug, couple_display_name, wedding_date, status) values
+         ($1,$4,'a-one','A One','2027-07-31','live'),
+         ($2,$4,'a-two','A Two','2027-08-14','draft'),
+         ($3,$5,'b-one','B One','2027-09-04','draft')`,
       [F.weddingA1, F.weddingA2, F.weddingB1, F.orgA, F.orgB],
     )
     await pool.query(

@@ -18,8 +18,8 @@ import { fail, ok, type Result } from './result.ts'
  *
  * ## What lets `listTeam` see every row
  *
- * `org_members` and `wedding_members` carry `own_memberships` (`user_id = app.user_id`) for
- * writes, plus `org_staff_read`, a `for select` policy for owner/admin scoped by `app.org_id`
+ * `org_members` and `wedding_members` carry `own_memberships` (`user_id = app.user_id`, `for
+ * select` since migration 0013 -- writes are definer functions now), plus `org_staff_read`, a `for select` policy for owner/admin scoped by `app.org_id`
  * (migration `0007`, F1b). Without it an owner reading through `withTenant` would get only
  * their own row. This query was written against that intended policy before it existed
  * (see `team/SPEC.md`) rather than worked around, because the workaround would have been a
@@ -93,7 +93,14 @@ export async function listTeam(
             })
             .from(weddingMembers)
             .innerJoin(weddings, eq(weddings.id, weddingMembers.weddingId))
-            .where(and(inArray(weddingMembers.userId, memberIds), isNull(weddings.deletedAt)))
+            .where(
+              and(
+                inArray(weddingMembers.userId, memberIds),
+                // An assignment is an `editor` row; a member's own `couple` row is not one.
+                eq(weddingMembers.role, 'editor'),
+                isNull(weddings.deletedAt),
+              ),
+            )
             .orderBy(asc(weddings.weddingDate))
 
     return rows

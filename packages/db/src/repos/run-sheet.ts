@@ -219,7 +219,12 @@ async function eligibleOwners(
     .innerJoin(users, eq(users.id, orgMembers.userId))
     .leftJoin(
       weddingMembers,
-      and(eq(weddingMembers.userId, orgMembers.userId), eq(weddingMembers.weddingId, weddingId)),
+      // `editor` only: an assignment, not a member's own `couple` row (spec 0008).
+      and(
+        eq(weddingMembers.userId, orgMembers.userId),
+        eq(weddingMembers.weddingId, weddingId),
+        eq(weddingMembers.role, 'editor'),
+      ),
     )
     .where(
       and(

@@ -141,6 +141,7 @@ export function Shell({
   canReport,
   canManage,
   billingOn,
+  myWeddingHref,
   labels,
   children,
 }: {
@@ -181,6 +182,8 @@ export function Shell({
    * like `canManage` it draws a link and grants nothing -- the page 404s on its own.
    */
   billingOn: boolean
+  /** Spec 0008: set when this user is also a couple somewhere; the account menu links to it. */
+  myWeddingHref?: string | undefined
   labels: ShellLabels
   children: ReactNode
 }) {
@@ -418,6 +421,7 @@ export function Shell({
         theme={theme}
         density={density}
         onReport={openReport}
+        myWeddingHref={myWeddingHref}
         labels={labels.account}
       />
     </nav>

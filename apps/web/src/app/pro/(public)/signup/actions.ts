@@ -288,16 +288,14 @@ export async function inviteTeamAction(
 }
 
 /**
- * "Join" on the invited screen. Only a STAFF invitation is joined here: a wedding invitation's
- * "Open" says the couple portal is not open yet, exactly as its link does, so accepting one
- * from this screen would be a second door with a different outcome. Checked against the
- * caller's own pending list, which `my_pending_invitations` matches by their verified email.
+ * "Join" (staff) or "Open" (a couple invitation, spec 0008) on the invited screen. Checked
+ * against the caller's own pending list, which `my_pending_invitations` matches by their verified
+ * email; `accept_invitation_by_id` re-checks the email match itself, so that check here is only
+ * the sentence. Before spec 0008 this accepted staff invitations only, because the portal was not
+ * open; a couple invitation now lands where its own link lands, the portal.
  *
- * Two gates, for two questions. WHOSE invitation it is: `accept_invitation_by_id` re-checks the
- * email match itself, so that check here is only the sentence. WHICH KIND it is: this filter
- * alone -- the function hands any kind on to 0007's `accept_invitation`. Accepted because the
- * worst a bypass does is accept a wedding invitation addressed to the caller's own address,
- * which that invitation's link already lets them do.
+ * A couple is not a seat (spec 0005) and acts in no studio, so neither `seatsChanged` nor `actIn`
+ * runs for one.
  */
 export async function joinInvitationAction(invitationId: string): Promise<JoinOutcome> {
   if (!isUuid(invitationId)) return { ok: false, reason: 'unknown' }
@@ -305,7 +303,9 @@ export async function joinInvitationAction(invitationId: string): Promise<JoinOu
   if (!session) return { ok: false, reason: 'unknown' }
 
   const mine = await myPendingInvitations(getDb(), session.userId)
-  if (!mine.some((i) => i.invitationId === invitationId && i.weddingId === null)) {
+  const invitation = mine.find((i) => i.invitationId === invitationId)
+  // Staff, or a couple invitation; an `editor` one is issued by nothing (migration 0013).
+  if (!invitation || (invitation.weddingId !== null && invitation.role !== 'couple')) {
     return { ok: false, reason: 'unknown' }
   }
 
@@ -314,6 +314,7 @@ export async function joinInvitationAction(invitationId: string): Promise<JoinOu
     // Answered, not redirected: this is called directly rather than as a form action, and a
     // `redirect()` there rejects the client's promise -- which the screen would read as a
     // failure and announce before the navigation landed. The client navigates on `ok`.
+    if (result.weddingId !== null) return { ok: true, href: app.couple(result.weddingId) }
     await seatsChanged(result.orgId, session.userId)
     await actIn(result.orgId)
     return { ok: true }

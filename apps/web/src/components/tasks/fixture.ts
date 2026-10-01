@@ -20,6 +20,7 @@ export function task(over: Partial<TaskRow> = {}): TaskRow {
     completedAt: null,
     createdAt: new Date('2027-01-01T00:00:00Z'),
     updatedAt: new Date('2027-01-01T00:00:00Z'),
+    coupleUnread: false,
     ...over,
   }
 }

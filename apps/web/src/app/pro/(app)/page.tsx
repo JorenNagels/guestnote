@@ -1,5 +1,6 @@
 import { listAssignedTasks, listWeddings, principalForOrg } from '@guestnote/db'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { getFormatter, getTranslations } from 'next-intl/server'
 import { TasksIntl } from '../../../components/tasks/provider.tsx'
 import { orderWeddings, todaySections, weddingLoads } from '../../../components/today/sections.ts'
@@ -40,6 +41,18 @@ export default async function TodayPage() {
     getTranslations('app.today'),
     getFormatter(),
   ])
+
+  // Spec 0008: someone who is staff nowhere but a couple somewhere belongs in their portal, one
+  // wedding straight in and several through the picker. After the org check fails, not before:
+  // a planner who is also somebody's partner lands on their dashboard and reaches the portal
+  // from the account menu.
+  // Always the picker, never `/w/<id>` directly: these rows are read without the wedding's or
+  // studio's `deleted_at`, and the picker asks `my_couple_weddings()`, which checks both -- it
+  // goes straight in for exactly one wedding (a draft one then shows its closed sentence) and
+  // says so plainly for none.
+  if (memberships && !orgId && memberships.weddings.some((w) => w.role === 'couple')) {
+    redirect(app.couplePicker())
+  }
 
   // The layout renders no shell for this state, so the page has to stand on its own. The words
   // are the wedding list's, reused rather than written twice: it is the same fact.

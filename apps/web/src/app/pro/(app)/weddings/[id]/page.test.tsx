@@ -64,6 +64,8 @@ vi.mock('@guestnote/db', async (orig) => ({
   getWeddingTaskCounts: (...a: unknown[]) => getWeddingTaskCounts(...a),
   listWeddingEvents: (...a: unknown[]) => listWeddingEvents(...a),
   listTasks: (...a: unknown[]) => listTasks(...a),
+  // Spec 0008's invite card has its own tests (`components/couple`); here it is absent.
+  getCoupleAccess: async () => null,
 }))
 vi.mock('../../../../../lib/db.ts', () => ({ getDb: () => ({}) }))
 vi.mock('../../../../../lib/principal.ts', () => ({

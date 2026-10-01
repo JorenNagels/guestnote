@@ -43,5 +43,6 @@ export type TeamFormState = {
 }
 
 export type JoinOutcome =
-  | { readonly ok: true }
+  /** `href`: where to go instead of home -- a couple's portal (spec 0008). */
+  | { readonly ok: true; readonly href?: string }
   | { readonly ok: false; readonly reason: 'expired' | 'accepted' | 'unknown' }

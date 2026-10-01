@@ -24,7 +24,6 @@ export type InvitedLabels = Readonly<{
   join: string
   joining: string
   open: string
-  couplePortal: string
   ownStudio: string
   errors: Readonly<Record<'expired' | 'accepted' | 'unknown', string>>
 }>
@@ -51,15 +50,14 @@ type Props = {
 
 /**
  * "You've been invited" (spec 0005): shown between Verify and Studio when the verified address
- * has pending invitations. Join (staff) accepts and opens that studio; Open (a wedding) says what
- * the invitation's own link says today -- the couple portal is not open yet -- and accepts
- * nothing. "Start my own studio anyway" is always there: a planner on staff somewhere may also
- * run their own.
+ * has pending invitations. Join (staff) accepts and opens that studio; Open (a wedding, spec
+ * 0008) accepts and opens the couple's portal -- the same outcome as the invitation's own link.
+ * Until 0008 Open said the portal was not open yet and accepted nothing. "Start my own studio
+ * anyway" is always there: a planner on staff somewhere may also run their own.
  */
 export function InvitedStep({ labels, email, invitations, ownStudioHref, homeHref, join }: Props) {
   const [pendingId, setPendingId] = useState<string | null>(null)
   const [errors, setErrors] = useState<Readonly<Record<string, string>>>({})
-  const [opened, setOpened] = useState<string | null>(null)
   const [announcement, setAnnouncement] = useState('')
   const [, startTransition] = useTransition()
   const [before, after] = splitAround(labels.intro, 'email')
@@ -71,7 +69,7 @@ export function InvitedStep({ labels, email, invitations, ownStudioHref, homeHre
       if (result.ok) {
         // A full navigation, so the shell renders fresh in the studio the action just chose.
         // `pendingId` stays set: the button keeps saying it is busy until the page goes.
-        window.location.assign(homeHref)
+        window.location.assign(result.href ?? homeHref)
         return
       }
       setPendingId(null)
@@ -113,27 +111,17 @@ export function InvitedStep({ labels, email, invitations, ownStudioHref, homeHre
                   )}
                 </div>
                 <div className="w-28 shrink-0">
-                  {inv.isWedding ? (
-                    <Button variant="secondary" onClick={() => setOpened(inv.id)}>
-                      {labels.open}
-                    </Button>
-                  ) : (
-                    <Button
-                      busy={pendingId === inv.id}
-                      busyLabel={labels.joining}
-                      disabled={pendingId !== null}
-                      onClick={() => onJoin(inv.id)}
-                    >
-                      {labels.join}
-                    </Button>
-                  )}
+                  <Button
+                    variant={inv.isWedding ? 'secondary' : 'primary'}
+                    busy={pendingId === inv.id}
+                    busyLabel={labels.joining}
+                    disabled={pendingId !== null}
+                    onClick={() => onJoin(inv.id)}
+                  >
+                    {inv.isWedding ? labels.open : labels.join}
+                  </Button>
                 </div>
               </Card>
-              {opened === inv.id && (
-                <p role="status" className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                  {labels.couplePortal}
-                </p>
-              )}
               {errors[inv.id] && <InlineError>{errors[inv.id]}</InlineError>}
             </li>
           )

@@ -1,6 +1,14 @@
 'use server'
 
 import {
+  addImageComment,
+  getCoupleAccess,
+  listImageComments,
+  markCoupleActivitySeen,
+} from '@guestnote/db'
+import { getLocale } from 'next-intl/server'
+import type { ThreadComment } from '../../../../../../components/couple/comment-thread.tsx'
+import {
   addBoard,
   type BoardCreated,
   type BoardDone,
@@ -10,14 +18,19 @@ import {
   shareWeddingBoard,
   shareWeddingBoardWithCouple,
 } from '../../../../../../lib/moodboards.ts'
-import { currentOrgId } from '../../../../../../lib/principal.ts'
+import { currentOrgId, currentSession } from '../../../../../../lib/principal.ts'
+import { COMMENT_MAX } from '../../../../../../lib/task-form.ts'
 import { assertWritable } from '../../../../../../lib/trial.ts'
+import { isUuid } from '../../../../../../lib/uuid.ts'
 import {
   confirmUpload,
   removeWeddingFile,
   renameWeddingFile,
   startUpload,
 } from '../../../../../../lib/wedding-files.ts'
+import { currentWeddingScope } from '../../../../../../lib/wedding-scope.ts'
+
+export type ImageThread = ThreadComment[]
 
 /**
  * The moodboard's Server Functions: the Files screen's, pinned to `kind: 'image'`, minus the
@@ -96,4 +109,54 @@ export async function moveMoodboardImage(
 ): Promise<BoardDone> {
   await assertWritable(await currentOrgId())
   return moveWeddingImage(weddingId, fileId, boardId)
+}
+
+/**
+ * Spec 0008: an image's comment thread, for staff. Opening it is reading what the couple wrote,
+ * so it also clears the image's unread dot -- a read receipt, which is why this one is on
+ * `trial-guard.test.ts`'s allowlist and `addImageCommentAction` is not. `null` for no standing.
+ */
+export async function imageCommentsAction(
+  weddingId: string,
+  fileId: string,
+): Promise<ImageThread | null> {
+  if (!isUuid(fileId)) return null
+  const scope = await currentWeddingScope(weddingId)
+  if (!scope) return null
+  const [comments, access, locale] = await Promise.all([
+    listImageComments(scope, fileId),
+    getCoupleAccess(scope),
+    getLocale(),
+  ])
+  if (!comments) return null
+  await markCoupleActivitySeen(scope, { kind: 'file', id: fileId })
+  const couple = new Set(access?.partners.map((p) => p.userId) ?? [])
+  const self = (await currentSession())?.userId
+  const when = new Intl.DateTimeFormat(locale, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    // Belgium, as `i18n/request.ts` gives every `useFormatter`: the server runs in UTC.
+    timeZone: 'Europe/Brussels',
+  })
+  return comments.map((c) => ({
+    id: c.id,
+    author: c.authorName ?? '',
+    byCouple: c.authorUserId !== null && couple.has(c.authorUserId),
+    isOwn: c.authorUserId === self,
+    body: c.body,
+    when: when.format(c.createdAt),
+  }))
+}
+
+export async function addImageCommentAction(
+  weddingId: string,
+  fileId: string,
+  body: string,
+): Promise<boolean> {
+  await assertWritable(await currentOrgId())
+  const text = String(body ?? '').trim()
+  if (!isUuid(fileId) || !text || text.length > COMMENT_MAX) return false
+  const scope = await currentWeddingScope(weddingId)
+  if (!scope) return false
+  return (await addImageComment(scope, fileId, text)).ok
 }

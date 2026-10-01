@@ -39,6 +39,8 @@ export type InvitationLookup = {
   /** `users.name` of whoever invited, which can be null (never named, or deleted since). */
   readonly inviterName: string | null
   readonly status: 'pending' | 'expired' | 'accepted'
+  /** The couple display name of a wedding invitation (migration 0013); null for staff. */
+  readonly weddingName: string | null
 }
 
 export type AcceptOutcome =
@@ -61,6 +63,7 @@ type ResolveRow = {
   role: string
   inviter_name: string | null
   status: string
+  wedding_name: string | null
 }
 
 type AcceptRow = {
@@ -123,6 +126,7 @@ export async function resolveInvitationByHash(
     role: row.role,
     inviterName: row.inviter_name,
     status: row.status as InvitationLookup['status'],
+    weddingName: row.wedding_name,
   }
 }
 

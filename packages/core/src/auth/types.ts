@@ -78,11 +78,11 @@ export type Verified = {
 }
 
 /**
- * A staff invitation, resolved from its token, as the landing screen needs it.
+ * An invitation, resolved from its token, as the landing screen needs it.
  *
- * `wedding` is present when `invitations.wedding_id` is set -- the couple/editor shape.
- * The planner surface cannot serve that yet, and the brief is explicit that it must say
- * so honestly rather than 404, because a 404 reads as a bug to the planner who sent it.
+ * `wedding` is a couple invitation (`invitations.wedding_id` set, role `couple`), which the
+ * couple portal accepts since spec 0008. Before it, the screen said honestly that the portal was
+ * not open yet rather than 404, because a 404 reads as a bug to the planner who sent it.
  */
 export type Invitation =
   | {
@@ -92,7 +92,14 @@ export type Invitation =
       readonly org: string
       readonly role: 'admin' | 'member'
     }
-  | { readonly kind: 'wedding'; readonly inviter: string; readonly org: string }
+  | {
+      readonly kind: 'wedding'
+      readonly email: string
+      readonly inviter: string
+      readonly org: string
+      /** The couple display name; null only if the wedding went away since the invite. */
+      readonly couple: string | null
+    }
   | { readonly kind: 'expired'; readonly inviter: string }
   | { readonly kind: 'accepted' }
   /** Guessed, truncated, or purged. One outcome for all three, on purpose: telling
@@ -105,7 +112,12 @@ export type Invitation =
  * was invited), and the rest end the flow.
  */
 export type AcceptResult =
-  | { readonly outcome: 'accepted'; readonly role: string }
+  | {
+      readonly outcome: 'accepted'
+      readonly role: string
+      /** Set for a couple invitation: where the portal is (spec 0008). */
+      readonly weddingId: string | null
+    }
   | {
       readonly outcome: 'unknown' | 'expired' | 'already_accepted' | 'wrong_user' | 'forbidden'
     }
