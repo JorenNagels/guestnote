@@ -92,5 +92,8 @@ export async function saveEventAction(
   if (!saved.ok) return { form: 'forbidden', values }
 
   revalidatePath('/pro', 'layout')
-  return { notice: 'saved' }
+  // The new id goes back so the run sheet, which adds days through this same function
+  // (spec 0009 A2), can land on the day it just made. Rejected: a second, run-sheet-only action
+  // around `createWeddingEvent` -- one more Server Function repeating these checks.
+  return eventId === '' ? { notice: 'saved', eventId: saved.value.id } : { notice: 'saved' }
 }

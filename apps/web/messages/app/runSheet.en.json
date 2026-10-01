@@ -7,9 +7,38 @@
     "noTime": "No time yet",
     "noEvents": {
       "title": "No day to make a run sheet for yet",
-      "body": "A run sheet belongs to a day of the wedding. Add a day in the settings first, for example the ceremony or the party.",
-      "action": "Go to settings"
+      "body": "A run sheet belongs to a day of the wedding. Add the first day here, for example the ceremony or the party.",
+      "startTitle": "No run sheet yet",
+      "startBody": "Start with the wedding day itself. A rehearsal dinner or a brunch the day after can be added later as a day of its own.",
+      "start": "Start the run sheet for {day}",
+      "starting": "Starting…",
+      "failed": "That did not work. Nothing was changed. Try again in a moment."
+    },
+    "mainDay": "Wedding day"
+  },
+  "addDay": {
+    "open": "Add a day",
+    "title": "Add a day",
+    "label": "Name",
+    "labelPlaceholder": "For example the ceremony or the brunch",
+    "date": "Date",
+    "time": "Time (optional)",
+    "save": "Add the day",
+    "saving": "Adding…",
+    "cancel": "Cancel",
+    "errors": {
+      "required": "Fill this in.",
+      "tooLong": "That is too long. Keep it under 120 characters.",
+      "invalidDate": "Choose a valid date.",
+      "invalidTime": "Enter a time, for example 15:30.",
+      "forbidden": "This wedding no longer exists or you cannot change it. Refresh the page.",
+      "failed": "Saving did not work. Nothing was changed. Try again in a moment."
     }
+  },
+  "print": {
+    "action": "Print",
+    "colStart": "Start",
+    "colEnd": "End"
   },
   "list": {
     "caption": "Run sheet for {event}",

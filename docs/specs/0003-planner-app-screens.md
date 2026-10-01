@@ -200,7 +200,7 @@ Wave 2 may start a slice as soon as its own dependencies are done, not the whole
 | Couple portal and couple-visibility toggles | own spec; needs a couple read path and invite sending. *Built 2026-10-01 as spec 0008.* |
 | Unread counts on the sidebar | cost for `member`; needs a measurement first |
 | Assignment and digest emails (P10) | templates, schedule and unsubscribe are their own job |
-| Run sheet print, PDF, CSV (P19) | not chosen for this build |
+| Run sheet print, PDF, CSV (P19) | not chosen for this build *(print: built by spec 0009 A3, 2026-10-02; PDF and CSV still not)* |
 | Seat counts and billing | pricing is undecided *(billing: built by spec 0005, 2026-09-26, switched off; seat counts still not)* |
 | Pinterest import | later add-on to the moodboard |
 | Per-org or per-wedding theming beyond the colour dot | parked in `design-system/` |

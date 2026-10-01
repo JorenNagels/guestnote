@@ -7,9 +7,38 @@
     "noTime": "Pas encore d'heure",
     "noEvents": {
       "title": "Pas encore de jour pour lequel faire un déroulé",
-      "body": "Un déroulé appartient à un jour du mariage. Ajoutez d'abord un jour dans les paramètres, par exemple la cérémonie ou la fête.",
-      "action": "Aller aux paramètres"
+      "body": "Un déroulé appartient à un jour du mariage. Ajoutez ici le premier jour, par exemple la cérémonie ou la fête.",
+      "startTitle": "Pas encore de déroulé",
+      "startBody": "Commencez par le jour du mariage lui-même. Un dîner de répétition ou un brunch le lendemain s'ajoutent plus tard, comme un jour à part.",
+      "start": "Commencer le déroulé du {day}",
+      "starting": "Démarrage…",
+      "failed": "Cela n'a pas fonctionné. Rien n'a été modifié. Réessayez dans un instant."
+    },
+    "mainDay": "Jour du mariage"
+  },
+  "addDay": {
+    "open": "Ajouter un jour",
+    "title": "Ajouter un jour",
+    "label": "Nom",
+    "labelPlaceholder": "Par exemple la cérémonie ou le brunch",
+    "date": "Date",
+    "time": "Heure (facultative)",
+    "save": "Ajouter le jour",
+    "saving": "Ajout…",
+    "cancel": "Annuler",
+    "errors": {
+      "required": "Ce champ est obligatoire.",
+      "tooLong": "C'est trop long. Restez sous 120 caractères.",
+      "invalidDate": "Choisissez une date valide.",
+      "invalidTime": "Indiquez une heure, par exemple 15:30.",
+      "forbidden": "Ce mariage n'existe plus ou vous ne pouvez pas le modifier. Actualisez la page.",
+      "failed": "L'enregistrement n'a pas fonctionné. Rien n'a été modifié. Réessayez dans un instant."
     }
+  },
+  "print": {
+    "action": "Imprimer",
+    "colStart": "Début",
+    "colEnd": "Fin"
   },
   "list": {
     "caption": "Déroulé de {event}",

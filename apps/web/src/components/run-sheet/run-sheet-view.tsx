@@ -8,7 +8,7 @@ import { InlineError } from '@guestnote/ui/inline-error'
 import { Table, TableBody, TableCell, TableHead, TableHeaderCell } from '@guestnote/ui/table'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
-import { Fragment, useState, useTransition } from 'react'
+import { Fragment, useId, useState, useTransition } from 'react'
 import { shiftRunSheetItem } from '../../app/pro/(app)/weddings/[id]/run-sheet/actions.ts'
 import { formatCivilDate } from '../../lib/civil-date.ts'
 import { app } from '../../lib/routes.ts'
@@ -19,7 +19,9 @@ import {
   nextStartClock,
   type ScheduleRow,
 } from '../../lib/run-sheet.ts'
+import { PrintButton } from '../couple/portal/print-button.tsx'
 import { safeColor } from '../nav/wedding-row.tsx'
+import { AddDayForm, StartRunSheet } from './add-day.tsx'
 import { ItemSheet } from './item-sheet.tsx'
 import { MoveButtons } from './move-buttons.tsx'
 
@@ -72,6 +74,9 @@ export function RunSheetView({
   owners = [],
   viewerId = null,
   color = null,
+  mainDay = { label: '', date: null },
+  coupleName = '',
+  studioName = '',
 }: {
   weddingId: string
   locale: string
@@ -85,10 +90,22 @@ export function RunSheetView({
   viewerId?: string | null
   /** The wedding's `#RRGGBB`, the tint's hue. */
   color?: string | null
+  /**
+   * The main day the empty state offers to start (spec 0009 A2): its name already in the
+   * wedding's language, and `weddings.wedding_date`, null when the couple has no date yet.
+   */
+  mainDay?: { label: string; date: string | null }
+  /** The printed header (spec 0009 A3): who the day is for, and whose sheet it is. */
+  coupleName?: string
+  studioName?: string
 }) {
   const t = useTranslations('app.runSheet')
   const list = useTranslations('app.runSheet.list')
   const ev = useTranslations('app.runSheet.event')
+  const day = useTranslations('app.runSheet.addDay')
+  const pr = useTranslations('app.runSheet.print')
+  const addDayId = useId()
+  const [addingDay, setAddingDay] = useState(false)
   const [sheetItem, setSheetItem] = useState<RunSheetItem | null | 'new'>(null)
   const [moveError, setMoveError] = useState(false)
   const [, startMove] = useTransition()
@@ -111,30 +128,41 @@ export function RunSheetView({
     sheetItem !== 'new' && sheetItem ? items.findIndex((i) => i.id === sheetItem.id) : -1
 
   return (
-    <div className="mx-auto max-w-5xl px-6 pt-6 pb-8">
-      <header className="mb-5">
+    <div className="mx-auto max-w-5xl px-6 pt-6 pb-8 print:max-w-none print:p-0">
+      <header className="mb-5 print:hidden">
         <h2 className="text-xl font-semibold tracking-tight">{t('title')}</h2>
       </header>
 
       {events.length === 0 ? (
-        <Card className="max-w-xl">
-          <h2 className="text-base font-semibold">{ev('noEvents.title')}</h2>
-          <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
-            {ev('noEvents.body')}
-          </p>
-          <div className="mt-4 w-fit min-w-56">
-            <Link
-              href={app.weddingSettings(weddingId)}
-              className="border-input hover:border-foreground inline-flex h-11 w-full items-center justify-center rounded-[var(--radius)] border px-4 text-sm font-medium"
-            >
-              {ev('noEvents.action')}
-            </Link>
-          </div>
-        </Card>
+        // Spec 0009 A2: the empty state makes the first day itself instead of sending the planner
+        // to Settings. With a wedding date that is one click on the main day; without one, the
+        // planner names a day here. Nothing is written until they click: see `page.tsx`.
+        mainDay.date ? (
+          <Card className="max-w-xl">
+            <h2 className="text-base font-semibold">{ev('noEvents.startTitle')}</h2>
+            <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
+              {ev('noEvents.startBody')}
+            </p>
+            <StartRunSheet
+              weddingId={weddingId}
+              locale={locale}
+              label={mainDay.label}
+              date={mainDay.date}
+            />
+          </Card>
+        ) : (
+          <Card className="max-w-xl">
+            <h2 className="text-base font-semibold">{ev('noEvents.title')}</h2>
+            <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
+              {ev('noEvents.body')}
+            </p>
+            <AddDayForm weddingId={weddingId} />
+          </Card>
+        )
       ) : (
         <>
           {events.length > 1 && (
-            <nav aria-label={t('days.label')} className="-mx-1 overflow-x-auto">
+            <nav aria-label={t('days.label')} className="-mx-1 overflow-x-auto print:hidden">
               <ul className="m-0 flex min-w-max list-none gap-1.5 p-0 px-1">
                 {events.map((e) => {
                   const active = e.id === selectedEvent?.id
@@ -158,14 +186,22 @@ export function RunSheetView({
                     </li>
                   )
                 })}
+                <li>
+                  <AddDayToggle
+                    open={addingDay}
+                    controls={addDayId}
+                    label={day('open')}
+                    onToggle={() => setAddingDay((o) => !o)}
+                  />
+                </li>
               </ul>
             </nav>
           )}
 
           {selectedEvent && (
-            <p
+            <div
               className={cx(
-                'text-muted-foreground flex flex-wrap items-center gap-x-2 text-sm',
+                'text-muted-foreground flex flex-wrap items-center gap-x-2 text-sm print:hidden',
                 events.length > 1 ? 'mt-3' : 'mt-1',
               )}
             >
@@ -176,11 +212,34 @@ export function RunSheetView({
               </time>
               <span aria-hidden="true">·</span>
               <span>{selectedEvent.startsAt ?? ev('noTime')}</span>
-            </p>
+              {/* One day draws no tab strip (SPEC), so its "add a day" sits on this line, where
+                  the strip's last tab would otherwise be. */}
+              {events.length === 1 && (
+                <span className="ml-auto">
+                  <AddDayToggle
+                    open={addingDay}
+                    controls={addDayId}
+                    label={day('open')}
+                    onToggle={() => setAddingDay((o) => !o)}
+                  />
+                </span>
+              )}
+            </div>
+          )}
+
+          {addingDay && (
+            <div className="print:hidden">
+              <AddDayForm
+                id={addDayId}
+                weddingId={weddingId}
+                focusOnOpen
+                onClose={() => setAddingDay(false)}
+              />
+            </div>
           )}
 
           {moveError && (
-            <div className="mt-3">
+            <div className="mt-3 print:hidden">
               <InlineError>{t('errors.failed')}</InlineError>
             </div>
           )}
@@ -197,8 +256,17 @@ export function RunSheetView({
                 </div>
               </Card>
             ) : (
-              <div className="mt-5">
-                <div className="mb-3 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="mt-5 print:mt-0">
+                <PrintSheet
+                  schedule={schedule}
+                  event={selectedEvent}
+                  locale={locale}
+                  coupleName={coupleName}
+                  studioName={studioName}
+                  list={list}
+                  pr={pr}
+                />
+                <div className="mb-3 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between print:hidden">
                   <p className="text-muted-foreground text-sm">
                     {list('summary', {
                       count: items.length,
@@ -206,14 +274,17 @@ export function RunSheetView({
                       to: schedule[schedule.length - 1]?.endClock ?? '',
                     })}
                   </p>
-                  <div className="w-full sm:w-fit sm:min-w-44">
-                    <Button onClick={() => setSheetItem('new')}>{list('add')}</Button>
+                  <div className="flex w-full items-center gap-2.5 sm:w-fit">
+                    <PrintButton label={pr('action')} />
+                    <div className="flex-1 sm:min-w-44">
+                      <Button onClick={() => setSheetItem('new')}>{list('add')}</Button>
+                    </div>
                   </div>
                 </div>
 
                 {/* Desktop: a real table, one row per item, a warning as a full-width row before
                     the row it applies to. */}
-                <div className="hidden md:block">
+                <div className="hidden md:block print:hidden">
                   <Table caption={list('caption', { event: selectedEvent.label })}>
                     <TableHead>
                       <tr>
@@ -278,7 +349,7 @@ export function RunSheetView({
 
                 {/* Phone: a stacked list, the whole row a button; reorder moves to the editor's
                     own buttons there (SPEC), so the row stays uncluttered. */}
-                <ul className="border-border bg-card divide-y overflow-hidden rounded-[var(--radius-container)] border md:hidden">
+                <ul className="border-border bg-card divide-y overflow-hidden rounded-[var(--radius-container)] border md:hidden print:hidden">
                   {schedule.map((row, i) => (
                     <li
                       key={row.item.id}
@@ -441,4 +512,123 @@ function DayMark({ day, label }: { day: number; label: string }) {
       <span className="sr-only"> ({label})</span>
     </>
   )
+}
+
+/**
+ * "+ Dag toevoegen" (spec 0009 A2): the end of the day tabs, opening the same form the empty state
+ * shows. A button and not a link, so it sits in the strip without pretending to be a day.
+ */
+function AddDayToggle({
+  open,
+  controls,
+  label,
+  onToggle,
+}: {
+  open: boolean
+  controls: string
+  label: string
+  onToggle: () => void
+}) {
+  return (
+    <button
+      type="button"
+      aria-expanded={open}
+      aria-controls={open ? controls : undefined}
+      onClick={onToggle}
+      className="text-muted-foreground hover:bg-muted focus-visible:outline-ring border-input inline-flex h-[var(--control-h)] cursor-pointer items-center gap-1.5 rounded-full border border-dashed px-3.5 text-sm outline-none focus-visible:outline-2"
+    >
+      <span aria-hidden="true">+</span>
+      {label}
+    </button>
+  )
+}
+
+/**
+ * The sheet as it goes to the venue (spec 0009 A3): a header line, then one row per item with its
+ * start, end, what, who and where. No warnings, no tints, no buttons; black on white.
+ *
+ * Its own markup rather than `print:` variants on the screen table: paper wants an end column the
+ * screen does not have and drops the length and order columns it does, and on a phone-width
+ * print the screen table is the hidden one (`hidden md:block`). Bending one table into both would
+ * mean a `print:` class on every cell; this is one short table that only paper reads.
+ *
+ * `hidden print:block` keeps it off the screen. `aria-hidden` because it repeats the table above
+ * word for word and is never a thing to navigate -- which also keeps it out of a role query in
+ * jsdom, where no stylesheet loads and `hidden` would otherwise leave two tables to find.
+ */
+function PrintSheet({
+  schedule,
+  event,
+  locale,
+  coupleName,
+  studioName,
+  list,
+  pr,
+}: {
+  schedule: ScheduleRow<RunSheetItem>[]
+  event: WeddingEvent
+  locale: string
+  coupleName: string
+  studioName: string
+  list: Translate
+  pr: Translate
+}) {
+  const plusDay = (day: number) => (day > 0 ? ` +${day}` : '')
+  return (
+    <section aria-hidden="true" data-print-sheet className="hidden bg-white text-black print:block">
+      <p className="mb-3 flex flex-wrap gap-x-2 border-b border-black pb-2 text-sm">
+        <span className="font-semibold">{coupleName}</span>
+        <span>·</span>
+        <span>
+          {event.label} {formatCivilDate(locale, event.startsOn)}
+        </span>
+        {studioName ? (
+          <>
+            <span>·</span>
+            <span>{studioName}</span>
+          </>
+        ) : null}
+      </p>
+      <table className="w-full border-collapse text-[12px]">
+        <thead>
+          <tr className="border-b border-black text-left">
+            <th className="py-1 pr-3 font-semibold">{pr('colStart')}</th>
+            <th className="py-1 pr-3 font-semibold">{pr('colEnd')}</th>
+            <th className="py-1 pr-3 font-semibold">{list('colWhat')}</th>
+            <th className="py-1 pr-3 font-semibold">{list('colWho')}</th>
+            <th className="py-1 font-semibold">{list('colWhere')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {schedule.map((row) => (
+            <tr key={row.item.id} className="break-inside-avoid border-b border-black/40 align-top">
+              <td className="py-1 pr-3 font-mono tabular-nums">
+                {row.item.startsAt}
+                {plusDay(row.startDay)}
+              </td>
+              <td className="py-1 pr-3 font-mono tabular-nums">
+                {row.endClock}
+                {plusDay(row.endDay)}
+              </td>
+              <td className="py-1 pr-3">{row.item.title}</td>
+              <td className="py-1 pr-3">{printWho(row.item, list('planner'))}</td>
+              <td className="py-1">{row.item.place ?? ''}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+  )
+}
+
+/**
+ * `whoOf` with the vendor's phone beside its name: on paper there is no vendor page one click
+ * away, and the venue coordinator ringing a late caterer is what the sheet is printed for.
+ */
+function printWho(item: RunSheetItem, planner: string): string {
+  const vendor =
+    item.vendorName && item.vendorPhone
+      ? `${item.vendorName} (${item.vendorPhone})`
+      : item.vendorName
+  return [vendor, item.ownerName].filter((x) => x).join(' · ') || planner
 }

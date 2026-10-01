@@ -20,3 +20,17 @@ export function formatCivilDate(
     timeZone: 'UTC',
   }).format(new Date(`${iso}T00:00:00Z`))
 }
+
+/**
+ * A civil date as a short day name, "za 3 okt": the weekday is what a planner checks a date
+ * against ("the Saturday, yes"), and the year is noise on a button about one wedding's day.
+ * UTC for the reason above.
+ */
+export function formatCivilDay(locale: string, iso: string): string {
+  return new Intl.DateTimeFormat(locale, {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  }).format(new Date(`${iso}T00:00:00Z`))
+}

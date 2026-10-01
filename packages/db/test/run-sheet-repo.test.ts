@@ -76,6 +76,25 @@ describe('getRunSheet', () => {
     expect(data?.vendors.map((v) => v.id)).toEqual([F.wedVendorA1])
   })
 
+  it("carries the vendor's phone beside its name, and the wedding's own language (spec 0009)", async () => {
+    await seedExec(`update vendors set phone = '+32 470 12 34 56' where id = $1`, [F.vendorA])
+    await seedExec(`update weddings set locale_default = 'fr' where id = $1`, [A1])
+    const scope = WeddingScope.of(h.db, owner, F.orgA, A1)
+    const made = await createRunSheetItem(
+      scope,
+      F.eventA1,
+      input({ weddingVendorId: F.wedVendorA1 }),
+    )
+    if (!made.ok) throw new Error('setup: the item was not created')
+    const data = await getRunSheet(scope)
+    expect(data?.items.find((i) => i.id === made.value.id)).toMatchObject({
+      vendorName: 'Traiteur A',
+      vendorPhone: '+32 470 12 34 56',
+    })
+    expect(data?.items.find((i) => i.id === F.runItemA1)?.vendorPhone).toBeNull()
+    expect(data?.locale).toBe('fr')
+  })
+
   it('is null for a wedding the caller cannot see: another org, unassigned member, couple', async () => {
     expect(await getRunSheet(WeddingScope.of(h.db, otherOrgOwner, F.orgA, A1))).toBeNull()
     expect(await getRunSheet(WeddingScope.of(h.db, member, F.orgA, A2))).toBeNull()

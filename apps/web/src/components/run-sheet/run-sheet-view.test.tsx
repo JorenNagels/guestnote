@@ -1,5 +1,5 @@
 import type { RunSheetItem, RunSheetOwner, WeddingEvent } from '@guestnote/db'
-import { cleanup, fireEvent, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { RunSheetView } from './run-sheet-view.tsx'
 import { renderWithCopy } from './test-support.tsx'
@@ -13,6 +13,13 @@ vi.mock('../../app/pro/(app)/weddings/[id]/run-sheet/actions.ts', () => ({
   removeRunSheetItem: (...a: unknown[]) => removeRunSheetItem(...a),
   shiftRunSheetItem: (...a: unknown[]) => shiftRunSheetItem(...a),
 }))
+
+const saveEventAction = vi.fn()
+const push = vi.fn()
+vi.mock('../../app/pro/(app)/weddings/[id]/settings/actions.ts', () => ({
+  saveEventAction: (...a: unknown[]) => saveEventAction(...a),
+}))
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push }) }))
 
 const W = '0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b'
 
@@ -31,6 +38,7 @@ const item = (over: Partial<RunSheetItem> & Pick<RunSheetItem, 'id' | 'title'>):
   place: null,
   weddingVendorId: null,
   vendorName: null,
+  vendorPhone: null,
   ownerUserId: null,
   ownerName: null,
   position: 0,
@@ -44,6 +52,7 @@ function view(over: {
   owners?: RunSheetOwner[]
   viewerId?: string | null
   color?: string | null
+  mainDay?: { label: string; date: string | null }
 }) {
   const events = over.events ?? [event({ id: 'e1', label: 'Ceremony' })]
   return renderWithCopy(
@@ -57,6 +66,9 @@ function view(over: {
       owners={over.owners ?? []}
       viewerId={over.viewerId ?? null}
       color={over.color ?? null}
+      mainDay={over.mainDay ?? { label: 'Trouwdag', date: null }}
+      coupleName="Els & Jan"
+      studioName="Studio Lore"
     />,
   )
 }
@@ -65,17 +77,23 @@ beforeEach(() => {
   saveRunSheetItem.mockReset().mockResolvedValue({ ok: true })
   removeRunSheetItem.mockReset().mockResolvedValue({ ok: true })
   shiftRunSheetItem.mockReset().mockResolvedValue({ ok: true })
+  saveEventAction.mockReset().mockResolvedValue({ notice: 'saved', eventId: 'e-new' })
+  push.mockReset()
 })
 afterEach(cleanup)
 
 describe('RunSheetView', () => {
-  it('no events: one card, a link to settings, no tabs and no table', () => {
-    view({ events: [] })
+  it('no events and no date: the add-a-day form in the card, no tabs and no table', () => {
+    view({ events: [], mainDay: { label: 'Trouwdag', date: null } })
     expect(screen.getByRole('heading', { name: 'No day to make a run sheet for yet' })).toBeTruthy()
-    expect(screen.getByRole('link', { name: 'Go to settings' })).toHaveAttribute(
-      'href',
-      `/weddings/${W}/settings`,
-    )
+    const form = screen.getByRole('form', { name: 'Add a day' })
+    expect(within(form).getByLabelText('Name')).toBeTruthy()
+    expect(within(form).getByLabelText('Date')).toBeTruthy()
+    expect(within(form).getByLabelText('Time (optional)')).toBeTruthy()
+    // Nothing to go back to: the form IS the empty state.
+    expect(within(form).queryByRole('button', { name: 'Cancel' })).toBeNull()
+    // No date, so no one-click start: it would have nothing to put the day on.
+    expect(screen.queryByRole('button', { name: /Start the run sheet/ })).toBeNull()
     expect(screen.queryByRole('table')).toBeNull()
     expect(screen.queryByRole('navigation')).toBeNull()
   })
@@ -227,5 +245,167 @@ describe('run-sheet owners', () => {
       'i2',
       expect.objectContaining({ ownerUserId: ME }),
     )
+  })
+})
+
+/**
+ * Spec 0009 A2: the run sheet makes its own first day. Both paths post through the settings
+ * page's `saveEventAction`, mocked here, so what is asserted is what the view sends and where it
+ * goes after, not the write itself (`settings/actions.test.ts` covers that).
+ */
+describe('starting the run sheet (spec 0009 A2)', () => {
+  const posted = () => saveEventAction.mock.calls[0]?.[2] as FormData
+
+  it('with a date and no days: one button, naming the short day, creating the main day', async () => {
+    view({ events: [], mainDay: { label: 'Trouwdag', date: '2026-10-03' } })
+    expect(screen.getByRole('heading', { name: 'No run sheet yet' })).toBeTruthy()
+    // The form is the no-date path; with a date the one click is the whole offer.
+    expect(screen.queryByRole('form', { name: 'Add a day' })).toBeNull()
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Start the run sheet for Sat, Oct 3' }))
+    })
+    expect(saveEventAction).toHaveBeenCalledTimes(1)
+    expect(saveEventAction.mock.calls[0]?.[0]).toBe(W)
+    // The label arrives already in the wedding's language (Dutch here, the screen English).
+    expect(posted().get('label')).toBe('Trouwdag')
+    expect(posted().get('startsOn')).toBe('2026-10-03')
+    expect(posted().get('eventId')).toBe('')
+    expect(posted().get('intent')).toBe('save')
+    expect(push).toHaveBeenCalledWith(`/weddings/${W}/run-sheet?event=e-new`)
+  })
+
+  it('offers no start button once the wedding has a day', () => {
+    view({ mainDay: { label: 'Trouwdag', date: '2026-10-03' } })
+    expect(screen.queryByRole('button', { name: /Start the run sheet/ })).toBeNull()
+  })
+
+  it('a refused start says so and goes nowhere', async () => {
+    saveEventAction.mockResolvedValue({ form: 'forbidden' })
+    view({ events: [], mainDay: { label: 'Trouwdag', date: '2026-10-03' } })
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Start the run sheet/ }))
+    })
+    expect(screen.getByRole('alert').textContent).toContain('That did not work')
+    expect(push).not.toHaveBeenCalled()
+  })
+
+  it('without a date, the form posts the day through the event action and lands on it', async () => {
+    view({ events: [], mainDay: { label: 'Trouwdag', date: null } })
+    const form = screen.getByRole('form', { name: 'Add a day' })
+    fireEvent.change(within(form).getByLabelText('Name'), { target: { value: 'Brunch' } })
+    fireEvent.change(within(form).getByLabelText('Date'), { target: { value: '2027-06-13' } })
+    await act(async () => {
+      fireEvent.click(within(form).getByRole('button', { name: 'Add the day' }))
+    })
+    expect(saveEventAction.mock.calls[0]?.[0]).toBe(W)
+    expect(posted().get('label')).toBe('Brunch')
+    expect(posted().get('startsOn')).toBe('2027-06-13')
+    expect(posted().get('eventId')).toBe('')
+    expect(push).toHaveBeenCalledWith(`/weddings/${W}/run-sheet?event=e-new`)
+  })
+
+  it("shows the action's field error under the field and keeps the planner's draft", async () => {
+    saveEventAction.mockResolvedValue({
+      errors: { startsOn: 'required' },
+      values: { label: 'Brunch', startsOn: '', startsAt: '' },
+    })
+    view({ events: [], mainDay: { label: 'Trouwdag', date: null } })
+    const form = screen.getByRole('form', { name: 'Add a day' })
+    await act(async () => {
+      fireEvent.click(within(form).getByRole('button', { name: 'Add the day' }))
+    })
+    expect(within(form).getByLabelText('Date')).toHaveAttribute('aria-invalid', 'true')
+    expect(within(form).getByText('Fill this in.')).toBeTruthy()
+    expect(within(form).getByLabelText('Name')).toHaveValue('Brunch')
+    expect(push).not.toHaveBeenCalled()
+  })
+
+  it('the day tabs end with "Add a day", which opens the same form and closes on Cancel', () => {
+    view({
+      events: [
+        event({ id: 'e1', label: 'Ceremony' }),
+        event({ id: 'e2', label: 'Reception', startsOn: '2027-06-13' }),
+      ],
+    })
+    const nav = screen.getByRole('navigation', { name: 'Days of the wedding' })
+    const toggle = within(nav).getByRole('button', { name: 'Add a day' })
+    // Last in the strip, after the day links.
+    expect(nav.querySelector('li:last-child')?.contains(toggle)).toBe(true)
+    expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('form', { name: 'Add a day' })).toBeNull()
+
+    fireEvent.click(toggle)
+    expect(toggle).toHaveAttribute('aria-expanded', 'true')
+    const form = screen.getByRole('form', { name: 'Add a day' })
+    expect(toggle).toHaveAttribute('aria-controls', form.id)
+    expect(document.activeElement).toBe(within(form).getByLabelText('Name'))
+
+    fireEvent.click(within(form).getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByRole('form', { name: 'Add a day' })).toBeNull()
+  })
+
+  it('one day has no tab strip, and still offers "Add a day"', () => {
+    view({})
+    expect(screen.queryByRole('navigation')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Add a day' }))
+    expect(screen.getByRole('form', { name: 'Add a day' })).toBeTruthy()
+  })
+})
+
+/**
+ * Spec 0009 A3. The print layout is CSS (`print:` variants), which jsdom does not apply, so these
+ * assert the markup paper is built from and the classes that switch it, not a rendered page.
+ */
+describe('printing the run sheet (spec 0009 A3)', () => {
+  const rows = () => [
+    item({
+      id: 'i1',
+      title: 'Dinner',
+      startsAt: '14:00',
+      durationMin: 30,
+      vendorName: 'Traiteur A',
+      vendorPhone: '+32 470 12 34 56',
+      ownerName: 'Katrien',
+      place: 'Orangerie',
+    }),
+    item({ id: 'i2', title: 'Toast', startsAt: '23:50', durationMin: 20, vendorName: 'DJ B' }),
+  ]
+  const printSheet = () => document.querySelector('[data-print-sheet]') as HTMLElement
+
+  it('a Print button opens the browser print dialog', () => {
+    const print = vi.spyOn(window, 'print').mockImplementation(() => {})
+    view({ items: rows() })
+    fireEvent.click(screen.getByRole('button', { name: 'Print' }))
+    expect(print).toHaveBeenCalledTimes(1)
+    print.mockRestore()
+  })
+
+  it('offers no Print button for a day with nothing on it', () => {
+    view({ items: [] })
+    expect(screen.queryByRole('button', { name: 'Print' })).toBeNull()
+  })
+
+  it('has a print-only header: the couple, the day and its date, the studio', () => {
+    view({ items: rows() })
+    const sheet = printSheet()
+    expect(sheet.className.split(' ')).toEqual(expect.arrayContaining(['hidden', 'print:block']))
+    const header = sheet.querySelector('p') as HTMLElement
+    expect(header.textContent).toBe('Els & Jan·Ceremony June 12, 2027·Studio Lore')
+  })
+
+  it('prints start, end, what, who with the vendor phone, and where; screen rows stay off paper', () => {
+    view({ items: rows() })
+    const cells = Array.from(printSheet().querySelectorAll('tbody tr')).map((tr) =>
+      Array.from(tr.querySelectorAll('td')).map((td) => td.textContent),
+    )
+    expect(cells).toEqual([
+      ['14:00', '14:30', 'Dinner', 'Traiteur A (+32 470 12 34 56) · Katrien', 'Orangerie'],
+      // Ends after midnight: the end carries the day mark, the start does not.
+      ['23:50', '00:10 +1', 'Toast', 'DJ B', ''],
+    ])
+    // The screen table and the phone list, warnings and buttons with them, do not print.
+    expect(screen.getByRole('table').closest('.print\\:hidden')).not.toBeNull()
+    expect(screen.getByRole('button', { name: 'Print' }).closest('.print\\:hidden')).not.toBeNull()
   })
 })

@@ -2,7 +2,20 @@
 
 **Date:** 2026-09-21 · **Status:** Built 2026-09-21 · **Parent:** `docs/specs/0003-planner-app-screens.md`, row S9
 
-Nothing here contradicts spec 0003, except the owner tint spec 0004 added (2026-09-24), which amends 0003's colour rule. Prototype range: `design-system/planner-prototype/INDEX.md`, "Run sheet".
+Nothing here contradicts spec 0003, except the owner tint spec 0004 added (2026-09-24), which amends 0003's colour rule.
+
+**Amended 2026-10-02, spec 0009 A2/A3:** the run sheet makes its own days and prints. With a
+wedding date and no days, the empty state is one button, "Draaiboek starten voor za 3 okt", which
+creates a day named after the main day in the wedding's `locale_default` (Trouwdag / Wedding day /
+Jour du mariage) on `weddings.wedding_date` and lands on it (`?event=<id>`). Without a date it is
+an inline "add a day" form (name, date, optional time) instead of a link to Settings. The day tabs
+end with "+ Dag toevoegen", which opens the same form; with one day, and so no tab strip, it sits
+at the end of the day's name line. All of it posts through Settings' `saveEventAction`, which now
+hands back the new event's id; nothing is written during a GET. A **Print** button
+(`window.print()`) sits beside "Onderdeel toevoegen" once a day has items; on paper the shell,
+wedding header and tabs, buttons, warnings and tints are gone, and a print-only block shows a
+header line (couple · day and date · studio) and one row per item with start, end, what, who and
+where, the vendor's directory phone in brackets beside its name. Black on white. Prototype range: `design-system/planner-prototype/INDEX.md`, "Run sheet".
 
 ## Behaviour
 
@@ -38,7 +51,7 @@ Nothing here contradicts spec 0003, except the owner tint spec 0004 added (2026-
   wedding later still shows on the rows that named it, and can be kept when the row is edited.
 - Removed events (S1 soft delete) do not show. Their rows are kept, so removing an event stays undoable.
 - Every action checks membership itself (a Server Function is a POST to its own route).
-- Not built: print, PDF, CSV (spec 0003, "Not in scope"). The prototype's per-person tint was listed
+- Not built: PDF, CSV (spec 0003, "Not in scope"; print was built by spec 0009 A3, 2026-10-02). The prototype's per-person tint was listed
   here as not built for want of an owner column; built 2026-09-24 by spec 0004
   (`run_sheet_items.owner_user_id`, the "Verantwoordelijke" select, the viewer's rows tinted with the
   wedding colour at 12% into `--card`, dropped in print).
@@ -47,7 +60,8 @@ Nothing here contradicts spec 0003, except the owner tint spec 0004 added (2026-
 
 | State | Behaviour |
 |---|---|
-| No events | One card: "no days yet", a link to Settings where events are added. No add button |
+| No events, wedding has a date | One card and one button: start the run sheet on the main day (spec 0009) |
+| No events, no date | One card with the inline add-a-day form (spec 0009). No item button |
 | Event, no items | One card and one button "Eerste onderdeel toevoegen" |
 | One item | One row, no warnings |
 | Many | Rows with overlap and gap notes, a summary line (count, first to last time) |

@@ -7,9 +7,38 @@
     "noTime": "Nog geen uur",
     "noEvents": {
       "title": "Nog geen dag om een draaiboek voor te maken",
-      "body": "Een draaiboek hoort bij een dag van de bruiloft. Voeg eerst een dag toe in de instellingen, bijvoorbeeld de ceremonie of het feest.",
-      "action": "Naar de instellingen"
+      "body": "Een draaiboek hoort bij een dag van de bruiloft. Voeg hier de eerste dag toe, bijvoorbeeld de ceremonie of het feest.",
+      "startTitle": "Nog geen draaiboek",
+      "startBody": "Begin bij de trouwdag zelf. Een repetitiediner of een brunch de dag erna voeg je later toe als een dag apart.",
+      "start": "Draaiboek starten voor {day}",
+      "starting": "Bezig met starten…",
+      "failed": "Dat lukte niet. Er is niets veranderd. Probeer het zo opnieuw."
+    },
+    "mainDay": "Trouwdag"
+  },
+  "addDay": {
+    "open": "Dag toevoegen",
+    "title": "Een dag toevoegen",
+    "label": "Naam",
+    "labelPlaceholder": "Bijvoorbeeld ceremonie of brunch",
+    "date": "Datum",
+    "time": "Uur (niet verplicht)",
+    "save": "Dag toevoegen",
+    "saving": "Bezig met toevoegen…",
+    "cancel": "Annuleren",
+    "errors": {
+      "required": "Vul dit in.",
+      "tooLong": "Dat is te lang. Houd het onder 120 tekens.",
+      "invalidDate": "Kies een geldige datum.",
+      "invalidTime": "Vul een uur in, bijvoorbeeld 15:30.",
+      "forbidden": "Deze bruiloft bestaat niet meer of je kunt ze niet wijzigen. Vernieuw de pagina.",
+      "failed": "Opslaan lukte niet. Er is niets veranderd. Probeer het zo opnieuw."
     }
+  },
+  "print": {
+    "action": "Afdrukken",
+    "colStart": "Begin",
+    "colEnd": "Einde"
   },
   "list": {
     "caption": "Draaiboek van {event}",

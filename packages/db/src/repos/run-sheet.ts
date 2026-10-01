@@ -46,6 +46,12 @@ export type RunSheetItem = {
   readonly weddingVendorId: string | null
   /** The vendor's directory name, even if the vendor was later removed from the wedding. */
   readonly vendorName: string | null
+  /**
+   * The vendor's directory phone number, for the printed sheet (spec 0009 A3): the venue
+   * coordinator rings the caterer from the paper. Read in the join that already fetches the
+   * name, so it costs a column and not a query per row.
+   */
+  readonly vendorPhone: string | null
   /** The staff member who answers for the row (spec 0004), and their name or address. */
   readonly ownerUserId: string | null
   readonly ownerName: string | null
@@ -141,22 +147,35 @@ const ORDER = [asc(runSheetItems.position), asc(runSheetItems.startsAt), asc(run
  * Items of a soft-deleted event are left out by the join and kept in the table, so restoring
  * an event restores its sheet (S1's `listWeddingEvents` says the same from its side).
  */
-export async function getRunSheet(
-  scope: WeddingScope,
-): Promise<{ items: RunSheetItem[]; vendors: RunSheetVendor[]; owners: RunSheetOwner[] } | null> {
+export async function getRunSheet(scope: WeddingScope): Promise<{
+  items: RunSheetItem[]
+  vendors: RunSheetVendor[]
+  owners: RunSheetOwner[]
+  /**
+   * The wedding's `locale_default` (spec 0009 A2): the language the main day is named in when
+   * the run sheet starts it, which is the couple's and the vendors' language and not
+   * necessarily the planner's screen. Read from the wedding row this function already reads.
+   */
+  locale: string
+} | null> {
   const { db, weddingId } = scope
   const principal = scope.principal
   if (!principal) return null
 
   return withTenant(db, principal, async (tx) => {
-    const wedding = await tx
-      .select({ id: weddings.id })
+    const [wedding] = await tx
+      .select({ id: weddings.id, locale: weddings.localeDefault })
       .from(weddings)
       .where(and(eq(weddings.id, weddingId), isNull(weddings.deletedAt)))
-    if (wedding.length === 0) return null
+    if (!wedding) return null
 
     const rows = await tx
-      .select({ ...COLUMNS, vendorName: vendors.name, ownerName: personName })
+      .select({
+        ...COLUMNS,
+        vendorName: vendors.name,
+        vendorPhone: vendors.phone,
+        ownerName: personName,
+      })
       .from(runSheetItems)
       .innerJoin(
         weddingEvents,
@@ -185,6 +204,7 @@ export async function getRunSheet(
       items: rows.map((r) => ({ ...r, startsAt: r.startsAt.slice(0, 5) })),
       vendors: options,
       owners: await eligibleOwners(tx, principal, weddingId),
+      locale: wedding.locale,
     }
   })
 }

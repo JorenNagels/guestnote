@@ -47,7 +47,9 @@ export default async function WeddingLayout({
 
   return (
     <>
-      <div className="mx-auto max-w-5xl px-6 pt-8">
+      {/* `print:hidden`: a printed run sheet (spec 0009 A3) carries its own header line, and
+          the tabs are buttons on paper. The shell's sidebar and banners already hide. */}
+      <div className="mx-auto max-w-5xl px-6 pt-8 print:hidden">
         <WeddingHeader wedding={wedding} />
         <WeddingTabs weddingId={id} />
       </div>

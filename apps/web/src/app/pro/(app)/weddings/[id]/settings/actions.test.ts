@@ -101,15 +101,18 @@ describe('updateWeddingAction', () => {
 describe('saveEventAction', () => {
   const EVENT = { label: 'Receptie', startsOn: '2027-06-12', startsAt: '15:30' }
 
-  it('adds when there is no event id', async () => {
+  it('adds when there is no event id, and hands back the new id for the run sheet', async () => {
     const state = await saveEventAction(WID, {}, form({ ...EVENT, eventId: '', intent: 'save' }))
-    expect(state).toEqual({ notice: 'saved' })
+    expect(state).toEqual({ notice: 'saved', eventId: EID })
     expect(createWeddingEvent).toHaveBeenCalledTimes(1)
     expect(updateWeddingEvent).not.toHaveBeenCalled()
   })
 
   it('updates when there is one, scoped to this wedding', async () => {
-    await saveEventAction(WID, {}, form({ ...EVENT, eventId: EID, intent: 'save' }))
+    // No `eventId` back: the run sheet would read one as "a day was added, go to it".
+    expect(
+      await saveEventAction(WID, {}, form({ ...EVENT, eventId: EID, intent: 'save' })),
+    ).toEqual({ notice: 'saved' })
     expect(updateWeddingEvent.mock.calls[0]?.[0]).toMatchObject({ orgId: 'org-a', weddingId: WID })
     expect(updateWeddingEvent.mock.calls[0]?.[1]).toBe(EID)
     expect(createWeddingEvent).not.toHaveBeenCalled()

@@ -14,6 +14,11 @@ export type FormState = {
   readonly form?: 'forbidden' | 'failed'
   readonly notice?: 'saved' | 'removed'
   readonly values?: Readonly<Record<string, string>>
+  /**
+   * The event an add has just created (spec 0009 A2), so the run sheet can open that day's
+   * sheet. Settings ignores it: its blank row remounts empty and the new row appears above it.
+   */
+  readonly eventId?: string
 }
 
 export const EMPTY_FORM_STATE: FormState = {}
