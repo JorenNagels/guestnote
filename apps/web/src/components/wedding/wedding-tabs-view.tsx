@@ -15,26 +15,35 @@ import { app } from '../../lib/routes.ts'
  * what a screen reader announces correctly and what the browser's Back button already
  * understands. Rejected: `packages/ui`'s `Tabs`, for the same reason -- it is the other kind.
  *
- * The strip scrolls sideways on a phone rather than wrapping: nine short words wrap into three
+ * The strip scrolls sideways on a phone rather than wrapping: eight short words wrap into three
  * rows, and a planner on a venue floor wants the strip to stay one thumb tall.
+ *
+ * ## One Geld tab for two routes (spec 0009 A1)
+ *
+ * Budget and Betalingen were two tabs until 2026-10-02. They are one subject -- what it costs
+ * and what has been paid -- and with the sidebar's section rows gone the strip is the wedding's
+ * only menu, so it lost a word rather than gained one. `money` links to the budget and is current
+ * on both `/budget` and `/payments` (`wedding-tabs-nav.tsx` maps both segments to it); the
+ * two-link switch at the top of each page (`components/money/money-switch.tsx`) moves between
+ * them. Both routes stay, so links and bookmarks to either keep working. Rejected: merging the
+ * two pages into one, which would put two tables and two sheets on one screen for a change
+ * that is about the menu.
  */
 export type WeddingTab =
   | 'overview'
   | 'tasks'
-  | 'budget'
-  | 'payments'
+  | 'money'
   | 'vendors'
   | 'runSheet'
   | 'files'
   | 'moodboard'
   | 'settings'
 
-/** Order is the sidebar's, with Instellingen last because it is the rare one. */
+/** The order the sidebar's section rows had, with Instellingen last because it is the rare one. */
 const TABS: readonly { key: WeddingTab; href: (id: string) => string }[] = [
   { key: 'overview', href: app.wedding },
   { key: 'tasks', href: app.weddingTasks },
-  { key: 'budget', href: app.weddingBudget },
-  { key: 'payments', href: app.weddingPayments },
+  { key: 'money', href: app.weddingBudget },
   { key: 'vendors', href: app.weddingVendors },
   { key: 'runSheet', href: app.weddingRunSheet },
   { key: 'files', href: app.weddingFiles },

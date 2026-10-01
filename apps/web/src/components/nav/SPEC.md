@@ -21,6 +21,11 @@ under "2026-09-21, by spec 0003".
 - The row of the wedding you are inside is `aria-current="true"` with a stripe in its colour and
   the eight sections beneath it: Overzicht (exact), Checklist, Budget, Betalingen, Leveranciers,
   Draaiboek, Bestanden, Moodboard (prefix). A wedding that is not in the list gets no sections.
+  *(Amended 2026-10-02, spec 0009 A1: the eight section rows are gone, expanded, on the rail and
+  in the phone drawer -- the sidebar lists weddings only, and the open wedding's row keeps its
+  `aria-current` and stripe. The sections live in the tab strip under the wedding's heading, and
+  in the palette, which lists the open wedding's eight sections as a group headed by its name,
+  after the weddings and filtered by the same query. Still none for a wedding not in the list.)*
 - Colour is a dot or a stripe, never text and never behind text (spec 0003) -- except the viewer's own run-sheet rows, 12% into `--card` (spec 0004, 2026-09-24).
 - Rail: initials chip per wedding, aria-label on every target. Phone: the same sidebar in the drawer.
 - The middle of the sidebar scrolls; collapse and account stay put.

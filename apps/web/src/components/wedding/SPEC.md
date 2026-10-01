@@ -32,6 +32,10 @@ wedding 448-545 of `design-system/planner-prototype/Guestnote Planner.dc.html`.
   either itself any more, so a tab switch no longer blanks the header into its skeleton. First
   written as "later slices render `<WeddingTabs weddingId={id} current="budget" />` under their
   own heading".)*
+  *(Amended 2026-10-02, spec 0009 A1: eight tabs, not nine. Budget and Betalingen are one tab,
+  **Geld / Money / Argent** (`app.shell.nav.money`), current on both segments and linking to the
+  budget; the money pages switch between themselves. With the sidebar's section rows gone, the
+  strip is the wedding's one menu.)*
 - **Header** (`wedding-header.tsx`): colour dot, couple name, date with `T-42`, venue, status pill,
   then the strip.
 - **Overview** `/weddings/[id]`: four figures (days to go, open tasks with the late count, done of

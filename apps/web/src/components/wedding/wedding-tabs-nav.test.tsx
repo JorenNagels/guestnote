@@ -14,8 +14,7 @@ const { WeddingTabsNav, tabForSegment } = await import('./wedding-tabs-nav.tsx')
 const LABELS = {
   overview: 'Overzicht',
   tasks: 'Checklist',
-  budget: 'Budget',
-  payments: 'Betalingen',
+  money: 'Geld',
   vendors: 'Leveranciers',
   runSheet: 'Draaiboek',
   files: 'Bestanden',
@@ -27,6 +26,9 @@ describe('tabForSegment', () => {
   it.each([
     [null, 'overview'],
     ['tasks', 'tasks'],
+    // Both money routes are the one Geld tab (spec 0009 A1).
+    ['budget', 'money'],
+    ['payments', 'money'],
     ['run-sheet', 'runSheet'],
     ['settings', 'settings'],
     ['something-new', 'overview'],
@@ -39,11 +41,23 @@ describe('WeddingTabsNav', () => {
   it('marks the tab under the current segment, and moves with it', () => {
     segment = 'budget'
     const { rerender } = render(<WeddingTabsNav weddingId="w1" labels={LABELS} navLabel="Tabs" />)
-    expect(screen.getByRole('link', { name: 'Budget' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: 'Geld' })).toHaveAttribute('aria-current', 'page')
 
     segment = 'run-sheet'
     rerender(<WeddingTabsNav weddingId="w1" labels={LABELS} navLabel="Tabs" />)
     expect(screen.getByRole('link', { name: 'Draaiboek' })).toHaveAttribute('aria-current', 'page')
-    expect(screen.getByRole('link', { name: 'Budget' })).not.toHaveAttribute('aria-current')
+    expect(screen.getByRole('link', { name: 'Geld' })).not.toHaveAttribute('aria-current')
+  })
+
+  /**
+   * The payments route has no tab of its own any more, so it must light Geld and nothing else.
+   * Map `payments` to anything but `money` -- or drop it, which falls back to Overzicht -- and
+   * the planner on the payment schedule is told they are somewhere else.
+   */
+  it('keeps Geld current on the payments route, and only Geld', () => {
+    segment = 'payments'
+    render(<WeddingTabsNav weddingId="w1" labels={LABELS} navLabel="Tabs" />)
+    const current = screen.getAllByRole('link').filter((a) => a.hasAttribute('aria-current'))
+    expect(current.map((a) => a.textContent)).toEqual(['Geld'])
   })
 })

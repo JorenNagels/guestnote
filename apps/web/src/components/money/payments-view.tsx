@@ -21,6 +21,7 @@ import {
 } from '../../lib/money.ts'
 import type { MoneyError } from '../../lib/money-types.ts'
 import { app } from '../../lib/routes.ts'
+import { MoneySwitch } from './money-switch.tsx'
 import { PaymentSheet } from './payment-sheet.tsx'
 
 type SheetState = { payment: PaymentRow | null } | null
@@ -87,24 +88,17 @@ export function PaymentsView({
 
   return (
     <div className="mx-auto max-w-5xl px-6 pt-6 pb-8">
-      <header className="flex flex-wrap items-end justify-between gap-4">
+      <MoneySwitch weddingId={weddingId} current="payments" />
+      <header className="mt-4 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold tracking-tight">{t('title')}</h2>
           <p className="text-muted-foreground mt-1 text-sm">{t('subtitle')}</p>
         </div>
-        <div className="flex gap-2">
-          <Link
-            href={app.weddingBudget(weddingId)}
-            className="border-input hover:border-foreground inline-flex h-11 items-center rounded-[var(--radius)] border px-4 text-sm font-medium"
-          >
-            {t('toBudget')}
-          </Link>
-          {lines.length > 0 && payments.length > 0 && (
-            <div className="w-fit min-w-48">
-              <Button onClick={() => setSheet({ payment: null })}>{t('add')}</Button>
-            </div>
-          )}
-        </div>
+        {lines.length > 0 && payments.length > 0 && (
+          <div className="w-fit min-w-48">
+            <Button onClick={() => setSheet({ payment: null })}>{t('add')}</Button>
+          </div>
+        )}
       </header>
 
       {lines.length === 0 ? (

@@ -5,8 +5,7 @@ import { WeddingTabsView } from './wedding-tabs.tsx'
 const LABELS = {
   overview: 'Overzicht',
   tasks: 'Checklist',
-  budget: 'Budget',
-  payments: 'Betalingen',
+  money: 'Geld',
   vendors: 'Leveranciers',
   runSheet: 'Draaiboek',
   files: 'Bestanden',
@@ -27,8 +26,9 @@ describe('WeddingTabsView', () => {
     expect(hrefs).toEqual({
       Overzicht: '/weddings/w1',
       Checklist: '/weddings/w1/tasks',
-      Budget: '/weddings/w1/budget',
-      Betalingen: '/weddings/w1/payments',
+      // One tab for both money routes, opening on the budget (spec 0009 A1). The payments
+      // route is reached from the switch on the budget page, not from here.
+      Geld: '/weddings/w1/budget',
       Leveranciers: '/weddings/w1/vendors',
       Draaiboek: '/weddings/w1/run-sheet',
       Bestanden: '/weddings/w1/files',
@@ -38,9 +38,9 @@ describe('WeddingTabsView', () => {
   })
 
   it('marks exactly the current screen', () => {
-    renderTabs('budget')
+    renderTabs('money')
     const current = screen.getAllByRole('link').filter((a) => a.hasAttribute('aria-current'))
-    expect(current.map((a) => a.textContent)).toEqual(['Budget'])
+    expect(current.map((a) => a.textContent)).toEqual(['Geld'])
     expect(current[0]?.getAttribute('aria-current')).toBe('page')
   })
 })

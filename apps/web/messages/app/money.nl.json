@@ -1,4 +1,9 @@
 {
+  "switch": {
+    "label": "Geld",
+    "budget": "Budget",
+    "payments": "Betalingen"
+  },
   "budget": {
     "title": "Budget",
     "subtitle": "Wat is toegekend, wat is uitgegeven en wat is al betaald.",
@@ -28,7 +33,6 @@
     "edit": "Bewerk",
     "editLine": "Bewerk {label}",
     "add": "Regel toevoegen",
-    "toPayments": "Betaalschema",
     "emptyTitle": "Nog geen budgetregels",
     "emptyBody": "Zet de eerste kost erin, bijvoorbeeld de zaal of de catering. Het totaal en de voortgang per categorie rekenen zichzelf uit.",
     "emptyAction": "Eerste regel toevoegen"
@@ -69,7 +73,6 @@
     "amount": "Bedrag",
     "actions": "Acties",
     "add": "Betaling toevoegen",
-    "toBudget": "Budget",
     "markPaid": "Markeer als betaald",
     "markUnpaid": "Markeer als niet betaald",
     "markPaidFor": "Markeer {payee} als betaald",

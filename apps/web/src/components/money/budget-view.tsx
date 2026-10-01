@@ -11,12 +11,11 @@ import {
   TableHead,
   TableHeaderCell,
 } from '@guestnote/ui/table'
-import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { Fragment, useState } from 'react'
 import { budgetTotals, formatCents, groupByCategory, moneyLocale } from '../../lib/money.ts'
-import { app } from '../../lib/routes.ts'
 import { LineSheet } from './line-sheet.tsx'
+import { MoneySwitch } from './money-switch.tsx'
 
 type SheetState = { line: BudgetLine | null; category: string } | null
 
@@ -64,24 +63,17 @@ export function BudgetView({
 
   return (
     <div className="mx-auto max-w-5xl px-6 pt-6 pb-8">
-      <header className="flex flex-wrap items-end justify-between gap-4">
+      <MoneySwitch weddingId={weddingId} current="budget" />
+      <header className="mt-4 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold tracking-tight">{t('title')}</h2>
           <p className="text-muted-foreground mt-1 text-sm">{t('subtitle')}</p>
         </div>
-        <div className="flex gap-2">
-          <Link
-            href={app.weddingPayments(weddingId)}
-            className="border-input hover:border-foreground inline-flex h-11 items-center rounded-[var(--radius)] border px-4 text-sm font-medium"
-          >
-            {t('toPayments')}
-          </Link>
-          {lines.length > 0 && (
-            <div className="w-fit min-w-44">
-              <Button onClick={() => setSheet({ line: null, category: '' })}>{t('add')}</Button>
-            </div>
-          )}
-        </div>
+        {lines.length > 0 && (
+          <div className="w-fit min-w-44">
+            <Button onClick={() => setSheet({ line: null, category: '' })}>{t('add')}</Button>
+          </div>
+        )}
       </header>
 
       {lines.length === 0 ? (

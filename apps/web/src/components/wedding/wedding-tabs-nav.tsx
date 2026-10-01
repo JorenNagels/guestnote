@@ -14,8 +14,9 @@ import { type WeddingTab, type WeddingTabLabels, WeddingTabsView } from './weddi
  */
 const BY_SEGMENT: Readonly<Record<string, WeddingTab>> = {
   tasks: 'tasks',
-  budget: 'budget',
-  payments: 'payments',
+  // Both money routes light the one Geld tab (spec 0009 A1).
+  budget: 'money',
+  payments: 'money',
   vendors: 'vendors',
   'run-sheet': 'runSheet',
   files: 'files',

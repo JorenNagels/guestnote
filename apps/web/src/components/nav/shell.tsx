@@ -34,7 +34,7 @@ import {
 } from './icons.tsx'
 import { NavAction, NavItem } from './nav-item.tsx'
 import { OrgHead, type OrgOption } from './org-head.tsx'
-import { Palette, type PaletteLabels } from './palette.tsx'
+import { Palette, type PaletteLabels, type PaletteSection } from './palette.tsx'
 import { type ShellWedding, WeddingRow, type WeddingRowLabels } from './wedding-row.tsx'
 
 export type { ShellWedding } from './wedding-row.tsx'
@@ -54,6 +54,7 @@ export type ShellLabels = {
   /** The heading over the wedding rows. Not `weddings`: two identical words a row apart. */
   weddingsSection: string
   newWedding: string
+  /** The open wedding's sections, which the palette lists (spec 0009 A1; no longer the sidebar). */
   wedding: {
     overview: string
     checklist: string
@@ -246,6 +247,14 @@ export function Shell({
     (a, b) => Number(a.status === 'archived') - Number(b.status === 'archived'),
   )
 
+  // The open wedding's sections, for the palette. Only for a wedding in the list, as the
+  // sidebar's section rows were: the list is what this principal may see, and a URL naming
+  // any other wedding answers 404 -- the palette must not offer its sections as if it existed.
+  const open = weddingId === null ? undefined : weddings.find((w) => w.id === weddingId)
+  const sections: PaletteSection | null = open
+    ? { name: open.name, items: weddingSections(open.id, labels.wedding) }
+    : null
+
   const orgItems = [
     // Not `exact`, and safe: `NavItem` matches a prefix as `${href}/`, which for `/` is `//`, so
     // this lights on `/` alone. A bare `startsWith('/')` would light it on every page --
@@ -317,7 +326,7 @@ export function Shell({
       <div className="mt-1 flex flex-col gap-0.5">
         {/* Search is a sidebar row rather than a header field: there is no header band on
             this surface by decision, and one search implementation beats two. */}
-        <Palette labels={labels.palette} collapsed={collapsed} />
+        <Palette labels={labels.palette} collapsed={collapsed} sections={sections} />
       </div>
 
       {/* Everything that can outgrow the screen scrolls here, and the collapse row and the
@@ -346,48 +355,26 @@ export function Shell({
           </p>
         )}
 
+        {/* Weddings only, and no section rows under the open one (spec 0009 A1). They were
+            listed here from spec 0003 until 2026-10-02, which drew every section twice on one
+            screen -- here and in the tab strip under the wedding's heading -- and pushed the
+            other weddings down by eight rows the moment you opened one. The tabs won:
+            they carry Instellingen, sit beside the content they switch, and leave this list
+            for switching weddings. Rejected: keeping these and dropping the tabs. The keyboard
+            route to a section is the palette, which lists the open wedding's sections. */}
         <ul className="flex flex-col gap-0.5">
-          {ordered.map((w) => {
-            const current = w.id === weddingId
-            return (
-              <li key={w.id}>
-                <WeddingRow
-                  wedding={w}
-                  current={current}
-                  collapsed={collapsed}
-                  locale={locale}
-                  labels={labels.row}
-                  onNavigate={() => setDrawer(false)}
-                />
-                {/* The sections of the wedding you are in, and only that one: eight rows per
-                    wedding would be a sidebar of sections and no weddings. Every section is a
-                    real screen -- a stub still answers, which is why they are listed rather
-                    than omitted as `docs/specs/0001` first did. */}
-                {current ? (
-                  <ul
-                    aria-label={w.name}
-                    className={cx(
-                      'mt-0.5 mb-1 flex flex-col gap-0.5',
-                      collapsed ? null : 'border-border ml-3 border-l pl-1.5',
-                    )}
-                  >
-                    {weddingItems(w.id, labels.wedding).map((item) => (
-                      <li key={item.key}>
-                        <NavItem
-                          href={item.href}
-                          icon={item.icon}
-                          label={item.label}
-                          collapsed={collapsed}
-                          exact={item.exact}
-                          onNavigate={() => setDrawer(false)}
-                        />
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </li>
-            )
-          })}
+          {ordered.map((w) => (
+            <li key={w.id}>
+              <WeddingRow
+                wedding={w}
+                current={w.id === weddingId}
+                collapsed={collapsed}
+                locale={locale}
+                labels={labels.row}
+                onNavigate={() => setDrawer(false)}
+              />
+            </li>
+          ))}
         </ul>
 
         <NavItem
@@ -573,63 +560,64 @@ export function Shell({
 }
 
 /**
- * The sections inside one wedding, in the order a planner works through them.
+ * The sections inside one wedding, in the order a planner works through them -- as palette
+ * destinations since spec 0009 A1 took them out of the sidebar.
  *
- * Overview is `exact` because every other section's path sits under it. The rest are prefix
- * matches so a task open at `/tasks/<id>` still marks the checklist -- which is the first
- * caller `NavItem`'s prefix branch has ever had.
+ * Budget and Betalingen stay two entries here although the tab strip merged them into one
+ * Geld tab: the palette is typed into, and a planner who types "betal" means the payment
+ * schedule, not the budget the Geld tab opens on. Instellingen is not here because it never
+ * was in the sidebar either; it is one tab away from any of these.
  */
-function weddingItems(id: string, l: ShellLabels['wedding']) {
+function weddingSections(id: string, l: ShellLabels['wedding']): PaletteSection['items'] {
+  const icon = 'size-4 shrink-0 opacity-70'
   return [
     {
       key: 'overview',
       href: app.wedding(id),
-      icon: <OverviewIcon />,
+      icon: <OverviewIcon className={icon} />,
       label: l.overview,
-      exact: true,
     },
     {
       key: 'checklist',
       href: app.weddingTasks(id),
-      icon: <ChecklistIcon />,
+      icon: <ChecklistIcon className={icon} />,
       label: l.checklist,
-      exact: false,
     },
     {
       key: 'budget',
       href: app.weddingBudget(id),
-      icon: <BudgetIcon />,
+      icon: <BudgetIcon className={icon} />,
       label: l.budget,
-      exact: false,
     },
     {
       key: 'payments',
       href: app.weddingPayments(id),
-      icon: <PaymentsIcon />,
+      icon: <PaymentsIcon className={icon} />,
       label: l.payments,
-      exact: false,
     },
     {
       key: 'vendors',
       href: app.weddingVendors(id),
-      icon: <VendorsIcon />,
+      icon: <VendorsIcon className={icon} />,
       label: l.vendors,
-      exact: false,
     },
     {
       key: 'runSheet',
       href: app.weddingRunSheet(id),
-      icon: <RunSheetIcon />,
+      icon: <RunSheetIcon className={icon} />,
       label: l.runSheet,
-      exact: false,
     },
-    { key: 'files', href: app.weddingFiles(id), icon: <FilesIcon />, label: l.files, exact: false },
+    {
+      key: 'files',
+      href: app.weddingFiles(id),
+      icon: <FilesIcon className={icon} />,
+      label: l.files,
+    },
     {
       key: 'moodboard',
       href: app.weddingMoodboard(id),
-      icon: <MoodboardIcon />,
+      icon: <MoodboardIcon className={icon} />,
       label: l.moodboard,
-      exact: false,
     },
   ]
 }

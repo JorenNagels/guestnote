@@ -40,6 +40,25 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('BudgetView', () => {
+  /**
+   * Spec 0009 A1: the tab strip has one Geld tab for both money pages, so the page itself says
+   * which one it is, before anything else on it. Literal paths, and `aria-current` on Budget
+   * alone -- pass `current="payments"` in `budget-view.tsx` and this fails.
+   */
+  it('opens with the Budget | Payments switch, Budget current', () => {
+    view([])
+    const nav = screen.getByRole('navigation', { name: 'Money' })
+    const links = within(nav)
+      .getAllByRole('link')
+      .map((a) => [a.textContent, a.getAttribute('href'), a.getAttribute('aria-current')])
+    expect(links).toEqual([
+      ['Budget', `/weddings/${W}/budget`, 'page'],
+      ['Payments', `/weddings/${W}/payments`, null],
+    ])
+    const title = screen.getByRole('heading', { name: 'Budget', level: 2 })
+    expect(nav.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
   it('empty: one card and one button, and the button opens the new-line sheet', () => {
     view([])
     expect(screen.getByRole('heading', { name: 'No budget lines yet' })).toBeTruthy()

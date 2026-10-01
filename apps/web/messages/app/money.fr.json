@@ -1,4 +1,9 @@
 {
+  "switch": {
+    "label": "Argent",
+    "budget": "Budget",
+    "payments": "Paiements"
+  },
   "budget": {
     "title": "Budget",
     "subtitle": "Ce qui est alloué, ce qui est dépensé et ce qui a déjà été payé.",
@@ -28,7 +33,6 @@
     "edit": "Modifier",
     "editLine": "Modifier {label}",
     "add": "Ajouter une ligne",
-    "toPayments": "Échéancier",
     "emptyTitle": "Pas encore de lignes de budget",
     "emptyBody": "Saisissez la première dépense, par exemple la salle ou le traiteur. Le total et l'avancement par catégorie se calculent tout seuls.",
     "emptyAction": "Ajouter la première ligne"
@@ -69,7 +73,6 @@
     "amount": "Montant",
     "actions": "Actions",
     "add": "Ajouter un paiement",
-    "toBudget": "Budget",
     "markPaid": "Marquer comme payé",
     "markUnpaid": "Marquer comme non payé",
     "markPaidFor": "Marquer {payee} comme payé",

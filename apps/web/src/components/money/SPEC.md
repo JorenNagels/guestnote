@@ -8,6 +8,11 @@ Nothing here contradicts spec 0003. Prototype range: `design-system/planner-prot
 
 - Two routes: `/weddings/<id>/budget` and `/weddings/<id>/payments`. Planner-only: owner and admin,
   and a member assigned to the wedding. A couple or editor gets a 404, like a wedding that does not exist.
+  *(Amended 2026-10-02, spec 0009 A1: both routes stay, under one **Geld** tab in the wedding's
+  strip, current on either and linking to the budget. Each page opens with a two-link switch,
+  **Budget | Betalingen** (`money-switch.tsx`), `aria-current="page"` on the one you are on. It
+  replaces the header's outlined "Betaalschema" and "Budget" buttons; the payments page's
+  no-lines card keeps its "Naar het budget" link, which is the empty state's one action.)*
 - **Money is integer cents, EUR only.** Shown with `Intl.NumberFormat` in the wedding's locale
   (`weddings.locale_default`: `nl` gives `nl-BE`, `fr` gives `fr-BE`, `en` gives `en-GB`). Totals are
   computed on every read, never stored (spec 0003, "Still open").

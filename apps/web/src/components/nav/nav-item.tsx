@@ -17,13 +17,12 @@ import type { ReactNode } from 'react'
  * ## `aria-current="page"`, and which item gets it
  *
  * `exact` marks a page that has children living under its own path, and it is the difference
- * between two items being lit at once and one. `Bruiloften` (`/weddings`) and `Overzicht`
- * (`/weddings/<id>`) are `exact`: every wedding screen sits beneath them, and marking the list
- * as well as the wedding you are in says two places are one place. Every other item is a prefix
- * match, so a task open at `/weddings/<id>/tasks/<taskId>` still marks `Checklist` -- the case
- * that gave this branch its first caller. It had none from `docs/specs/0001` until spec 0003,
- * and that paragraph used to explain why no test could discriminate it; `shell.test.tsx` now
- * does.
+ * between two items being lit at once and one. `Bruiloften` (`/weddings`) is `exact`: every
+ * wedding screen sits beneath it, and marking the list as well as the wedding you are in says two
+ * places are one place. Every other item is a prefix match, so a template open at
+ * `/templates/<id>` still marks `Sjablonen`. The branch had no caller from `docs/specs/0001`
+ * until spec 0003 gave it the wedding's section rows (a task page marking `Checklist`); those
+ * left the sidebar with spec 0009 A1, and `shell.test.tsx` now discriminates it on Sjablonen.
  *
  * The prefix is matched with a trailing slash, never as a bare `startsWith(href)`: `/team`
  * would otherwise mark for `/teams-old`, and `/vendors` for `/vendors-export`.

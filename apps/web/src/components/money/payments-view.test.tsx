@@ -43,6 +43,25 @@ beforeEach(() => {
 afterEach(cleanup)
 
 describe('PaymentsView', () => {
+  /**
+   * Spec 0009 A1, the other half: the same switch with Payments current. Pass
+   * `current="budget"` in `payments-view.tsx` and this fails. On the no-lines state too, which
+   * is the one a planner lands on first.
+   */
+  it('opens with the Budget | Payments switch, Payments current', () => {
+    view([], [])
+    const nav = screen.getByRole('navigation', { name: 'Money' })
+    const links = within(nav)
+      .getAllByRole('link')
+      .map((a) => [a.textContent, a.getAttribute('href'), a.getAttribute('aria-current')])
+    expect(links).toEqual([
+      ['Budget', `/weddings/${W}/budget`, null],
+      ['Payments', `/weddings/${W}/payments`, 'page'],
+    ])
+    const title = screen.getByRole('heading', { name: 'Payments', level: 2 })
+    expect(nav.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
   it('no budget lines: says to make one first and links to the budget', () => {
     view([], [])
     expect(screen.getByRole('heading', { name: 'A budget line first' })).toBeTruthy()

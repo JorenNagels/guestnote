@@ -2,7 +2,7 @@
 
 import type { WeddingSummary } from '@guestnote/db'
 import { cx } from '@guestnote/ui/cx'
-import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useId, useRef, useState } from 'react'
 import { paletteWeddings } from '../../app/pro/(app)/actions.ts'
 import { app } from '../../lib/routes.ts'
 import { SearchIcon, WeddingsIcon } from './icons.tsx'
@@ -18,10 +18,30 @@ export type PaletteLabels = {
   dateUnknown: string
 }
 
-type Row = { id: string; label: string; hint: string | null; href: string }
+/**
+ * The sections of the wedding you are in (spec 0009 A1). Handed in by the shell, which already
+ * holds the wedding list and the labels -- so they cost no fetch and show before the weddings do.
+ */
+export type PaletteSection = {
+  /** The wedding's name, which heads the group: "Budget" alone does not say whose. */
+  name: string
+  items: { key: string; href: string; label: string; icon: ReactNode }[]
+}
+
+type Row = { id: string; label: string; hint: string | null; href: string; icon: ReactNode }
 
 /**
- * Jump to a wedding by typing. The sidebar's search row and the dialog behind it.
+ * Jump to a wedding by typing -- or, inside one, to any of its sections. The sidebar's search
+ * row and the dialog behind it.
+ *
+ * ## Sections, since spec 0009 A1
+ *
+ * The sidebar stopped listing the open wedding's sections on 2026-10-02, leaving the tab strip
+ * as the pointer route and this as the keyboard one. The sections come after the weddings, not
+ * before: with nothing typed, Enter still opens the first wedding, as it always has, and typing
+ * "draai" filters the weddings away so the run sheet is first anyway. Rejected: a section group
+ * for every wedding ("Els & Jan -- Budget"), which is eight rows per wedding to scroll past for
+ * a planner who only wanted to switch.
  *
  * ## Why the trigger lives in this file
  *
@@ -51,10 +71,12 @@ export function Palette({
   labels,
   collapsed,
   hint = 'K',
+  sections = null,
 }: {
   labels: PaletteLabels
   collapsed: boolean
   hint?: string
+  sections?: PaletteSection | null
 }) {
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
@@ -114,9 +136,9 @@ export function Palette({
     if (open) inputRef.current?.focus()
   }, [open])
 
-  const rows: Row[] = (weddings ?? [])
+  const q = query.trim().toLowerCase()
+  const weddingRows: Row[] = (weddings ?? [])
     .filter((w) => {
-      const q = query.trim().toLowerCase()
       if (!q) return true
       // Slug as well as display name, because a planner who has typed `els-en-jan` into a
       // URL bar all week will type that.
@@ -125,9 +147,27 @@ export function Palette({
     .map((w) => ({
       id: w.id,
       label: w.coupleDisplayName,
-      hint: w.weddingDate,
+      hint: w.weddingDate ?? labels.dateUnknown,
       href: app.wedding(w.id),
+      icon: <WeddingsIcon className="size-4 shrink-0 opacity-70" />,
     }))
+  // Prefixed ids: an option's DOM id is built from this, and a section key must never be able
+  // to collide with a wedding's uuid in `aria-activedescendant`.
+  const sectionRows: Row[] = (sections?.items ?? [])
+    .filter((s) => !q || s.label.toLowerCase().includes(q))
+    .map((s) => ({
+      id: `section-${s.key}`,
+      label: s.label,
+      hint: null,
+      href: s.href,
+      icon: s.icon,
+    }))
+  // One flat list for the arrow keys and Enter, in the order the groups are drawn.
+  const rows = [...weddingRows, ...sectionRows]
+  const groups = [
+    { key: 'weddings', title: labels.weddings, rows: weddingRows },
+    { key: 'sections', title: sections?.name ?? '', rows: sectionRows },
+  ].filter((g) => g.rows.length > 0)
 
   const clamped = Math.min(active, Math.max(rows.length - 1, 0))
 
@@ -212,59 +252,68 @@ export function Palette({
             </div>
 
             <div className="max-h-[52vh] overflow-y-auto p-1.5">
-              {weddings === null ? (
+              {rows.length === 0 ? (
+                // Loading only while there is nothing to show yet. Rendering `empty` in the
+                // not-yet-fetched branch would tell every planner "Niets gevonden." for the
+                // length of the round trip; the sections, which need no fetch, show at once.
                 <p className="text-muted-foreground px-2 py-6 text-center text-sm">
-                  {labels.loading}
-                </p>
-              ) : rows.length === 0 ? (
-                <p className="text-muted-foreground px-2 py-6 text-center text-sm">
-                  {labels.empty}
+                  {weddings === null ? labels.loading : labels.empty}
                 </p>
               ) : (
-                <>
-                  <p
-                    id={`${listId}-group`}
-                    className="text-muted-foreground px-2 pt-1 pb-1.5 text-[0.6875rem] font-semibold tracking-[0.08em] uppercase"
-                  >
-                    {labels.weddings}
-                  </p>
-                  {/* `div` and not `ul`/`li`. The ARIA combobox pattern wants
-                      `listbox`/`option`, and lint refuses an interactive role on a
-                      non-interactive element -- which is a real rule catching a real
-                      mistake most of the time. A div carries the role with no implicit
-                      semantics to override, so this is the shape that is both correct ARIA
-                      and honestly typed. `tabIndex={-1}` because an option in this pattern
-                      is deliberately NOT focusable: focus stays in the input the whole
-                      time and `aria-activedescendant` is what moves. */}
-                  <div role="listbox" id={listId} aria-labelledby={`${listId}-group`}>
-                    {rows.map((row, i) => (
-                      <div
-                        key={row.id}
-                        id={`${listId}-${row.id}`}
-                        role="option"
-                        tabIndex={-1}
-                        aria-selected={i === clamped}
-                        // `pointerdown`, not `click`: the backdrop's dismiss also runs on
-                        // pointerdown, and a click here would fire after it had closed.
-                        onPointerDown={(e) => {
-                          e.preventDefault()
-                          choose(row)
-                        }}
-                        onMouseEnter={() => setActive(i)}
-                        className={cx(
-                          'flex cursor-pointer items-center gap-2.5 rounded-[calc(var(--radius)-2px)] px-2 py-2 text-sm',
-                          i === clamped ? 'bg-muted text-foreground' : 'text-muted-foreground',
-                        )}
+                /* `div` and not `ul`/`li`. The ARIA combobox pattern wants
+                   `listbox`/`option`, and lint refuses an interactive role on a
+                   non-interactive element -- which is a real rule catching a real
+                   mistake most of the time. A div carries the role with no implicit
+                   semantics to override, so this is the shape that is both correct ARIA
+                   and honestly typed. Each group is a `group` labelled by its heading, the
+                   one other child a listbox may own. */
+                <div role="listbox" id={listId} aria-label={labels.title}>
+                  {groups.map((g) => (
+                    // biome-ignore lint/a11y/useSemanticElements: a `<fieldset>` is a group of form controls, and these options are not inputs
+                    <div key={g.key} role="group" aria-labelledby={`${listId}-${g.key}`}>
+                      <p
+                        id={`${listId}-${g.key}`}
+                        className="text-muted-foreground px-2 pt-1 pb-1.5 text-[0.6875rem] font-semibold tracking-[0.08em] uppercase"
                       >
-                        <WeddingsIcon className="size-4 shrink-0 opacity-70" />
-                        <span className="min-w-0 flex-1 truncate">{row.label}</span>
-                        <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
-                          {row.hint ?? labels.dateUnknown}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </>
+                        {g.title}
+                      </p>
+                      {g.rows.map((row) => {
+                        const i = rows.indexOf(row)
+                        return (
+                          /* `tabIndex={-1}` because an option in this pattern is
+                             deliberately NOT focusable: focus stays in the input the whole
+                             time and `aria-activedescendant` is what moves. */
+                          <div
+                            key={row.id}
+                            id={`${listId}-${row.id}`}
+                            role="option"
+                            tabIndex={-1}
+                            aria-selected={i === clamped}
+                            // `pointerdown`, not `click`: the backdrop's dismiss also runs on
+                            // pointerdown, and a click here would fire after it had closed.
+                            onPointerDown={(e) => {
+                              e.preventDefault()
+                              choose(row)
+                            }}
+                            onMouseEnter={() => setActive(i)}
+                            className={cx(
+                              'flex cursor-pointer items-center gap-2.5 rounded-[calc(var(--radius)-2px)] px-2 py-2 text-sm',
+                              i === clamped ? 'bg-muted text-foreground' : 'text-muted-foreground',
+                            )}
+                          >
+                            {row.icon}
+                            <span className="min-w-0 flex-1 truncate">{row.label}</span>
+                            {row.hint === null ? null : (
+                              <span className="text-muted-foreground shrink-0 text-xs tabular-nums">
+                                {row.hint}
+                              </span>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>

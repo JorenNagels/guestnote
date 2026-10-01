@@ -1,4 +1,9 @@
 {
+  "switch": {
+    "label": "Money",
+    "budget": "Budget",
+    "payments": "Payments"
+  },
   "budget": {
     "title": "Budget",
     "subtitle": "What is allocated, what is spent and what has been paid.",
@@ -28,7 +33,6 @@
     "edit": "Edit",
     "editLine": "Edit {label}",
     "add": "Add a line",
-    "toPayments": "Payment schedule",
     "emptyTitle": "No budget lines yet",
     "emptyBody": "Enter the first cost, such as the venue or the catering. The total and the progress per category work themselves out.",
     "emptyAction": "Add the first line"
@@ -69,7 +73,6 @@
     "amount": "Amount",
     "actions": "Actions",
     "add": "Add a payment",
-    "toBudget": "Budget",
     "markPaid": "Mark as paid",
     "markUnpaid": "Mark as unpaid",
     "markPaidFor": "Mark {payee} as paid",

@@ -719,94 +719,58 @@ describe('the wedding rows', () => {
   })
 })
 
-describe('the sections inside a wedding', () => {
+/**
+ * Spec 0009 A1: the sidebar lists weddings and nothing under them. The eight section rows that
+ * hung off the open wedding from spec 0003 until 2026-10-02 are the tab strip's job now, and the
+ * keyboard's route to them is the palette (below).
+ */
+describe('the open wedding in the sidebar', () => {
   const inWedding = (id: string, at = `/weddings/${id}`) => {
     pathname = at
     params = { id }
   }
 
-  it('are absent on the wedding list and on a page with no wedding in it', () => {
-    renderShell({ weddings: [ELS] })
-    expect(screen.queryByRole('link', { name: 'Draaiboek' })).not.toBeInTheDocument()
-
-    cleanup()
-    pathname = '/weddings/new'
-    params = {}
-    renderShell({ weddings: [ELS] })
-    expect(screen.queryByRole('link', { name: 'Draaiboek' })).not.toBeInTheDocument()
+  /**
+   * By href rather than by label, so it cannot be fooled by a renamed section: the one link into
+   * the open wedding is its own row. The section rows put `/weddings/w1` a second time (Overzicht)
+   * and seven `/weddings/w1/...` paths beside it. On the rail too, which rendered them as icons.
+   */
+  it('lists no sections under it, expanded or on the rail -- only its own row', () => {
+    for (const initialNav of ['expanded', 'collapsed'] as const) {
+      cleanup()
+      inWedding('w1', '/weddings/w1/budget')
+      renderShell({ initialNav, weddings: [ELS, MIRA] })
+      const nav = screen.getByRole('navigation', { name: 'Hoofdnavigatie' })
+      const into = within(nav)
+        .getAllByRole('link')
+        .map((a) => a.getAttribute('href'))
+        .filter((h) => h?.startsWith('/weddings/w1'))
+      expect(into, initialNav).toEqual(['/weddings/w1'])
+      expect(within(nav).queryByRole('list', { name: 'Els & Jan' })).toBeNull()
+    }
   })
 
-  it('list all eight, at their own paths, under the wedding you are in', () => {
+  it('lists no sections under it in the phone drawer either', () => {
     inWedding('w1')
-    renderShell({ weddings: [ELS] })
-    const group = screen.getByRole('list', { name: 'Els & Jan' })
-    const links = within(group)
+    renderShell({ weddings: [ELS, MIRA] })
+    fireEvent.click(screen.getByRole('button', { name: 'Menu openen' }))
+    const dialog = screen.getByRole('dialog', { name: 'Hoofdnavigatie' })
+    const into = within(dialog)
       .getAllByRole('link')
-      .map((a) => [a.textContent, a.getAttribute('href')])
-    expect(links).toEqual([
-      ['Overzicht', '/weddings/w1'],
-      ['Checklist', '/weddings/w1/tasks'],
-      ['Budget', '/weddings/w1/budget'],
-      ['Betalingen', '/weddings/w1/payments'],
-      ['Leveranciers', '/weddings/w1/vendors'],
-      ['Draaiboek', '/weddings/w1/run-sheet'],
-      ['Bestanden', '/weddings/w1/files'],
-      ['Moodboard', '/weddings/w1/moodboard'],
-    ])
+      .map((a) => a.getAttribute('href'))
+      .filter((h) => h?.startsWith('/weddings/w1'))
+    expect(into).toEqual(['/weddings/w1'])
   })
 
-  /**
-   * The whole point of `current = w.id === weddingId`: sections under the wedding you are in,
-   * not under the first row and not under all of them. Two weddings, the second one open.
-   */
-  it('hang off the open wedding and no other', () => {
-    inWedding('w2')
-    renderShell({ weddings: [ELS, MIRA] })
-    expect(screen.getByRole('list', { name: 'Mira & Tom' })).toBeInTheDocument()
-    expect(screen.queryByRole('list', { name: 'Els & Jan' })).not.toBeInTheDocument()
-  })
-
-  it('follow a jump from one wedding to another', () => {
-    inWedding('w1')
-    renderShell({ weddings: [ELS, MIRA] })
-    expect(screen.getByRole('list', { name: 'Els & Jan' })).toBeInTheDocument()
-
-    inWedding('w2')
-    rerenderShell({ weddings: [ELS, MIRA] })
-    expect(screen.queryByRole('list', { name: 'Els & Jan' })).not.toBeInTheDocument()
-    expect(screen.getByRole('list', { name: 'Mira & Tom' })).toBeInTheDocument()
-  })
-
-  /**
-   * The URL names a wedding the layout did not list -- a wedding in another org, or a `member`
-   * who is not assigned. The list is what the principal may see, so nothing hangs off it.
-   * The page answers 404; the sidebar must not have said the wedding exists.
-   */
-  it('do not appear for a wedding that is not in the list', () => {
-    inWedding('w-not-mine')
-    renderShell({ weddings: [ELS] })
-    expect(screen.queryByRole('link', { name: 'Draaiboek' })).not.toBeInTheDocument()
-  })
-
-  it('mark Overzicht on the wedding itself, and the list not at all', () => {
+  it('does not mark the wedding list while you are inside a wedding', () => {
     inWedding('w1')
     renderShell({ weddings: [ELS] })
-    expect(screen.getByRole('link', { name: 'Overzicht' })).toHaveAttribute('aria-current', 'page')
-    // Inside a wedding the section is where you are, so the list must NOT also read as
-    // current -- marking both says two places are one place.
+    // Inside a wedding its row is where you are, so the list must NOT also read as current --
+    // marking both says two places are one place.
     expect(screen.getByRole('link', { name: 'Bruiloften' })).not.toHaveAttribute('aria-current')
-    expect(screen.getByRole('link', { name: 'Checklist' })).not.toHaveAttribute('aria-current')
   })
 
-  it('keep Checklist marked on a task page, and Overzicht not', () => {
-    inWedding('w1', '/weddings/w1/tasks/t9')
-    renderShell({ weddings: [ELS] })
-    expect(screen.getByRole('link', { name: 'Checklist' })).toHaveAttribute('aria-current', 'page')
-    // `exact` on Overzicht: every section is under `/weddings/w1`.
-    expect(screen.getByRole('link', { name: 'Overzicht' })).not.toHaveAttribute('aria-current')
-  })
-
-  it('keep a name on every target on the rail, wedding rows and sections included', () => {
+  it('keeps a name on every target on the rail, wedding rows included', () => {
     inWedding('w1')
     renderShell({ initialNav: 'collapsed', weddings: [ELS, MIRA] })
     const nav = screen.getByRole('navigation', { name: 'Hoofdnavigatie' })
@@ -831,6 +795,141 @@ describe('the sections inside a wedding', () => {
     // and by nothing in this file.
     expect(screen.getByRole('link', { name: 'Mira & Tom' })).toHaveTextContent(/MT/)
     expect(screen.getByRole('link', { name: 'Els & Jan' })).toHaveTextContent(/EJ/)
+  })
+})
+
+/**
+ * Spec 0009 A1: "Cmd-K keeps every section as a destination." The sections the sidebar stopped
+ * listing are a group in the palette, for the wedding you are in and no other.
+ */
+describe('the palette inside a wedding', () => {
+  const inWedding = (id: string, at = `/weddings/${id}`) => {
+    pathname = at
+    params = { id }
+  }
+  const openPalette = async () => {
+    fireEvent.click(screen.getByRole('button', { name: /Zoeken/ }))
+    return screen.findByRole('combobox')
+  }
+  let assign: ReturnType<typeof vi.fn>
+  beforeEach(() => {
+    assign = vi.fn()
+    Object.defineProperty(window, 'location', {
+      value: { ...window.location, assign },
+      writable: true,
+    })
+  })
+
+  it('lists all eight sections of the open wedding, at their own paths, under its name', async () => {
+    inWedding('w1')
+    renderShell({ weddings: [ELS, MIRA] })
+    await openPalette()
+    const group = await screen.findByRole('group', { name: 'Els & Jan' })
+    const options = within(group)
+      .getAllByRole('option')
+      .map((o) => o.textContent)
+    expect(options).toEqual([
+      'Overzicht',
+      'Checklist',
+      'Budget',
+      'Betalingen',
+      'Leveranciers',
+      'Draaiboek',
+      'Bestanden',
+      'Moodboard',
+    ])
+    // The paths, through the one thing an option does: choosing it. Literal paths, so a
+    // mistyped builder in `lib/routes.ts` fails here instead of moving with the bug.
+    // Choosing closes the dialog, so each pick reopens it and finds the group afresh.
+    const hrefs: unknown[] = []
+    for (let i = 0; i < options.length; i++) {
+      if (i > 0) await openPalette()
+      const option = within(screen.getByRole('group', { name: 'Els & Jan' })).getAllByRole(
+        'option',
+      )[i]
+      fireEvent.pointerDown(option as Element)
+      hrefs.push(assign.mock.lastCall?.[0])
+    }
+    expect(hrefs).toEqual([
+      '/weddings/w1',
+      '/weddings/w1/tasks',
+      '/weddings/w1/budget',
+      '/weddings/w1/payments',
+      '/weddings/w1/vendors',
+      '/weddings/w1/run-sheet',
+      '/weddings/w1/files',
+      '/weddings/w1/moodboard',
+    ])
+  })
+
+  /**
+   * The whole point of matching on the URL's wedding: the sections of the wedding you are in, not
+   * of the first one in the list -- and they follow a jump to another.
+   */
+  it('lists the sections of the open wedding and no other, and follows a jump', async () => {
+    inWedding('w2')
+    renderShell({ weddings: [ELS, MIRA] })
+    await openPalette()
+    expect(await screen.findByRole('group', { name: 'Mira & Tom' })).toBeInTheDocument()
+    expect(screen.queryByRole('group', { name: 'Els & Jan' })).toBeNull()
+
+    inWedding('w1')
+    rerenderShell({ weddings: [ELS, MIRA] })
+    expect(screen.getByRole('group', { name: 'Els & Jan' })).toBeInTheDocument()
+    expect(screen.queryByRole('group', { name: 'Mira & Tom' })).toBeNull()
+  })
+
+  /**
+   * The URL names a wedding the layout did not list -- another org's, or one a `member` is not
+   * assigned to. The page answers 404; the palette must not have named it or offered its sections.
+   */
+  it('offers no sections outside a wedding, nor for a wedding that is not in the list', async () => {
+    renderShell({ weddings: [ELS] })
+    await openPalette()
+    await waitFor(() => expect(screen.getByText('Niets gevonden.')).toBeInTheDocument())
+    expect(screen.queryByRole('option', { name: 'Draaiboek' })).toBeNull()
+
+    cleanup()
+    inWedding('w-not-mine')
+    renderShell({ weddings: [ELS] })
+    await openPalette()
+    await waitFor(() => expect(screen.getByText('Niets gevonden.')).toBeInTheDocument())
+    expect(screen.queryByRole('option', { name: 'Draaiboek' })).toBeNull()
+  })
+
+  it('filters the sections by what is typed, and Enter goes to the match', async () => {
+    paletteWeddings.mockResolvedValue([
+      { id: 'w1', slug: 'els', status: 'live', coupleDisplayName: 'Els & Jan', weddingDate: null },
+    ])
+    inWedding('w1')
+    renderShell({ weddings: [ELS] })
+    const input = await openPalette()
+    await waitFor(() => expect(screen.getByRole('option', { name: /Els & Jan/ })).toBeVisible())
+
+    fireEvent.change(input, { target: { value: 'betal' } })
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(['Betalingen'])
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(assign).toHaveBeenCalledWith('/weddings/w1/payments')
+  })
+
+  /**
+   * Weddings first: with nothing typed, Enter opens the first wedding exactly as it did before
+   * the sections were added, and the arrows walk from the weddings into the sections as one list.
+   */
+  it('puts the weddings before the sections, and the arrows cross from one group to the other', async () => {
+    paletteWeddings.mockResolvedValue([
+      { id: 'w1', slug: 'els', status: 'live', coupleDisplayName: 'Els & Jan', weddingDate: null },
+    ])
+    inWedding('w1')
+    renderShell({ weddings: [ELS] })
+    const input = await openPalette()
+    await waitFor(() => expect(screen.getAllByRole('option')).toHaveLength(9))
+    expect(screen.getAllByRole('option')[0]).toHaveTextContent('Els & Jan')
+
+    fireEvent.keyDown(input, { key: 'ArrowDown' })
+    const active = screen.getByRole('option', { selected: true })
+    expect(active).toHaveTextContent('Overzicht')
+    expect(input).toHaveAttribute('aria-activedescendant', active.id)
   })
 })
 

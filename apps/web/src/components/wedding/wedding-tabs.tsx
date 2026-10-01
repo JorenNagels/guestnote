@@ -8,8 +8,9 @@ export {
 } from './wedding-tabs-view.tsx'
 
 /**
- * The words are the sidebar's (`app.shell.nav.*` and `app.nav.overview`), so the strip adds no
- * copy of its own to translate and cannot disagree with the sidebar about a name.
+ * The words are the shell's (`app.shell.nav.*` and `app.nav.overview`), so the strip shares its
+ * names with the palette and the rest of the app rather than keeping its own. `money` is the
+ * one word only the strip uses (spec 0009 A1); it lives beside the others for the same reason.
  */
 export async function WeddingTabs({ weddingId }: { weddingId: string }) {
   const [t, nav, s1] = await Promise.all([
@@ -24,8 +25,7 @@ export async function WeddingTabs({ weddingId }: { weddingId: string }) {
       labels={{
         overview: nav('overview'),
         tasks: t('checklist'),
-        budget: t('budget'),
-        payments: t('payments'),
+        money: t('money'),
         vendors: t('vendors'),
         runSheet: t('runSheet'),
         files: t('files'),
