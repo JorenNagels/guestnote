@@ -56,6 +56,7 @@
     "colourHint": "Pour reconnaître ce mariage dans une barre latérale bien remplie. Modifiable plus tard.",
     "colourGroup": "Couleur du mariage",
     "colourCustom": "Choisir une autre couleur",
+    "colourHex": "Code hexadécimal",
     "colourNone": "Aucune couleur",
     "colours": {
       "#206560": "Sarcelle",

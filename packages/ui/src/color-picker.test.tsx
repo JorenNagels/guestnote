@@ -1,7 +1,8 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
-import { COLOR_PRESETS, ColorPicker, normalizeHex } from './color-picker.tsx'
+import { COLOR_PRESETS, ColorPicker, normalizeHex, parseHexInput } from './color-picker.tsx'
 
 function setup(value: string | null = null) {
   const onChange = vi.fn()
@@ -9,6 +10,7 @@ function setup(value: string | null = null) {
     <ColorPicker
       label="Wedding colour"
       customLabel="Other colour"
+      hexLabel="Hex code"
       value={value}
       onChange={onChange}
     />,
@@ -40,6 +42,131 @@ describe('normalizeHex', () => {
   })
 })
 
+describe('parseHexInput', () => {
+  it('takes what a person pastes: with or without #, any case, stray whitespace', () => {
+    expect(parseHexInput('12ab9f')).toBe('#12AB9F')
+    expect(parseHexInput('#12AB9F')).toBe('#12AB9F')
+    expect(parseHexInput('  #12ab9f \n')).toBe('#12AB9F')
+  })
+
+  it('expands CSS shorthand, which a person types and the native input never does', () => {
+    expect(parseHexInput('#abc')).toBe('#AABBCC')
+    expect(parseHexInput('f0a')).toBe('#FF00AA')
+  })
+
+  it('refuses everything else', () => {
+    for (const bad of ['', '#', '12ab9', '#12ab9fg', '##12ab9f', '12 ab 9f', 'red', 'rgb(1,2,3)']) {
+      expect(parseHexInput(bad)).toBeNull()
+    }
+  })
+})
+
+// A controlled harness, so the hex field's mirror of the value can be watched changing.
+function Controlled({ initial = null as string | null, onChange = (_: string) => {} }) {
+  const [value, setValue] = useState(initial)
+  return (
+    <ColorPicker
+      label="Wedding colour"
+      customLabel="Other colour"
+      hexLabel="Hex code"
+      value={value}
+      onChange={(hex) => {
+        setValue(hex)
+        onChange(hex)
+      }}
+    />
+  )
+}
+
+describe('ColorPicker hex field', () => {
+  it('shows the current colour without its #, and nothing when unset', () => {
+    setup('#12ab9f')
+    expect(screen.getByRole('textbox', { name: 'Hex code' })).toHaveValue('12AB9F')
+  })
+
+  it('is empty when there is no value', () => {
+    setup(null)
+    expect(screen.getByRole('textbox', { name: 'Hex code' })).toHaveValue('')
+  })
+
+  it('emits as soon as six digits are typed, and not on the shorthand on the way there', async () => {
+    const user = userEvent.setup()
+    const onChange = setup()
+    // "12a" is valid shorthand; emitting it would flash #1122AA mid-typing.
+    await user.type(screen.getByRole('textbox', { name: 'Hex code' }), '12ab9')
+    expect(onChange).not.toHaveBeenCalled()
+    await user.type(screen.getByRole('textbox', { name: 'Hex code' }), 'f')
+    expect(onChange).toHaveBeenCalledTimes(1)
+    expect(onChange).toHaveBeenCalledWith('#12AB9F')
+  })
+
+  it('a paste replaces the field instead of inserting into the colour already there', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<Controlled initial={COLOR_PRESETS[0]} onChange={onChange} />)
+    const field = screen.getByRole('textbox', { name: 'Hex code' })
+    await user.click(field)
+    await user.paste(' #a94f4a ')
+    expect(onChange).toHaveBeenLastCalledWith('#A94F4A')
+    expect(field).toHaveValue('A94F4A')
+  })
+
+  it('marks what does not parse once there is something in it, and emits nothing', async () => {
+    const user = userEvent.setup()
+    const onChange = setup()
+    const field = screen.getByRole('textbox', { name: 'Hex code' })
+    expect(field).not.toHaveAttribute('aria-invalid')
+    await user.type(field, 'zz')
+    expect(field).toHaveAttribute('aria-invalid', 'true')
+    await user.tab()
+    // Still marked after leaving: an invalid entry stays visible instead of snapping back.
+    expect(field).toHaveValue('zz')
+    expect(field).toHaveAttribute('aria-invalid', 'true')
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('commits shorthand when the field is left, in the stored spelling', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<Controlled onChange={onChange} />)
+    const field = screen.getByRole('textbox', { name: 'Hex code' })
+    await user.type(field, 'abc')
+    expect(onChange).not.toHaveBeenCalled()
+    await user.tab()
+    expect(onChange).toHaveBeenCalledWith('#AABBCC')
+    expect(field).toHaveValue('AABBCC')
+  })
+
+  it('follows a swatch click, even over a half-typed entry', async () => {
+    const user = userEvent.setup()
+    render(<Controlled />)
+    const field = screen.getByRole('textbox', { name: 'Hex code' })
+    await user.type(field, '12')
+    await user.click(screen.getByRole('radio', { name: COLOR_PRESETS[3] }))
+    expect(field).toHaveValue(COLOR_PRESETS[3].slice(1))
+    expect(field).not.toHaveAttribute('aria-invalid')
+  })
+})
+
+describe('ColorPicker custom swatch', () => {
+  it('fills with the custom colour when one is chosen', () => {
+    setup('#12AB9F')
+    expect(screen.getByTestId('custom-swatch')).toHaveStyle({ backgroundColor: '#12AB9F' })
+  })
+
+  it('stays an empty "add" slot when the value is a preset or unset', () => {
+    setup(COLOR_PRESETS[0])
+    expect(screen.getByTestId('custom-swatch').getAttribute('style')).toBeNull()
+  })
+
+  it('carries its name as a hover title, so the slot explains itself to a mouse', () => {
+    setup()
+    expect(screen.getByTitle('Other colour')).toContainElement(
+      screen.getByLabelText('Other colour'),
+    )
+  })
+})
+
 describe('ColorPicker', () => {
   it('is a named group of radios, one per preset, plus a named colour input', () => {
     setup()
@@ -60,6 +187,7 @@ describe('ColorPicker', () => {
       <ColorPicker
         label="Colour"
         customLabel="Other"
+        hexLabel="Hex"
         value={null}
         onChange={() => {}}
         swatchLabel={(hex) => (hex === COLOR_PRESETS[0] ? 'Teal' : hex)}

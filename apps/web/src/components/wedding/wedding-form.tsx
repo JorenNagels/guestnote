@@ -199,6 +199,7 @@ export function WeddingForm({
           <ColorPicker
             label={labels.colourGroup}
             customLabel={labels.colourCustom}
+            hexLabel={labels.colourHex}
             value={color}
             onChange={setColor}
             swatchLabel={(hex) => labels.colours[hex] ?? hex}

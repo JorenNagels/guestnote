@@ -27,6 +27,7 @@ export type WeddingFormLabels = {
   readonly colourHint: string
   readonly colourGroup: string
   readonly colourCustom: string
+  readonly colourHex: string
   readonly colourNone: string
   /** Keyed by `#RRGGBB` upper case, one per preset. */
   readonly colours: Readonly<Record<string, string>>
@@ -104,6 +105,7 @@ export function weddingFormLabels(t: TRaw, status: T, submit: string): WeddingFo
     colourHint: t('form.colourHint'),
     colourGroup: t('form.colourGroup'),
     colourCustom: t('form.colourCustom'),
+    colourHex: t('form.colourHex'),
     colourNone: t('form.colourNone'),
     colours: colourNames(t.raw('form.colours')),
     statuses: { draft: status('draft'), live: status('live'), archived: status('archived') },
