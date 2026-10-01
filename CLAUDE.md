@@ -296,6 +296,7 @@ rather than a personal preference. Reach for them instead of re-deriving the pro
 | `/db-migration` | Writing and applying a migration without hitting the silent traps. |
 | `/adr` | Recording a decision that was measured. |
 | `/commit` | The review panel, then a commit in house style. |
+| `/dev-login` | Signing Claude into the local app in Chrome, as any user, reading the code from `apps/web/.mail/`. |
 
 **No feature gets planned before it gets specified.** When a feature has been agreed and the
 next move is to build it, run `/feature` — a full pass of questions, a spec in `docs/specs/`,
