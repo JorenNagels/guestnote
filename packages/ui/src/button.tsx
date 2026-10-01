@@ -25,6 +25,13 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
  * dashboard preference for reading three hundred rows, and every surface this button
  * appears on before then is one where the target size matters more than the row count.
  *
+ * `px-6` is the floor, not a suggestion: a pill whose label touches its curve reads as
+ * clipped, and without it every caller that sized the button by its label or by a fixed-width
+ * wrapper had to remember its own `px-*` -- most did not, and the empty-state "add" buttons
+ * shipped with the text against the edge (2026-10-02). Without `tailwind-merge` a caller's
+ * `px-4` loses to this on emitted order (Tailwind sorts `px-6` after it), so a compact button
+ * that wants less says `px-3!`, the same way width is overridden with `w-auto!`.
+ *
  * ## `enabled:cursor-pointer` is not decoration
  *
  * Tailwind v4's preflight dropped the `cursor: pointer` it used to put on `button` --
@@ -54,7 +61,7 @@ export function Button({
       disabled={disabled || busy}
       aria-busy={busy || undefined}
       className={cx(
-        'inline-flex h-12 w-full items-center justify-center gap-2 rounded-[var(--radius)] border-0',
+        'inline-flex h-12 w-full items-center justify-center gap-2 rounded-[var(--radius)] border-0 px-6',
         'text-[0.9375rem] font-semibold tracking-[0.01em]',
         // The Modern refresh's state layer: hover lays a wash of the button's OWN text colour
         // over it (12% on primary, 6% on the tinted secondary), where `brightness-110` used to

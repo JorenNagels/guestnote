@@ -70,7 +70,7 @@ export function AddItemForm({ templateId }: { templateId: string }) {
             titleRef={title}
           />
         </div>
-        <div className="w-full sm:w-32">
+        <div className="w-full sm:w-fit sm:min-w-32">
           <Button type="submit" busy={pending} busyLabel={t('item.adding')}>
             {t('item.add')}
           </Button>

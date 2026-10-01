@@ -139,7 +139,7 @@ function EventRow({
         {fieldError('venue')}
       </div>
       <div className="flex flex-wrap items-center gap-2.5 sm:col-span-4">
-        <div className="w-36">
+        <div className="w-fit min-w-36">
           <Button
             type="submit"
             name="intent"
@@ -152,7 +152,7 @@ function EventRow({
           </Button>
         </div>
         {event ? (
-          <div className="w-32">
+          <div className="w-fit min-w-32">
             <Button
               type="submit"
               name="intent"

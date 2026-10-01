@@ -121,7 +121,7 @@ export function TaskDetail({
           <Button
             variant="secondary"
             onClick={() => setEditing(true)}
-            className="h-8! w-auto! px-3 text-[0.78rem]"
+            className="h-8! w-auto! px-3! text-[0.78rem]"
           >
             {t('detail.edit')}
           </Button>

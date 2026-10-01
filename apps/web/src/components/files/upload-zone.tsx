@@ -97,9 +97,7 @@ export function UploadZone({
     >
       <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
         <div className="w-full sm:w-auto">
-          <Button className="px-4" onClick={() => input.current?.click()}>
-            {labels.button}
-          </Button>
+          <Button onClick={() => input.current?.click()}>{labels.button}</Button>
         </div>
         {children}
         <p className="text-muted-foreground min-w-0 flex-1 text-xs leading-relaxed">

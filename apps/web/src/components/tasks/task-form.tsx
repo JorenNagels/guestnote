@@ -237,10 +237,10 @@ export function TaskForm({
       {error && <InlineError id={errorId}>{t(`errors.${error}`)}</InlineError>}
 
       <div className="mt-4 flex gap-2">
-        <Button type="submit" busy={pending} busyLabel={t('form.saving')} className="w-auto! px-4">
+        <Button type="submit" busy={pending} busyLabel={t('form.saving')} className="w-auto!">
           {t('form.save')}
         </Button>
-        <Button variant="secondary" onClick={onCancel} disabled={pending} className="w-auto! px-4">
+        <Button variant="secondary" onClick={onCancel} disabled={pending} className="w-auto!">
           {t('form.cancel')}
         </Button>
       </div>

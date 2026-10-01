@@ -177,7 +177,7 @@ export function ReportDialog({
                 <div className="w-fit">
                   <Button
                     variant="secondary"
-                    className="h-9 px-3"
+                    className="h-9 px-3!"
                     aria-describedby={shotError ? ids.shotError : undefined}
                     onClick={() => fileInput.current?.click()}
                   >

@@ -88,7 +88,7 @@ export function ApplyPanel({
                 ))}
               </select>
             </div>
-            <div className="w-full sm:w-64">
+            <div className="w-full sm:w-fit sm:min-w-64">
               <Button
                 busy={pending}
                 busyLabel={t('apply.applying')}

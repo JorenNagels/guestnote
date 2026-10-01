@@ -121,7 +121,7 @@ export function CommentThread({
             busy={busy}
             busyLabel={copy.sending}
             disabled={body.trim().length === 0}
-            className="mt-1.5 w-auto! px-4"
+            className="mt-1.5 w-auto!"
           >
             {copy.send}
           </Button>

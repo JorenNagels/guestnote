@@ -110,7 +110,7 @@ export function InvitedStep({ labels, email, invitations, ownStudioHref, homeHre
                     </div>
                   )}
                 </div>
-                <div className="w-28 shrink-0">
+                <div className="w-fit min-w-28 shrink-0">
                   <Button
                     variant={inv.isWedding ? 'secondary' : 'primary'}
                     busy={pendingId === inv.id}

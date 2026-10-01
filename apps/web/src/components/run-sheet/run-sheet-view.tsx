@@ -122,7 +122,7 @@ export function RunSheetView({
           <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
             {ev('noEvents.body')}
           </p>
-          <div className="mt-4 max-w-56">
+          <div className="mt-4 w-fit min-w-56">
             <Link
               href={app.weddingSettings(weddingId)}
               className="border-input hover:border-foreground inline-flex h-11 w-full items-center justify-center rounded-[var(--radius)] border px-4 text-sm font-medium"
@@ -192,7 +192,7 @@ export function RunSheetView({
                 <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">
                   {list('emptyBody')}
                 </p>
-                <div className="mt-4 max-w-56">
+                <div className="mt-4 w-fit min-w-56">
                   <Button onClick={() => setSheetItem('new')}>{list('emptyAction')}</Button>
                 </div>
               </Card>
@@ -206,7 +206,7 @@ export function RunSheetView({
                       to: schedule[schedule.length - 1]?.endClock ?? '',
                     })}
                   </p>
-                  <div className="w-full sm:w-44">
+                  <div className="w-full sm:w-fit sm:min-w-44">
                     <Button onClick={() => setSheetItem('new')}>{list('add')}</Button>
                   </div>
                 </div>

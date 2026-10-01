@@ -163,7 +163,6 @@ export function PlanCard({
             <Button
               type="button"
               variant="secondary"
-              className="px-4"
               busy={pending}
               busyLabel={labels.portalBusy}
               onClick={() => go(portal)}
@@ -176,7 +175,6 @@ export function PlanCard({
             <div className="self-start">
               <Button
                 type="button"
-                className="px-5"
                 busy={pending}
                 busyLabel={labels.checkoutBusy}
                 onClick={() => go(() => checkout(cycle))}

@@ -6,12 +6,7 @@ import { Button } from '@guestnote/ui/button'
 export function PrintButton({ label }: { label: string }) {
   return (
     <span className="print:hidden">
-      <Button
-        type="button"
-        variant="secondary"
-        className="w-auto! px-4"
-        onClick={() => window.print()}
-      >
+      <Button type="button" variant="secondary" className="w-auto!" onClick={() => window.print()}>
         {label}
       </Button>
     </span>

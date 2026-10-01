@@ -76,7 +76,6 @@ export function RenameForm({
         <div>
           <Button
             type="submit"
-            className="px-5"
             disabled={unchanged && !error}
             busy={pending}
             busyLabel={labels.saving}

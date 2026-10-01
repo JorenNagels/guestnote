@@ -101,7 +101,7 @@ export function Comments({
           busy={pending}
           busyLabel={t('comments.adding')}
           disabled={body.trim().length === 0}
-          className="mt-2 w-auto! px-4"
+          className="mt-2 w-auto!"
         >
           {t('comments.add')}
         </Button>

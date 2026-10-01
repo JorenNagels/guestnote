@@ -100,7 +100,7 @@ export function PaymentsView({
             {t('toBudget')}
           </Link>
           {lines.length > 0 && payments.length > 0 && (
-            <div className="w-48">
+            <div className="w-fit min-w-48">
               <Button onClick={() => setSheet({ payment: null })}>{t('add')}</Button>
             </div>
           )}
@@ -122,7 +122,7 @@ export function PaymentsView({
         <Card className="mt-7 max-w-xl">
           <h2 className="text-base font-semibold">{t('emptyTitle')}</h2>
           <p className="text-muted-foreground mt-1.5 text-sm leading-relaxed">{t('emptyBody')}</p>
-          <div className="mt-4 max-w-56">
+          <div className="mt-4 w-fit min-w-56">
             <Button onClick={() => setSheet({ payment: null })}>{t('emptyAction')}</Button>
           </div>
         </Card>

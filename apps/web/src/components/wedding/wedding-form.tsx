@@ -218,7 +218,7 @@ export function WeddingForm({
       </Card>
 
       <div className="flex flex-wrap items-center gap-3">
-        <div className="w-48">
+        <div className="w-fit min-w-48">
           <Button type="submit" busy={pending} busyLabel={labels.saving}>
             {labels.submit}
           </Button>

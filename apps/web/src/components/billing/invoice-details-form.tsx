@@ -126,7 +126,7 @@ export function InvoiceDetailsForm({
         ) : null}
         <div className="flex items-center gap-3">
           <div>
-            <Button type="submit" className="px-5" busy={pending} busyLabel={labels.saving}>
+            <Button type="submit" busy={pending} busyLabel={labels.saving}>
               {labels.save}
             </Button>
           </div>

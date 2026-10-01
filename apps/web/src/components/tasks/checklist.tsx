@@ -66,7 +66,7 @@ export function Checklist({
           <Button
             variant="secondary"
             onClick={() => setAdding(true)}
-            className="h-8! w-auto! rounded-full px-3.5 text-[0.78rem]"
+            className="h-8! w-auto! rounded-full px-3.5! text-[0.78rem]"
           >
             {t('newTask')}
           </Button>
@@ -88,7 +88,7 @@ export function Checklist({
         <div className="border-border bg-card rounded-[var(--radius-container)] border px-6 py-10 text-center">
           <p className="text-sm font-semibold">{t('empty.title')}</p>
           <p className="text-muted-foreground mx-auto mt-1 max-w-sm text-sm">{t('empty.body')}</p>
-          <Button onClick={() => setAdding(true)} className="mx-auto mt-4 w-auto! px-4">
+          <Button onClick={() => setAdding(true)} className="mx-auto mt-4 w-auto!">
             {t('newTask')}
           </Button>
         </div>

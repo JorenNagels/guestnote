@@ -97,7 +97,6 @@ export function LogoField({ id, labels, url, onPick, onRemove, disabled = false 
           <div>
             <Button
               variant="secondary"
-              className="px-4"
               aria-describedby={error ? `${helpId} ${errorId}` : helpId}
               busy={busy !== null}
               disabled={disabled}

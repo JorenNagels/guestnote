@@ -12,7 +12,7 @@ export default function ErrorBoundary({ reset }: { error: Error; reset: () => vo
   return (
     <div role="alert">
       <p className="text-sm">{t('loadError')}</p>
-      <div className="mt-3 max-w-48">
+      <div className="mt-3 w-fit min-w-48">
         <Button onClick={reset}>{t('retry')}</Button>
       </div>
     </div>
