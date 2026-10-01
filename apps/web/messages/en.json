@@ -489,6 +489,17 @@
       "expiry": "This invitation is valid for {days, plural, one {# day} other {# days}}.",
       "ignore": "Not expecting this? You can ignore this email.",
       "footer": "Guestnote · automated message on behalf of {studio}. Replies to this address are not received."
+    },
+    "vendorLink": {
+      "subject": "{studio}: your schedule for the wedding of {couple}",
+      "preheader": "Your part of the day, always the latest version.",
+      "heading": "The wedding of {couple}",
+      "intro": "{studio} is sharing what you need to know for the wedding of {couple}: your part of the day and what the planner needs from you. The link always shows the latest version.",
+      "cta": "Open your schedule",
+      "linkFallback": "Button not working? Copy this link into your browser:",
+      "expiry": "The link works until {date}.",
+      "ignore": "Anyone with this link can see it, so please do not forward it.",
+      "footer": "Guestnote · automated message on behalf of {studio}. Replies to this address are not received."
     }
   }
 }

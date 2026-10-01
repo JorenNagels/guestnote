@@ -36,6 +36,29 @@ per-wedding link (`wedding_vendors`).
   another wedding and deleted lines excluded). A dash when nothing is open. Formatted in the wedding's
   `locale_default`, as the budget and payments screens do.
 
+**Amended 2026-10-02, spec 0009 A4: email the vendor link.**
+- In the sheet's link controls, beside **Link aanmaken**: **"Link mailen naar {name}"**. Enabled when
+  the vendor has an email address; otherwise disabled, with the one-line reason as its accessible
+  description. Not offered beside a live link: emailing mints a new link, and doing that from a
+  screen showing a live one would quietly replace a link the planner may have handed out. Revoke
+  first, then email.
+- `emailVendorLinkAction(weddingId, wedVendorId)` reads the address itself, from the vendor row the
+  caller can see under `withTenant` (`getWeddingVendors`) — the client sends ids only. A vendor with
+  no address is refused **before** a link is minted. Then it does exactly what Create does (one
+  shared `mintLink`, so "create means replace" and "store the hash only" hold for both) and sends
+  the link through the mail seam (`lib/vendor-link-mail.ts` → `sendVendorLink`, template tag
+  `vendor-link`, recorded in `mail_deliveries` without the URL) in the wedding's `locale_default`,
+  naming the studio and the couple. Owner/admin only, by `createVendorLink`'s own refusal.
+- The plain token is still returned once, so Copy works; the sheet then says "Verstuurd naar
+  {email}".
+- **A failed mail keeps the link.** It exists and the token is on screen, so the sheet says the
+  mail did not go and to copy the link and send it by hand. Rejected: revoking it again, which
+  leaves the planner with nothing for a failure that is usually the address's — and the previous
+  live link would already be gone. The couple invitation made the same choice (spec 0008).
+- The mail reuses the invitation template (`StaffInvite`) with its own copy, as the couple
+  invitation does; the `From` stays Guestnote's for DMARC (`lib/mailer.ts`), the studio is named
+  in the subject, body and footer.
+
 ## States
 
 | State | Directory | Wedding list |

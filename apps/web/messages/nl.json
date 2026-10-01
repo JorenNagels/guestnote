@@ -489,6 +489,17 @@
       "expiry": "Deze uitnodiging is {days, plural, one {# dag} other {# dagen}} geldig.",
       "ignore": "Verwachtte je dit niet? Dan kun je deze e-mail negeren.",
       "footer": "Guestnote · automatisch bericht namens {studio}. Antwoorden op dit adres komen niet aan."
+    },
+    "vendorLink": {
+      "subject": "{studio}: uw planning voor de trouw van {couple}",
+      "preheader": "Uw moment van de dag, altijd de laatste versie.",
+      "heading": "De trouw van {couple}",
+      "intro": "{studio} deelt met u wat u moet weten voor de trouw van {couple}: uw moment van de dag en wat de planner van u nodig heeft. De link toont altijd de laatste versie.",
+      "cta": "Open uw planning",
+      "linkFallback": "Werkt de knop niet? Kopieer dan deze link in uw browser:",
+      "expiry": "De link werkt tot {date}.",
+      "ignore": "Iedereen met deze link kan meekijken. Stuur hem dus niet door.",
+      "footer": "Guestnote · automatisch bericht namens {studio}. Antwoorden op dit adres komen niet aan."
     }
   }
 }

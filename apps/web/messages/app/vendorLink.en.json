@@ -25,7 +25,12 @@
     "revokeConfirmYes": "Yes, revoke",
     "revoked": "Revoked",
     "cancel": "Cancel",
-    "error": "That did not work. Try again."
+    "error": "That did not work. Try again.",
+    "emailButton": "Email the link to {name}",
+    "emailing": "Sending…",
+    "emailNoAddress": "Cannot email: this vendor has no email address.",
+    "emailSent": "Sent to {email}.",
+    "emailFailed": "The link was created, but the email to {email} was not sent. Copy the link below and send it yourself."
   },
   "timelineFullTitle": "The whole day",
   "fullEmpty": "Nothing planned yet.",

@@ -489,6 +489,17 @@
       "expiry": "Cette invitation est valable {days, plural, one {# jour} other {# jours}}.",
       "ignore": "Vous ne vous y attendiez pas ? Vous pouvez ignorer cet e-mail.",
       "footer": "Guestnote · message automatique au nom de {studio}. Les réponses à cette adresse ne sont pas reçues."
+    },
+    "vendorLink": {
+      "subject": "{studio} : votre planning pour le mariage de {couple}",
+      "preheader": "Votre part de la journée, toujours à jour.",
+      "heading": "Le mariage de {couple}",
+      "intro": "{studio} partage avec vous ce qu’il faut savoir pour le mariage de {couple} : votre part de la journée et ce dont l’organisateur a besoin de vous. Le lien affiche toujours la dernière version.",
+      "cta": "Ouvrir votre planning",
+      "linkFallback": "Le bouton ne fonctionne pas ? Copiez ce lien dans votre navigateur :",
+      "expiry": "Le lien fonctionne jusqu’au {date}.",
+      "ignore": "Toute personne disposant de ce lien peut le consulter : ne le transférez pas.",
+      "footer": "Guestnote · message automatique au nom de {studio}. Les réponses à cette adresse ne sont pas reçues."
     }
   }
 }

@@ -110,6 +110,16 @@ export function appInviteUrl(token: string): string {
 }
 
 /**
+ * `https://app.guestnote.be/vendor/<token>` -- the vendor's signed link, in the mail the planner
+ * sends from the vendor sheet (spec 0009 A4). The same URL the sheet's Copy button builds from
+ * `window.location.origin`, which is the app host the planner is on; here there is no window, so
+ * the origin comes from the same two env values as every other app link.
+ */
+export function appVendorLinkUrl(token: string): string {
+  return `${appOrigin()}${app.vendorLink(token)}`
+}
+
+/**
  * `https://app.guestnote.be/api/session-hint` -- what the apex asks, since it cannot know.
  *
  * The session cookie is `__Host-` prefixed and therefore pinned to the app host, so the

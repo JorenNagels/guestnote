@@ -15,12 +15,17 @@ const removeWeddingVendor = vi.fn()
 const updateWeddingVendor = vi.fn()
 const createVendorLink = vi.fn()
 const revokeVendorLink = vi.fn()
+const getWeddingVendors = vi.fn()
+const getWedding = vi.fn()
+const currentOrgs = vi.fn()
+const sendVendorLinkMail = vi.fn()
 
 vi.mock('next/cache', () => ({ revalidatePath: (...a: unknown[]) => revalidatePath(...a) }))
 vi.mock('../../../../../../lib/db.ts', () => ({ getDb: () => ({}) }))
 vi.mock('../../../../../../lib/principal.ts', () => ({
   currentMemberships: () => currentMemberships(),
   currentOrgId: () => currentOrgId(),
+  currentOrgs: () => currentOrgs(),
   // The real `currentCaller`, over the two mocks above.
   currentCaller: async () => {
     const [memberships, orgId] = [await currentMemberships(), await currentOrgId()]
@@ -35,12 +40,18 @@ vi.mock('@guestnote/db', async (orig) => ({
   updateWeddingVendor: (...a: unknown[]) => updateWeddingVendor(...a),
   createVendorLink: (...a: unknown[]) => createVendorLink(...a),
   revokeVendorLink: (...a: unknown[]) => revokeVendorLink(...a),
+  getWeddingVendors: (...a: unknown[]) => getWeddingVendors(...a),
+  getWedding: (...a: unknown[]) => getWedding(...a),
+}))
+vi.mock('../../../../../../lib/vendor-link-mail.ts', () => ({
+  sendVendorLinkMail: (...a: unknown[]) => sendVendorLinkMail(...a),
 }))
 
 const {
   addVendorToWedding,
   createVendorOnWedding,
   createVendorLinkAction,
+  emailVendorLinkAction,
   removeVendorFromWedding,
   revokeVendorLinkAction,
   saveWeddingVendor,
@@ -81,6 +92,7 @@ describe('every action', () => {
       () => saveWeddingVendor(WEDDING, LINK, 'booked', ''),
       () => removeVendorFromWedding(WEDDING, LINK),
       () => createVendorLinkAction(WEDDING, VENDOR, undefined),
+      () => emailVendorLinkAction(WEDDING, VENDOR),
       () => revokeVendorLinkAction(WEDDING, LINK),
     ]
     currentMemberships.mockResolvedValue(null)
@@ -96,6 +108,7 @@ describe('every action', () => {
     expect(removeWeddingVendor).not.toHaveBeenCalled()
     expect(createVendorLink).not.toHaveBeenCalled()
     expect(revokeVendorLink).not.toHaveBeenCalled()
+    expect(sendVendorLinkMail).not.toHaveBeenCalled()
   })
 })
 
@@ -285,5 +298,122 @@ describe('revokeVendorLinkAction', () => {
   it('refuses a malformed link id', async () => {
     expect(await revokeVendorLinkAction(WEDDING, 'x')).toEqual({ ok: false })
     expect(revokeVendorLink).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * Spec 0009 A4. The address comes from the vendor row the caller can read, never from the
+ * arguments; a vendor without one is refused BEFORE a link is minted (so a live link is not
+ * replaced for nothing); and a failed mail leaves the link made and says so.
+ */
+describe('emailVendorLinkAction', () => {
+  const row = (over: Record<string, unknown> = {}) => ({
+    id: VENDOR,
+    name: 'Traiteur A',
+    email: 'info@traiteur.be',
+    ...over,
+  })
+
+  beforeEach(() => {
+    getWeddingVendors.mockResolvedValue({ linked: [row()], locale: 'fr' })
+    getWedding.mockResolvedValue({ coupleDisplayName: 'Lien & Tom' })
+    currentOrgs.mockResolvedValue([
+      { id: 'bbbbbbbb-0000-0000-0000-00000000000b', name: 'Other Studio' },
+      { id: ORG, name: 'Studio Wit' },
+    ])
+    sendVendorLinkMail.mockResolvedValue({ ok: true, messageId: 'm' })
+  })
+
+  it("mints a link like Create and mails it to the row's address in the wedding's language", async () => {
+    const out = await emailVendorLinkAction(WEDDING, VENDOR)
+
+    expect(out).toMatchObject({ ok: true, sentTo: 'info@traiteur.be', mailed: true })
+    if (!out.ok) throw new Error('unreachable')
+    expect(out.token).toMatch(/^[A-Za-z0-9_-]{40,}$/)
+
+    const [, id, input] = createVendorLink.mock.calls[0] as [
+      unknown,
+      string,
+      { tokenHash: string; expiresAt: Date },
+    ]
+    expect(id).toBe(VENDOR)
+    expect(input.tokenHash).not.toBe(out.token)
+    // The default lifetime, the same as Create's.
+    expect(input.expiresAt.getTime()).toBeGreaterThan(Date.now() + 29 * 86_400_000)
+
+    expect(sendVendorLinkMail).toHaveBeenCalledWith({
+      to: 'info@traiteur.be',
+      token: out.token,
+      locale: 'fr',
+      studio: 'Studio Wit',
+      couple: 'Lien & Tom',
+      expiresAt: out.expiresAt,
+    })
+    expect(revalidatePath).toHaveBeenCalledWith('/pro/weddings/[id]/vendors', 'page')
+  })
+
+  it('finds the row by the id it was given, not the first row', async () => {
+    getWeddingVendors.mockResolvedValue({
+      linked: [row({ id: LINK, email: 'wrong@vendor.be' }), row()],
+      locale: 'nl',
+    })
+    await emailVendorLinkAction(WEDDING, VENDOR)
+    expect(sendVendorLinkMail.mock.calls[0]?.[0].to).toBe('info@traiteur.be')
+  })
+
+  it.each([null, '', '  '])(
+    'refuses a vendor whose address is %j before minting anything',
+    async (email) => {
+      getWeddingVendors.mockResolvedValue({ linked: [row({ email })], locale: 'nl' })
+      expect(await emailVendorLinkAction(WEDDING, VENDOR)).toEqual({
+        ok: false,
+        error: 'noEmail',
+      })
+      expect(createVendorLink).not.toHaveBeenCalled()
+      expect(sendVendorLinkMail).not.toHaveBeenCalled()
+    },
+  )
+
+  it('answers notFound for a row the caller cannot see, or a wedding it cannot', async () => {
+    getWeddingVendors.mockResolvedValue({ linked: [row({ id: LINK })], locale: 'nl' })
+    expect(await emailVendorLinkAction(WEDDING, VENDOR)).toEqual({ ok: false, error: 'notFound' })
+    getWeddingVendors.mockResolvedValue(null)
+    expect(await emailVendorLinkAction(WEDDING, VENDOR)).toEqual({ ok: false, error: 'notFound' })
+    getWeddingVendors.mockResolvedValue({ linked: [row()], locale: 'nl' })
+    getWedding.mockResolvedValue(null)
+    expect(await emailVendorLinkAction(WEDDING, VENDOR)).toEqual({ ok: false, error: 'notFound' })
+    expect(createVendorLink).not.toHaveBeenCalled()
+    expect(sendVendorLinkMail).not.toHaveBeenCalled()
+  })
+
+  it('refuses a malformed wedding_vendors id before reading anything', async () => {
+    expect(await emailVendorLinkAction(WEDDING, 'x')).toEqual({ ok: false, error: 'invalid' })
+    expect(getWeddingVendors).not.toHaveBeenCalled()
+  })
+
+  it('relays a repo refusal (a member) and sends nothing', async () => {
+    createVendorLink.mockResolvedValue({ ok: false, reason: 'forbidden' })
+    expect(await emailVendorLinkAction(WEDDING, VENDOR)).toEqual({
+      ok: false,
+      error: 'forbidden',
+    })
+    expect(sendVendorLinkMail).not.toHaveBeenCalled()
+  })
+
+  it('keeps the link and returns its token when the mail is refused', async () => {
+    sendVendorLinkMail.mockResolvedValue({ ok: false, failure: 'rejected', detail: 'x' })
+    const out = await emailVendorLinkAction(WEDDING, VENDOR)
+    expect(out).toMatchObject({ ok: true, sentTo: 'info@traiteur.be', mailed: false })
+    if (!out.ok) throw new Error('unreachable')
+    expect(out.token).toMatch(/^[A-Za-z0-9_-]{40,}$/)
+    expect(revokeVendorLink).not.toHaveBeenCalled()
+  })
+
+  it('treats a transport that throws as a failed mail, not a failed action', async () => {
+    sendVendorLinkMail.mockRejectedValue(new Error('no credentials'))
+    expect(await emailVendorLinkAction(WEDDING, VENDOR)).toMatchObject({
+      ok: true,
+      mailed: false,
+    })
   })
 })

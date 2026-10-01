@@ -15,6 +15,7 @@ vi.mock('../../app/pro/(app)/weddings/[id]/vendors/actions.ts', () => ({
   saveWeddingVendor: vi.fn(),
   removeVendorFromWedding: vi.fn(),
   createVendorLinkAction: vi.fn(),
+  emailVendorLinkAction: vi.fn(),
   revokeVendorLinkAction: vi.fn(),
 }))
 

@@ -9,6 +9,11 @@ added with spec 0003's team slice and migration `0007`'s real `resolveInvitation
 reminder (`src/templates/trial-reminder.tsx`, spec 0005, 2026-09-26 -- sent only by the
 trial-reminder cron, and nothing at all while `GUESTNOTE_BILLING_FROM` is unset).
 
+Five mails from those three: the invitation template also carries the couple invitation (spec
+0008) and the vendor's signed link (spec 0009 A4, `sendVendorLink`), each with its own copy and its
+own `template` tag, so `mail_deliveries` tells them apart. A new mail with the same shape --
+heading, paragraph, button, raw link, expiry, one closing line -- is a method, not a template.
+
 ## The seam
 
 `createMailer({ transport, record })`. Everything it returns is plain data; no AWS type crosses
@@ -106,6 +111,7 @@ against the daily limit.
 | `ses.test.ts` | the `SendEmailCommand` input, `Charset: 'UTF-8'` on all three parts, no Reply-To (deliberate, and no longer for the reason first given — `docs/adr/0005-the-apex-receives-mail.md`), and every error mapping |
 | `index.test.ts` | what the transport is handed, what is recorded, and that a throwing recorder still returns the send result |
 | `staff-invite.test.ts`, `trial-reminder.test.ts` | the link, the copy and the template tag of the invitation and the trial reminder; the invite's delivery record omits the link |
+| `vendor-link.test.ts` | the vendor link mail: link in both parts, its own tag and delivery template, no token in the record, a failed send recorded and returned |
 
 Mutation-checked, per the root README's standard: the drift test was confirmed to fail on a
 one-digit colour change, and the import ban on a probe file that imported the SDK.

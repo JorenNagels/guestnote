@@ -4,13 +4,16 @@ import {
   addWeddingVendor,
   createVendorForWedding,
   createVendorLink,
+  getWedding,
+  getWeddingVendors,
   removeWeddingVendor,
   revokeVendorLink,
   updateWeddingVendor,
+  type WeddingScope,
 } from '@guestnote/db'
 import { revalidatePath } from 'next/cache'
 import { newBearerToken } from '../../../../../../lib/bearer-token.ts'
-import { currentOrgId } from '../../../../../../lib/principal.ts'
+import { currentOrgId, currentOrgs } from '../../../../../../lib/principal.ts'
 import { assertWritable } from '../../../../../../lib/trial.ts'
 import {
   answer,
@@ -20,6 +23,7 @@ import {
   parseVendorInput,
   type VendorActionResult,
 } from '../../../../../../lib/vendor-input.ts'
+import { sendVendorLinkMail } from '../../../../../../lib/vendor-link-mail.ts'
 import {
   DEFAULT_VENDOR_LINK_TTL_DAYS,
   MAX_VENDOR_LINK_TTL_DAYS,
@@ -175,16 +179,96 @@ export async function createVendorLinkAction(
   if (!Number.isInteger(days) || days < 1 || days > MAX_VENDOR_LINK_TTL_DAYS) {
     return { ok: false, error: 'invalid' }
   }
+  return mintLink(ctx, id, days)
+}
 
+/**
+ * The one place a token is minted, for Create and for Email alike, so the two cannot drift on
+ * what is stored (the hash only) or on "create means replace" (the repo's, see `vendor-links.ts`).
+ */
+async function mintLink(
+  ctx: WeddingScope,
+  wedVendorId: string,
+  days: number,
+): Promise<CreateVendorLinkResult> {
   const { token, tokenHash } = newBearerToken()
   const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000)
-  const r = await createVendorLink(ctx, id, {
+  const r = await createVendorLink(ctx, wedVendorId, {
     tokenHash,
     expiresAt,
   })
   if (!r.ok) return { ok: false, error: r.reason }
   refresh()
   return { ok: true, token, expiresAt: expiresAt.toISOString() }
+}
+
+/**
+ * "Link mailen naar {name}" (spec 0009 A4): Create, then the link by mail to the vendor.
+ *
+ * **The address is read here, never taken from the client.** It is the vendor's directory
+ * address as this caller can read it under `withTenant` (`getWeddingVendors`), so a forged call
+ * can mail a link only to an address already on a vendor of a wedding the caller manages -- and
+ * only an owner or admin gets that far, because `createVendorLink` refuses everyone else before
+ * anything is sent. Rejected: an `email` argument, which would make this a "mail any address a
+ * credential" endpoint with a studio's name on it.
+ *
+ * Read BEFORE the link is made, so a vendor with no address is refused without replacing a live
+ * link the planner may already have handed out.
+ *
+ * **When the mail fails, the link stays.** It exists, the token is returned like Create returns
+ * it, and the sheet says the mail did not go and to copy the link instead (`mailed: false`).
+ * Rejected: revoking it again, which would leave the planner with nothing in hand for a failure
+ * that is usually the address's, not the link's -- and would still have revoked any link that
+ * was live before. This is the couple invitation's choice too (`lib/couple-invite.ts`).
+ *
+ * Language: the wedding's `locale_default`, which `getWeddingVendors` already reads.
+ */
+export type EmailVendorLinkResult =
+  | {
+      readonly ok: true
+      readonly token: string
+      readonly expiresAt: string
+      /** The address it went (or was meant to go) to, for "Verstuurd naar ...". */
+      readonly sentTo: string
+      readonly mailed: boolean
+    }
+  | { readonly ok: false; readonly error: 'forbidden' | 'notFound' | 'invalid' | 'noEmail' }
+
+export async function emailVendorLinkAction(
+  weddingId: unknown,
+  wedVendorId: unknown,
+): Promise<EmailVendorLinkResult> {
+  await assertWritable(await currentOrgId())
+  const ctx = await context(weddingId)
+  if (!ctx) return { ok: false, error: 'notFound' }
+  const id = parseId(wedVendorId)
+  if (!id) return { ok: false, error: 'invalid' }
+
+  const [vendors, wedding, orgs] = await Promise.all([
+    getWeddingVendors(ctx),
+    getWedding(ctx),
+    currentOrgs(),
+  ])
+  const row = vendors?.linked.find((v) => v.id === id)
+  if (!vendors || !wedding || !row) return { ok: false, error: 'notFound' }
+  const to = row.email?.trim() ?? ''
+  if (to === '') return { ok: false, error: 'noEmail' }
+
+  const made = await mintLink(ctx, id, DEFAULT_VENDOR_LINK_TTL_DAYS)
+  if (!made.ok) return made
+
+  // A throw from the transport (credentials, network) is the same answer as a refused send: the
+  // link is made, the mail is not. `packages/email` has already recorded a refused one.
+  const sent = await sendVendorLinkMail({
+    to,
+    token: made.token,
+    locale: vendors.locale,
+    studio: orgs.find((o) => o.id === ctx.orgId)?.name ?? '',
+    couple: wedding.coupleDisplayName,
+    expiresAt: made.expiresAt,
+  }).catch(() => null)
+
+  return { ...made, sentTo: to, mailed: sent?.ok === true }
 }
 
 export async function revokeVendorLinkAction(

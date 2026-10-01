@@ -25,7 +25,12 @@
     "revokeConfirmYes": "Oui, révoquer",
     "revoked": "Révoqué",
     "cancel": "Annuler",
-    "error": "Échec. Réessayez."
+    "error": "Échec. Réessayez.",
+    "emailButton": "Envoyer le lien à {name}",
+    "emailing": "Envoi…",
+    "emailNoAddress": "Envoi impossible : ce prestataire n’a pas d’adresse e-mail.",
+    "emailSent": "Envoyé à {email}.",
+    "emailFailed": "Le lien a été créé, mais l’e-mail à {email} n’a pas été envoyé. Copiez le lien ci-dessous et envoyez-le vous-même."
   },
   "timelineFullTitle": "Toute la journée",
   "fullEmpty": "Rien de prévu pour l’instant.",

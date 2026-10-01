@@ -25,7 +25,12 @@
     "revokeConfirmYes": "Ja, intrekken",
     "revoked": "Ingetrokken",
     "cancel": "Annuleren",
-    "error": "Dat is niet gelukt. Probeer het opnieuw."
+    "error": "Dat is niet gelukt. Probeer het opnieuw.",
+    "emailButton": "Link mailen naar {name}",
+    "emailing": "Versturen…",
+    "emailNoAddress": "Mailen kan niet: deze leverancier heeft geen e-mailadres.",
+    "emailSent": "Verstuurd naar {email}.",
+    "emailFailed": "De link is aangemaakt, maar de e-mail naar {email} is niet verstuurd. Kopieer de link hieronder en stuur hem zelf door."
   },
   "timelineFullTitle": "De hele dag",
   "fullEmpty": "Nog niets gepland.",

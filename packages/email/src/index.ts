@@ -133,6 +133,41 @@ export function createMailer(config: MailerConfig) {
       return result
     },
 
+    /**
+     * Spec 0009 A4: a vendor's signed link, mailed by the planner from the vendor sheet. The same
+     * layout as the invitations again -- heading, one paragraph, a button, the raw link, the
+     * expiry, one closing line -- so the same template with its own copy and its own tag, for the
+     * reason `sendCoupleInvite` gives. Rejected: a fourth template file that differs from
+     * `StaffInvite` only in its name.
+     *
+     * A link in the body is safe here for the reason it is safe in the invitation: opening
+     * `/vendor/<token>` only reads (`(public)/vendor/[token]/page.tsx`), so a mail scanner that
+     * prefetches it spends nothing. Unlike an invitation the link is the whole product, not a
+     * step towards a sign-in, which is why the raw URL under the button matters more here.
+     */
+    async sendVendorLink(input: StaffInviteInput): Promise<SendResult> {
+      const rendered = await renderEmail(
+        createElement(StaffInvite, { url: input.url, locale: input.locale, copy: input.copy }),
+      )
+      const result = await config.transport.send({
+        to: input.to,
+        subject: input.copy.subject,
+        html: rendered.html,
+        text: rendered.text,
+        tags: { template: TEMPLATE_VENDOR_LINK },
+      })
+      // The URL is not recorded: the token in it opens the vendor's view until it expires.
+      await record(config, {
+        toEmail: input.to,
+        template: TEMPLATE_VENDOR_LINK,
+        locale: input.locale,
+        providerMessageId: result.ok ? result.messageId : null,
+        status: result.ok ? 'sent' : 'failed',
+        error: result.ok ? null : result.detail,
+      })
+      return result
+    },
+
     async sendStaffInvite(input: StaffInviteInput): Promise<SendResult> {
       const rendered = await renderEmail(
         createElement(StaffInvite, { url: input.url, locale: input.locale, copy: input.copy }),
@@ -213,8 +248,9 @@ export type Mailer = ReturnType<typeof createMailer>
 const TEMPLATE_SIGN_IN_CODE = 'sign-in-code'
 const TEMPLATE_STAFF_INVITE = 'staff-invite'
 const TEMPLATE_COUPLE_INVITE = 'couple-invite'
+const TEMPLATE_VENDOR_LINK = 'vendor-link'
 /**
- * Exported, unlike the other three, because the cron deduplicates on it: "was this owner already
+ * Exported, unlike the others, because the cron deduplicates on it: "was this owner already
  * sent this template" is a `mail_deliveries` read by this value (`lib/mailer.ts`).
  */
 export const TEMPLATE_TRIAL_REMINDER = 'trial-reminder'

@@ -189,6 +189,8 @@ export function WeddingVendorSheet({
               weddingId={weddingId}
               vendorLinkId={vendor.id}
               activeLink={vendor.activeLink}
+              vendorName={vendor.name}
+              vendorEmail={vendor.email}
               labels={labels.manageLink}
             />
           </div>

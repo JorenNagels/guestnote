@@ -10,8 +10,8 @@ import type { WeddingLabels } from './wedding-vendors-view.tsx'
  * `NextIntlClientProvider` and the shell set that convention (`ShellLabels`). These read the
  * `app.vendors` catalogue on the server and hand plain strings across.
  *
- * `raw` for the three templates that carry `{name}`: a formatted read throws for the missing
- * variable, and the browser fills it per row (the same trap `(app)/layout.tsx` records for the
+ * `raw` for the templates that carry `{name}`, `{date}` or `{email}`: a formatted read throws
+ * for the missing variable, and the browser fills it per row (the same trap `(app)/layout.tsx` records for the
  * countdown). Everything else is an ordinary read.
  */
 export type Translate = {
@@ -107,6 +107,11 @@ export function manageLinkLabels(t: Translate): ManageLinkLabels {
     revoked: t('manageLink.revoked'),
     cancel: t('manageLink.cancel'),
     error: t('manageLink.error'),
+    emailButton: raw(t, 'manageLink.emailButton'),
+    emailing: t('manageLink.emailing'),
+    emailNoAddress: t('manageLink.emailNoAddress'),
+    emailSent: raw(t, 'manageLink.emailSent'),
+    emailFailed: raw(t, 'manageLink.emailFailed'),
   }
 }
 
