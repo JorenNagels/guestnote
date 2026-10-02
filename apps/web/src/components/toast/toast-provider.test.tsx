@@ -104,6 +104,26 @@ describe('ToastProvider', () => {
     expect(status()).toHaveTextContent(/^Second$/)
   })
 
+  // A second click while the first restore is in flight would send a second restore, and its
+  // "gone" answer would overwrite the first one's "Restored.".
+  it('disables Undo while the restore is in flight', async () => {
+    let finish: (r: UndoResult) => void = () => {}
+    const undo = vi.fn(
+      () =>
+        new Promise<UndoResult>((resolve) => {
+          finish = resolve
+        }),
+    )
+    view([{ message: 'Gone', undo }])
+    fireEvent.click(screen.getByRole('button', { name: 'raise 0' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeDisabled()
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
+    expect(undo).toHaveBeenCalledTimes(1)
+    await act(async () => finish('restored'))
+    expect(status()).toHaveTextContent('Restored.')
+  })
+
   it('closes on Dismiss', () => {
     view([{ message: 'Gone', undo: async () => 'restored' }])
     fireEvent.click(screen.getByRole('button', { name: 'raise 0' }))

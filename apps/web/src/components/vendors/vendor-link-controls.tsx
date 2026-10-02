@@ -219,7 +219,7 @@ export function VendorLinkControls({
             >
               {pending && busy === 'email'
                 ? labels.emailing
-                : labels.emailButton.replace('{name}', vendorName)}
+                : labels.emailButton.replace('{name}', () => vendorName)}
             </SmallButton>
           </div>
           {!canEmail && (

@@ -16,6 +16,7 @@ const repo = {
   listFiles: vi.fn(),
   removeFile: vi.fn(),
   renameFile: vi.fn(),
+  restoreFile: vi.fn(),
   setFileVisibility: vi.fn(),
 }
 const storage = { presignUpload: vi.fn(), presignDownload: vi.fn() }
@@ -30,6 +31,7 @@ vi.mock('@guestnote/db', async (orig) => ({
   listFiles: (...a: unknown[]) => repo.listFiles(...a),
   removeFile: (...a: unknown[]) => repo.removeFile(...a),
   renameFile: (...a: unknown[]) => repo.renameFile(...a),
+  restoreFile: (...a: unknown[]) => repo.restoreFile(...a),
   setFileVisibility: (...a: unknown[]) => repo.setFileVisibility(...a),
   newId: () => 'ffffffff-0000-0000-0000-00000000000f',
 }))
@@ -52,6 +54,7 @@ const {
   listWeddingImages,
   removeWeddingFile,
   renameWeddingFile,
+  restoreWeddingFile,
   setWeddingFileVisibility,
   startUpload,
 } = await import('./wedding-files.ts')
@@ -204,6 +207,26 @@ describe('confirmUpload / remove / rename / visibility', () => {
     expect(await removeWeddingFile(WEDDING, FILE)).toEqual({ ok: true })
     repo.removeFile.mockResolvedValue({ ok: false, reason: 'notFound' })
     expect(await removeWeddingFile(WEDDING, FILE)).toEqual({ ok: false, error: 'notFound' })
+  })
+
+  // Spec 0009 C4: the Undo of both screens. Only ids reach the repo, and every refusal is one word.
+  it('restore passes this wedding and the id, and maps a refusal to notFound', async () => {
+    repo.restoreFile.mockResolvedValue({ ok: true, value: null })
+    expect(await restoreWeddingFile(WEDDING, FILE)).toEqual({ ok: true })
+    expect(repo.restoreFile).toHaveBeenCalledWith(
+      expect.objectContaining({ m: MEMBERSHIPS, orgId: ORG, weddingId: WEDDING }),
+      FILE,
+    )
+    repo.restoreFile.mockResolvedValue({ ok: false, reason: 'notFound' })
+    expect(await restoreWeddingFile(WEDDING, FILE)).toEqual({ ok: false, error: 'notFound' })
+  })
+
+  it('restore refuses a bad id or no scope before the repository', async () => {
+    expect(await restoreWeddingFile(WEDDING, 'nope')).toEqual({ ok: false, error: 'notFound' })
+    expect(await restoreWeddingFile('nope', FILE)).toEqual({ ok: false, error: 'notFound' })
+    currentOrgId.mockResolvedValue(null)
+    expect(await restoreWeddingFile(WEDDING, FILE)).toEqual({ ok: false, error: 'notFound' })
+    expect(repo.restoreFile).not.toHaveBeenCalled()
   })
 
   it('rename cleans the name and refuses an empty one before the repository', async () => {

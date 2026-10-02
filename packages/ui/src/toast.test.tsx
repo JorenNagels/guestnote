@@ -120,6 +120,67 @@ describe('Toast', () => {
     expect(onDismiss).not.toHaveBeenCalled()
   })
 
+  it('runs again once focus has left it', () => {
+    const onDismiss = vi.fn()
+    render(
+      <>
+        <button type="button">Elsewhere</button>
+        <Toast toast={item()} dismissLabel="Dismiss" onDismiss={onDismiss} />
+      </>,
+    )
+    act(() => screen.getByRole('button', { name: 'Undo' }).focus())
+    act(() => vi.advanceTimersByTime(20_000))
+    act(() => screen.getByRole('button', { name: 'Elsewhere' }).focus())
+    act(() => vi.advanceTimersByTime(7999))
+    expect(onDismiss).not.toHaveBeenCalled()
+    act(() => vi.advanceTimersByTime(1))
+    expect(onDismiss).toHaveBeenCalledTimes(1)
+  })
+
+  // Dismissing unmounts the focused button, so the card's onBlur never fires; before the fix the
+  // next toast arrived still "focused" and never left.
+  it('does not stay paused after the focused Dismiss took the toast away', () => {
+    const onDismiss = vi.fn()
+    const { rerender } = render(
+      <Toast toast={item()} dismissLabel="Dismiss" onDismiss={onDismiss} />,
+    )
+    act(() => screen.getByRole('button', { name: 'Dismiss' }).focus())
+    rerender(<Toast toast={null} dismissLabel="Dismiss" onDismiss={onDismiss} />)
+    rerender(<Toast toast={item({ id: 2 })} dismissLabel="Dismiss" onDismiss={onDismiss} />)
+    act(() => vi.advanceTimersByTime(8000))
+    expect(onDismiss).toHaveBeenCalledTimes(1)
+  })
+
+  // The same for the pointer: a card with no toast is `pointer-events-none`, so no mouseleave.
+  it('does not stay paused after a hovered toast went away', () => {
+    const onDismiss = vi.fn()
+    const { rerender } = render(
+      <Toast toast={item()} dismissLabel="Dismiss" onDismiss={onDismiss} />,
+    )
+    fireEvent.mouseEnter(screen.getByTestId('toast'))
+    rerender(<Toast toast={null} dismissLabel="Dismiss" onDismiss={onDismiss} />)
+    rerender(<Toast toast={item({ id: 2 })} dismissLabel="Dismiss" onDismiss={onDismiss} />)
+    act(() => vi.advanceTimersByTime(8000))
+    expect(onDismiss).toHaveBeenCalledTimes(1)
+  })
+
+  it('stays paused across a new toast while focus is still in the card', () => {
+    const onDismiss = vi.fn()
+    const { rerender } = render(
+      <Toast toast={item()} dismissLabel="Dismiss" onDismiss={onDismiss} />,
+    )
+    act(() => screen.getByRole('button', { name: 'Undo' }).focus())
+    rerender(
+      <Toast
+        toast={{ id: 2, message: 'Restored.' }}
+        dismissLabel="Dismiss"
+        onDismiss={onDismiss}
+      />,
+    )
+    act(() => vi.advanceTimersByTime(20_000))
+    expect(onDismiss).not.toHaveBeenCalled()
+  })
+
   it('pauses while its action is busy', () => {
     const onDismiss = vi.fn()
     render(

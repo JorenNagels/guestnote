@@ -77,7 +77,9 @@ export type FilesLabels = {
   errors: Readonly<Record<string, string>> & { unknown: string }
 }
 
-const fill = (template: string, name: string) => template.replace('{name}', name)
+// A replacer function, not the string: as a string, a name holding `$&` or `$'` is read as a
+// replacement pattern and a file called 'Bloem $& Co' would come back as 'Bloem {name} Co'.
+const fill = (template: string, name: string) => template.replace('{name}', () => name)
 
 /**
  * The Files screen. Client because every row is interactive; the page hands it plain data and

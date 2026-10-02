@@ -91,7 +91,8 @@ export function WeddingVendorSheet({
     const r = await removeVendorFromWedding(weddingId, vendor.id)
     if (r.ok) {
       toast.show({
-        message: labels.removed.replace('{name}', vendor.name),
+        // A replacer, so a `$&` in the name is text and not a replacement pattern.
+        message: labels.removed.replace('{name}', () => vendor.name),
         undo: async () =>
           undoAnswer(labels.errors, await restoreVendorToWedding(weddingId, vendor.id)),
       })
@@ -116,7 +117,7 @@ export function WeddingVendorSheet({
     <Sheet
       open
       onClose={onClose}
-      title={labels.sheetTitle.replace('{name}', vendor.name)}
+      title={labels.sheetTitle.replace('{name}', () => vendor.name)}
       closeLabel={labels.close}
       footer={
         <div className="grid grid-cols-2 gap-2">

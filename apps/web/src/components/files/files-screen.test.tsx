@@ -171,6 +171,16 @@ describe('row actions', () => {
     expect(refresh).toHaveBeenCalledTimes(1)
   })
 
+  // `String.replace` reads `$&` in a replacement STRING as "the match", so this name used to come
+  // out as "Bloem {name} Co" -- in the toast and in the button's own name alike.
+  it('names a file holding a replacement pattern as written', async () => {
+    const [first] = ITEMS
+    if (!first) throw new Error('fixture')
+    view([{ ...first, name: 'Bloem $& Co.pdf' }])
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Bloem $& Co.pdf' }))
+    await waitFor(() => expect(toast()).toHaveTextContent('“Bloem $& Co.pdf” removed.'))
+  })
+
   it('raises no toast when the remove is refused', async () => {
     actions.remove.mockResolvedValue({ ok: false, error: 'notFound' })
     view()

@@ -89,6 +89,14 @@ const FORBIDDEN = fail('forbidden')
 const NOT_FOUND = fail('notFound')
 const DUPLICATE = fail('duplicate')
 
+/**
+ * How long after a removal someone other than an owner or admin may undo it
+ * (`restoreWeddingVendor`). Longer than the toast's 8 seconds, which pause on hover and focus
+ * and can be followed by a retry; short enough that it means "the removal just made", not
+ * "any vendor this wedding ever had".
+ */
+const RESTORE_WINDOW = '2 minutes'
+
 const VENDOR_COLUMNS = {
   id: vendors.id,
   name: vendors.name,
@@ -472,9 +480,8 @@ export async function removeWeddingVendor(
 }
 
 /**
- * Undo for `removeWeddingVendor` (spec 0009 C4): the same principal (any staff of this wedding)
- * and the same `weddingId` in the `where`, plus the wedding parent read -- nothing comes back
- * onto a deleted wedding.
+ * Undo for `removeWeddingVendor` (spec 0009 C4): the same `weddingId` in the `where`, plus the
+ * wedding parent read -- nothing comes back onto a deleted wedding.
  *
  * `duplicate` when the same directory vendor has been added to the wedding again since: the
  * unique index is partial on `deleted_at is null`, so two live rows for one vendor cannot exist,
@@ -486,16 +493,33 @@ export async function removeWeddingVendor(
  * What comes back with the row is everything that hung off it, because removing touched none of
  * it: status, notes, budget lines naming it, run-sheet rows, board shares -- and a vendor link
  * that was live when the row was removed and has neither expired nor been revoked since resolves
- * again (`resolve_vendor_link` requires a live row, and nothing else). That is what an undo
- * means; a planner who wants the link dead revokes it. No time limit (`restoreBudgetLine`).
+ * again (`resolve_vendor_link` requires a live row, and nothing else).
+ *
+ * ## Who may restore, and for how long
+ *
+ * Removing is any staff of the wedding; the vendor LINK is owner/admin only (`createVendorLink`,
+ * `revokeVendorLink`, the `vendor_links` policy). So restoring is not "whoever could have
+ * deleted": a member's restore can revive a credential the member could never have minted, and
+ * while the row is removed nobody can see its link to revoke it first (`getWeddingVendors`
+ * lists live rows only). An owner or admin (`principalForOrg`) therefore restores at any time --
+ * they could revoke the link the moment it is back. Anyone else restores only inside the toast's
+ * undo window, `RESTORE_WINDOW`, measured by the database clock in the UPDATE's own `where` so a
+ * client cannot stretch it; an older removal is `forbidden`. Inside the window the member is
+ * undoing a removal that just happened, which put back a link that was live a moment ago -- the
+ * state the owner last left it in. Rejected: reviving the row with its links revoked, which
+ * would make a member's Undo silently kill a link the planner had handed out; and recording
+ * who removed the row, which needs a column for what the window already answers.
  */
 export async function restoreWeddingVendor(
   scope: WeddingScope,
   linkId: string,
 ): Promise<VendorWriteResult> {
-  const { db, weddingId } = scope
+  const { db, m, orgId, weddingId } = scope
   const principal = scope.principal
   if (!principal) return NOT_FOUND
+  // Owner or admin: no window. Everyone else (an assigned member): the undo window only.
+  const anyTime = principalForOrg(m, orgId) !== null
+  const inWindow = sql`${weddingVendors.deletedAt} > now() - ${RESTORE_WINDOW}::interval`
   try {
     return await withTenant(db, principal, async (tx): Promise<VendorWriteResult> => {
       const wedding = await tx
@@ -516,11 +540,21 @@ export async function restoreWeddingVendor(
         )
       if (!removed) return NOT_FOUND
 
-      await tx
+      // The window is in the UPDATE itself, not decided from the read above: the read only
+      // tells `notFound` from `forbidden`, and the write cannot happen outside the window.
+      const restored = await tx
         .update(weddingVendors)
         .set({ deletedAt: null, updatedAt: new Date() })
-        .where(and(eq(weddingVendors.id, linkId), eq(weddingVendors.weddingId, weddingId)))
-      return ok(null)
+        .where(
+          and(
+            eq(weddingVendors.id, linkId),
+            eq(weddingVendors.weddingId, weddingId),
+            isNotNull(weddingVendors.deletedAt),
+            anyTime ? undefined : inWindow,
+          ),
+        )
+        .returning({ id: weddingVendors.id })
+      return restored.length === 0 ? FORBIDDEN : ok(null)
     })
   } catch (e) {
     if (isUniqueViolation(e)) return DUPLICATE

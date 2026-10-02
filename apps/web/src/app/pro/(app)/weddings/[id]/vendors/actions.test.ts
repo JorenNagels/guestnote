@@ -12,6 +12,7 @@ const currentOrgId = vi.fn()
 const addWeddingVendor = vi.fn()
 const createVendorForWedding = vi.fn()
 const removeWeddingVendor = vi.fn()
+const restoreWeddingVendor = vi.fn()
 const updateWeddingVendor = vi.fn()
 const createVendorLink = vi.fn()
 const revokeVendorLink = vi.fn()
@@ -37,6 +38,7 @@ vi.mock('@guestnote/db', async (orig) => ({
   addWeddingVendor: (...a: unknown[]) => addWeddingVendor(...a),
   createVendorForWedding: (...a: unknown[]) => createVendorForWedding(...a),
   removeWeddingVendor: (...a: unknown[]) => removeWeddingVendor(...a),
+  restoreWeddingVendor: (...a: unknown[]) => restoreWeddingVendor(...a),
   updateWeddingVendor: (...a: unknown[]) => updateWeddingVendor(...a),
   createVendorLink: (...a: unknown[]) => createVendorLink(...a),
   revokeVendorLink: (...a: unknown[]) => revokeVendorLink(...a),
@@ -53,6 +55,7 @@ const {
   createVendorLinkAction,
   emailVendorLinkAction,
   removeVendorFromWedding,
+  restoreVendorToWedding,
   revokeVendorLinkAction,
   saveWeddingVendor,
   setWeddingVendorStatus,
@@ -76,6 +79,7 @@ beforeEach(() => {
     addWeddingVendor,
     createVendorForWedding,
     removeWeddingVendor,
+    restoreWeddingVendor,
     updateWeddingVendor,
   ])
     f.mockResolvedValue(OK)
@@ -91,6 +95,7 @@ describe('every action', () => {
       () => setWeddingVendorStatus(WEDDING, LINK, 'booked'),
       () => saveWeddingVendor(WEDDING, LINK, 'booked', ''),
       () => removeVendorFromWedding(WEDDING, LINK),
+      () => restoreVendorToWedding(WEDDING, LINK),
       () => createVendorLinkAction(WEDDING, VENDOR, undefined),
       () => emailVendorLinkAction(WEDDING, VENDOR),
       () => revokeVendorLinkAction(WEDDING, LINK),
@@ -106,9 +111,43 @@ describe('every action', () => {
     expect(createVendorForWedding).not.toHaveBeenCalled()
     expect(updateWeddingVendor).not.toHaveBeenCalled()
     expect(removeWeddingVendor).not.toHaveBeenCalled()
+    expect(restoreWeddingVendor).not.toHaveBeenCalled()
     expect(createVendorLink).not.toHaveBeenCalled()
     expect(revokeVendorLink).not.toHaveBeenCalled()
     expect(sendVendorLinkMail).not.toHaveBeenCalled()
+  })
+})
+
+/** Spec 0009 C4: the toast's Undo. The window and the link rule are the repo's (restore-repos). */
+describe('restoreVendorToWedding', () => {
+  it('answers notFound with no scope, before the repo', async () => {
+    currentMemberships.mockResolvedValue(null)
+    expect(await restoreVendorToWedding(WEDDING, LINK)).toEqual({ ok: false, error: 'notFound' })
+    currentMemberships.mockResolvedValue({ userId: 'u1', orgs: [], weddings: [] })
+    expect(await restoreVendorToWedding('nope', LINK)).toEqual({ ok: false, error: 'notFound' })
+    expect(restoreWeddingVendor).not.toHaveBeenCalled()
+  })
+
+  it('refuses a malformed row id before the repo', async () => {
+    expect(await restoreVendorToWedding(WEDDING, 'x')).toEqual({ ok: false, error: 'invalid' })
+    expect(restoreWeddingVendor).not.toHaveBeenCalled()
+  })
+
+  it('restores the row on this wedding and refreshes the wedding page', async () => {
+    expect(await restoreVendorToWedding(WEDDING, LINK)).toEqual({ ok: true })
+    expect(restoreWeddingVendor).toHaveBeenCalledWith(
+      expect.objectContaining({ orgId: ORG, weddingId: WEDDING }),
+      LINK,
+    )
+    expect(revalidatePath).toHaveBeenCalledWith('/pro/weddings/[id]/vendors', 'page')
+  })
+
+  it('relays duplicate, forbidden and notFound, and refreshes for none of them', async () => {
+    for (const reason of ['duplicate', 'forbidden', 'notFound'] as const) {
+      restoreWeddingVendor.mockResolvedValue({ ok: false, reason })
+      expect(await restoreVendorToWedding(WEDDING, LINK)).toEqual({ ok: false, error: reason })
+    }
+    expect(revalidatePath).not.toHaveBeenCalled()
   })
 })
 

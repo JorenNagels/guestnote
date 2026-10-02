@@ -123,6 +123,12 @@ describe('listDuePayments', () => {
     ])
   })
 
+  // An archived wedding with a payment still open is money still owed (the repo's header).
+  it("keeps an archived wedding's open payments", async () => {
+    await seedExec(`update weddings set status = 'archived' where id = $1`, [A2])
+    expect(ids(await listDuePayments(h.db, owner, F.orgA, FAR))).toEqual([F.paymentA1, F.paymentA2])
+  })
+
   it('leaves out a paid payment', async () => {
     await setPaymentPaidAt(WeddingScope.of(h.db, owner, F.orgA, A1), F.paymentA1, new Date())
     expect(ids(await listDuePayments(h.db, owner, F.orgA, FAR))).toEqual([F.paymentA2])

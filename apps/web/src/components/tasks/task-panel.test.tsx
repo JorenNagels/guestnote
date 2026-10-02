@@ -53,6 +53,31 @@ describe('TaskPanel', () => {
     expect(replace).toHaveBeenCalledWith(CLOSE, { scroll: false })
   })
 
+  // `task-detail.tsx`'s `currentAssignee`: a person who has left the wedding is no longer in
+  // `staff`, so without it Edit would open with nobody (or the viewer) chosen, and Save would
+  // quietly hand the task to someone else.
+  it('opens Edit with an assignee who has left the wedding still chosen, by name', () => {
+    const GONE = '018f0000-0000-7000-8000-0000000000d9'
+    render(
+      <WithMessages>
+        <TaskPanel
+          task={task({ assigneeUserId: GONE, assigneeName: 'Cas', assigneeRole: 'planner' })}
+          comments={[]}
+          coupleUserIds={[]}
+          weddingDate="2027-06-12"
+          events={[]}
+          staff={[{ id: '018f0000-0000-7000-8000-0000000000d2', name: 'Els' }]}
+          viewerId="018f0000-0000-7000-8000-0000000000d1"
+          today="2027-03-10"
+          closeHref={CLOSE}
+        />
+      </WithMessages>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Bewerken' }))
+    expect(screen.getByRole('radio', { name: 'Cas' })).toBeChecked()
+    expect(screen.getByRole('radio', { name: 'Els' })).not.toBeChecked()
+  })
+
   it('closes on Escape', () => {
     show()
     fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })

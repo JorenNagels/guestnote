@@ -215,7 +215,7 @@ export function BoardBar({
           ) : (
             <button
               type="button"
-              aria-label={labels.rename.replace('{name}', board.name)}
+              aria-label={labels.rename.replace('{name}', () => board.name)}
               onClick={() => {
                 setDraft(board.name)
                 setMode('renaming')
@@ -384,7 +384,7 @@ function ShareSheet({
     <Sheet
       open
       onClose={onClose}
-      title={labels.shareTitle.replace('{name}', board.name)}
+      title={labels.shareTitle.replace('{name}', () => board.name)}
       closeLabel={labels.close}
     >
       <fieldset disabled={saving} className="space-y-4" aria-busy={saving || undefined}>

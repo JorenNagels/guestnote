@@ -300,7 +300,9 @@ export async function deleteBudgetLine(scope: WeddingScope, lineId: string): Pro
  * principal that may restore is the one that could have deleted it, so a late restore grants
  * nothing a fresh line would not. Rejected: a window checked here (say ten seconds after
  * `deleted_at`), which would put a UI timer in the repository and turn a slow network into a
- * refused undo.
+ * refused undo. `restoreWeddingVendor` is the one restore that does keep a window, two minutes
+ * and for a member only, because its restore also revives a vendor link the member could never
+ * have made; a budget line carries nothing of the kind.
  */
 export async function restoreBudgetLine(scope: WeddingScope, lineId: string): Promise<MoneyResult> {
   const { db, weddingId } = scope

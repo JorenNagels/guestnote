@@ -104,7 +104,7 @@ export function VendorBoards({
                   ) : (
                     <button
                       type="button"
-                      aria-label={labels.open.replace('{name}', image.name)}
+                      aria-label={labels.open.replace('{name}', () => image.name)}
                       onClick={() => setOpen({ id: image.id, name: image.name })}
                       className="block w-full cursor-zoom-in"
                     >

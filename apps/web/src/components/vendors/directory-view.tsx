@@ -70,7 +70,8 @@ export function DirectoryView({
     const r = await archiveDirectoryVendor(v.id)
     if (r.ok) {
       toast.show({
-        message: labels.form.archived.replace('{name}', v.name),
+        // A replacer, so a `$&` in the name is text and not a replacement pattern.
+        message: labels.form.archived.replace('{name}', () => v.name),
         undo: async () => undoAnswer(labels.form.errors, await restoreDirectoryVendor(v.id)),
       })
     }
@@ -154,7 +155,7 @@ export function DirectoryView({
                 {canWrite && (
                   <TableCell className="text-right">
                     <SmallButton
-                      aria-label={labels.editAria.replace('{name}', v.name)}
+                      aria-label={labels.editAria.replace('{name}', () => v.name)}
                       onClick={() => setSheet({ kind: 'edit', vendor: v })}
                     >
                       {labels.edit}

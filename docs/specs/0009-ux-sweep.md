@@ -1,7 +1,9 @@
 # Spec 0009 — The UX sweep: faster than the spreadsheet, screen by screen
 
-**Date:** 2026-10-02 · **Status:** Specified, not built
-**Built so far:** Batch A, 2026-10-02 (4bcefc4, bdd072a, c4279e9)
+**Date:** 2026-10-02 · **Status:** Built 2026-10-02
+**Built in:** Batch A (4bcefc4, bdd072a, c4279e9; review 3917933), batch B (b800dc1, 4d2df4d,
+e8194e8; review f2fa702), batch C (be71564, 94aacae, d45dd61, f7d91bf, 29f7c8e; review "web:
+batch C review -- a member's undo cannot revive a vendor link"), all 2026-10-02.
 **Source:** the UX sweep report of 2026-10-02 (artifact "Guestnote UX Sweep"), read against every
 app screen, its copy and specs 0003–0008, and compared with Aisle Planner, Timeline Genius, Ever
 Timeline, Linear, Asana and Todoist. **Bar:** a planner runs one real wedding here instead of a
@@ -117,6 +119,11 @@ digests, guest list) are **not** in this spec; each needs its own `/feature`.
 - The task form's owner choice lists the staff who can work on this wedding (the same list the run
   sheet's "Verantwoordelijke" uses) and **Koppel**. The server checks the chosen user is such staff.
 - The checklist gets a **Mijn taken** filter: tasks assigned to the signed-in user.
+- *(as built)* The picker is the run sheet's staff list as the signed-in user can read it, so a
+  `member` sees only themselves in it (RLS lets a member read no membership but their own); an
+  owner or admin sees the whole team. A task's row still says Planner or Koppel, not the person.
+  A user the server refuses (not staff of this wedding) is the error key `owner`: "Kies iemand
+  van het team dat aan deze bruiloft werkt."
 
 ### C2. The overview answers "where are we?" (report 07)
 
@@ -126,6 +133,11 @@ digests, guest list) are **not** in this spec; each needs its own `/feature`.
   excluded).
 - Today gets a **Betalingen** section: unpaid payments overdue or due in the next seven days,
   across the weddings the user can see, each linking to that wedding's payments.
+- *(as built)* The three figures come from one summary read, `getWeddingGlance`, in one
+  transaction, instead of the budget, payments and vendor screens' three reads. With no payment
+  open the figure is "–" with "Niets open" beneath it. Today formats each amount in the reader's
+  locale, not each wedding's. An archived wedding's open payments are still listed on Today:
+  money still owed does not stop being owed when the wedding is archived.
 
 ### C3. Find a wedding (report 11)
 
@@ -159,6 +171,12 @@ digests, guest list) are **not** in this spec; each needs its own `/feature`.
   wedding is still live: `restoreBudgetLine`, `restoreFile` (never a pending upload),
   `restoreVendor` (owner and admin), `restoreWeddingVendor` (`duplicate` when the vendor was added
   to the wedding again since). No time limit on a restore: whoever may restore could have deleted.
+- *(Amended 2026-10-02, batch C review)* One exception to "no time limit": restoring a wedding
+  vendor also revives its vendor link, and links are owner and admin only. So an owner or admin
+  restores a wedding vendor at any time, and anyone else (an assigned `member`) only within two
+  minutes of the removal, checked by the database clock in the restore's own UPDATE; after that
+  the undo answers `forbidden`. Without the window, a member could bring back a link nobody could
+  see or revoke while the row was removed.
   A successful Undo says "Teruggezet."; a row that is gone says so; a request that failed keeps
   Undo for another try. **Moodboard boards keep their confirmation:** `moodboards` has no
   `deleted_at`, so a board delete is hard, like run-sheet items and payments.

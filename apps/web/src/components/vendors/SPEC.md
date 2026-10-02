@@ -30,6 +30,9 @@ per-wedding link (`wedding_vendors`).
   `restoreVendorToWedding` puts the row back with its status, notes, budget lines, shares and any
   vendor link that has not expired or been revoked since. If the vendor was added to the wedding
   again in between, the undo is refused with "Deze leverancier staat al op deze bruiloft.")*
+  *(Amended 2026-10-02, batch C review: because the restore revives the vendor link, and links are
+  owner and admin only, a `member`'s undo works for two minutes after the removal and is then
+  refused with the `forbidden` sentence; an owner or admin may restore at any time.)*
 - Statuses: `considering`, `contacted`, `quoted`, `booked`, `declined`. Words on a pill, never colour alone.
 - `editor` and `couple` get a 404: no new table is readable by them (spec 0003).
 

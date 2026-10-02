@@ -4,6 +4,7 @@ import {
   addWeddingVendor,
   archiveVendor,
   createPendingFile,
+  createVendorLink,
   deleteBudgetLine,
   getBudget,
   getPayments,
@@ -14,13 +15,14 @@ import {
   removeFile,
   removeWeddingVendor,
   resolveMemberships,
+  resolveVendorLinkByHash,
   restoreBudgetLine,
   restoreFile,
   restoreVendor,
   restoreWeddingVendor,
   WeddingScope,
 } from '../src/repos/index.ts'
-import { connect, F, type Harness, NOT_FOUND, reseed } from './harness.ts'
+import { connect, F, type Harness, NOT_FOUND, reseed, seedExec } from './harness.ts'
 
 /**
  * Spec 0009 C4: the four restores that make "delete at once, then Undo" safe, through the real
@@ -104,6 +106,15 @@ describe('restoreBudgetLine', () => {
     expect((await getBudget(scope(owner, F.orgA, A2)))?.lines).toEqual([])
   })
 
+  // The parent read: a line never comes back onto a deleted wedding.
+  it('answers notFound once the wedding itself is deleted, and leaves the line deleted', async () => {
+    await deleteBudgetLine(scope(owner, F.orgA, A1), F.budgetLineA1)
+    await seedExec(`update weddings set deleted_at = now() where id = $1`, [A1])
+    expect(await restoreBudgetLine(scope(owner, F.orgA, A1), F.budgetLineA1)).toEqual(NOT_FOUND)
+    await seedExec(`update weddings set deleted_at = null where id = $1`, [A1])
+    expect((await getBudget(scope(owner, F.orgA, A1)))?.lines).toEqual([])
+  })
+
   it('answers lineNotFound for a line that was never deleted', async () => {
     expect(await restoreBudgetLine(scope(owner, F.orgA, A1), F.budgetLineA1)).toEqual({
       ok: false,
@@ -164,6 +175,16 @@ describe('restoreFile', () => {
     )
   })
 
+  it('answers notFound once the wedding itself is deleted, and leaves the file removed', async () => {
+    await removeFile(scope(owner, F.orgA, A1), F.fileA1Shared)
+    await seedExec(`update weddings set deleted_at = now() where id = $1`, [A1])
+    expect(await restoreFile(scope(owner, F.orgA, A1), F.fileA1Shared)).toEqual(NOT_FOUND)
+    await seedExec(`update weddings set deleted_at = null where id = $1`, [A1])
+    expect((await listFiles(scope(owner, F.orgA, A1), 'file'))?.map((f) => f.id)).not.toContain(
+      F.fileA1Shared,
+    )
+  })
+
   it('answers notFound for a live file', async () => {
     expect(await restoreFile(scope(owner, F.orgA, A1), F.fileA1Shared)).toEqual(NOT_FOUND)
   })
@@ -198,8 +219,16 @@ describe('restoreVendor', () => {
   })
 })
 
+const FORBIDDEN = { ok: false, reason: 'forbidden' }
+
+/** Ages a removal past the two-minute undo window, as the database clock would. */
+const ageRemoval = (id: string) =>
+  seedExec(`update wedding_vendors set deleted_at = now() - interval '3 minutes' where id = $1`, [
+    id,
+  ])
+
 describe('restoreWeddingVendor', () => {
-  it('puts the vendor back on the wedding, status and all', async () => {
+  it("puts a member's own fresh removal back, status and all, inside the window", async () => {
     expect((await removeWeddingVendor(scope(member, F.orgA, A1), F.wedVendorA1)).ok).toBe(true)
     expect(await restoreWeddingVendor(scope(member, F.orgA, A1), F.wedVendorA1)).toEqual({
       ok: true,
@@ -235,5 +264,58 @@ describe('restoreWeddingVendor', () => {
 
   it('answers notFound for a row that was never removed', async () => {
     expect(await restoreWeddingVendor(scope(owner, F.orgA, A1), F.wedVendorA1)).toEqual(NOT_FOUND)
+  })
+
+  // Batch C review: a restore revives the row's vendor link, which a member can neither mint nor
+  // revoke. So a member restores only inside the undo window; an owner or admin at any time.
+  describe('the undo window and the vendor link', () => {
+    const HASH = 'hash-restore-window'
+    const mintLink = async () => {
+      const made = await createVendorLink(scope(owner, F.orgA, A1), F.wedVendorA1, {
+        tokenHash: HASH,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      })
+      expect(made.ok).toBe(true)
+      expect((await resolveVendorLinkByHash(h.db, HASH))?.status).toBe('live')
+    }
+
+    it("refuses a member's restore once the window has passed, and the link stays dead", async () => {
+      await mintLink()
+      await removeWeddingVendor(scope(owner, F.orgA, A1), F.wedVendorA1)
+      await ageRemoval(F.wedVendorA1)
+
+      expect(await restoreWeddingVendor(scope(member, F.orgA, A1), F.wedVendorA1)).toEqual(
+        FORBIDDEN,
+      )
+      expect(await resolveVendorLinkByHash(h.db, HASH)).toBeNull()
+      expect((await getWeddingVendors(scope(owner, F.orgA, A1)))?.linked).toEqual([])
+    })
+
+    it('lets the owner restore after the window, which revives the link', async () => {
+      await mintLink()
+      await removeWeddingVendor(scope(owner, F.orgA, A1), F.wedVendorA1)
+      await ageRemoval(F.wedVendorA1)
+
+      expect(await restoreWeddingVendor(scope(owner, F.orgA, A1), F.wedVendorA1)).toEqual({
+        ok: true,
+        value: null,
+      })
+      expect((await resolveVendorLinkByHash(h.db, HASH))?.status).toBe('live')
+    })
+
+    it("lets a member undo the owner's removal inside the window", async () => {
+      await mintLink()
+      await removeWeddingVendor(scope(owner, F.orgA, A1), F.wedVendorA1)
+      expect((await restoreWeddingVendor(scope(member, F.orgA, A1), F.wedVendorA1)).ok).toBe(true)
+    })
+  })
+
+  // The parent read: nothing comes back onto a deleted wedding, not even for the owner.
+  it('answers notFound once the wedding itself is deleted, and leaves the row removed', async () => {
+    await removeWeddingVendor(scope(owner, F.orgA, A1), F.wedVendorA1)
+    await seedExec(`update weddings set deleted_at = now() where id = $1`, [A1])
+    expect(await restoreWeddingVendor(scope(owner, F.orgA, A1), F.wedVendorA1)).toEqual(NOT_FOUND)
+    await seedExec(`update weddings set deleted_at = null where id = $1`, [A1])
+    expect((await getWeddingVendors(scope(owner, F.orgA, A1)))?.linked).toEqual([])
   })
 })

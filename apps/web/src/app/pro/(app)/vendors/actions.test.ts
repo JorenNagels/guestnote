@@ -12,6 +12,7 @@ const currentOrgId = vi.fn()
 const createVendor = vi.fn()
 const updateVendor = vi.fn()
 const archiveVendor = vi.fn()
+const restoreVendor = vi.fn()
 
 vi.mock('next/cache', () => ({ revalidatePath: (...a: unknown[]) => revalidatePath(...a) }))
 vi.mock('../../../../lib/db.ts', () => ({ getDb: () => ({}) }))
@@ -29,11 +30,15 @@ vi.mock('@guestnote/db', async (orig) => ({
   createVendor: (...a: unknown[]) => createVendor(...a),
   updateVendor: (...a: unknown[]) => updateVendor(...a),
   archiveVendor: (...a: unknown[]) => archiveVendor(...a),
+  restoreVendor: (...a: unknown[]) => restoreVendor(...a),
 }))
 
-const { archiveDirectoryVendor, createDirectoryVendor, updateDirectoryVendor } = await import(
-  './actions.ts'
-)
+const {
+  archiveDirectoryVendor,
+  createDirectoryVendor,
+  restoreDirectoryVendor,
+  updateDirectoryVendor,
+} = await import('./actions.ts')
 
 const ORG = 'aaaaaaaa-0000-0000-0000-00000000000a'
 const VENDOR = '0195f3a2-7b1c-7d2e-8a3b-1c2d3e4f5a6b'
@@ -53,18 +58,21 @@ beforeEach(() => {
   createVendor.mockResolvedValue({ ok: true, value: { id: VENDOR } })
   updateVendor.mockResolvedValue({ ok: true, value: null })
   archiveVendor.mockResolvedValue({ ok: true, value: null })
+  restoreVendor.mockResolvedValue({ ok: true, value: null })
   as('owner')
 })
 
 describe('the directory actions refuse a member before the repo is reached', () => {
-  it('on create, update and archive', async () => {
+  it('on create, update, archive and restore', async () => {
     as('member')
     expect(await createDirectoryVendor(INPUT)).toEqual({ ok: false, error: 'forbidden' })
     expect(await updateDirectoryVendor(VENDOR, INPUT)).toEqual({ ok: false, error: 'forbidden' })
     expect(await archiveDirectoryVendor(VENDOR)).toEqual({ ok: false, error: 'forbidden' })
+    expect(await restoreDirectoryVendor(VENDOR)).toEqual({ ok: false, error: 'forbidden' })
     expect(createVendor).not.toHaveBeenCalled()
     expect(updateVendor).not.toHaveBeenCalled()
     expect(archiveVendor).not.toHaveBeenCalled()
+    expect(restoreVendor).not.toHaveBeenCalled()
     expect(revalidatePath).not.toHaveBeenCalled()
   })
 
@@ -74,7 +82,9 @@ describe('the directory actions refuse a member before the repo is reached', () 
     as('owner')
     currentOrgId.mockResolvedValue(null)
     expect(await archiveDirectoryVendor(VENDOR)).toEqual({ ok: false, error: 'forbidden' })
+    expect(await restoreDirectoryVendor(VENDOR)).toEqual({ ok: false, error: 'forbidden' })
     expect(createVendor).not.toHaveBeenCalled()
+    expect(restoreVendor).not.toHaveBeenCalled()
   })
 })
 
@@ -105,19 +115,25 @@ describe('createDirectoryVendor', () => {
   })
 })
 
-describe('updateDirectoryVendor and archiveDirectoryVendor', () => {
+describe('updateDirectoryVendor, archiveDirectoryVendor and restoreDirectoryVendor', () => {
   it('refuse a malformed id as invalid', async () => {
     expect(await updateDirectoryVendor('nope', INPUT)).toEqual({ ok: false, error: 'invalid' })
     expect(await archiveDirectoryVendor('nope')).toEqual({ ok: false, error: 'invalid' })
+    expect(await restoreDirectoryVendor('nope')).toEqual({ ok: false, error: 'invalid' })
     expect(updateVendor).not.toHaveBeenCalled()
     expect(archiveVendor).not.toHaveBeenCalled()
+    expect(restoreVendor).not.toHaveBeenCalled()
   })
 
   it('relay the repo refusal and do not revalidate on it', async () => {
     updateVendor.mockResolvedValue({ ok: false, reason: 'notFound' })
     archiveVendor.mockResolvedValue({ ok: false, reason: 'notFound' })
+    restoreVendor.mockResolvedValue({ ok: false, reason: 'notFound' })
     expect(await updateDirectoryVendor(VENDOR, INPUT)).toEqual({ ok: false, error: 'notFound' })
     expect(await archiveDirectoryVendor(VENDOR)).toEqual({ ok: false, error: 'notFound' })
+    expect(await restoreDirectoryVendor(VENDOR)).toEqual({ ok: false, error: 'notFound' })
+    restoreVendor.mockResolvedValue({ ok: false, reason: 'forbidden' })
+    expect(await restoreDirectoryVendor(VENDOR)).toEqual({ ok: false, error: 'forbidden' })
     expect(revalidatePath).not.toHaveBeenCalled()
   })
 
@@ -125,5 +141,12 @@ describe('updateDirectoryVendor and archiveDirectoryVendor', () => {
     expect(await updateDirectoryVendor(VENDOR, INPUT)).toEqual({ ok: true })
     expect(await archiveDirectoryVendor(VENDOR)).toEqual({ ok: true })
     expect(revalidatePath).toHaveBeenCalled()
+  })
+
+  it('restore the same vendor in the caller org, and refresh both trees', async () => {
+    expect(await restoreDirectoryVendor(VENDOR)).toEqual({ ok: true })
+    expect(restoreVendor).toHaveBeenCalledWith({}, expect.anything(), ORG, VENDOR)
+    expect(revalidatePath).toHaveBeenCalledWith('/pro/vendors')
+    expect(revalidatePath).toHaveBeenCalledWith('/pro/weddings/[id]/vendors', 'page')
   })
 })

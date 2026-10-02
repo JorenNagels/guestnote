@@ -201,6 +201,14 @@ describe('the sheet: removing from the wedding (spec 0009 C4)', () => {
     await waitFor(() => expect(toast()).toHaveTextContent('Restored.'))
   })
 
+  // `String.replace` reads `$&` in a replacement STRING as "the match".
+  it('puts a name holding a replacement pattern into the toast as written', async () => {
+    view([vendor({ name: 'Bloem $& Co' })])
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Bloem $& Co' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Remove from wedding' }))
+    await waitFor(() => expect(toast()).toHaveTextContent('“Bloem $& Co” taken off the wedding.'))
+  })
+
   it('says the vendor is on the wedding again when the undo finds a duplicate', async () => {
     restoreVendor.mockResolvedValue({ ok: false, error: 'duplicate' })
     view([vendor({})])

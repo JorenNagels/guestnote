@@ -58,6 +58,7 @@ export function Toast({ toast, dismissLabel, onDismiss, duration = 8000 }: Props
   const [hovered, setHovered] = useState(false)
   const [focused, setFocused] = useState(false)
   const dismiss = useRef<HTMLButtonElement>(null)
+  const card = useRef<HTMLDivElement>(null)
   const actionHadFocus = useRef(false)
   // A ref, so a caller that passes a fresh arrow function every render does not restart the clock.
   const onDismissRef = useRef(onDismiss)
@@ -81,6 +82,20 @@ export function Toast({ toast, dismissLabel, onDismiss, duration = 8000 }: Props
     if (active === null || active === document.body) dismiss.current?.focus()
   }, [id])
 
+  // `hovered` and `focused` are otherwise cleared only by the card's own leave and blur, and
+  // neither fires when what was hovered or focused is unmounted under the pointer or the focus:
+  // Dismiss removes the focused button, and a card with no toast is `pointer-events-none`, so
+  // no mouseleave can follow. Left alone, the next toast started paused and stayed forever
+  // (batch C review, 2026-10-02). So each new toast re-reads where focus really is -- after the
+  // repair above, which may have put it on Dismiss -- and no toast is not hovered.
+  // Rejected: resetting both to false on every id, which would run the clock while focus sits
+  // on a button that survived the change. Hover across two toasts is left as it was: the card
+  // stays under the pointer and its mouseleave still fires.
+  useLayoutEffect(() => {
+    if (id === undefined) setHovered(false)
+    setFocused(card.current?.contains(document.activeElement) ?? false)
+  }, [id])
+
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[60] flex justify-center px-4 pb-4">
       {/* The handlers only pause the clock; they do not make the card a control, and the two
@@ -88,6 +103,7 @@ export function Toast({ toast, dismissLabel, onDismiss, duration = 8000 }: Props
           Biome then asks to be a `<fieldset>` -- a form element around a status message. */}
       {/* biome-ignore lint/a11y/noStaticElementInteractions: hover and focus pause a timer here */}
       <div
+        ref={card}
         data-testid="toast"
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}

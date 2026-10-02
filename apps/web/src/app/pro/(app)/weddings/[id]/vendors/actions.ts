@@ -155,8 +155,11 @@ export async function removeVendorFromWedding(
 }
 
 /**
- * The toast's Undo for `removeVendorFromWedding` (spec 0009 C4). Same gate as the remove; the
- * repo answers `duplicate` when the vendor has been added to this wedding again since.
+ * The toast's Undo for `removeVendorFromWedding` (spec 0009 C4). Same gate as the remove, plus
+ * the repo's own: an owner or admin may restore at any time, anyone else only within the undo
+ * window, because the restore revives the row's vendor link and a member cannot manage links
+ * (`restoreWeddingVendor`). Outside it the answer is `forbidden`; `duplicate` when the vendor
+ * has been added to this wedding again since.
  */
 export async function restoreVendorToWedding(
   weddingId: unknown,

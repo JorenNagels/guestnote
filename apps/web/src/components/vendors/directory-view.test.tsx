@@ -38,10 +38,10 @@ const VENDOR: VendorRow = {
   notes: null,
 }
 
-const view = () =>
+const view = (vendor: VendorRow = VENDOR) =>
   render(
     <ToastProvider labels={TOAST_LABELS}>
-      <DirectoryView vendors={[VENDOR]} canWrite labels={directoryLabels(lookup(copy))} />
+      <DirectoryView vendors={[vendor]} canWrite labels={directoryLabels(lookup(copy))} />
     </ToastProvider>,
   )
 
@@ -64,6 +64,15 @@ describe('archiving a directory vendor', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
     await waitFor(() => expect(restore).toHaveBeenCalledWith('v1'))
     await waitFor(() => expect(toast()).toHaveTextContent('Restored.'))
+  })
+
+  // `String.replace` reads `$&` in a replacement STRING as "the match", so this name used to come
+  // out as "Bloem {name} Co".
+  it('puts a name holding a replacement pattern into the toast as written', async () => {
+    view({ ...VENDOR, name: 'Bloem $& Co' })
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Bloem $& Co' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Archive' }))
+    await waitFor(() => expect(toast()).toHaveTextContent('“Bloem $& Co” archived.'))
   })
 
   it('keeps the sheet open, with no toast, when the archive is refused', async () => {

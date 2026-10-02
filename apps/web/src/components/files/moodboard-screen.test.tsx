@@ -158,6 +158,13 @@ describe('remove', () => {
     expect(refresh).toHaveBeenCalledTimes(2)
   })
 
+  // `String.replace` reads `$&` in a replacement STRING as "the match".
+  it('names an image holding a replacement pattern as written', async () => {
+    view([{ id: 'i1', name: 'Bloem $& Co', url: null }])
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Bloem $& Co' }))
+    await waitFor(() => expect(toast()).toHaveTextContent('Image “Bloem $& Co” removed.'))
+  })
+
   it('says so when the image cannot come back', async () => {
     actions.restore.mockResolvedValue({ ok: false, error: 'notFound' })
     view()

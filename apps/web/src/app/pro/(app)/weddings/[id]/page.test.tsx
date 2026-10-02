@@ -335,6 +335,33 @@ describe('the money and vendor figures', () => {
     expect(sub).toHaveClass('text-destructive')
   })
 
+  // 23:30 UTC on 31 May is already 1 June in Brussels: a UTC "today" would call this due today.
+  it("counts lateness on the wedding's own calendar, not UTC's", async () => {
+    vi.setSystemTime(new Date('2027-05-31T23:30:00Z'))
+    getWeddingGlance.mockResolvedValue({
+      ...GLANCE,
+      timezone: 'Europe/Brussels',
+      nextPayment: { dueOn: '2027-05-31', amountCents: 1_000 },
+    })
+    await renderPage()
+    expect(screen.getByText('stats.nextPaymentLate {"date":"31 mei 2027","days":1}')).toHaveClass(
+      'text-destructive',
+    )
+  })
+
+  // And not the studio's Brussels default either: at 02:00 UTC it is still 31 May in New York,
+  // so a payment due that day is due today there, and not late.
+  it("uses the wedding's zone even where it is not Brussels", async () => {
+    vi.setSystemTime(new Date('2027-06-01T02:00:00Z'))
+    getWeddingGlance.mockResolvedValue({
+      ...GLANCE,
+      timezone: 'America/New_York',
+      nextPayment: { dueOn: '2027-05-31', amountCents: 1_000 },
+    })
+    await renderPage()
+    expect(screen.getByText('31 mei 2027')).not.toHaveClass('text-destructive')
+  })
+
   it('does not call a payment due today late', async () => {
     getWeddingGlance.mockResolvedValue({
       ...GLANCE,

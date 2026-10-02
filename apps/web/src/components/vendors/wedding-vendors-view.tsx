@@ -300,7 +300,7 @@ function Row({
       <TableCell>
         <Pill tone={STATUS_TONE[vendor.status]}>
           <select
-            aria-label={labels.statusAria.replace('{name}', vendor.name)}
+            aria-label={labels.statusAria.replace('{name}', () => vendor.name)}
             value={vendor.status}
             disabled={pending}
             onChange={(e) => {
@@ -337,7 +337,10 @@ function Row({
         )}
       </TableCell>
       <TableCell className="text-right">
-        <SmallButton aria-label={labels.editAria.replace('{name}', vendor.name)} onClick={onEdit}>
+        <SmallButton
+          aria-label={labels.editAria.replace('{name}', () => vendor.name)}
+          onClick={onEdit}
+        >
           {labels.edit}
         </SmallButton>
       </TableCell>
