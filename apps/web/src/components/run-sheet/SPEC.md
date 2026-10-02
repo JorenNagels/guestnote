@@ -17,6 +17,18 @@ wedding header and tabs, buttons, warnings and tints are gone, and a print-only 
 header line (couple · day and date · studio) and one row per item with start, end, what, who and
 where, the vendor's directory phone in brackets beside its name. Black on white. Prototype range: `design-system/planner-prototype/INDEX.md`, "Run sheet".
 
+**Amended 2026-10-02, spec 0009 B2:** the item sheet, when editing, ends with "Schuif dit en alles
+erna op": chips −15, +5, +15, +30 min and a custom whole number of minutes (−720 to 720, not 0,
+refused in place). Once a step is chosen it lists every item that moves, the old time struck
+through and the new one beside it, wrapped on the 24-hour clock. One button, "N onderdelen
+verschuiven", counts this item and every one after it **by position** in the same day, and
+`shiftRunSheetTimes` moves exactly those in one statement (`starts_at + interval`, which wraps
+like the sheet's own midnight reading); length and order never change, and other days are not
+touched. It is its own action, not part of Save, and the sheet stays open afterwards with the
+start field updated and "N onderdelen verschoven" in a status line, so unsaved edits in the form
+survive. A shift can make the sheet read a new midnight rollover (14:30 moved to 13:30 after a
+14:00 reads as `+1`); the preview shows bare times and does not predict that.
+
 ## Behaviour
 
 - One route: `/weddings/<id>/run-sheet`. Planner-only: owner and admin, and a member assigned to the

@@ -93,6 +93,18 @@
     "deleteConfirm": "Yes, delete",
     "deleting": "Deleting…"
   },
+  "shift": {
+    "title": "Shift this and everything after it",
+    "body": "Running late, or starting early? Move this item and everything after it in one go. Lengths and order stay as they are.",
+    "chip": "{delta} min",
+    "custom": "Or your own number of minutes",
+    "customHint": "Put a minus in front to move earlier, for example -10.",
+    "preview": "What moves",
+    "row": "{title}: from {from} to {to}",
+    "submit": "Shift {count, plural, one {# item} other {# items}}",
+    "submitting": "Shifting…",
+    "done": "{count, plural, one {# item shifted.} other {# items shifted.}}"
+  },
   "errors": {
     "event": "Choose a day of the wedding.",
     "time": "Enter a time, for example 15:30.",
@@ -102,7 +114,8 @@
     "vendor": "Choose a vendor from the list.",
     "notFound": "This item or this wedding no longer exists. Refresh the page.",
     "failed": "Saving did not work. Nothing was changed. Try again in a moment.",
-    "owner": "Pick someone from the team working on this wedding."
+    "owner": "Pick someone from the team working on this wedding.",
+    "shift": "Enter whole minutes, from -720 to 720, not 0."
   },
   "error": {
     "title": "The run sheet could not be loaded",

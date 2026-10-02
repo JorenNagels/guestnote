@@ -7,6 +7,7 @@ import {
   moveRunSheetItem,
   type RunSheetInput,
   resolveMemberships,
+  shiftRunSheetTimes,
   updateRunSheetItem,
   WeddingScope,
 } from '../src/repos/index.ts'
@@ -338,5 +339,131 @@ describe('deleteRunSheetItem', () => {
     })
     expect(await titles(owner, A2)).toEqual(['First dance'])
     expect(await titles(owner)).toEqual(['Ceremony'])
+  })
+})
+
+describe('shiftRunSheetTimes (spec 0009 B2)', () => {
+  const DINNER = '99999999-0000-0000-0000-0000000000d1'
+  const CAKE = '99999999-0000-0000-0000-0000000000d2'
+  const LAST = '99999999-0000-0000-0000-0000000000d3'
+  const BRUNCH_DAY = '44444444-0000-0000-0000-0000000000d1'
+
+  /** "title HH:MM" for every item of the wedding, in reading order, events in id order. */
+  async function clocks(weddingId: string = A1): Promise<string[]> {
+    const data = await getRunSheet(WeddingScope.of(h.db, owner, F.orgA, weddingId))
+    return (data?.items ?? [])
+      .slice()
+      .sort((a, b) => a.eventId.localeCompare(b.eventId))
+      .map((i) => `${i.title} ${i.startsAt}`)
+  }
+
+  // A sheet that runs past midnight, written with explicit positions so the 00:30 sits where a
+  // planner moved it (after the evening) and not where the clock would put a new one; and a
+  // second day of the same wedding, whose item starts later than everything shifted.
+  beforeEach(async () => {
+    await seedExec(
+      `insert into run_sheet_items (id, org_id, wedding_id, event_id, starts_at, duration_min, title, position)
+       values ($1, $4, $5, $6, '19:00', 120, 'Dinner', 1),
+              ($2, $4, $5, $6, '23:50', 20, 'Cake', 2),
+              ($3, $4, $5, $6, '00:30', 30, 'Last song', 3)`,
+      [DINNER, CAKE, LAST, F.orgA, A1, F.eventA1],
+    )
+    await seedExec(
+      `insert into wedding_events (id, org_id, wedding_id, label, starts_on) values ($1, $2, $3, 'Brunch', '2027-06-13')`,
+      [BRUNCH_DAY, F.orgA, A1],
+    )
+    await seedExec(
+      `insert into run_sheet_items (id, org_id, wedding_id, event_id, starts_at, duration_min, title, position)
+       values ('99999999-0000-0000-0000-0000000000d4', $1, $2, $3, '20:00', 60, 'Brunch', 0)`,
+      [F.orgA, A1, BRUNCH_DAY],
+    )
+  })
+
+  it('moves this item and every later one in its event, wrapping past midnight, order and length kept', async () => {
+    const before = await clocks()
+    expect(before).toEqual([
+      'Ceremony 15:30',
+      'Dinner 19:00',
+      'Cake 23:50',
+      'Last song 00:30',
+      'Brunch 20:00',
+    ])
+    const r = await shiftRunSheetTimes(WeddingScope.of(h.db, owner, F.orgA, A1), DINNER, 15)
+    expect(r).toEqual({ ok: true, value: { id: DINNER, moved: 3 } })
+    // The item above is untouched, 23:50 wraps to 00:05, and the other day of the same wedding
+    // -- whose 20:00 is "after" by the clock -- is not part of this sheet.
+    expect(await clocks()).toEqual([
+      'Ceremony 15:30',
+      'Dinner 19:15',
+      'Cake 00:05',
+      'Last song 00:45',
+      'Brunch 20:00',
+    ])
+    const data = await getRunSheet(WeddingScope.of(h.db, owner, F.orgA, A1))
+    const day = (data?.items ?? []).filter((i) => i.eventId === F.eventA1)
+    expect(day.map((i) => i.position)).toEqual([0, 1, 2, 3])
+    expect(day.map((i) => i.durationMin)).toEqual([40, 120, 20, 30])
+    expect(await clocks(A2)).toEqual(['First dance 21:00'])
+  })
+
+  it('wraps backwards too, and an assigned member may shift', async () => {
+    const r = await shiftRunSheetTimes(WeddingScope.of(h.db, member, F.orgA, A1), LAST, -60)
+    expect(r).toEqual({ ok: true, value: { id: LAST, moved: 1 } })
+    expect(await clocks()).toEqual([
+      'Ceremony 15:30',
+      'Dinner 19:00',
+      'Cake 23:50',
+      'Last song 23:30',
+      'Brunch 20:00',
+    ])
+  })
+
+  it('cuts the tail by reading order when the rows share a position', async () => {
+    // The seed's shape: every row at position 0, so `ORDER`'s tie-break decides what is after.
+    await seedExec(`update run_sheet_items set position = 0 where event_id = $1`, [F.eventA1])
+    const order = (await getRunSheet(WeddingScope.of(h.db, owner, F.orgA, A1)))?.items
+      .filter((i) => i.eventId === F.eventA1)
+      .map((i) => i.id)
+    const second = order?.[1] ?? ''
+    const r = await shiftRunSheetTimes(WeddingScope.of(h.db, owner, F.orgA, A1), second, 5)
+    expect(r.ok && r.value.moved).toBe((order?.length ?? 0) - 1)
+  })
+
+  it('will not shift an item of a sibling wedding, even for the org-wide owner', async () => {
+    const r = await shiftRunSheetTimes(WeddingScope.of(h.db, owner, F.orgA, A1), F.runItemA2, 30)
+    expect(r).toEqual({ ok: false, reason: 'itemNotFound' })
+    expect(await clocks(A2)).toEqual(['First dance 21:00'])
+  })
+
+  it('writes nothing for a caller with no standing: couple, unassigned member, another org', async () => {
+    const none = { ok: false, reason: 'notFound' }
+    expect(
+      await shiftRunSheetTimes(WeddingScope.of(h.db, couple, F.orgA, A1), F.runItemA1, 30),
+    ).toEqual(none)
+    expect(
+      await shiftRunSheetTimes(WeddingScope.of(h.db, member, F.orgA, A2), F.runItemA2, 30),
+    ).toEqual(none)
+    expect(
+      await shiftRunSheetTimes(WeddingScope.of(h.db, otherOrgOwner, F.orgA, A1), F.runItemA1, 30),
+    ).toEqual(none)
+    // The other org's owner claiming A1 under its OWN org: a real principal, whose policy hides
+    // the row, so the refusal is the repo's "not found" for the item rather than the scope's.
+    const own = await shiftRunSheetTimes(
+      WeddingScope.of(h.db, otherOrgOwner, F.orgB, A1),
+      F.runItemA1,
+      30,
+    )
+    expect(own.ok).toBe(false)
+    expect((await clocks())[0]).toBe('Ceremony 15:30')
+    expect(await clocks(A2)).toEqual(['First dance 21:00'])
+  })
+
+  it('refuses a delta that is zero, fractional or past half a day, before touching the database', async () => {
+    const scope = WeddingScope.of(h.db, owner, F.orgA, A1)
+    for (const bad of [0, 1.5, 721, -721, Number.NaN]) {
+      await expect(shiftRunSheetTimes(scope, F.runItemA1, bad)).rejects.toThrow(RangeError)
+    }
+    await expect(shiftRunSheetTimes(scope, F.runItemA1, -720)).resolves.toMatchObject({ ok: true })
+    expect((await clocks())[0]).toBe('Ceremony 03:30')
   })
 })

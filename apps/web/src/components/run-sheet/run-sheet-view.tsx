@@ -389,6 +389,7 @@ export function RunSheetView({
           weddingId={weddingId}
           eventId={selectedEvent.id}
           item={sheetItem === 'new' ? null : sheetItem}
+          items={items}
           defaultStart={nextStartClock(items)}
           vendors={vendors}
           owners={owners}

@@ -6,6 +6,9 @@ import {
   minutesToClock,
   nextStartClock,
   parseRunSheetForm,
+  parseShiftMinutes,
+  shiftClock,
+  shiftPreview,
   splitDuration,
 } from './run-sheet.ts'
 
@@ -174,5 +177,62 @@ describe('parseRunSheetForm, the owner (spec 0004)', () => {
     expect(input({ ownerUserId: '' })).toMatchObject({ ownerUserId: null })
     expect(input({ ownerUserId: `  ${E}  ` })).toMatchObject({ ownerUserId: E })
     expect(parseRunSheetForm({ ...ok, ownerUserId: 'x' })).toEqual({ error: 'owner' })
+  })
+})
+
+describe('shifting the rest of the day (spec 0009 B2)', () => {
+  it('moves a clock both ways and wraps at midnight, as `time + interval` does', () => {
+    expect(shiftClock('09:00', 15)).toBe('09:15')
+    expect(shiftClock('23:50', 15)).toBe('00:05')
+    expect(shiftClock('00:10', -15)).toBe('23:55')
+    expect(shiftClock('12:00', 720)).toBe('00:00')
+    expect(shiftClock('12:00', -720)).toBe('00:00')
+    // Unreadable stays as it is rather than becoming 00:15.
+    expect(shiftClock('later', 15)).toBe('later')
+  })
+
+  it('accepts whole minutes from -720 to 720 except 0, as a number or as text', () => {
+    expect(parseShiftMinutes(-15)).toBe(-15)
+    expect(parseShiftMinutes(720)).toBe(720)
+    expect(parseShiftMinutes(-720)).toBe(-720)
+    expect(parseShiftMinutes(' 20 ')).toBe(20)
+    expect(parseShiftMinutes('+30')).toBe(30)
+    expect(parseShiftMinutes('-10')).toBe(-10)
+    expect(parseShiftMinutes('\u221215')).toBe(-15)
+    for (const bad of [
+      0,
+      '0',
+      '-0',
+      721,
+      -721,
+      '721',
+      1.5,
+      '1.5',
+      '',
+      'abc',
+      '15 min',
+      null,
+      NaN,
+    ]) {
+      expect(parseShiftMinutes(bad)).toBeNull()
+    }
+  })
+
+  it('previews this item and every one after it in list order, the earlier ones left out', () => {
+    const items = [
+      { id: 'a', title: 'Ceremony', startsAt: '15:30' },
+      { id: 'b', title: 'Dinner', startsAt: '19:00' },
+      { id: 'c', title: 'Cake', startsAt: '23:50' },
+      { id: 'd', title: 'Last song', startsAt: '00:30' },
+    ]
+    expect(shiftPreview(items, 'b', 15)).toEqual([
+      { id: 'b', title: 'Dinner', from: '19:00', to: '19:15' },
+      { id: 'c', title: 'Cake', from: '23:50', to: '00:05' },
+      { id: 'd', title: 'Last song', from: '00:30', to: '00:45' },
+    ])
+    expect(shiftPreview(items, 'd', -60)).toEqual([
+      { id: 'd', title: 'Last song', from: '00:30', to: '23:30' },
+    ])
+    expect(shiftPreview(items, 'gone', 15)).toEqual([])
   })
 })

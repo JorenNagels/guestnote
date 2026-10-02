@@ -7,11 +7,13 @@ import { renderWithCopy } from './test-support.tsx'
 const saveRunSheetItem = vi.fn()
 const removeRunSheetItem = vi.fn()
 const shiftRunSheetItem = vi.fn()
+const shiftRunSheetFrom = vi.fn()
 
 vi.mock('../../app/pro/(app)/weddings/[id]/run-sheet/actions.ts', () => ({
   saveRunSheetItem: (...a: unknown[]) => saveRunSheetItem(...a),
   removeRunSheetItem: (...a: unknown[]) => removeRunSheetItem(...a),
   shiftRunSheetItem: (...a: unknown[]) => shiftRunSheetItem(...a),
+  shiftRunSheetFrom: (...a: unknown[]) => shiftRunSheetFrom(...a),
 }))
 
 const saveEventAction = vi.fn()
@@ -77,6 +79,7 @@ beforeEach(() => {
   saveRunSheetItem.mockReset().mockResolvedValue({ ok: true })
   removeRunSheetItem.mockReset().mockResolvedValue({ ok: true })
   shiftRunSheetItem.mockReset().mockResolvedValue({ ok: true })
+  shiftRunSheetFrom.mockReset().mockResolvedValue({ ok: true })
   saveEventAction.mockReset().mockResolvedValue({ notice: 'saved', eventId: 'e-new' })
   push.mockReset()
 })
@@ -407,5 +410,124 @@ describe('printing the run sheet (spec 0009 A3)', () => {
     // The screen table and the phone list, warnings and buttons with them, do not print.
     expect(screen.getByRole('table').closest('.print\\:hidden')).not.toBeNull()
     expect(screen.getByRole('button', { name: 'Print' }).closest('.print\\:hidden')).not.toBeNull()
+  })
+})
+
+/**
+ * Spec 0009 B2: shift an item and everything after it. The action is mocked, so what is asserted
+ * is the preview the planner reads before pressing, and what the sheet sends; the write itself
+ * is `actions.test.ts` and `packages/db/test/run-sheet-repo.test.ts`.
+ */
+describe('shifting the rest of the day (spec 0009 B2)', () => {
+  const day = () => [
+    item({ id: 'i1', title: 'Ceremony', startsAt: '15:30', durationMin: 40 }),
+    item({ id: 'i2', title: 'Dinner', startsAt: '19:00', durationMin: 120 }),
+    item({ id: 'i3', title: 'Cake', startsAt: '23:50', durationMin: 20 }),
+    item({ id: 'i4', title: 'Last song', startsAt: '00:30', durationMin: 30 }),
+  ]
+  const edit = (title: string) => {
+    const [button] = screen.getAllByRole('button', { name: `Edit ${title}` })
+    if (!button) throw new Error(`no edit button for ${title}`)
+    fireEvent.click(button)
+  }
+  const section = () => screen.getByRole('region', { name: 'Shift this and everything after it' })
+  /** Each previewed row as "old new title", read from the struck and the plain time. */
+  const preview = () =>
+    within(within(section()).getByRole('list', { name: 'What moves' }))
+      .getAllByRole('listitem')
+      .map((li) => {
+        const old = li.querySelector('s')?.textContent
+        const now = li.querySelector('s + span')?.textContent
+        return `${old} ${now} ${li.lastElementChild?.textContent}`
+      })
+
+  it('is offered when editing an item, never when adding one', () => {
+    view({ items: day() })
+    fireEvent.click(screen.getByRole('button', { name: 'Add an item' }))
+    expect(screen.getByRole('dialog', { name: 'New item' })).toBeTruthy()
+    expect(screen.queryByRole('region', { name: 'Shift this and everything after it' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+
+    edit('Dinner')
+    expect(section()).toBeTruthy()
+    // Counted before any step is chosen: this item and the two after it, not the one above.
+    const submit = within(section()).getByRole('button', { name: 'Shift 3 items' })
+    expect(submit).toBeDisabled()
+    expect(within(section()).queryByRole('list')).toBeNull()
+  })
+
+  it('a chip previews every item that moves, wrapping past midnight, and sends the shift', async () => {
+    view({ items: day() })
+    edit('Dinner')
+    fireEvent.click(within(section()).getByRole('button', { name: '+15 min' }))
+    expect(within(section()).getByRole('button', { name: '+15 min' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    expect(preview()).toEqual(['19:00 19:15 Dinner', '23:50 00:05 Cake', '00:30 00:45 Last song'])
+    // The screen-reader reading says the same in words, since a strike-through is not announced.
+    expect(within(section()).getByText('Cake: from 23:50 to 00:05')).toBeTruthy()
+
+    await act(async () => {
+      fireEvent.click(within(section()).getByRole('button', { name: 'Shift 3 items' }))
+    })
+    expect(shiftRunSheetFrom).toHaveBeenCalledWith(W, 'i2', 15)
+    expect(within(section()).getByRole('status').textContent).toBe('3 items shifted.')
+    // The form's start takes the new time, so a Save after the shift does not undo it.
+    expect((screen.getByLabelText('Starts at') as HTMLInputElement).value).toBe('19:15')
+  })
+
+  it('the minus chip wraps backwards over midnight, and one item reads in the singular', async () => {
+    view({ items: day() })
+    edit('Last song')
+    fireEvent.click(within(section()).getByRole('button', { name: '−15 min' }))
+    expect(preview()).toEqual(['00:30 00:15 Last song'])
+    fireEvent.change(within(section()).getByLabelText('Or your own number of minutes'), {
+      target: { value: '-45' },
+    })
+    expect(preview()).toEqual(['00:30 23:45 Last song'])
+    await act(async () => {
+      fireEvent.click(within(section()).getByRole('button', { name: 'Shift 1 item' }))
+    })
+    expect(shiftRunSheetFrom).toHaveBeenCalledWith(W, 'i4', -45)
+  })
+
+  it('a custom value outside -720..720, or 0, is refused in place and cannot be sent', () => {
+    view({ items: day() })
+    edit('Ceremony')
+    const field = within(section()).getByLabelText('Or your own number of minutes')
+    const submit = within(section()).getByRole('button', { name: 'Shift 4 items' })
+    for (const bad of ['721', '-721', '0', '1.5', 'soon']) {
+      fireEvent.change(field, { target: { value: bad } })
+      expect(within(section()).getByRole('alert').textContent).toContain(
+        'Enter whole minutes, from -720 to 720, not 0.',
+      )
+      expect(field).toHaveAttribute('aria-invalid', 'true')
+      expect(submit).toBeDisabled()
+      expect(within(section()).queryByRole('list')).toBeNull()
+    }
+    for (const good of ['720', '-720']) {
+      fireEvent.change(field, { target: { value: good } })
+      expect(within(section()).queryByRole('alert')).toBeNull()
+      expect(submit).toBeEnabled()
+    }
+    expect(preview()[0]).toBe('15:30 03:30 Ceremony')
+  })
+
+  it('a refused shift shows the error and keeps the draft to try again', async () => {
+    shiftRunSheetFrom.mockResolvedValue({ ok: false, error: 'failed' })
+    view({ items: day() })
+    edit('Dinner')
+    const field = within(section()).getByLabelText('Or your own number of minutes')
+    fireEvent.change(field, { target: { value: '20' } })
+    await act(async () => {
+      fireEvent.click(within(section()).getByRole('button', { name: 'Shift 3 items' }))
+    })
+    expect(within(section()).getByRole('alert').textContent).toContain('Saving did not work')
+    expect((field as HTMLInputElement).value).toBe('20')
+    expect(preview()[0]).toBe('19:00 19:20 Dinner')
+    expect(within(section()).getByRole('status').textContent).toBe('')
+    // The item's own start is left alone: nothing moved.
+    expect((screen.getByLabelText('Starts at') as HTMLInputElement).value).toBe('19:00')
   })
 })

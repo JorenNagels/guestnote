@@ -5,12 +5,14 @@ import {
   deleteRunSheetItem,
   moveRunSheetItem,
   type RunSheetFailure,
+  shiftRunSheetTimes,
   updateRunSheetItem,
 } from '@guestnote/db'
 import { revalidatePath } from 'next/cache'
 import { currentOrgId } from '../../../../../../lib/principal.ts'
 import {
   parseRunSheetForm,
+  parseShiftMinutes,
   type RunSheetActionResult,
   type RunSheetError,
 } from '../../../../../../lib/run-sheet.ts'
@@ -86,6 +88,29 @@ export async function shiftRunSheetItem(
   if (direction !== 'up' && direction !== 'down') return { ok: false, error: 'failed' }
 
   const result = await moveRunSheetItem(scope, itemId, direction)
+  if (!result.ok) return { ok: false, error: refusal(result.reason) }
+  revalidatePath(RUN_SHEET, 'page')
+  return { ok: true }
+}
+
+/**
+ * "Schuif dit en alles erna op" (spec 0009 B2): `itemId` and every item after it in its day move
+ * by `deltaMin` minutes, in one transaction. The delta is parsed here and not trusted from the
+ * client's own check -- the repo throws on a bad one, and a planner's typo must come back as the
+ * field's error and not as a 500.
+ */
+export async function shiftRunSheetFrom(
+  weddingId: string,
+  itemId: string,
+  deltaMin: unknown,
+): Promise<RunSheetActionResult> {
+  await assertWritable(await currentOrgId())
+  const scope = await currentWeddingScope(weddingId)
+  if (!scope || !isUuid(itemId)) return { ok: false, error: 'notFound' }
+  const delta = parseShiftMinutes(deltaMin)
+  if (delta === null) return { ok: false, error: 'shift' }
+
+  const result = await shiftRunSheetTimes(scope, itemId, delta)
   if (!result.ok) return { ok: false, error: refusal(result.reason) }
   revalidatePath(RUN_SHEET, 'page')
   return { ok: true }

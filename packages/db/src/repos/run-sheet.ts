@@ -542,3 +542,72 @@ export async function moveRunSheetItem(
     return ok({ id: itemId })
   })
 }
+
+/**
+ * The widest shift the run sheet accepts, either way (spec 0009 B2): half a day. A larger number
+ * is a typo far more often than a plan, and anything beyond it reads the same on a 24-hour clock
+ * as a smaller shift the other way.
+ */
+export const RUN_SHEET_MAX_SHIFT_MIN = 720
+
+/**
+ * "The ceremony starts 20 minutes late": moves `itemId` and every item after it in the same event
+ * by `deltaMin` minutes, in one statement (spec 0009 B2). The answer is how many rows moved.
+ *
+ * "After" is by `position`, the reading order, and not by the clock: on a sheet that runs past
+ * midnight, 00:30 comes after 23:00, and a clock comparison would leave it behind. Order and
+ * length never change. Rejected: re-placing each moved row by the clock as `updateRunSheetItem`
+ * does for one -- a shift moves the whole tail together, so the order is already right, and
+ * re-sorting would tear the after-midnight rows away from the evening they follow.
+ *
+ * Times wrap at midnight: Postgres' `time + interval` is modulo 24 hours, which is exactly the
+ * sheet's own reading (`schema/events.ts`), so 23:50 + 15 is 00:05 and the list marks it `+1`.
+ * The arithmetic stays in SQL so a read-modify-write cannot race a concurrent edit of the same
+ * row between the select and the update.
+ *
+ * The item is read under the transaction for THIS wedding first (the parent-read rule): the
+ * org-wide owner's policy admits a sibling wedding's row, and `itemNotFound` is the answer for it.
+ * A delta outside the range throws, because the Server Function has already refused one and a
+ * caller that gets here with it is a bug, not a planner's typo.
+ */
+export async function shiftRunSheetTimes(
+  scope: WeddingScope,
+  itemId: string,
+  deltaMin: number,
+): Promise<Result<{ readonly id: string; readonly moved: number }, RunSheetFailure>> {
+  if (
+    !Number.isInteger(deltaMin) ||
+    deltaMin === 0 ||
+    Math.abs(deltaMin) > RUN_SHEET_MAX_SHIFT_MIN
+  ) {
+    throw new RangeError(
+      `shiftRunSheetTimes: delta ${deltaMin} is not a whole number of minutes in ±1..${RUN_SHEET_MAX_SHIFT_MIN} (spec 0009 B2)`,
+    )
+  }
+  const { db, weddingId } = scope
+  const principal = scope.principal
+  if (!principal) return fail('notFound')
+
+  return withTenant(db, principal, async (tx) => {
+    const found = await tx
+      .select({ eventId: runSheetItems.eventId })
+      .from(runSheetItems)
+      .where(and(eq(runSheetItems.id, itemId), eq(runSheetItems.weddingId, weddingId)))
+    const eventId = found[0]?.eventId
+    if (!eventId) return fail('itemNotFound')
+
+    // The tail is cut from the read order and not from `position >= this one's`: the seed's rows
+    // all share position 0, and `ORDER`'s tie-break is what decides which of them come after.
+    const order = (await slotsOf(tx, weddingId, eventId)).map((s) => s.id)
+    const tail = order.slice(order.indexOf(itemId))
+
+    await tx
+      .update(runSheetItems)
+      .set({
+        startsAt: sql`${runSheetItems.startsAt} + make_interval(mins => ${deltaMin}::int)`,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(runSheetItems.weddingId, weddingId), inArray(runSheetItems.id, tail)))
+    return ok({ id: itemId, moved: tail.length })
+  })
+}

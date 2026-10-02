@@ -15,6 +15,7 @@ import {
 import { clockToMinutes, minutesToClock, type RunSheetError } from '../../lib/run-sheet.ts'
 import { Hint, SelectField } from '../money/form-bits.tsx'
 import { MoveButtons } from './move-buttons.tsx'
+import { ShiftSection } from './shift-section.tsx'
 
 /**
  * The side sheet that adds or edits one run sheet item.
@@ -31,6 +32,7 @@ export function ItemSheet({
   weddingId,
   eventId,
   item,
+  items,
   defaultStart,
   vendors,
   owners,
@@ -42,6 +44,8 @@ export function ItemSheet({
   eventId: string
   /** `null` adds an item. */
   item: RunSheetItem | null
+  /** The event's items in reading order: what a shift from `item` would move (spec 0009 B2). */
+  items: readonly RunSheetItem[]
   defaultStart: string
   vendors: readonly RunSheetVendor[]
   /** Who this viewer may name as the row's owner: `getRunSheet`'s `owners` (spec 0004). */
@@ -307,6 +311,14 @@ export function ItemSheet({
           <InlineError>{te(error)}</InlineError>
         )}
       </form>
+      {item && (
+        <ShiftSection
+          weddingId={weddingId}
+          itemId={item.id}
+          items={items}
+          onShifted={setStartsAt}
+        />
+      )}
     </Sheet>
   )
 }

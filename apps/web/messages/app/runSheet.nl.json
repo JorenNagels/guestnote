@@ -93,6 +93,18 @@
     "deleteConfirm": "Ja, verwijderen",
     "deleting": "Verwijderen…"
   },
+  "shift": {
+    "title": "Schuif dit en alles erna op",
+    "body": "Loopt het uit of begint het vroeger? Verschuif dit onderdeel en alles wat erna komt in één keer. De duur en de volgorde blijven.",
+    "chip": "{delta} min",
+    "custom": "Of een eigen aantal minuten",
+    "customHint": "Met een min ervoor om te vervroegen, bijvoorbeeld -10.",
+    "preview": "Wat verschuift",
+    "row": "{title}: van {from} naar {to}",
+    "submit": "{count, plural, one {# onderdeel verschuiven} other {# onderdelen verschuiven}}",
+    "submitting": "Bezig met verschuiven…",
+    "done": "{count, plural, one {# onderdeel verschoven.} other {# onderdelen verschoven.}}"
+  },
   "errors": {
     "event": "Kies een dag van de bruiloft.",
     "time": "Geef een uur op, bijvoorbeeld 15:30.",
@@ -102,7 +114,8 @@
     "vendor": "Kies een leverancier uit de lijst.",
     "notFound": "Dit onderdeel of deze bruiloft bestaat niet meer. Vernieuw de pagina.",
     "failed": "Het opslaan is niet gelukt. Er is niets gewijzigd. Probeer het zo nog eens.",
-    "owner": "Kies iemand van het team dat aan deze bruiloft werkt."
+    "owner": "Kies iemand van het team dat aan deze bruiloft werkt.",
+    "shift": "Geef een aantal hele minuten op, van -720 tot 720, niet 0."
   },
   "error": {
     "title": "Het draaiboek kon niet geladen worden",

@@ -115,7 +115,17 @@ export function formatDuration(
   return t('minutes', { m })
 }
 
-export const RUN_SHEET_LIMITS = { title: 120, place: 120, maxDuration: DAY } as const
+/**
+ * `maxShift` is the repo's `RUN_SHEET_MAX_SHIFT_MIN` again, because this file may import only
+ * types from `@guestnote/db` (the note at the top). The two must agree; if they ever drift, the
+ * repo's own check throws rather than writes, so the cost is a failed request and not bad data.
+ */
+export const RUN_SHEET_LIMITS = {
+  title: 120,
+  place: 120,
+  maxDuration: DAY,
+  maxShift: 720,
+} as const
 
 /** What the item sheet posts. Everything is text: a Server Function argument is whatever the body said. */
 export type RunSheetFormValues = {
@@ -138,6 +148,7 @@ export type RunSheetError =
   | 'place'
   | 'vendor'
   | 'owner'
+  | 'shift'
   | 'notFound'
   | 'failed'
 
@@ -189,4 +200,59 @@ export function parseRunSheetForm(
       ...(ownerText === undefined ? {} : { ownerUserId: ownerText === '' ? null : ownerText }),
     },
   }
+}
+
+/**
+ * `HH:MM` moved by `deltaMin`, on the 24-hour clock: 23:50 + 15 is 00:05. The same answer
+ * Postgres gives for `time + interval`, which is what the repo writes, so the preview the
+ * planner reads is the time that is stored.
+ */
+export function shiftClock(clock: string, deltaMin: number): string {
+  const from = clockToMinutes(clock)
+  return from === null ? clock : minutesToClock(from + deltaMin)
+}
+
+/**
+ * A shift in whole minutes from the item sheet (spec 0009 B2), or `null`: an integer from
+ * -720 to 720, never 0. Takes a number (the chips) or text (the custom field), so the Server
+ * Function and the field agree on one rule. A leading U+2212 minus is read as `-`, because
+ * that is what the chips show and what a planner copies.
+ */
+export function parseShiftMinutes(raw: unknown): number | null {
+  let n: number
+  if (typeof raw === 'number') n = raw
+  else if (typeof raw === 'string') {
+    const t = raw.trim().replace(/^\u2212/, '-')
+    if (!/^[+-]?\d{1,4}$/.test(t)) return null
+    n = Number(t)
+  } else return null
+  if (!Number.isInteger(n) || n === 0 || Math.abs(n) > RUN_SHEET_LIMITS.maxShift) return null
+  return n
+}
+
+export type ShiftPreviewRow = {
+  readonly id: string
+  readonly title: string
+  readonly from: string
+  readonly to: string
+}
+
+/**
+ * What a shift of `itemId` would move: that item and every one after it in the list as given,
+ * which is the event's reading order -- the same cut the repo makes by `position`. Empty when
+ * the item is not in the list (a sheet opened on a row another tab has since deleted).
+ */
+export function shiftPreview(
+  items: readonly { readonly id: string; readonly title: string; readonly startsAt: string }[],
+  itemId: string,
+  deltaMin: number,
+): ShiftPreviewRow[] {
+  const at = items.findIndex((i) => i.id === itemId)
+  if (at === -1) return []
+  return items.slice(at).map((i) => ({
+    id: i.id,
+    title: i.title,
+    from: i.startsAt,
+    to: shiftClock(i.startsAt, deltaMin),
+  }))
 }

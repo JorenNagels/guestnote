@@ -93,6 +93,18 @@
     "deleteConfirm": "Oui, supprimer",
     "deleting": "Suppression…"
   },
+  "shift": {
+    "title": "Décaler ceci et tout ce qui suit",
+    "body": "Du retard, ou un début plus tôt ? Décalez cet élément et tout ce qui suit en une fois. Les durées et l'ordre ne changent pas.",
+    "chip": "{delta} min",
+    "custom": "Ou un nombre de minutes au choix",
+    "customHint": "Ajoutez un moins devant pour avancer, par exemple -10.",
+    "preview": "Ce qui sera décalé",
+    "row": "{title} : de {from} à {to}",
+    "submit": "Décaler {count, plural, one {# élément} other {# éléments}}",
+    "submitting": "Décalage…",
+    "done": "{count, plural, one {# élément décalé.} other {# éléments décalés.}}"
+  },
   "errors": {
     "event": "Choisissez un jour du mariage.",
     "time": "Indiquez une heure, par exemple 15:30.",
@@ -102,7 +114,8 @@
     "vendor": "Choisissez un prestataire dans la liste.",
     "notFound": "Cet élément ou ce mariage n'existe plus. Actualisez la page.",
     "failed": "L'enregistrement n'a pas abouti. Rien n'a été modifié. Réessayez dans un instant.",
-    "owner": "Choisissez quelqu'un de l'équipe qui travaille sur ce mariage."
+    "owner": "Choisissez quelqu'un de l'équipe qui travaille sur ce mariage.",
+    "shift": "Indiquez un nombre de minutes entier, de -720 à 720, sauf 0."
   },
   "error": {
     "title": "Le déroulé n'a pas pu être chargé",
