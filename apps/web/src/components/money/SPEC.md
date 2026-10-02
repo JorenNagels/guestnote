@@ -40,6 +40,12 @@ Nothing here contradicts spec 0003. Prototype range: `design-system/planner-prot
   the input and the draft with the error under it. The totals follow from `revalidateMoney`.
   Everything else on a line is still edited in the sheet.)* Deleting a line hides it, and its
   payments with it (the line is soft-deleted; nothing is destroyed).
+  *(Amended 2026-10-02, spec 0009 C4: Delete no longer asks. It deletes at once, closes the sheet,
+  and a toast at the bottom of the screen says "“{label}” verwijderd, met de betalingen erop" with
+  **Ongedaan maken** for 8 seconds (paused on hover or focus). Undo calls `restoreLine`, which
+  clears `deleted_at` under `withTenant` for this wedding and brings the payments back with the
+  line; a line that is gone says so in the toast. Deleting a payment is a hard delete and still
+  asks once.)*
 - **Vendor picker** lists this wedding's `wedding_vendors` by vendor name. S3 fills them; until then it is
   empty and the field says so. A line stores the `wedding_vendor_id`, and the server reads that row under
   `withTenant` for this wedding before saving (spec 0003, parent-read rule).

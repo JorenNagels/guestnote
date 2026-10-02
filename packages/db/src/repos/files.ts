@@ -267,6 +267,54 @@ export async function removeFile(
   return updateConfirmed(scope, fileId, { deletedAt: new Date() })
 }
 
+/**
+ * Undo for `removeFile`, the Files screen's and the moodboard's (spec 0009 C4). Same principal
+ * and the same `weddingId` in the `where` as the remove, plus the wedding parent read: a file
+ * is not brought back onto a deleted wedding.
+ *
+ * **Never a pending row.** `deleted_at = created_at` is "upload not confirmed" (see the header),
+ * and clearing it here would let anyone with standing confirm a half-finished upload of somebody
+ * else's -- the thing `confirmFile` refuses by checking the uploader. So the predicate is
+ * "deleted, and deleted later than it was created", which is exactly a real remove.
+ *
+ * An image whose board was deleted since comes back on the default board: `deleteBoard` moved it
+ * there when it soft-deleted it, because `files.moodboard_id` may not name a board that is gone.
+ * The one pending row this predicate cannot tell apart is an upload in flight when its board was
+ * deleted (`deleteBoard` stamps it like a real delete); restoring that by id lands a row whose
+ * object may never have arrived, which is what `confirmFile` already allows its own uploader and
+ * harms only this wedding's list. No time limit, for the reason `restoreBudgetLine` gives.
+ */
+export async function restoreFile(
+  scope: WeddingScope,
+  fileId: string,
+): Promise<Result<null, 'notFound'>> {
+  const { db, weddingId } = scope
+  const principal = scope.principal
+  if (!principal) return fail('notFound')
+
+  const changed = await withTenant(db, principal, async (tx) => {
+    const parent = await tx
+      .select({ id: weddings.id })
+      .from(weddings)
+      .where(and(eq(weddings.id, weddingId), isNull(weddings.deletedAt)))
+    if (parent.length === 0) return []
+    return tx
+      .update(files)
+      .set({ deletedAt: null, updatedAt: new Date() })
+      .where(
+        and(
+          eq(files.id, fileId),
+          eq(files.weddingId, weddingId),
+          // Also "is deleted": a live row's null `deleted_at` makes `<>` null, which is not true.
+          // No separate `is not null` beside it -- a mutation sweep showed it could never decide.
+          sql`${files.deletedAt} <> ${files.createdAt}`,
+        ),
+      )
+      .returning({ id: files.id })
+  })
+  return changed.length > 0 ? ok(null) : fail('notFound')
+}
+
 async function updateConfirmed(
   scope: WeddingScope,
   fileId: string,

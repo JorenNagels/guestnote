@@ -32,8 +32,7 @@
     "cancel": "Cancel",
     "close": "Close",
     "archive": "Archive",
-    "archiveConfirm": "Archive for sure?",
-    "archiveConfirmYes": "Yes, archive",
+    "archived": "“{name}” archived.",
     "archiveNote": "Weddings that already use this vendor keep them."
   },
   "wedding": {
@@ -68,8 +67,7 @@
     "save": "Save",
     "saving": "Saving…",
     "remove": "Remove from wedding",
-    "removeConfirm": "Remove for sure?",
-    "removeConfirmYes": "Yes, remove",
+    "removed": "“{name}” taken off the wedding.",
     "removeNote": "The vendor stays in the studio's list.",
     "fullRunSheet": "Show the full timeline",
     "fullRunSheetHint": "This vendor sees the whole day, not just their own slots.",

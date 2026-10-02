@@ -58,10 +58,8 @@
     "vendorEmpty": "Pas encore de prestataires sur ce mariage. Ajoutez-les sous Prestataires.",
     "save": "Enregistrer",
     "saving": "Enregistrement…",
-    "cancel": "Annuler",
     "delete": "Supprimer la ligne",
-    "deleteAsk": "Les paiements de cette ligne disparaissent aussi de l'aperçu.",
-    "deleteConfirm": "Oui, supprimer",
+    "deleted": "Ligne « {label} » supprimée, avec ses paiements.",
     "deleting": "Suppression…"
   },
   "payments": {

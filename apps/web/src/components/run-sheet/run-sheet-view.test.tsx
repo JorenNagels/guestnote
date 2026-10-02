@@ -1,5 +1,5 @@
 import type { RunSheetItem, RunSheetOwner, WeddingEvent } from '@guestnote/db'
-import { act, cleanup, fireEvent, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { RunSheetView } from './run-sheet-view.tsx'
 import { renderWithCopy } from './test-support.tsx'
@@ -129,6 +129,20 @@ describe('RunSheetView', () => {
       'page',
     )
     expect(within(nav).getByRole('link', { name: /Ceremony/ })).not.toHaveAttribute('aria-current')
+  })
+
+  /**
+   * Spec 0009 C4: a run-sheet item is a HARD delete (no `deleted_at`), so unlike a budget line or
+   * a file it keeps its "are you sure" -- there is nothing an Undo could put back.
+   */
+  it('still asks before deleting an item, which cannot be undone', async () => {
+    view({ items: [item({ id: 'i1', title: 'Vows', startsAt: '14:30', durationMin: 20 })] })
+    fireEvent.click(screen.getAllByRole('button', { name: 'Edit Vows' })[0] as HTMLElement)
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    expect(removeRunSheetItem).not.toHaveBeenCalled()
+    expect(screen.getByText('Delete this item? This cannot be undone.')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Yes, delete' }))
+    await waitFor(() => expect(removeRunSheetItem).toHaveBeenCalled())
   })
 
   it('lists items in order, with a computed end time and a summary line', () => {

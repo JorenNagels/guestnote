@@ -1,5 +1,7 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { TOAST_LABELS } from '../toast/fixtures.ts'
+import { ToastProvider } from '../toast/toast-provider.tsx'
 import type { BoardActions, Boards } from './board-bar.tsx'
 import { MOODBOARD_LABELS } from './fixtures.ts'
 import { type MoodboardActions, MoodboardScreen, type MoodTile } from './moodboard-screen.tsx'
@@ -7,7 +9,7 @@ import { type MoodboardActions, MoodboardScreen, type MoodTile } from './moodboa
 /**
  * The moodboard with its Server Functions replaced by fakes. Pinned here: a tile draws its
  * signed URL and falls back to a placeholder without one, the caption is editable in place,
- * remove asks first, and a new image's caption is its file name without the extension and is
+ * remove happens at once with Undo (spec 0009 C4), and a new image's caption is its file name without the extension and is
  * always shared. And since spec 0007, the board bar: switcher links, the header's audience,
  * create, delete (never the default board), move, and the share sheet's save-per-tick.
  */
@@ -61,6 +63,7 @@ beforeEach(() => {
     })),
     confirm: vi.fn(async () => ok),
     remove: vi.fn(async () => ok),
+    restore: vi.fn(async () => ok),
     rename: vi.fn(async () => ok),
     move: vi.fn(async () => ok),
   }
@@ -79,14 +82,18 @@ beforeEach(() => {
 
 const view = (items: readonly MoodTile[] = TILES, boards: Boards = boardsOn(MAIN.id)) =>
   render(
-    <MoodboardScreen
-      items={items}
-      labels={MOODBOARD_LABELS}
-      actions={actions as unknown as MoodboardActions}
-      boards={boards}
-      boardActions={boardActions as unknown as BoardActions}
-    />,
+    <ToastProvider labels={TOAST_LABELS}>
+      <MoodboardScreen
+        items={items}
+        labels={MOODBOARD_LABELS}
+        actions={actions as unknown as MoodboardActions}
+        boards={boards}
+        boardActions={boardActions as unknown as BoardActions}
+      />
+    </ToastProvider>,
   )
+
+const toast = () => within(screen.getByTestId('toast')).getByRole('status')
 
 describe('tiles', () => {
   it('draws the signed URL with the caption as alt text, and a placeholder without one', () => {
@@ -137,13 +144,46 @@ describe('caption', () => {
 })
 
 describe('remove', () => {
-  it('asks first and only then calls remove', async () => {
+  /** Spec 0009 C4: an image is a soft delete, so it goes at once and Undo brings it back. */
+  it('removes at once, then offers Undo by caption, which restores and refreshes', async () => {
     view()
     fireEvent.click(screen.getByRole('button', { name: 'Remove Peonies' }))
-    expect(actions.remove).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByRole('button', { name: 'Yes' }))
     await waitFor(() => expect(actions.remove).toHaveBeenCalledWith('i1'))
-    await waitFor(() => expect(refresh).toHaveBeenCalled())
+    await waitFor(() => expect(toast()).toHaveTextContent('Image “Peonies” removed.'))
+    expect(refresh).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
+    await waitFor(() => expect(actions.restore).toHaveBeenCalledWith('i1'))
+    await waitFor(() => expect(toast()).toHaveTextContent('Restored.'))
+    expect(refresh).toHaveBeenCalledTimes(2)
+  })
+
+  it('says so when the image cannot come back', async () => {
+    actions.restore.mockResolvedValue({ ok: false, error: 'notFound' })
+    view()
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Peonies' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Undo' }))
+    await waitFor(() => expect(toast()).toHaveTextContent('This can no longer be restored.'))
+  })
+})
+
+describe('caption pencil (spec 0009 C4, report 13b)', () => {
+  /**
+   * jsdom computes no `:hover`, so what can be pinned is that the pencil is there, is decorative,
+   * and carries the hover and focus classes that reveal it; that it then shows is the browser's.
+   */
+  it('puts a decorative pencil in the caption button, revealed on hover and focus', () => {
+    view()
+    const caption = screen.getByRole('button', { name: 'Edit the caption of Peonies' })
+    const pencil = caption.querySelector('svg')
+    expect(pencil).not.toBeNull()
+    expect(pencil).toHaveAttribute('aria-hidden', 'true')
+    expect(caption).toHaveClass('group')
+    expect(pencil).toHaveClass(
+      'opacity-0',
+      'group-hover:opacity-100',
+      'group-focus-visible:opacity-100',
+    )
   })
 })
 

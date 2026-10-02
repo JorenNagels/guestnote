@@ -1,4 +1,4 @@
-import { and, asc, eq, isNull } from 'drizzle-orm'
+import { and, asc, eq, isNotNull, isNull } from 'drizzle-orm'
 import { newId } from '../id.ts'
 import { budgetLines, payments } from '../schema/money.ts'
 import { vendors, weddingVendors } from '../schema/vendors.ts'
@@ -279,6 +279,44 @@ export async function deleteBudgetLine(scope: WeddingScope, lineId: string): Pro
           eq(budgetLines.id, lineId),
           eq(budgetLines.weddingId, weddingId),
           isNull(budgetLines.deletedAt),
+        ),
+      )
+      .returning({ id: budgetLines.id })
+    return rows[0] ? ok({ id: lineId }) : fail('lineNotFound')
+  })
+}
+
+/**
+ * Undo for `deleteBudgetLine` (spec 0009 C4): clears `deleted_at`, and the line's payments come
+ * back with it because they were never touched -- both reads join through the line.
+ *
+ * Authorised exactly like the delete: the same `staffPrincipal` (any staff of this wedding, no
+ * couple, no editor), the same `weddingId` in the `where` for the org-wide principal. Plus the
+ * wedding parent read, which the delete does without and a restore should not: bringing a line
+ * back onto a wedding that has itself been deleted would resurrect a row nothing can show.
+ *
+ * `lineNotFound` for a line that is live already, belongs to another wedding, or does not exist
+ * -- one answer, so the toast can say "it is gone" without telling which. No time limit: the
+ * principal that may restore is the one that could have deleted it, so a late restore grants
+ * nothing a fresh line would not. Rejected: a window checked here (say ten seconds after
+ * `deleted_at`), which would put a UI timer in the repository and turn a slow network into a
+ * refused undo.
+ */
+export async function restoreBudgetLine(scope: WeddingScope, lineId: string): Promise<MoneyResult> {
+  const { db, weddingId } = scope
+  const principal = scope.principal
+  if (!principal) return fail('notFound')
+
+  return withTenant(db, principal, async (tx): Promise<MoneyResult> => {
+    if (!(await readMoneyContext(tx, weddingId))) return fail('notFound')
+    const rows = await tx
+      .update(budgetLines)
+      .set({ deletedAt: null, updatedAt: new Date() })
+      .where(
+        and(
+          eq(budgetLines.id, lineId),
+          eq(budgetLines.weddingId, weddingId),
+          isNotNull(budgetLines.deletedAt),
         ),
       )
       .returning({ id: budgetLines.id })

@@ -23,8 +23,8 @@ export type FormLabels = {
   cancel: string
   close: string
   archive: string
-  archiveConfirm: string
-  archiveConfirmYes: string
+  /** The toast after an archive. A template: `{name}` is the vendor's name. */
+  archived: string
   archiveNote: string
   errors: ErrorLabels
 }
@@ -40,7 +40,10 @@ type Props = {
     phone: string
     notes: string
   }) => Promise<VendorActionResult>
-  /** Editing only, and only offered where the caller may archive. */
+  /**
+   * Editing only, and only offered where the caller may archive. Runs at once; the caller says
+   * so in a toast with Undo (spec 0009 C4), because only it knows how to restore.
+   */
   onArchive?: () => Promise<VendorActionResult>
   onClose: () => void
 }
@@ -60,7 +63,6 @@ export function VendorForm({ labels, vendor, onSubmit, onArchive, onClose }: Pro
   const formId = useId()
   const [pending, startTransition] = useTransition()
   const [result, setResult] = useState<VendorActionResult | null>(null)
-  const [confirming, setConfirming] = useState(false)
   const [failed, setFailed] = useState(false)
 
   const message = failed ? labels.errors.generic : errorText(labels.errors, result)
@@ -101,13 +103,7 @@ export function VendorForm({ labels, vendor, onSubmit, onArchive, onClose }: Pro
       closeLabel={labels.close}
       footer={
         <div className="grid grid-cols-2 gap-2">
-          <Button
-            type="submit"
-            form={formId}
-            busy={pending}
-            busyLabel={labels.saving}
-            disabled={confirming}
-          >
+          <Button type="submit" form={formId} busy={pending} busyLabel={labels.saving}>
             {labels.save}
           </Button>
           <Button variant="secondary" onClick={onClose} disabled={pending}>
@@ -172,23 +168,13 @@ export function VendorForm({ labels, vendor, onSubmit, onArchive, onClose }: Pro
 
         {message && <InlineError>{message}</InlineError>}
 
+        {/* Spec 0009 C4: at once, no "are you sure". Archiving is a soft delete and the caller
+            offers Undo in a toast, so a confirmation would guard nothing that cannot be put back. */}
         {vendor && onArchive && (
           <div className="border-border border-t pt-4">
-            {confirming ? (
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm">{labels.archiveConfirm}</span>
-                <SmallButton disabled={pending} onClick={() => run(onArchive)}>
-                  {labels.archiveConfirmYes}
-                </SmallButton>
-                <SmallButton disabled={pending} onClick={() => setConfirming(false)}>
-                  {labels.cancel}
-                </SmallButton>
-              </div>
-            ) : (
-              <SmallButton disabled={pending} onClick={() => setConfirming(true)}>
-                {labels.archive}
-              </SmallButton>
-            )}
+            <SmallButton disabled={pending} onClick={() => run(onArchive)}>
+              {labels.archive}
+            </SmallButton>
             <p className="text-muted-foreground mt-2 text-xs">{labels.archiveNote}</p>
           </div>
         )}

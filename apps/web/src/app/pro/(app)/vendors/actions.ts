@@ -1,6 +1,12 @@
 'use server'
 
-import { archiveVendor, createVendor, updateVendor, vendorDirectoryAccess } from '@guestnote/db'
+import {
+  archiveVendor,
+  createVendor,
+  restoreVendor,
+  updateVendor,
+  vendorDirectoryAccess,
+} from '@guestnote/db'
 import { revalidatePath } from 'next/cache'
 import { getDb } from '../../../../lib/db.ts'
 import { currentCaller, currentOrgId } from '../../../../lib/principal.ts'
@@ -73,6 +79,21 @@ export async function archiveDirectoryVendor(vendorId: unknown): Promise<VendorA
   const id = parseId(vendorId)
   if (!id) return { ok: false, error: 'invalid' }
   const r = await archiveVendor(getDb(), ctx.m, ctx.orgId, id)
+  if (r.ok) refresh()
+  return answer(r)
+}
+
+/**
+ * The toast's Undo for `archiveDirectoryVendor` (spec 0009 C4), gated by the same three layers:
+ * `writer()` here, `principalForOrg` in the repo, the policy in SQL.
+ */
+export async function restoreDirectoryVendor(vendorId: unknown): Promise<VendorActionResult> {
+  await assertWritable(await currentOrgId())
+  const ctx = await writer()
+  if (!ctx) return { ok: false, error: 'forbidden' }
+  const id = parseId(vendorId)
+  if (!id) return { ok: false, error: 'invalid' }
+  const r = await restoreVendor(getDb(), ctx.m, ctx.orgId, id)
   if (r.ok) refresh()
   return answer(r)
 }

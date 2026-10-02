@@ -19,8 +19,7 @@
       "makeInternal": "Intern maken",
       "makeShared": "Delen",
       "remove": "Verwijderen",
-      "removeConfirm": "“{name}” verwijderen?",
-      "removeYes": "Ja, verwijderen",
+      "removed": "“{name}” verwijderd.",
       "save": "Opslaan",
       "cancel": "Annuleren",
       "renameField": "Nieuwe naam"
@@ -42,8 +41,7 @@
       "hint": "Sleep afbeeldingen hierheen. JPEG, PNG, WebP, GIF, HEIC of AVIF tot 25 MB."
     },
     "tileRemove": "Verwijderen",
-    "tileRemoveConfirm": "Verwijderen?",
-    "tileRemoveYes": "Ja",
+    "tileRemoved": "Afbeelding “{name}” verwijderd.",
     "tileCancel": "Annuleren",
     "aria": {
       "remove": "{name} verwijderen",

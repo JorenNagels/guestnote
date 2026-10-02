@@ -32,8 +32,7 @@
     "cancel": "Annuler",
     "close": "Fermer",
     "archive": "Archiver",
-    "archiveConfirm": "Archiver vraiment ?",
-    "archiveConfirmYes": "Oui, archiver",
+    "archived": "« {name} » archivé.",
     "archiveNote": "Les mariages qui utilisent déjà ce prestataire le conservent."
   },
   "wedding": {
@@ -68,8 +67,7 @@
     "save": "Enregistrer",
     "saving": "Enregistrement…",
     "remove": "Retirer du mariage",
-    "removeConfirm": "Retirer vraiment ?",
-    "removeConfirmYes": "Oui, retirer",
+    "removed": "« {name} » retiré du mariage.",
     "removeNote": "Le prestataire reste dans la liste du bureau.",
     "fullRunSheet": "Afficher tout le déroulé",
     "fullRunSheetHint": "Ce prestataire voit toute la journée, pas seulement ses propres créneaux.",

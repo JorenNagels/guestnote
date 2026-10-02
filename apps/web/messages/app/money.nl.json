@@ -58,10 +58,8 @@
     "vendorEmpty": "Nog geen leveranciers bij deze bruiloft. Voeg ze toe bij Leveranciers.",
     "save": "Opslaan",
     "saving": "Opslaan…",
-    "cancel": "Annuleren",
     "delete": "Regel verwijderen",
-    "deleteAsk": "Ook de betalingen op deze regel verdwijnen uit het overzicht.",
-    "deleteConfirm": "Ja, verwijder",
+    "deleted": "“{label}” verwijderd, met de betalingen erop.",
     "deleting": "Verwijderen…"
   },
   "payments": {

@@ -1,15 +1,19 @@
 import type { BudgetLine, BudgetPayment } from '@guestnote/db'
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { TOAST_LABELS } from '../toast/fixtures.ts'
+import { ToastProvider } from '../toast/toast-provider.tsx'
 import { BudgetView } from './budget-view.tsx'
 import { renderWithCopy } from './test-support.tsx'
 
 const saveBudgetLine = vi.fn()
 const removeBudgetLine = vi.fn()
+const restoreLine = vi.fn()
 
 vi.mock('../../app/pro/(app)/weddings/[id]/budget/actions.ts', () => ({
   saveBudgetLine: (...a: unknown[]) => saveBudgetLine(...a),
   removeBudgetLine: (...a: unknown[]) => removeBudgetLine(...a),
+  restoreLine: (...a: unknown[]) => restoreLine(...a),
 }))
 
 const W = '0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b'
@@ -33,9 +37,24 @@ function view(
   )
 }
 
+/**
+ * With the toast provider as the layout mounts it, above the view, so a toast raised by the line
+ * sheet outlives the sheet. Only for the delete cases: the provider's `status` region is always
+ * in the DOM, and the inline-amount cases assert there is no other one.
+ */
+function viewWithToasts(lines: BudgetLine[]) {
+  renderWithCopy(
+    <ToastProvider labels={TOAST_LABELS}>
+      <BudgetView weddingId={W} locale="en" lines={lines} payments={[]} vendors={[]} />
+    </ToastProvider>,
+  )
+  return () => within(screen.getByTestId('toast')).getByRole('status')
+}
+
 beforeEach(() => {
   saveBudgetLine.mockReset().mockResolvedValue({ ok: true })
   removeBudgetLine.mockReset().mockResolvedValue({ ok: true })
+  restoreLine.mockReset().mockResolvedValue({ ok: true })
 })
 afterEach(cleanup)
 
@@ -198,18 +217,50 @@ describe('BudgetView', () => {
     expect(screen.getByLabelText('Allocated amount (€)').getAttribute('aria-invalid')).toBe('true')
   })
 
-  it('editing starts from the saved amounts, and delete asks once before it acts', async () => {
+  it('editing starts from the saved amounts', () => {
     view([line({ id: 'a', label: 'Castle', estimateCents: 123_450, actualCents: 5 })])
     fireEvent.click(screen.getByRole('button', { name: 'Edit Castle' }))
     expect((screen.getByLabelText('Allocated amount (€)') as HTMLInputElement).value).toBe(
       '1234.50',
     )
     expect((screen.getByLabelText('Spent amount (€)') as HTMLInputElement).value).toBe('0.05')
+  })
 
+  /**
+   * Spec 0009 C4: no "are you sure". One click deletes, the sheet closes, and the toast -- which
+   * lives above the sheet -- names the line and offers Undo, which calls the restore with the
+   * same wedding and line.
+   */
+  it('deletes at once, closes the sheet, and offers Undo by name', async () => {
+    const toast = viewWithToasts([line({ id: 'a', label: 'Castle' })])
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Castle' }))
     fireEvent.click(screen.getByRole('button', { name: 'Delete line' }))
-    expect(removeBudgetLine).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByRole('button', { name: 'Yes, delete' }))
     await waitFor(() => expect(removeBudgetLine).toHaveBeenCalledWith(W, 'a'))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(toast()).toHaveTextContent('“Castle” deleted, with its payments.')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
+    await waitFor(() => expect(restoreLine).toHaveBeenCalledWith(W, 'a'))
+    await waitFor(() => expect(toast()).toHaveTextContent('Restored.'))
+  })
+
+  it('says so when the line cannot come back', async () => {
+    restoreLine.mockResolvedValue({ ok: false, error: 'notFound' })
+    const toast = viewWithToasts([line({ id: 'a', label: 'Castle' })])
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Castle' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete line' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Undo' }))
+    await waitFor(() => expect(toast()).toHaveTextContent('This can no longer be restored.'))
+  })
+
+  it('keeps the sheet open, and raises no toast, when the delete is refused', async () => {
+    removeBudgetLine.mockResolvedValue({ ok: false, error: 'notFound' })
+    const toast = viewWithToasts([line({ id: 'a', label: 'Castle' })])
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Castle' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete line' }))
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(toast()).toBeEmptyDOMElement()
   })
 
   it('the vendor picker says so when the wedding has no vendors yet', () => {

@@ -16,6 +16,7 @@ import {
   removeImage,
   renameImage,
   renameMoodboard,
+  restoreImage,
   shareMoodboard,
   shareMoodboardWithCouple,
   startImageUpload,
@@ -116,6 +117,7 @@ export default async function MoodboardPage({
         start: startImageUpload.bind(null, id, board.id),
         confirm: confirmImageUpload.bind(null, id),
         remove: removeImage.bind(null, id),
+        restore: restoreImage.bind(null, id),
         rename: renameImage.bind(null, id),
         move: moveMoodboardImage.bind(null, id),
       }}

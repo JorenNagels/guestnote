@@ -9,10 +9,12 @@ import { useTranslations } from 'next-intl'
 import { type FormEvent, useState, useTransition } from 'react'
 import {
   removeBudgetLine,
+  restoreLine,
   saveBudgetLine,
 } from '../../app/pro/(app)/weddings/[id]/budget/actions.ts'
 import { centsToInput } from '../../lib/money.ts'
 import type { MoneyError } from '../../lib/money-types.ts'
+import { useToast } from '../toast/toast-provider.tsx'
 import { Hint, SelectField } from './form-bits.tsx'
 
 /**
@@ -50,8 +52,10 @@ export function LineSheet({
   )
   const [vendorId, setVendorId] = useState(line?.weddingVendorId ?? '')
   const [error, setError] = useState<MoneyError | null>(null)
-  const [confirming, setConfirming] = useState(false)
   const [pending, start] = useTransition()
+  // Its own transition, so the Delete button says "Deleting…" and Save does not say "Saving…".
+  const [deleting, startDelete] = useTransition()
+  const toast = useToast()
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
@@ -69,13 +73,30 @@ export function LineSheet({
     })
   }
 
+  /**
+   * Spec 0009 C4: at once, no "are you sure". The line is soft-deleted and its payments are left
+   * alone (`deleteBudgetLine`), so nothing is lost that Undo cannot put back -- which is what
+   * makes a confirmation step a cost with nothing bought. The sheet closes and the toast, which
+   * lives in the layout, outlives it.
+   */
   const remove = () => {
     if (!line) return
     setError(null)
-    start(async () => {
+    startDelete(async () => {
       const result = await removeBudgetLine(weddingId, line.id)
-      if (result.ok) onClose()
-      else setError(result.error)
+      if (!result.ok) {
+        setError(result.error)
+        return
+      }
+      onClose()
+      toast.show({
+        message: t('deleted', { label: line.label }),
+        undo: async () => {
+          const back = await restoreLine(weddingId, line.id)
+          if (back.ok) return 'restored'
+          return back.error === 'notFound' ? 'gone' : { message: te(back.error) }
+        },
+      })
     })
   }
 
@@ -89,30 +110,28 @@ export function LineSheet({
       title={line ? t('titleEdit') : t('titleNew')}
       closeLabel={t('close')}
       footer={
-        confirming ? (
-          <div className="space-y-3">
-            <p className="text-sm">{t('deleteAsk')}</p>
-            <div className="flex gap-2">
-              <Button variant="secondary" onClick={() => setConfirming(false)} disabled={pending}>
-                {t('cancel')}
-              </Button>
-              <Button onClick={remove} busy={pending} busyLabel={t('deleting')}>
-                {t('deleteConfirm')}
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="flex gap-2">
-            {line && (
-              <Button variant="secondary" onClick={() => setConfirming(true)} disabled={pending}>
-                {t('delete')}
-              </Button>
-            )}
-            <Button type="submit" form="line-form" busy={pending} busyLabel={t('saving')}>
-              {t('save')}
+        <div className="flex gap-2">
+          {line && (
+            <Button
+              variant="secondary"
+              onClick={remove}
+              disabled={pending}
+              busy={deleting}
+              busyLabel={t('deleting')}
+            >
+              {t('delete')}
             </Button>
-          </div>
-        )
+          )}
+          <Button
+            type="submit"
+            form="line-form"
+            busy={pending}
+            busyLabel={t('saving')}
+            disabled={deleting}
+          >
+            {t('save')}
+          </Button>
+        </div>
       }
     >
       <form id="line-form" onSubmit={submit} noValidate className="space-y-4">

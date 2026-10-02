@@ -7,6 +7,7 @@ import {
   getWedding,
   getWeddingVendors,
   removeWeddingVendor,
+  restoreWeddingVendor,
   revokeVendorLink,
   updateWeddingVendor,
   type WeddingScope,
@@ -149,6 +150,24 @@ export async function removeVendorFromWedding(
   const id = parseId(linkId)
   if (!id) return { ok: false, error: 'invalid' }
   const r = await removeWeddingVendor(ctx, id)
+  if (r.ok) refresh()
+  return answer(r)
+}
+
+/**
+ * The toast's Undo for `removeVendorFromWedding` (spec 0009 C4). Same gate as the remove; the
+ * repo answers `duplicate` when the vendor has been added to this wedding again since.
+ */
+export async function restoreVendorToWedding(
+  weddingId: unknown,
+  linkId: unknown,
+): Promise<VendorActionResult> {
+  await assertWritable(await currentOrgId())
+  const ctx = await context(weddingId)
+  if (!ctx) return { ok: false, error: 'notFound' }
+  const id = parseId(linkId)
+  if (!id) return { ok: false, error: 'invalid' }
+  const r = await restoreWeddingVendor(ctx, id)
   if (r.ok) refresh()
   return answer(r)
 }

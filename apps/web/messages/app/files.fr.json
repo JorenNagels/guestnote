@@ -19,8 +19,7 @@
       "makeInternal": "Rendre interne",
       "makeShared": "Partager",
       "remove": "Supprimer",
-      "removeConfirm": "Supprimer « {name} » ?",
-      "removeYes": "Oui, supprimer",
+      "removed": "« {name} » supprimé.",
       "save": "Enregistrer",
       "cancel": "Annuler",
       "renameField": "Nouveau nom"
@@ -42,8 +41,7 @@
       "hint": "Déposez des images ici. JPEG, PNG, WebP, GIF, HEIC ou AVIF jusqu’à 25 Mo."
     },
     "tileRemove": "Supprimer",
-    "tileRemoveConfirm": "Supprimer ?",
-    "tileRemoveYes": "Oui",
+    "tileRemoved": "Image « {name} » supprimée.",
     "tileCancel": "Annuler",
     "aria": {
       "remove": "Supprimer {name}",

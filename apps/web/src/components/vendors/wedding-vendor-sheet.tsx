@@ -8,12 +8,14 @@ import Link from 'next/link'
 import { useId, useState, useTransition } from 'react'
 import {
   removeVendorFromWedding,
+  restoreVendorToWedding,
   saveWeddingVendor,
   setWeddingVendorFullRunSheet,
 } from '../../app/pro/(app)/weddings/[id]/vendors/actions.ts'
 import { app } from '../../lib/routes.ts'
 import { VENDOR_STATUSES, type VendorActionResult } from '../../lib/vendor-input.ts'
-import { errorText, SmallButton } from './controls.tsx'
+import { useToast } from '../toast/toast-provider.tsx'
+import { errorText, SmallButton, undoAnswer } from './controls.tsx'
 import type { VendorStatus } from './status.tsx'
 import { VendorLinkControls } from './vendor-link-controls.tsx'
 import type { WeddingLabels } from './wedding-vendors-view.tsx'
@@ -54,8 +56,8 @@ export function WeddingVendorSheet({
   const formId = useId()
   const [status, setStatus] = useState<VendorStatus>(vendor.status)
   const [notes, setNotes] = useState(vendor.notes ?? '')
-  const [confirming, setConfirming] = useState(false)
   const [pending, startTransition] = useTransition()
+  const toast = useToast()
   const [result, setResult] = useState<VendorActionResult | null>(null)
   const [failed, setFailed] = useState(false)
   const [fullDay, setFullDay] = useState(vendor.fullRunSheet)
@@ -77,6 +79,24 @@ export function WeddingVendorSheet({
         setFailed(true)
       }
     })
+  }
+
+  /**
+   * Spec 0009 C4: off the wedding at once, then Undo. The row is soft-deleted and everything that
+   * hangs off it is untouched (`removeWeddingVendor`), so the restore puts back status, notes and
+   * links alike; a confirmation would have guarded nothing Undo cannot return. `run` closes the
+   * sheet on success, and the toast lives in the layout, so it outlives it.
+   */
+  const remove = async () => {
+    const r = await removeVendorFromWedding(weddingId, vendor.id)
+    if (r.ok) {
+      toast.show({
+        message: labels.removed.replace('{name}', vendor.name),
+        undo: async () =>
+          undoAnswer(labels.errors, await restoreVendorToWedding(weddingId, vendor.id)),
+      })
+    }
+    return r
   }
 
   const run = (fn: () => Promise<VendorActionResult>) => {
@@ -103,7 +123,6 @@ export function WeddingVendorSheet({
           <Button
             busy={pending}
             busyLabel={labels.saving}
-            disabled={confirming}
             onClick={() => run(() => saveWeddingVendor(weddingId, vendor.id, status, notes))}
           >
             {labels.save}
@@ -197,24 +216,9 @@ export function WeddingVendorSheet({
         )}
 
         <div className="border-border border-t pt-4">
-          {confirming ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm">{labels.removeConfirm}</span>
-              <SmallButton
-                disabled={pending}
-                onClick={() => run(() => removeVendorFromWedding(weddingId, vendor.id))}
-              >
-                {labels.removeConfirmYes}
-              </SmallButton>
-              <SmallButton disabled={pending} onClick={() => setConfirming(false)}>
-                {labels.cancel}
-              </SmallButton>
-            </div>
-          ) : (
-            <SmallButton disabled={pending} onClick={() => setConfirming(true)}>
-              {labels.remove}
-            </SmallButton>
-          )}
+          <SmallButton disabled={pending} onClick={() => run(remove)}>
+            {labels.remove}
+          </SmallButton>
           <p className="text-muted-foreground mt-2 text-xs">{labels.removeNote}</p>
         </div>
       </div>

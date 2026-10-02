@@ -151,6 +151,17 @@ digests, guest list) are **not** in this spec; each needs its own `/feature`.
 - Where a delete is hard (run-sheet items, payments), the confirmation stays.
 - The toast is a live region; it does not steal focus; Undo is reachable by keyboard.
 - On the moodboard, a caption shows a pencil icon on hover and focus, so "click to edit" is visible.
+- *(as built)* The card is `@guestnote/ui/toast` (presentational: the polite `role="status"` holds
+  the message only and is mounted from first paint; hover, focus or a busy Undo pause the clock);
+  `components/toast/toast-provider.tsx` holds the one current toast and runs Undo, mounted around the
+  pages in `(app)/layout.tsx`. One restore per entity next to its delete, in the repo and as a
+  Server Function, gated exactly like the delete (trial lock, scope, role) plus a read that the
+  wedding is still live: `restoreBudgetLine`, `restoreFile` (never a pending upload),
+  `restoreVendor` (owner and admin), `restoreWeddingVendor` (`duplicate` when the vendor was added
+  to the wedding again since). No time limit on a restore: whoever may restore could have deleted.
+  A successful Undo says "Teruggezet."; a row that is gone says so; a request that failed keeps
+  Undo for another try. **Moodboard boards keep their confirmation:** `moodboards` has no
+  `deleted_at`, so a board delete is hard, like run-sheet items and payments.
 
 ## Done means
 

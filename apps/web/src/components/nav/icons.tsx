@@ -259,3 +259,13 @@ export function MoodboardIcon({ className }: IconProps) {
     </Glyph>
   )
 }
+
+/** "Click to edit" beside a moodboard caption (spec 0009 C4). Decorative: the button is named. */
+export function PencilIcon({ className }: IconProps) {
+  return (
+    <Glyph className={className}>
+      <path d="M4 20h4L19 9a2.1 2.1 0 0 0-4-4L4 16z" />
+      <path d="m13.5 6.5 4 4" />
+    </Glyph>
+  )
+}

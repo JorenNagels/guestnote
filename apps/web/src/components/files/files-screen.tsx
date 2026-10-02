@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeaderCell } from '@guestn
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import type { Done, StartUpload } from '../../lib/wedding-files.ts'
+import { useToast } from '../toast/toast-provider.tsx'
 import { formatSize, kindLabel } from './format.ts'
 import { type UploadVisibility, uploadFile } from './upload.ts'
 import { UploadZone, type UploadZoneLabels } from './upload-zone.tsx'
@@ -31,6 +32,8 @@ export type FilesActions = {
   }): Promise<StartUpload>
   confirm(fileId: string): Promise<Done>
   remove(fileId: string): Promise<Done>
+  /** The toast's Undo for `remove` (spec 0009 C4). */
+  restore(fileId: string): Promise<Done>
   rename(fileId: string, name: string): Promise<Done>
   setVisibility(fileId: string, visibility: UploadVisibility): Promise<Done>
   /** A fresh signed URL, or `null` when the caller may not read the file. */
@@ -53,9 +56,8 @@ export type FilesLabels = {
     makeInternal: string
     makeShared: string
     remove: string
-    /** A template: `{name}` is the file's name. */
-    removeConfirm: string
-    removeYes: string
+    /** The toast after a remove. A template: `{name}` is the file's name. */
+    removed: string
     save: string
     cancel: string
     renameField: string
@@ -101,13 +103,42 @@ export function FilesScreen({
   const [internalNext, setInternalNext] = useState(false)
   const [editing, setEditing] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
-  const [confirming, setConfirming] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [rowErrors, setRowErrors] = useState<Readonly<Record<string, string>>>({})
+  const toast = useToast()
 
   const message = (code: string) => labels.errors[code] ?? labels.errors.unknown
 
-  const act = async (id: string, work: () => Promise<Done | string | null>) => {
+  /**
+   * Spec 0009 C4: remove at once, then offer Undo. A removed file is a soft delete and its object
+   * stays in the bucket (`removeFile`), so the confirmation this replaced guarded nothing that
+   * cannot be put back. The undo refreshes the list itself: these Server Functions do not
+   * revalidate (every write here is followed by `router.refresh()`), and the toast outlives this
+   * row.
+   */
+  const remove = (f: FileItem) =>
+    act(
+      f.id,
+      () => actions.remove(f.id),
+      () =>
+        toast.show({
+          message: fill(labels.actions.removed, f.name),
+          undo: async () => {
+            const back = await actions.restore(f.id)
+            if (back.ok) {
+              router.refresh()
+              return 'restored'
+            }
+            return back.error === 'notFound' ? 'gone' : { message: message(back.error) }
+          },
+        }),
+    )
+
+  const act = async (
+    id: string,
+    work: () => Promise<Done | string | null>,
+    onDone?: () => void,
+  ) => {
     setBusy(id)
     setRowErrors(({ [id]: _dropped, ...rest }) => rest)
     try {
@@ -120,8 +151,8 @@ export function FilesScreen({
         setRowErrors((e) => ({ ...e, [id]: message(result.error) }))
       } else {
         setEditing(null)
-        setConfirming(null)
         router.refresh()
+        onDone?.()
       }
     } catch {
       setRowErrors((e) => ({ ...e, [id]: message('network') }))
@@ -232,70 +263,53 @@ export function FilesScreen({
                       {error && <InlineError>{error}</InlineError>}
                     </TableCell>
                     <TableCell className="py-2.5 text-right">
-                      {confirming === f.id ? (
-                        <span className="inline-flex flex-wrap items-center justify-end gap-x-3 gap-y-1.5">
-                          <span className="text-sm">
-                            {fill(labels.actions.removeConfirm, f.name)}
-                          </span>
-                          <LinkButton
-                            disabled={isBusy}
-                            onClick={() => void act(f.id, () => actions.remove(f.id))}
-                          >
-                            {labels.actions.removeYes}
-                          </LinkButton>
-                          <LinkButton onClick={() => setConfirming(null)}>
-                            {labels.actions.cancel}
-                          </LinkButton>
-                        </span>
-                      ) : (
-                        <span className="inline-flex flex-wrap items-center justify-end gap-x-3 gap-y-1.5">
-                          <LinkButton
-                            disabled={isBusy}
-                            aria-label={fill(labels.aria.download, f.name)}
-                            onClick={() => void act(f.id, () => actions.download(f.id))}
-                          >
-                            {labels.actions.download}
-                          </LinkButton>
-                          <LinkButton
-                            disabled={isBusy}
-                            aria-label={fill(labels.aria.rename, f.name)}
-                            onClick={() => {
-                              setDraft(f.name)
-                              setEditing(f.id)
-                            }}
-                          >
-                            {labels.actions.rename}
-                          </LinkButton>
-                          <LinkButton
-                            disabled={isBusy}
-                            aria-label={fill(
-                              f.visibility === 'internal'
-                                ? labels.aria.makeShared
-                                : labels.aria.makeInternal,
-                              f.name,
-                            )}
-                            onClick={() =>
-                              void act(f.id, () =>
-                                actions.setVisibility(
-                                  f.id,
-                                  f.visibility === 'internal' ? 'shared' : 'internal',
-                                ),
-                              )
-                            }
-                          >
-                            {f.visibility === 'internal'
-                              ? labels.actions.makeShared
-                              : labels.actions.makeInternal}
-                          </LinkButton>
-                          <LinkButton
-                            disabled={isBusy}
-                            aria-label={fill(labels.aria.remove, f.name)}
-                            onClick={() => setConfirming(f.id)}
-                          >
-                            {labels.actions.remove}
-                          </LinkButton>
-                        </span>
-                      )}
+                      <span className="inline-flex flex-wrap items-center justify-end gap-x-3 gap-y-1.5">
+                        <LinkButton
+                          disabled={isBusy}
+                          aria-label={fill(labels.aria.download, f.name)}
+                          onClick={() => void act(f.id, () => actions.download(f.id))}
+                        >
+                          {labels.actions.download}
+                        </LinkButton>
+                        <LinkButton
+                          disabled={isBusy}
+                          aria-label={fill(labels.aria.rename, f.name)}
+                          onClick={() => {
+                            setDraft(f.name)
+                            setEditing(f.id)
+                          }}
+                        >
+                          {labels.actions.rename}
+                        </LinkButton>
+                        <LinkButton
+                          disabled={isBusy}
+                          aria-label={fill(
+                            f.visibility === 'internal'
+                              ? labels.aria.makeShared
+                              : labels.aria.makeInternal,
+                            f.name,
+                          )}
+                          onClick={() =>
+                            void act(f.id, () =>
+                              actions.setVisibility(
+                                f.id,
+                                f.visibility === 'internal' ? 'shared' : 'internal',
+                              ),
+                            )
+                          }
+                        >
+                          {f.visibility === 'internal'
+                            ? labels.actions.makeShared
+                            : labels.actions.makeInternal}
+                        </LinkButton>
+                        <LinkButton
+                          disabled={isBusy}
+                          aria-label={fill(labels.aria.remove, f.name)}
+                          onClick={() => void remove(f)}
+                        >
+                          {labels.actions.remove}
+                        </LinkButton>
+                      </span>
                     </TableCell>
                   </tr>
                 )

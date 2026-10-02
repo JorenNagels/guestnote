@@ -1,5 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { TOAST_LABELS } from '../toast/fixtures.ts'
+import { ToastProvider } from '../toast/toast-provider.tsx'
 import { type FileItem, type FilesActions, FilesScreen } from './files-screen.tsx'
 import { FILES_LABELS } from './fixtures.ts'
 
@@ -52,22 +54,28 @@ beforeEach(() => {
     })),
     confirm: vi.fn(async () => ok),
     remove: vi.fn(async () => ok),
+    restore: vi.fn(async () => ok),
     rename: vi.fn(async () => ok),
     setVisibility: vi.fn(async () => ok),
     download: vi.fn(async () => 'https://s3.example/get'),
   }
 })
 
+// Inside the toast provider, as `(app)/layout.tsx` mounts it (spec 0009 C4).
 const view = (items: readonly FileItem[] = ITEMS) =>
   render(
-    <FilesScreen
-      items={items}
-      locale="en"
-      labels={FILES_LABELS}
-      actions={actions as unknown as FilesActions}
-      navigate={navigate}
-    />,
+    <ToastProvider labels={TOAST_LABELS}>
+      <FilesScreen
+        items={items}
+        locale="en"
+        labels={FILES_LABELS}
+        actions={actions as unknown as FilesActions}
+        navigate={navigate}
+      />
+    </ToastProvider>,
   )
+
+const toast = () => within(screen.getByTestId('toast')).getByRole('status')
 
 describe('list', () => {
   it('says which files are internal, and only those', () => {
@@ -140,19 +148,35 @@ describe('row actions', () => {
     await waitFor(() => expect(refresh).toHaveBeenCalled())
   })
 
-  it('asks before removing, and removing does nothing until confirmed', async () => {
+  /** Spec 0009 C4: one click removes, and the toast names the file and offers Undo. */
+  it('removes at once, then offers Undo by name, which restores and refreshes', async () => {
     view()
     fireEvent.click(screen.getByRole('button', { name: 'Remove Contract.pdf' }))
-    expect(actions.remove).not.toHaveBeenCalled()
-    expect(screen.getByText('Remove “Contract.pdf”?')).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
-    expect(actions.remove).not.toHaveBeenCalled()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Remove Contract.pdf' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Yes, remove' }))
     await waitFor(() => expect(actions.remove).toHaveBeenCalledWith('f1'))
-    await waitFor(() => expect(refresh).toHaveBeenCalled())
+    await waitFor(() => expect(toast()).toHaveTextContent('“Contract.pdf” removed.'))
+    expect(refresh).toHaveBeenCalledTimes(1)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
+    await waitFor(() => expect(actions.restore).toHaveBeenCalledWith('f1'))
+    await waitFor(() => expect(toast()).toHaveTextContent('Restored.'))
+    expect(refresh).toHaveBeenCalledTimes(2)
+  })
+
+  it('says so when the file cannot come back, and does not refresh for it', async () => {
+    actions.restore.mockResolvedValue({ ok: false, error: 'notFound' })
+    view()
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Contract.pdf' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Undo' }))
+    await waitFor(() => expect(toast()).toHaveTextContent('This can no longer be restored.'))
+    expect(refresh).toHaveBeenCalledTimes(1)
+  })
+
+  it('raises no toast when the remove is refused', async () => {
+    actions.remove.mockResolvedValue({ ok: false, error: 'notFound' })
+    view()
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Contract.pdf' }))
+    expect(await screen.findByRole('alert')).toHaveTextContent('Not found')
+    expect(toast()).toBeEmptyDOMElement()
   })
 
   it('shows a refusal on the row it came from and leaves the others clean', async () => {
@@ -173,7 +197,6 @@ describe('row actions', () => {
     actions.remove.mockRejectedValue(new Error('boom'))
     view()
     fireEvent.click(screen.getByRole('button', { name: 'Remove Contract.pdf' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Yes, remove' }))
     expect(await screen.findByRole('alert')).toHaveTextContent('No connection')
   })
 })

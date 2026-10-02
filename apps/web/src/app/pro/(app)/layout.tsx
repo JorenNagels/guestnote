@@ -5,6 +5,7 @@ import { getLocale, getTranslations } from 'next-intl/server'
 import type { ReactNode } from 'react'
 import type { TrialBannerProps } from '../../../components/banners/trial-banner.tsx'
 import { Shell, type ShellWedding } from '../../../components/nav/shell.tsx'
+import { ToastProvider } from '../../../components/toast/toast-provider.tsx'
 import { apexOrigin } from '../../../lib/app-url.ts'
 import { getAuth } from '../../../lib/auth.ts'
 import { billingMode } from '../../../lib/billing-mode.ts'
@@ -282,7 +283,20 @@ export default async function AppShellLayout({ children }: { children: ReactNode
         },
       }}
     >
-      {children}
+      {/* Spec 0009 C4: here, around the pages and inside the shell, so a toast outlives the sheet
+          that raised it and the revalidation that follows (the layout is not re-mounted by
+          either). Not around the no-org return above: nobody there can delete anything. */}
+      <ToastProvider
+        labels={{
+          undo: shellT('toast.undo'),
+          dismiss: shellT('toast.dismiss'),
+          restored: shellT('toast.restored'),
+          gone: shellT('toast.gone'),
+          failed: shellT('toast.failed'),
+        }}
+      >
+        {children}
+      </ToastProvider>
     </Shell>
   )
 }

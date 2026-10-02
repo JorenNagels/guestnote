@@ -35,5 +35,12 @@
   "footer": {
     "poweredBy": "Powered by"
   },
-  "myWedding": "Your wedding"
+  "myWedding": "Your wedding",
+  "toast": {
+    "undo": "Undo",
+    "dismiss": "Dismiss",
+    "restored": "Restored.",
+    "gone": "This can no longer be restored: it is gone.",
+    "failed": "Undo did not work. Try again."
+  }
 }

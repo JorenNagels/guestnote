@@ -37,3 +37,7 @@ A modal side panel: `open`, `onClose`, `title`, `closeLabel`, optional `footer`.
 ## ColorPicker
 
 Six preset swatches (real radios) plus a native colour input. `onChange` always receives `#RRGGBB` uppercase; `COLOR_PRESETS` and `normalizeHex` are exported. Colour is a dot or a stripe, never text or a ground behind text -- except the viewer's own run-sheet rows, 12% into `--card` (spec 0004, 2026-09-24).
+
+## Toast
+
+One message at the bottom of the viewport with at most one action ("Undo") and a dismiss button (spec 0009 C4). `toast` is `{ id, message, action? }` or `null`; a new `id` restarts the clock (`duration`, 8 s by default), and hover, focus or a busy action pause it. The polite `role="status"` region holds the message only and is mounted from first paint; the card never takes focus. Presentational: which toast is showing, and what Undo does, belong to `apps/web/src/components/toast/toast-provider.tsx`.

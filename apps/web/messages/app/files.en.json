@@ -19,8 +19,7 @@
       "makeInternal": "Make internal",
       "makeShared": "Share",
       "remove": "Remove",
-      "removeConfirm": "Remove “{name}”?",
-      "removeYes": "Yes, remove",
+      "removed": "“{name}” removed.",
       "save": "Save",
       "cancel": "Cancel",
       "renameField": "New name"
@@ -42,8 +41,7 @@
       "hint": "Drop images here. JPEG, PNG, WebP, GIF, HEIC or AVIF up to 25 MB."
     },
     "tileRemove": "Remove",
-    "tileRemoveConfirm": "Remove?",
-    "tileRemoveYes": "Yes",
+    "tileRemoved": "Image “{name}” removed.",
     "tileCancel": "Cancel",
     "aria": {
       "remove": "Remove {name}",

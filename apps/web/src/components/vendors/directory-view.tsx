@@ -7,9 +7,11 @@ import { useMemo, useState } from 'react'
 import {
   archiveDirectoryVendor,
   createDirectoryVendor,
+  restoreDirectoryVendor,
   updateDirectoryVendor,
 } from '../../app/pro/(app)/vendors/actions.ts'
-import { Monogram, SmallButton } from './controls.tsx'
+import { useToast } from '../toast/toast-provider.tsx'
+import { Monogram, SmallButton, undoAnswer } from './controls.tsx'
 import { type FormLabels, VendorForm } from './vendor-form.tsx'
 
 export type DirectoryLabels = {
@@ -61,6 +63,19 @@ export function DirectoryView({
   const [sheet, setSheet] = useState<Sheet | null>(null)
   const shown = useMemo(() => vendors.filter((v) => matchesQuery(v, query)), [vendors, query])
   const close = () => setSheet(null)
+  const toast = useToast()
+
+  /** Spec 0009 C4: archive at once, and say so with Undo; the form closes itself on success. */
+  const archive = async (v: VendorRow) => {
+    const r = await archiveDirectoryVendor(v.id)
+    if (r.ok) {
+      toast.show({
+        message: labels.form.archived.replace('{name}', v.name),
+        undo: async () => undoAnswer(labels.form.errors, await restoreDirectoryVendor(v.id)),
+      })
+    }
+    return r
+  }
 
   return (
     <div>
@@ -165,7 +180,7 @@ export function DirectoryView({
           vendor={sheet.vendor}
           onClose={close}
           onSubmit={(i) => updateDirectoryVendor(sheet.vendor.id, i)}
-          onArchive={() => archiveDirectoryVendor(sheet.vendor.id)}
+          onArchive={() => archive(sheet.vendor)}
         />
       )}
     </div>

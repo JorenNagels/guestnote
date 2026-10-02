@@ -7,6 +7,7 @@ import {
   downloadUrl,
   removeWeddingFile,
   renameWeddingFile,
+  restoreWeddingFile,
   setWeddingFileVisibility,
   startUpload,
 } from '../../../../../../lib/wedding-files.ts'
@@ -40,6 +41,12 @@ export async function confirmFileUpload(weddingId: string, fileId: string) {
 export async function removeFile(weddingId: string, fileId: string) {
   await assertWritable(await currentOrgId())
   return removeWeddingFile(weddingId, fileId)
+}
+
+/** The toast's Undo for `removeFile` (spec 0009 C4). A write, so the trial lock applies. */
+export async function restoreFile(weddingId: string, fileId: string) {
+  await assertWritable(await currentOrgId())
+  return restoreWeddingFile(weddingId, fileId)
 }
 
 export async function renameFile(weddingId: string, fileId: string, name: string) {

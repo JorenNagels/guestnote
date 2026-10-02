@@ -60,8 +60,8 @@ export type WeddingLabels = {
   cancel: string
   close: string
   remove: string
-  removeConfirm: string
-  removeConfirmYes: string
+  /** The toast after a remove. A template: `{name}` is the vendor's name. */
+  removed: string
   removeNote: string
   statuses: StatusLabels
   errors: ErrorLabels

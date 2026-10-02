@@ -1,6 +1,11 @@
 'use server'
 
-import { createBudgetLine, deleteBudgetLine, updateBudgetLine } from '@guestnote/db'
+import {
+  createBudgetLine,
+  deleteBudgetLine,
+  restoreBudgetLine,
+  updateBudgetLine,
+} from '@guestnote/db'
 import { cleanText, parseCents } from '../../../../../../lib/money.ts'
 import { moneyError, revalidateMoney } from '../../../../../../lib/money-server.ts'
 import type { ActionResult } from '../../../../../../lib/money-types.ts'
@@ -83,6 +88,22 @@ export async function removeBudgetLine(weddingId: string, lineId: string): Promi
   if (!scope || !isUuid(lineId)) return { ok: false, error: 'notFound' }
 
   const result = await deleteBudgetLine(scope, lineId)
+  if (!result.ok) return { ok: false, error: moneyError(result.reason, false) }
+  revalidateMoney()
+  return { ok: true }
+}
+
+/**
+ * The toast's Undo for `removeBudgetLine` (spec 0009 C4). The same gate in the same order --
+ * trial lock, scope, id -- because an undo is a write like any other and the toast that calls
+ * it is a convenience, not a permission. A line that is gone answers `notFound`.
+ */
+export async function restoreLine(weddingId: string, lineId: string): Promise<ActionResult> {
+  await assertWritable(await currentOrgId())
+  const scope = await currentWeddingScope(weddingId)
+  if (!scope || !isUuid(lineId)) return { ok: false, error: 'notFound' }
+
+  const result = await restoreBudgetLine(scope, lineId)
   if (!result.ok) return { ok: false, error: moneyError(result.reason, false) }
   revalidateMoney()
   return { ok: true }

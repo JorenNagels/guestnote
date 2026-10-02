@@ -10,6 +10,7 @@ import {
   newId,
   removeFile,
   renameFile,
+  restoreFile,
   setFileVisibility,
 } from '@guestnote/db'
 import { getStorage } from './storage.ts'
@@ -156,6 +157,19 @@ export async function removeWeddingFile(weddingId: unknown, fileId: unknown): Pr
     return { ok: false, error: 'notFound' }
   }
   return (await removeFile(ctx, fileId)).ok ? { ok: true } : { ok: false, error: 'notFound' }
+}
+
+/**
+ * The toast's Undo for `removeWeddingFile` (spec 0009 C4), for both screens: the same context and
+ * the same id check, then the repo's `restoreFile`, which refuses a pending upload. Only ids
+ * cross the wire, so a client cannot restore a row under a different name or board.
+ */
+export async function restoreWeddingFile(weddingId: unknown, fileId: unknown): Promise<Done> {
+  const ctx = await context(weddingId)
+  if (!ctx || !isUuid(fileId)) {
+    return { ok: false, error: 'notFound' }
+  }
+  return (await restoreFile(ctx, fileId)).ok ? { ok: true } : { ok: false, error: 'notFound' }
 }
 
 /** A moodboard caption, and the Files screen's rename. Both are `files.name`. */

@@ -32,8 +32,7 @@
     "cancel": "Annuleren",
     "close": "Sluiten",
     "archive": "Archiveren",
-    "archiveConfirm": "Zeker archiveren?",
-    "archiveConfirmYes": "Ja, archiveer",
+    "archived": "“{name}” gearchiveerd.",
     "archiveNote": "Bruiloften die deze leverancier al gebruiken, behouden hem."
   },
   "wedding": {
@@ -68,8 +67,7 @@
     "save": "Opslaan",
     "saving": "Opslaan…",
     "remove": "Van bruiloft halen",
-    "removeConfirm": "Zeker verwijderen?",
-    "removeConfirmYes": "Ja, verwijder",
+    "removed": "“{name}” van de bruiloft gehaald.",
     "removeNote": "De leverancier blijft in de lijst van het bureau.",
     "fullRunSheet": "Volledige tijdlijn tonen",
     "fullRunSheetHint": "Deze leverancier ziet de hele dag, niet alleen eigen momenten.",

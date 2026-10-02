@@ -18,7 +18,8 @@
     "./sheet": "./src/sheet.tsx",
     "./step-indicator": "./src/step-indicator.tsx",
     "./table": "./src/table.tsx",
-    "./tabs": "./src/tabs.tsx"
+    "./tabs": "./src/tabs.tsx",
+    "./toast": "./src/toast.tsx"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

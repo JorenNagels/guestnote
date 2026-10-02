@@ -35,5 +35,12 @@
   "footer": {
     "poweredBy": "Propulsé par"
   },
-  "myWedding": "Votre mariage"
+  "myWedding": "Votre mariage",
+  "toast": {
+    "undo": "Annuler",
+    "dismiss": "Fermer",
+    "restored": "Rétabli.",
+    "gone": "Impossible de rétablir : cet élément n’existe plus.",
+    "failed": "L’annulation n’a pas abouti. Réessayez."
+  }
 }

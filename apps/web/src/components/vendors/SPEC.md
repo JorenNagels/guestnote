@@ -13,6 +13,9 @@ per-wedding link (`wedding_vendors`).
 - `owner` and `admin` add, edit and archive. `member` reads only: no Add button, no Edit. The
   action refuses a member too; RLS is the third layer.
 - Archive is a soft delete (`deleted_at`). A wedding that already uses the vendor keeps showing it.
+  *(Amended 2026-10-02, spec 0009 C4: Archive no longer asks. It archives at once, closes the
+  sheet, and a toast says "“{name}” gearchiveerd" with **Ongedaan maken** for 8 seconds;
+  `restoreDirectoryVendor` clears `deleted_at`, owner and admin only, like the archive.)*
 - A user with no standing in the org gets a 404, not a 403.
 
 **Wedding, `/weddings/[id]/vendors`** (`app.weddingVendors(id)`)
@@ -22,6 +25,11 @@ per-wedding link (`wedding_vendors`).
   `considering`.
 - "New vendor" (owner and admin only): creates a directory vendor and links it in one step.
 - Remove unlinks (soft delete on the link). The vendor stays in the directory and can be re-added.
+  *(Amended 2026-10-02, spec 0009 C4: Remove no longer asks. It unlinks at once, closes the sheet,
+  and a toast says "“{name}” van de bruiloft gehaald" with **Ongedaan maken**;
+  `restoreVendorToWedding` puts the row back with its status, notes, budget lines, shares and any
+  vendor link that has not expired or been revoked since. If the vendor was added to the wedding
+  again in between, the undo is refused with "Deze leverancier staat al op deze bruiloft.")*
 - Statuses: `considering`, `contacted`, `quoted`, `booked`, `declined`. Words on a pill, never colour alone.
 - `editor` and `couple` get a 404: no new table is readable by them (spec 0003).
 

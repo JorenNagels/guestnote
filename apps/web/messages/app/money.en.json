@@ -58,10 +58,8 @@
     "vendorEmpty": "No vendors on this wedding yet. Add them under Vendors.",
     "save": "Save",
     "saving": "Saving…",
-    "cancel": "Cancel",
     "delete": "Delete line",
-    "deleteAsk": "The payments on this line disappear from the overview too.",
-    "deleteConfirm": "Yes, delete",
+    "deleted": "“{label}” deleted, with its payments.",
     "deleting": "Deleting…"
   },
   "payments": {

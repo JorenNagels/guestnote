@@ -35,5 +35,12 @@
   "footer": {
     "poweredBy": "Mogelijk gemaakt door"
   },
-  "myWedding": "Jouw trouw"
+  "myWedding": "Jouw trouw",
+  "toast": {
+    "undo": "Ongedaan maken",
+    "dismiss": "Sluiten",
+    "restored": "Teruggezet.",
+    "gone": "Dit kan niet meer worden teruggezet: het is er niet meer.",
+    "failed": "Ongedaan maken is niet gelukt. Probeer het opnieuw."
+  }
 }

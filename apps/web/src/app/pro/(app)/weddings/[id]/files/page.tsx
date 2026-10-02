@@ -8,6 +8,7 @@ import {
   downloadFile,
   removeFile,
   renameFile,
+  restoreFile,
   setFileVisibility,
   startFileUpload,
 } from './actions.ts'
@@ -42,6 +43,7 @@ export default async function FilesPage({ params }: { params: Promise<{ id: stri
         start: startFileUpload.bind(null, id),
         confirm: confirmFileUpload.bind(null, id),
         remove: removeFile.bind(null, id),
+        restore: restoreFile.bind(null, id),
         rename: renameFile.bind(null, id),
         setVisibility: setFileVisibility.bind(null, id),
         download: downloadFile.bind(null, id),

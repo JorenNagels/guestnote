@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, isNull, sql } from 'drizzle-orm'
+import { and, asc, eq, gt, isNotNull, isNull, sql } from 'drizzle-orm'
 import type { Db } from '../client.ts'
 import { newId } from '../id.ts'
 import { budgetLines, payments } from '../schema/money.ts'
@@ -200,6 +200,30 @@ export async function archiveVendor(
       .update(vendors)
       .set({ deletedAt: now, updatedAt: now })
       .where(and(eq(vendors.id, vendorId), eq(vendors.orgId, orgId), isNull(vendors.deletedAt)))
+      .returning({ id: vendors.id }),
+  )
+  return changed.length === 0 ? NOT_FOUND : ok(null)
+}
+
+/**
+ * Undo for `archiveVendor` (spec 0009 C4). The same gate -- `principalForOrg`, owner or admin --
+ * and the same `orgId` in the `where`, so a member is `forbidden` before any query and another
+ * org's vendor is `notFound`. Nothing else to put back: archiving touched one column, and the
+ * weddings that use the vendor never stopped showing it. No time limit (`restoreBudgetLine`).
+ */
+export async function restoreVendor(
+  db: Db,
+  m: Memberships,
+  orgId: string,
+  vendorId: string,
+): Promise<VendorWriteResult> {
+  const principal = principalForOrg(m, orgId)
+  if (!principal) return FORBIDDEN
+  const changed = await withTenant(db, principal, async (tx) =>
+    tx
+      .update(vendors)
+      .set({ deletedAt: null, updatedAt: new Date() })
+      .where(and(eq(vendors.id, vendorId), eq(vendors.orgId, orgId), isNotNull(vendors.deletedAt)))
       .returning({ id: vendors.id }),
   )
   return changed.length === 0 ? NOT_FOUND : ok(null)
@@ -445,4 +469,61 @@ export async function removeWeddingVendor(
       .returning({ id: weddingVendors.id }),
   )
   return changed.length === 0 ? NOT_FOUND : ok(null)
+}
+
+/**
+ * Undo for `removeWeddingVendor` (spec 0009 C4): the same principal (any staff of this wedding)
+ * and the same `weddingId` in the `where`, plus the wedding parent read -- nothing comes back
+ * onto a deleted wedding.
+ *
+ * `duplicate` when the same directory vendor has been added to the wedding again since: the
+ * unique index is partial on `deleted_at is null`, so two live rows for one vendor cannot exist,
+ * and the planner's newer row wins over the undo. The index alone decides, and its violation is
+ * caught and answered as the word. Rejected: a select for a live sibling first, as `linkInTx`
+ * does -- the catch is needed anyway for two tabs racing, and with it the pre-check changed no
+ * answer (measured 2026-10-02: deleting it left every test green), only added a query.
+ *
+ * What comes back with the row is everything that hung off it, because removing touched none of
+ * it: status, notes, budget lines naming it, run-sheet rows, board shares -- and a vendor link
+ * that was live when the row was removed and has neither expired nor been revoked since resolves
+ * again (`resolve_vendor_link` requires a live row, and nothing else). That is what an undo
+ * means; a planner who wants the link dead revokes it. No time limit (`restoreBudgetLine`).
+ */
+export async function restoreWeddingVendor(
+  scope: WeddingScope,
+  linkId: string,
+): Promise<VendorWriteResult> {
+  const { db, weddingId } = scope
+  const principal = scope.principal
+  if (!principal) return NOT_FOUND
+  try {
+    return await withTenant(db, principal, async (tx): Promise<VendorWriteResult> => {
+      const wedding = await tx
+        .select({ id: weddings.id })
+        .from(weddings)
+        .where(and(eq(weddings.id, weddingId), isNull(weddings.deletedAt)))
+      if (wedding.length === 0) return NOT_FOUND
+
+      const [removed] = await tx
+        .select({ id: weddingVendors.id })
+        .from(weddingVendors)
+        .where(
+          and(
+            eq(weddingVendors.id, linkId),
+            eq(weddingVendors.weddingId, weddingId),
+            isNotNull(weddingVendors.deletedAt),
+          ),
+        )
+      if (!removed) return NOT_FOUND
+
+      await tx
+        .update(weddingVendors)
+        .set({ deletedAt: null, updatedAt: new Date() })
+        .where(and(eq(weddingVendors.id, linkId), eq(weddingVendors.weddingId, weddingId)))
+      return ok(null)
+    })
+  } catch (e) {
+    if (isUniqueViolation(e)) return DUPLICATE
+    throw e
+  }
 }

@@ -1,5 +1,6 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 import type { VendorActionResult } from '../../lib/vendor-input.ts'
+import type { UndoResult } from '../toast/toast-provider.tsx'
 
 /**
  * The few controls both vendor screens share and `packages/ui` does not have.
@@ -77,4 +78,15 @@ export type ErrorLabels = Record<
 export function errorText(labels: ErrorLabels, result: VendorActionResult | null): string | null {
   if (!result || result.ok) return null
   return labels[result.error]
+}
+
+/**
+ * A restore's answer as the toast's (spec 0009 C4). `notFound` is the toast's own "it is gone";
+ * every other refusal -- `duplicate` above all, a vendor put back on the wedding by hand since --
+ * says it in this screen's words.
+ */
+export function undoAnswer(labels: ErrorLabels, result: VendorActionResult): UndoResult {
+  if (result.ok) return 'restored'
+  if (result.error === 'notFound') return 'gone'
+  return { message: labels[result.error] }
 }

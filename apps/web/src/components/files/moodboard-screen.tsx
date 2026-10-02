@@ -7,6 +7,8 @@ import { useState } from 'react'
 import type { BoardDone } from '../../lib/moodboards.ts'
 import type { Done, StartUpload } from '../../lib/wedding-files.ts'
 import { CommentThread, type ThreadComment, type ThreadCopy } from '../couple/comment-thread.tsx'
+import { PencilIcon } from '../nav/icons.tsx'
+import { useToast } from '../toast/toast-provider.tsx'
 import { type BoardActions, BoardBar, type BoardLabels, type Boards } from './board-bar.tsx'
 import { withoutExtension } from './format.ts'
 import { uploadFile } from './upload.ts'
@@ -51,6 +53,8 @@ export type MoodboardActions = {
   }): Promise<StartUpload>
   confirm(fileId: string): Promise<Done>
   remove(fileId: string): Promise<Done>
+  /** The toast's Undo for `remove` (spec 0009 C4). */
+  restore(fileId: string): Promise<Done>
   rename(fileId: string, name: string): Promise<Done>
   /** To another board of the same wedding (spec 0007). */
   move(fileId: string, boardId: string): Promise<BoardDone>
@@ -61,8 +65,8 @@ export type MoodboardLabels = {
   empty: { title: string; body: string }
   upload: UploadZoneLabels
   tileRemove: string
-  tileRemoveConfirm: string
-  tileRemoveYes: string
+  /** The toast after a remove. A template: `{name}` is the caption. */
+  tileRemoved: string
   tileCancel: string
   /** A template: `{name}` is the caption, so each tile's buttons are distinct by name. */
   aria: { remove: string; caption: string }
@@ -105,8 +109,8 @@ export function MoodboardScreen({
   const router = useRouter()
   const [editing, setEditing] = useState<string | null>(null)
   const [draft, setDraft] = useState('')
-  const [confirming, setConfirming] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
+  const toast = useToast()
   const [errors, setErrors] = useState<Readonly<Record<string, string>>>({})
   const [thread, setThread] = useState<{ id: string; comments: ThreadComment[] } | null>(null)
 
@@ -126,7 +130,7 @@ export function MoodboardScreen({
 
   const others = boards.list.filter((b) => b.id !== boards.current)
 
-  const act = async (id: string, work: () => Promise<Done | BoardDone>) => {
+  const act = async (id: string, work: () => Promise<Done | BoardDone>, onDone?: () => void) => {
     setBusy(id)
     setErrors(({ [id]: _dropped, ...rest }) => rest)
     try {
@@ -135,8 +139,8 @@ export function MoodboardScreen({
         setErrors((e) => ({ ...e, [id]: message(result.error) }))
       } else {
         setEditing(null)
-        setConfirming(null)
         router.refresh()
+        onDone?.()
       }
     } catch {
       setErrors((e) => ({ ...e, [id]: message('network') }))
@@ -144,6 +148,31 @@ export function MoodboardScreen({
       setBusy(null)
     }
   }
+
+  /**
+   * Spec 0009 C4: at once, then Undo -- an image is soft-deleted like a file (`removeFile`). The
+   * undo refreshes the board itself, for the reason the Files screen gives. Deleting a whole
+   * BOARD keeps its confirmation in `BoardBar`: `moodboards` has no `deleted_at`, the board row
+   * is gone for good, and an undo that brought back the images without their board would be a
+   * different thing from what was deleted.
+   */
+  const remove = (t: MoodTile) =>
+    act(
+      t.id,
+      () => actions.remove(t.id),
+      () =>
+        toast.show({
+          message: fill(labels.tileRemoved, t.name),
+          undo: async () => {
+            const back = await actions.restore(t.id)
+            if (back.ok) {
+              router.refresh()
+              return 'restored'
+            }
+            return back.error === 'notFound' ? 'gone' : { message: message(back.error) }
+          },
+        }),
+    )
 
   return (
     <div className="mx-auto max-w-5xl px-6 pt-6 pb-8">
@@ -255,36 +284,26 @@ export function MoodboardScreen({
                         setDraft(t.name)
                         setEditing(t.id)
                       }}
-                      className="cursor-pointer text-left text-[12.5px] leading-snug break-words hover:underline"
+                      // `group` so the pencil can answer the button's own hover and focus. It is
+                      // always in the DOM and only its opacity changes, so the caption does not
+                      // reflow as the pointer crosses the grid (spec 0009 C4, report 13b). A
+                      // screen with no hover (a phone) shows it always: there is nothing to reveal it.
+                      className="group flex cursor-pointer items-start gap-1.5 text-left text-[12.5px] leading-snug break-words hover:underline"
                     >
-                      {t.name}
+                      <span className="min-w-0">{t.name}</span>
+                      <PencilIcon className="text-muted-foreground mt-px size-3.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100 [@media(hover:none)]:opacity-100" />
                     </button>
                   )}
 
-                  {confirming === t.id ? (
-                    <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                      <span className="text-xs">{labels.tileRemoveConfirm}</span>
-                      <LinkButton
-                        disabled={isBusy}
-                        onClick={() => void act(t.id, () => actions.remove(t.id))}
-                      >
-                        {labels.tileRemoveYes}
-                      </LinkButton>
-                      <LinkButton onClick={() => setConfirming(null)}>
-                        {labels.tileCancel}
-                      </LinkButton>
-                    </span>
-                  ) : (
-                    <span>
-                      <LinkButton
-                        disabled={isBusy}
-                        aria-label={fill(labels.aria.remove, t.name)}
-                        onClick={() => setConfirming(t.id)}
-                      >
-                        {labels.tileRemove}
-                      </LinkButton>
-                    </span>
-                  )}
+                  <span>
+                    <LinkButton
+                      disabled={isBusy}
+                      aria-label={fill(labels.aria.remove, t.name)}
+                      onClick={() => void remove(t)}
+                    >
+                      {labels.tileRemove}
+                    </LinkButton>
+                  </span>
                   {others.length > 0 && (
                     <select
                       aria-label={fill(labels.moveAria, t.name)}

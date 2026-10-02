@@ -14,6 +14,9 @@ portal is a separate spec.
 - Upload: a button and a drop area, several files at once, at most 3 in flight. An "Alleen intern"
   checkbox beside the button decides the visibility of the files added next (default: shared).
 - Per row: download, rename, make internal / make shared, remove (asks once, inline).
+  *(Amended 2026-10-02, spec 0009 C4: remove no longer asks. It removes at once and a toast says
+  "“{name}” verwijderd" with **Ongedaan maken** for 8 seconds; `restoreFile` clears `deleted_at`
+  under `withTenant` for this wedding, and never for a pending upload (`deleted_at = created_at`).)*
 - Download mints a fresh 5 minute URL after a `withTenant` read; nothing is signed at render.
 - Limits come from `packages/storage`: 25 MiB, PDF/office/text/images, no SVG or HTML. The server
   decides; the client only shows what it said.
@@ -28,6 +31,12 @@ portal is a separate spec.
   stored couple flag the couple portal reads (spec 0008); delete asks once with the image count and
   soft-deletes the images; each tile can move to another board. `docs/specs/0007` is the whole
   of it.
+- *(Amended 2026-10-02, spec 0009 C4:)* removing an image no longer asks: it goes at once, with
+  "Afbeelding “{name}” verwijderd" and **Ongedaan maken** in a toast (`restoreImage`, the Files
+  screen's restore). Deleting a **board** still asks: `moodboards` has no `deleted_at`, so a board
+  is gone for good, and an undo that returned its images without the board would not be an undo.
+  A caption shows a pencil on hover and on keyboard focus (always, on a screen with no hover), so
+  "click to edit" is visible.
 - Image URLs are signed at render and last 5 minutes. A page left open longer shows broken tiles
   until it is refreshed. Accepted: the alternative is a proxy route that streams every image.
 

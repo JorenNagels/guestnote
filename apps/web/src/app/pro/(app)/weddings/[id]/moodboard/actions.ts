@@ -26,6 +26,7 @@ import {
   confirmUpload,
   removeWeddingFile,
   renameWeddingFile,
+  restoreWeddingFile,
   startUpload,
 } from '../../../../../../lib/wedding-files.ts'
 import { currentWeddingScope } from '../../../../../../lib/wedding-scope.ts'
@@ -58,6 +59,12 @@ export async function confirmImageUpload(weddingId: string, fileId: string) {
 export async function removeImage(weddingId: string, fileId: string) {
   await assertWritable(await currentOrgId())
   return removeWeddingFile(weddingId, fileId)
+}
+
+/** The toast's Undo for `removeImage` (spec 0009 C4): the same restore as the Files screen's. */
+export async function restoreImage(weddingId: string, fileId: string) {
+  await assertWritable(await currentOrgId())
+  return restoreWeddingFile(weddingId, fileId)
 }
 
 export async function renameImage(weddingId: string, fileId: string, caption: string) {

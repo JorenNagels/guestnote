@@ -3,17 +3,22 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import linkCopy from '../../../messages/app/vendorLink.en.json'
 import copy from '../../../messages/app/vendors.en.json'
+import { TOAST_LABELS } from '../toast/fixtures.ts'
+import { ToastProvider } from '../toast/toast-provider.tsx'
 import { weddingLabels } from './labels.ts'
 import { WeddingVendorsView } from './wedding-vendors-view.tsx'
 
 const setFullRunSheet = vi.fn()
+const removeVendor = vi.fn()
+const restoreVendor = vi.fn()
 vi.mock('../../app/pro/(app)/weddings/[id]/vendors/actions.ts', () => ({
   setWeddingVendorFullRunSheet: (...a: unknown[]) => setFullRunSheet(...a),
   addVendorToWedding: vi.fn(),
   createVendorOnWedding: vi.fn(),
   setWeddingVendorStatus: vi.fn(),
   saveWeddingVendor: vi.fn(),
-  removeVendorFromWedding: vi.fn(),
+  removeVendorFromWedding: (...a: unknown[]) => removeVendor(...a),
+  restoreVendorToWedding: (...a: unknown[]) => restoreVendor(...a),
   createVendorLinkAction: vi.fn(),
   emailVendorLinkAction: vi.fn(),
   revokeVendorLinkAction: vi.fn(),
@@ -59,15 +64,17 @@ function view(
   canCreate = false,
 ) {
   render(
-    <WeddingVendorsView
-      weddingId="w1"
-      linked={linked}
-      directory={[]}
-      canCreate={canCreate}
-      locale={locale}
-      labels={weddingLabels(lookup(copy), lookup(linkCopy))}
-      boards={boards}
-    />,
+    <ToastProvider labels={TOAST_LABELS}>
+      <WeddingVendorsView
+        weddingId="w1"
+        linked={linked}
+        directory={[]}
+        canCreate={canCreate}
+        locale={locale}
+        labels={weddingLabels(lookup(copy), lookup(linkCopy))}
+        boards={boards}
+      />
+    </ToastProvider>,
   )
   return (name: string) => screen.getByText(name).closest('tr') as HTMLElement
 }
@@ -166,5 +173,42 @@ describe('the sheet: emailing the link (spec 0009)', () => {
     view([vendor({ email: 'info@x.be' })], 'nl', [], true)
     fireEvent.click(screen.getByRole('button', { name: 'Edit Traiteur A' }))
     expect(screen.getByRole('button', { name: 'Email the link to Traiteur A' })).toBeEnabled()
+  })
+})
+
+/**
+ * Spec 0009 C4, through the sheet: off the wedding at once, the sheet closes, and the toast says
+ * which vendor with Undo -- which calls the restore with the same wedding and row. `duplicate`
+ * (the vendor was added again since) is said in this screen's words, not as "gone".
+ */
+describe('the sheet: removing from the wedding (spec 0009 C4)', () => {
+  const toast = () => within(screen.getByTestId('toast')).getByRole('status')
+  beforeEach(() => {
+    removeVendor.mockReset().mockResolvedValue({ ok: true })
+    restoreVendor.mockReset().mockResolvedValue({ ok: true })
+  })
+
+  it('removes at once, closes the sheet, and offers Undo by name', async () => {
+    view([vendor({})])
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Traiteur A' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Remove from wedding' }))
+    await waitFor(() => expect(removeVendor).toHaveBeenCalledWith('w1', 'wv1'))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(toast()).toHaveTextContent('“Traiteur A” taken off the wedding.')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
+    await waitFor(() => expect(restoreVendor).toHaveBeenCalledWith('w1', 'wv1'))
+    await waitFor(() => expect(toast()).toHaveTextContent('Restored.'))
+  })
+
+  it('says the vendor is on the wedding again when the undo finds a duplicate', async () => {
+    restoreVendor.mockResolvedValue({ ok: false, error: 'duplicate' })
+    view([vendor({})])
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Traiteur A' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Remove from wedding' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Undo' }))
+    await waitFor(() =>
+      expect(toast()).toHaveTextContent('This vendor is already on this wedding.'),
+    )
   })
 })
