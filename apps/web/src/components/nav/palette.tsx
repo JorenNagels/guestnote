@@ -38,10 +38,16 @@ type Row = { id: string; label: string; hint: string | null; href: string; icon:
  *
  * The sidebar stopped listing the open wedding's sections on 2026-10-02, leaving the tab strip
  * as the pointer route and this as the keyboard one. The sections come after the weddings, not
- * before: with nothing typed, Enter still opens the first wedding, as it always has, and typing
- * "draai" filters the weddings away so the run sheet is first anyway. Rejected: a section group
- * for every wedding ("Els & Jan -- Budget"), which is eight rows per wedding to scroll past for
- * a planner who only wanted to switch.
+ * before: once the weddings have loaded, Enter with nothing typed opens the first wedding, as it
+ * always has, and typing "draai" filters the weddings away so the run sheet is first anyway.
+ * Rejected: a section group for every wedding ("Els & Jan -- Budget"), which is eight rows per
+ * wedding to scroll past for a planner who only wanted to switch.
+ *
+ * The sections need no fetch, so they show -- and take the arrow keys -- while the weddings are
+ * still on their way. When the weddings land they are drawn ABOVE the sections, so the highlight
+ * goes back to the first row: left at its index it would silently move from the section the
+ * planner had arrowed to onto whichever wedding now sits there, and Enter would open another
+ * couple's wedding (found in review, 2026-10-02).
  *
  * ## Why the trigger lives in this file
  *
@@ -125,7 +131,10 @@ export function Palette({
     if (!open || weddings !== null) return
     let live = true
     void paletteWeddings().then((rows) => {
-      if (live) setWeddings(rows)
+      if (!live) return
+      setWeddings(rows)
+      // The rows above the highlight just changed -- see "Sections" in the doc comment.
+      setActive(0)
     })
     return () => {
       live = false

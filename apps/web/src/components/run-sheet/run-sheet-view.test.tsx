@@ -55,6 +55,7 @@ function view(over: {
   viewerId?: string | null
   color?: string | null
   mainDay?: { label: string; date: string | null }
+  studioName?: string
 }) {
   const events = over.events ?? [event({ id: 'e1', label: 'Ceremony' })]
   return renderWithCopy(
@@ -70,7 +71,7 @@ function view(over: {
       color={over.color ?? null}
       mainDay={over.mainDay ?? { label: 'Trouwdag', date: null }}
       coupleName="Els & Jan"
-      studioName="Studio Lore"
+      studioName={over.studioName ?? 'Studio Lore'}
     />,
   )
 }
@@ -266,6 +267,9 @@ describe('starting the run sheet (spec 0009 A2)', () => {
     expect(screen.queryByRole('form', { name: 'Add a day' })).toBeNull()
 
     await act(async () => {
+      // 'Sat, Oct 3' cannot see `formatCivilDay`'s UTC pin from here: this file runs in the
+      // machine's zone, east of Greenwich, where the pin changes nothing. `lib/civil-date.test.ts`
+      // runs in New York and is what fails if the pin goes.
       fireEvent.click(screen.getByRole('button', { name: 'Start the run sheet for Sat, Oct 3' }))
     })
     expect(saveEventAction).toHaveBeenCalledTimes(1)
@@ -348,6 +352,58 @@ describe('starting the run sheet (spec 0009 A2)', () => {
     expect(screen.queryByRole('form', { name: 'Add a day' })).toBeNull()
   })
 
+  it('a start that throws (the trial lock does) says so and goes nowhere', async () => {
+    saveEventAction.mockRejectedValue(new Error('locked'))
+    view({ events: [], mainDay: { label: 'Trouwdag', date: '2026-10-03' } })
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Start the run sheet/ }))
+    })
+    expect(screen.getByRole('alert').textContent).toContain('That did not work')
+    expect(push).not.toHaveBeenCalled()
+  })
+
+  it('a save that throws says so and keeps what was typed', async () => {
+    saveEventAction.mockRejectedValue(new Error('locked'))
+    view({ events: [], mainDay: { label: 'Trouwdag', date: null } })
+    const form = screen.getByRole('form', { name: 'Add a day' })
+    fireEvent.change(within(form).getByLabelText('Name'), { target: { value: 'Brunch' } })
+    await act(async () => {
+      fireEvent.click(within(form).getByRole('button', { name: 'Add the day' }))
+    })
+    expect(within(form).getByRole('alert').textContent).toContain('Saving did not work')
+    // React 19 resets an uncontrolled form after its action; the echo is what puts it back.
+    expect(within(form).getByLabelText('Name')).toHaveValue('Brunch')
+    expect(push).not.toHaveBeenCalled()
+  })
+
+  it('a refused save names the refusal, not a generic failure', async () => {
+    saveEventAction.mockResolvedValue({ form: 'forbidden' })
+    view({ events: [], mainDay: { label: 'Trouwdag', date: null } })
+    const form = screen.getByRole('form', { name: 'Add a day' })
+    await act(async () => {
+      fireEvent.click(within(form).getByRole('button', { name: 'Add the day' }))
+    })
+    expect(within(form).getByRole('alert').textContent).toContain('you cannot change it')
+  })
+
+  it('a day saved from the tab strip closes the form and lands on the new day', async () => {
+    view({
+      events: [
+        event({ id: 'e1', label: 'Ceremony' }),
+        event({ id: 'e2', label: 'Reception', startsOn: '2027-06-13' }),
+      ],
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Add a day' }))
+    const form = screen.getByRole('form', { name: 'Add a day' })
+    fireEvent.change(within(form).getByLabelText('Name'), { target: { value: 'Brunch' } })
+    fireEvent.change(within(form).getByLabelText('Date'), { target: { value: '2027-06-14' } })
+    await act(async () => {
+      fireEvent.click(within(form).getByRole('button', { name: 'Add the day' }))
+    })
+    expect(push).toHaveBeenCalledWith(`/weddings/${W}/run-sheet?event=e-new`)
+    expect(screen.queryByRole('form', { name: 'Add a day' })).toBeNull()
+  })
+
   it('one day has no tab strip, and still offers "Add a day"', () => {
     view({})
     expect(screen.queryByRole('navigation')).toBeNull()
@@ -410,6 +466,37 @@ describe('printing the run sheet (spec 0009 A3)', () => {
     // The screen table and the phone list, warnings and buttons with them, do not print.
     expect(screen.getByRole('table').closest('.print\\:hidden')).not.toBeNull()
     expect(screen.getByRole('button', { name: 'Print' }).closest('.print\\:hidden')).not.toBeNull()
+    // jsdom draws the phone list too (no media queries); on paper it would print the day twice.
+    const phoneList = document.querySelector('ul.md\\:hidden') as HTMLElement
+    expect(phoneList.classList).toContain('print:hidden')
+    // The day's own line: the print header already says it.
+    expect(screen.getByText('Ceremony').parentElement?.classList).toContain('print:hidden')
+  })
+
+  it('keeps an open "Add a day" form off paper', () => {
+    view({ items: rows() })
+    fireEvent.click(screen.getByRole('button', { name: 'Add a day' }))
+    const form = screen.getByRole('form', { name: 'Add a day' })
+    expect(form.closest('.print\\:hidden')).not.toBeNull()
+  })
+
+  it('marks a START after midnight +1 on paper, and prints "Planner" when nobody else is named', () => {
+    view({
+      items: [
+        item({ id: 'i1', title: 'Toast', startsAt: '23:50', durationMin: 20, vendorName: 'DJ B' }),
+        item({ id: 'i2', title: 'Taxis', startsAt: '00:30', durationMin: 15 }),
+      ],
+    })
+    const cells = Array.from(printSheet().querySelectorAll('tbody tr')).map((tr) =>
+      Array.from(tr.querySelectorAll('td')).map((td) => td.textContent),
+    )
+    expect(cells[1]).toEqual(['00:30 +1', '00:45 +1', 'Taxis', 'Planner', ''])
+  })
+
+  it('leaves the studio, and its separator, out of the header when there is no name', () => {
+    view({ items: rows(), studioName: '' })
+    const header = printSheet().querySelector('p') as HTMLElement
+    expect(header.textContent).toBe('Els & Jan·Ceremony June 12, 2027')
   })
 })
 

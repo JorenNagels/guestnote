@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-20 · **Status:** Built 2026-08-21
 **Shipped across four commits:** `75cd541` the database, `c61ad3c` the cookie and org seam,
-`5efc96a` a review fix, and the chrome. **Amended five times — read §Amendments before trusting
+`5efc96a` a review fix, and the chrome. **Amended six times — read §Amendments before trusting
 any section below it,** because several decisions here were reversed by the build and the
 reversals are the interesting part.
 **Phase:** M3, the authenticated shell — promised by name in `apps/web/src/app/pro/layout.tsx:25`
@@ -346,7 +346,7 @@ screen at `apps/web/src/components/auth/auth-flow.tsx:339` through its `onSelect
 
 ## Amendments
 
-Five rounds (the count said "two" until 2026-09-24, three rounds after it stopped being true). The
+Six rounds (the count said "two" until 2026-09-24, three rounds after it stopped being true). The
 first was before any code; the second is what the build actually did, and it
 is recorded here rather than only in source comments because the spec is meant to be the
 contract, not the loser of an argument it never heard.
@@ -402,6 +402,13 @@ Nav labels for the new items live in `apps/web/messages/app/shell.{nl,en,fr}.jso
 Dead keys removed rather than left: `app.palette.close` (threaded through the layout and
 rendered nowhere) and `app.wedding.notFound` (authored for a message `notFound()` must never
 show, because naming the reason is the leak the 404 exists to prevent).
+
+### 2026-10-02, by spec 0009 (A1, one wedding menu)
+
+| Spec said | Now | Why |
+|---|---|---|
+| Palette holds weddings only (2026-08-21 above) | Also the open wedding's eight sections, as a group under its name, after the weddings; only for a wedding in the planner's own list | The sidebar stopped listing the sections, so the palette is the keyboard's route to them. After the weddings so Enter with nothing typed still opens the first wedding; the sections show while the weddings load, and the highlight returns to the first row when they arrive. Settings is not a section here; it is a tab. |
+| Wedding section holds eight sections (2026-09-21, F3 above) | The sidebar lists weddings only; the open wedding keeps its `aria-current` and stripe, with no rows beneath it, in the rail and the drawer too | The wedding's tab strip carries the sections (and Settings) next to the content they switch. Budget and Payments became one tab, **Geld**. Rejected: keeping the sidebar sections and dropping the tabs -- spec 0009 A1 argues it. |
 
 ## Behaviour
 

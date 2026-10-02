@@ -56,13 +56,14 @@ function view(
   linked: WeddingVendorRow[],
   locale = 'nl',
   boards: { id: string; name: string; sharedWith: string[] }[] = [],
+  canCreate = false,
 ) {
   render(
     <WeddingVendorsView
       weddingId="w1"
       linked={linked}
       directory={[]}
-      canCreate={false}
+      canCreate={canCreate}
       locale={locale}
       labels={weddingLabels(lookup(copy), lookup(linkCopy))}
       boards={boards}
@@ -152,5 +153,18 @@ describe('the sheet: what the link shows (spec 0007)', () => {
     view([vendor({})])
     openSheet()
     expect(screen.getByText('No moodboards shared')).toBeInTheDocument()
+  })
+})
+
+/**
+ * Spec 0009 A4, through the sheet: the controls get the vendor's address from the row, or the
+ * button would be dimmed with "no email address" for every vendor -- which
+ * `vendor-link-controls.test.tsx` cannot see, since it hands the address in itself.
+ */
+describe('the sheet: emailing the link (spec 0009)', () => {
+  it("enables the email button from the vendor's own address", () => {
+    view([vendor({ email: 'info@x.be' })], 'nl', [], true)
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Traiteur A' }))
+    expect(screen.getByRole('button', { name: 'Email the link to Traiteur A' })).toBeEnabled()
   })
 })

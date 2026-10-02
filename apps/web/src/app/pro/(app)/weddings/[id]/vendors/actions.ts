@@ -202,6 +202,18 @@ async function mintLink(
   return { ok: true, token, expiresAt: expiresAt.toISOString() }
 }
 
+/** What `emailVendorLinkAction` answers: Create's result, plus where the mail went. */
+export type EmailVendorLinkResult =
+  | {
+      readonly ok: true
+      readonly token: string
+      readonly expiresAt: string
+      /** The address it went (or was meant to go) to, for "Verstuurd naar ...". */
+      readonly sentTo: string
+      readonly mailed: boolean
+    }
+  | { readonly ok: false; readonly error: 'forbidden' | 'notFound' | 'invalid' | 'noEmail' }
+
 /**
  * "Link mailen naar {name}" (spec 0009 A4): Create, then the link by mail to the vendor.
  *
@@ -223,17 +235,6 @@ async function mintLink(
  *
  * Language: the wedding's `locale_default`, which `getWeddingVendors` already reads.
  */
-export type EmailVendorLinkResult =
-  | {
-      readonly ok: true
-      readonly token: string
-      readonly expiresAt: string
-      /** The address it went (or was meant to go) to, for "Verstuurd naar ...". */
-      readonly sentTo: string
-      readonly mailed: boolean
-    }
-  | { readonly ok: false; readonly error: 'forbidden' | 'notFound' | 'invalid' | 'noEmail' }
-
 export async function emailVendorLinkAction(
   weddingId: unknown,
   wedVendorId: unknown,

@@ -908,6 +908,8 @@ describe('the palette inside a wedding', () => {
 
     fireEvent.change(input, { target: { value: 'betal' } })
     expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(['Betalingen'])
+    // No wedding matches, so no "Bruiloften" heading over nothing.
+    expect(screen.queryByRole('group', { name: 'Bruiloften' })).toBeNull()
     fireEvent.keyDown(input, { key: 'Enter' })
     expect(assign).toHaveBeenCalledWith('/weddings/w1/payments')
   })
@@ -930,6 +932,48 @@ describe('the palette inside a wedding', () => {
     const active = screen.getByRole('option', { selected: true })
     expect(active).toHaveTextContent('Overzicht')
     expect(input).toHaveAttribute('aria-activedescendant', active.id)
+  })
+
+  /**
+   * The sections need no fetch, so they show and take the arrows before the weddings arrive.
+   * When the weddings land ABOVE them, a highlight left at its index would sit on whichever
+   * wedding now holds it -- here the fourth, another couple's -- and Enter would open it.
+   */
+  it('shows the sections while the weddings load, and their arrival moves the highlight home', async () => {
+    let resolve: (v: unknown) => void = () => {}
+    paletteWeddings.mockReturnValue(new Promise((r) => (resolve = r)))
+    inWedding('w1')
+    renderShell({ weddings: [ELS, MIRA] })
+    const input = await openPalette()
+    // Visible at once, and not hidden behind the loading line.
+    expect(screen.getAllByRole('option')).toHaveLength(8)
+    expect(screen.queryByText('Even zoeken…')).toBeNull()
+
+    fireEvent.keyDown(input, { key: 'ArrowDown' })
+    fireEvent.keyDown(input, { key: 'ArrowDown' })
+    fireEvent.keyDown(input, { key: 'ArrowDown' })
+    expect(screen.getByRole('option', { selected: true })).toHaveTextContent('Betalingen')
+
+    const row = (id: string, name: string) => ({
+      id,
+      slug: id,
+      status: 'live',
+      coupleDisplayName: name,
+      weddingDate: null,
+    })
+    await act(async () => {
+      resolve([
+        row('w1', 'Els & Jan'),
+        row('w2', 'Mira & Tom'),
+        row('w3', 'Ann & Bo'),
+        row('w4', 'Lies & Wim'),
+      ])
+    })
+    expect(screen.getAllByRole('option')).toHaveLength(12)
+    expect(screen.getByRole('option', { selected: true })).toHaveTextContent('Els & Jan')
+    fireEvent.keyDown(input, { key: 'Enter' })
+    expect(assign).toHaveBeenCalledWith('/weddings/w1')
+    expect(assign).not.toHaveBeenCalledWith('/weddings/w4')
   })
 })
 

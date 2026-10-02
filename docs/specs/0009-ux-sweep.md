@@ -1,6 +1,7 @@
 # Spec 0009 — The UX sweep: faster than the spreadsheet, screen by screen
 
-**Date:** 2026-10-02 · **Status:** Building
+**Date:** 2026-10-02 · **Status:** Specified, not built
+**Built so far:** Batch A, 2026-10-02 (4bcefc4, bdd072a, c4279e9)
 **Source:** the UX sweep report of 2026-10-02 (artifact "Guestnote UX Sweep"), read against every
 app screen, its copy and specs 0003–0008, and compared with Aisle Planner, Timeline Genius, Ever
 Timeline, Linear, Asana and Todoist. **Bar:** a planner runs one real wedding here instead of a
@@ -11,7 +12,7 @@ everything". The decisions below are the ones the report implied, settled here s
 not settle them silently. Where a choice was made between two reasonable options, the rejected one
 is named.
 
-Three batches, each committed on its own. The report's "bigger bets" (paste from Excel, email
+Three batches, each landing as one or more commits of its own. The report's "bigger bets" (paste from Excel, email
 digests, guest list) are **not** in this spec; each needs its own `/feature`.
 
 ## Batch A — navigation and the run sheet's first day
@@ -26,6 +27,11 @@ digests, guest list) are **not** in this spec; each needs its own `/feature`.
   `/payments`. Both routes stay (links and bookmarks keep working). Each of the two pages opens
   with a two-link switch, Budget | Betalingen, `aria-current` on the one you are on. Eight tabs.
 - Cmd-K keeps every section as a destination.
+  *(as built)* Before this, Cmd-K listed weddings only and no sections. It now lists the open
+  wedding's eight sections (Settings is not one; it stays a tab), only when the URL's wedding is
+  in the planner's own list, and after the weddings, so Enter with nothing typed still opens the
+  first wedding. The sections show while the weddings load; when the weddings arrive the
+  highlight returns to the first row.
 
 ### A2. The run sheet works from day one (report 02)
 
@@ -35,6 +41,7 @@ digests, guest list) are **not** in this spec; each needs its own `/feature`.
   `locale_default`) on `wedding_date`, and lands on that day's empty sheet.
 - With no wedding date, the empty state is an inline "add a day" form (name, date, optional time)
   instead of a link to Settings.
+  *(as built)* The form has no venue field: a day's venue stays in Settings.
 - The day tabs end with **"+ Dag toevoegen"**, which opens the same inline form. Settings keeps its
   events editor; both use the existing event action.
 - *Rejected:* creating the event automatically on wedding create, plus a backfill migration. The
@@ -49,6 +56,8 @@ digests, guest list) are **not** in this spec; each needs its own `/feature`.
   day's name and date, and the studio name; one row per item with start, end, what, who (vendor or
   owner) and where; the vendor's phone number beside its name where the wedding vendor has one.
   Black on white.
+- *(as built)* Print shows only when the day has items. The printed phone is the vendor's
+  directory phone (`vendors.phone`); a wedding vendor has no phone of its own.
 
 ### A4. Email the vendor link (report 12)
 
@@ -59,6 +68,12 @@ digests, guest list) are **not** in this spec; each needs its own `/feature`.
   returned once, so the planner can copy it too. The UI then says "Sent to {email}".
 - The mail is rendered with `@react-email/render` and `packages/email/src/layout.tsx` (invariant 11),
   from the studio's name, and recorded like every other delivery.
+- *(as built)* The email button shows only beside Create, never beside a live link: emailing mints
+  a new link, which would replace one the planner may have handed out. A failed mail keeps the
+  link and says so; revoking it again was rejected, because the planner can still copy it.
+- *(as built)* The mail reuses the `StaffInvite` template with its own copy and the `vendor-link`
+  tag. "From the studio's name" means the studio is named in the subject, body and footer; the
+  `From` stays "Guestnote" (DMARC alignment, see `lib/mailer.ts`).
 
 ## Batch B — speed
 
@@ -130,4 +145,4 @@ digests, guest list) are **not** in this spec; each needs its own `/feature`.
   `packages/db`; new assertions seen to fail under mutation.
 - NL, EN and FR copy for every new string; NL first.
 - Each batch reviewed (correctness, tests, rationale; tenancy where a Server Function or query was
-  added) and committed to `main` on its own.
+  added) and landed on `main` as one or more commits of its own.

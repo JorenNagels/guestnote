@@ -25,7 +25,10 @@ wedding 448-545 of `design-system/planner-prototype/Guestnote Planner.dc.html`.
 - **Wedding route strip** (`wedding-tabs.tsx`, reusable): links, not ARIA tabs, in one row under the
   header: Overzicht, Checklist, Budget, Betalingen, Leveranciers, Draaiboek, Bestanden, Moodboard,
   Instellingen. The current tab gets `aria-current="page"`. Labels come from
-  `app.shell.nav.*`, so it adds no copy of its own.
+  `app.shell.nav.*`, the sidebar's own words, so it adds no catalogue of its own.
+  *(Amended 2026-10-02, spec 0009 A1: one exception. `app.shell.nav.money` -- Geld / Money /
+  Argent -- lives in the sidebar's catalogue but is a word only the strip uses; the sidebar no
+  longer lists sections at all.)*
   *(Changed 2026-09-24, `190dfbd`: the header and the strip render once, in
   `app/pro/(app)/weddings/[id]/layout.tsx`, and the current tab comes from the URL segment
   (`useSelectedLayoutSegment` in `wedding-tabs-nav.tsx`), not a `current` prop. No screen renders

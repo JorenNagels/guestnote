@@ -3,8 +3,8 @@ import Link from 'next/link'
 import { app } from '../../lib/routes.ts'
 
 /**
- * The row of links under a wedding's heading, so a planner moves between the screens of one
- * wedding without going back to the sidebar. Rendered once, by `weddings/[id]/layout.tsx`, through
+ * The row of links under a wedding's heading: the one menu of a wedding's screens since the
+ * sidebar stopped listing them (spec 0009 A1, 2026-10-02); Cmd-K is the keyboard's. Rendered once, by `weddings/[id]/layout.tsx`, through
  * `wedding-tabs-nav.tsx`; it used to be rendered by each screen under its own heading, which made
  * the whole header part of every tab's loading skeleton (changed 2026-09-24).
  *

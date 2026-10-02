@@ -338,8 +338,10 @@ describe('emailVendorLinkAction', () => {
     ]
     expect(id).toBe(VENDOR)
     expect(input.tokenHash).not.toBe(out.token)
-    // The default lifetime, the same as Create's.
+    // The default lifetime, the same as Create's -- bounded on both sides, so the 180-day cap
+    // (`MAX_VENDOR_LINK_TTL_DAYS`) passed where the default belongs would fail here too.
     expect(input.expiresAt.getTime()).toBeGreaterThan(Date.now() + 29 * 86_400_000)
+    expect(input.expiresAt.getTime()).toBeLessThan(Date.now() + 31 * 86_400_000)
 
     expect(sendVendorLinkMail).toHaveBeenCalledWith({
       to: 'info@traiteur.be',

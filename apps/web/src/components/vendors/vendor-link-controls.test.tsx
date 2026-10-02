@@ -128,6 +128,28 @@ describe('after sending', () => {
     expect(screen.queryByText(/\/vendor\//)).not.toBeInTheDocument()
   })
 
+  it('a thrown action shows the generic error and no link', async () => {
+    // A network failure or a server error rejects the Server Function rather than returning
+    // `ok: false` -- without the catch the transition swallows it and the click does nothing.
+    emailVendorLinkAction.mockRejectedValue(new Error('offline'))
+    controls()
+    await click(emailButton())
+    expect(screen.getByRole('alert')).toHaveTextContent(labels.error)
+    expect(screen.queryByText(/\/vendor\//)).not.toBeInTheDocument()
+  })
+
+  it('says it is sending while the mail is on its way, on the email button and not on Create', async () => {
+    // Settled before the test ends: React 19 entangles every pending async transition, so one
+    // left hanging here holds the NEXT test's transition pending too (measured 2026-10-02).
+    let settle: (v: unknown) => void = () => {}
+    emailVendorLinkAction.mockReturnValue(new Promise((r) => (settle = r)))
+    controls()
+    await click(emailButton())
+    expect(screen.getByRole('button', { name: 'Sending…' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Create link' })).toBeDisabled()
+    await act(async () => settle({ ok: false, error: 'forbidden' }))
+  })
+
   it('an address removed since the sheet opened disables the button and says why', async () => {
     emailVendorLinkAction.mockResolvedValue({ ok: false, error: 'noEmail' })
     controls()

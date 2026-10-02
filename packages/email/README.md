@@ -30,7 +30,7 @@ apps/web/src/lib/auth.ts        sendCode()  <- Better Auth's emailOTP callback
 
 | File | Role |
 |---|---|
-| `src/index.ts` | `createMailer`, one method per template |
+| `src/index.ts` | `createMailer`, one method per mail: five mails over three templates (staff invite, couple invite and vendor link share `StaffInvite`, each with its own copy and tag) |
 | `src/types.ts` | `MailTransport`, `SendResult`, `MailFailure`, `DeliveryRecord` |
 | `src/ses.ts` | **the only file allowed to import `@aws-sdk/client-sesv2`** |
 | `src/console.ts` | development transport: prints, and writes the rendered HTML + text |
