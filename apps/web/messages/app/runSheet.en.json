@@ -115,7 +115,8 @@
     "notFound": "This item or this wedding no longer exists. Refresh the page.",
     "failed": "Saving did not work. Nothing was changed. Try again in a moment.",
     "owner": "Pick someone from the team working on this wedding.",
-    "shift": "Enter whole minutes, from -720 to 720, not 0."
+    "shift": "Enter whole minutes, from -720 to 720, not 0.",
+    "shiftCrosses": "Then this item would start before the one above it. Shift it less, or move it."
   },
   "error": {
     "title": "The run sheet could not be loaded",

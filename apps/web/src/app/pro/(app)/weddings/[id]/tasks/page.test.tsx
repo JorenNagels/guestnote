@@ -69,7 +69,7 @@ const WID = '0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b'
 const TID = '0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a60'
 const TASK = { id: TID, title: 'Book the DJ', coupleUnread: true }
 
-const renderPage = async (query: Record<string, string>) =>
+const renderPage = async (query: Record<string, string | string[]>) =>
   render(
     await ChecklistPage({
       params: Promise.resolve({ id: WID }),
@@ -110,6 +110,12 @@ describe('the checklist page with ?task=', () => {
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(screen.getAllByTestId('row')).toHaveLength(2)
     expect(notFound).not.toHaveBeenCalled()
+  })
+
+  it('reads the first ?task= when the URL repeats it', async () => {
+    await renderPage({ task: [TID, 'x'] })
+    expect(loadTaskThread).toHaveBeenCalledTimes(1)
+    expect(loadTaskThread).toHaveBeenCalledWith(expect.anything(), TID)
   })
 
   it('does not look for a task when the URL names none', async () => {

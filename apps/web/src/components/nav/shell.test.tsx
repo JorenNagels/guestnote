@@ -937,9 +937,11 @@ describe('the palette inside a wedding', () => {
   /**
    * The sections need no fetch, so they show and take the arrows before the weddings arrive.
    * When the weddings land ABOVE them, a highlight left at its index would sit on whichever
-   * wedding now holds it -- here the fourth, another couple's -- and Enter would open it.
+   * wedding now holds it -- here the fourth, another couple's -- and Enter would open it. Sent
+   * back to the first row, it would open the first wedding instead of the section the planner
+   * chose. It stays on its row.
    */
-  it('shows the sections while the weddings load, and their arrival moves the highlight home', async () => {
+  it('shows the sections while the weddings load, and their arrival leaves the highlight on its row', async () => {
     let resolve: (v: unknown) => void = () => {}
     paletteWeddings.mockReturnValue(new Promise((r) => (resolve = r)))
     inWedding('w1')
@@ -970,10 +972,12 @@ describe('the palette inside a wedding', () => {
       ])
     })
     expect(screen.getAllByRole('option')).toHaveLength(12)
-    expect(screen.getByRole('option', { selected: true })).toHaveTextContent('Els & Jan')
+    const active = screen.getByRole('option', { selected: true })
+    expect(active).toHaveTextContent('Betalingen')
+    expect(input).toHaveAttribute('aria-activedescendant', active.id)
     fireEvent.keyDown(input, { key: 'Enter' })
-    expect(assign).toHaveBeenCalledWith('/weddings/w1')
-    expect(assign).not.toHaveBeenCalledWith('/weddings/w4')
+    expect(assign).toHaveBeenCalledTimes(1)
+    expect(assign).toHaveBeenCalledWith('/weddings/w1/payments')
   })
 })
 

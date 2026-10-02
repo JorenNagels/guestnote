@@ -8,6 +8,7 @@ import {
   getPayments,
   getWeddingVendors,
   type Memberships,
+  removeWeddingVendor,
   resolveMemberships,
   setPaymentPaidAt,
   updateBudgetLine,
@@ -153,6 +154,33 @@ describe('updateBudgetLine and deleteBudgetLine', () => {
     })
     const l = (await getBudget(WeddingScope.of(h.db, owner, F.orgA, A1)))?.lines[0]
     expect(l).toMatchObject({ label: 'DJ', estimateCents: 180_000, actualCents: null })
+  })
+
+  it('keeps a vendor removed from the wedding on a line, but will not newly name one', async () => {
+    const a1 = WeddingScope.of(h.db, owner, F.orgA, A1)
+    expect(
+      (await updateBudgetLine(a1, F.budgetLineA1, { ...line, weddingVendorId: F.wedVendorA1 })).ok,
+    ).toBe(true)
+    expect((await removeWeddingVendor(a1, F.wedVendorA1)).ok).toBe(true)
+
+    // The in-place amount save sends the vendor back as it was (spec 0009 B3): it must land.
+    const kept = await updateBudgetLine(a1, F.budgetLineA1, {
+      ...line,
+      actualCents: 175_000,
+      weddingVendorId: F.wedVendorA1,
+    })
+    expect(kept).toEqual({ ok: true, value: { id: F.budgetLineA1 } })
+    expect((await getBudget(a1))?.lines[0]).toMatchObject({
+      actualCents: 175_000,
+      weddingVendorId: F.wedVendorA1,
+    })
+
+    // Clearing it is fine; naming the removed vendor again is a change, and is refused.
+    expect((await updateBudgetLine(a1, F.budgetLineA1, line)).ok).toBe(true)
+    expect(
+      await updateBudgetLine(a1, F.budgetLineA1, { ...line, weddingVendorId: F.wedVendorA1 }),
+    ).toEqual({ ok: false, reason: 'vendorNotFound' })
+    expect((await getBudget(a1))?.lines[0]?.weddingVendorId).toBeNull()
   })
 
   it('hides a deleted line and its payments from both screens, and keeps the payment row', async () => {

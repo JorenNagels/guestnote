@@ -569,14 +569,49 @@ describe('shifting the rest of the day (spec 0009 B2)', () => {
     edit('Last song')
     fireEvent.click(within(section()).getByRole('button', { name: '−15 min' }))
     expect(preview()).toEqual(['00:30 00:15 Last song'])
+    // Back to the cake's own 23:50: a tie with the item above, which is allowed.
     fireEvent.change(within(section()).getByLabelText('Or your own number of minutes'), {
-      target: { value: '-45' },
+      target: { value: '-40' },
     })
-    expect(preview()).toEqual(['00:30 23:45 Last song'])
+    expect(preview()).toEqual(['00:30 23:50 Last song'])
+    expect(within(section()).queryByRole('alert')).toBeNull()
     await act(async () => {
       fireEvent.click(within(section()).getByRole('button', { name: 'Shift 1 item' }))
     })
-    expect(shiftRunSheetFrom).toHaveBeenCalledWith(W, 'i4', -45)
+    expect(shiftRunSheetFrom).toHaveBeenCalledWith(W, 'i4', -40)
+  })
+
+  it('a backward shift past the item above is refused in place, with the preview still shown', async () => {
+    view({ items: day() })
+    edit('Last song')
+    const field = within(section()).getByLabelText('Or your own number of minutes')
+    const submit = within(section()).getByRole('button', { name: 'Shift 1 item' })
+    // 00:30 - 45 is 23:45, before the cake's 23:50: the clock would read it as the next night.
+    fireEvent.change(field, { target: { value: '-45' } })
+    expect(within(section()).getByRole('alert').textContent).toContain(
+      'Then this item would start before the one above it.',
+    )
+    expect(field).toHaveAttribute('aria-invalid', 'true')
+    expect(submit).toBeDisabled()
+    expect(preview()).toEqual(['00:30 23:45 Last song'])
+    // The button is the only way to send (Enter in the field does nothing), and it is disabled.
+    await act(async () => {
+      fireEvent.click(submit)
+    })
+    expect(shiftRunSheetFrom).not.toHaveBeenCalled()
+  })
+
+  it("the repo's refusal of a crossing reads the same, should the list have been stale", async () => {
+    shiftRunSheetFrom.mockResolvedValue({ ok: false, error: 'shiftCrosses' })
+    view({ items: day() })
+    edit('Dinner')
+    fireEvent.click(within(section()).getByRole('button', { name: '−15 min' }))
+    await act(async () => {
+      fireEvent.click(within(section()).getByRole('button', { name: 'Shift 3 items' }))
+    })
+    expect(within(section()).getByRole('alert').textContent).toContain(
+      'Then this item would start before the one above it.',
+    )
   })
 
   it('a custom value outside -720..720, or 0, is refused in place and cannot be sent', () => {

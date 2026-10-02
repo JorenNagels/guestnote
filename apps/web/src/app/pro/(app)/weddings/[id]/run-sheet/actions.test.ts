@@ -76,6 +76,12 @@ describe('shiftRunSheetFrom', () => {
     expect(shiftRunSheetTimes).not.toHaveBeenCalled()
   })
 
+  it("answers shiftCrosses for the repo's shiftCrossesPrevious, and does not revalidate", async () => {
+    shiftRunSheetTimes.mockResolvedValue({ ok: false, reason: 'shiftCrossesPrevious' })
+    expect(await shiftRunSheetFrom(WID, IID, -15)).toEqual({ ok: false, error: 'shiftCrosses' })
+    expect(revalidatePath).not.toHaveBeenCalled()
+  })
+
   it("answers notFound for the repo's itemNotFound, and does not revalidate", async () => {
     shiftRunSheetTimes.mockResolvedValue({ ok: false, reason: 'itemNotFound' })
     expect(await shiftRunSheetFrom(WID, IID, 15)).toEqual({ ok: false, error: 'notFound' })

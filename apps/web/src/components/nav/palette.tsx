@@ -45,9 +45,13 @@ type Row = { id: string; label: string; hint: string | null; href: string; icon:
  *
  * The sections need no fetch, so they show -- and take the arrow keys -- while the weddings are
  * still on their way. When the weddings land they are drawn ABOVE the sections, so the highlight
- * goes back to the first row: left at its index it would silently move from the section the
- * planner had arrowed to onto whichever wedding now sits there, and Enter would open another
- * couple's wedding (found in review, 2026-10-02).
+ * is held by the row's identity and not its index: held at its index it would silently move from
+ * the section the planner had arrowed to onto whichever wedding now sits there, and Enter would
+ * open another couple's wedding (found in review, 2026-10-02). Rejected: sending the highlight
+ * back to the first row on arrival, the first fix -- safe, but it threw away the place the
+ * planner had arrowed to (batch B review, 2026-10-02). A highlight nobody has moved is "the first
+ * row", whatever that is, so with nothing touched Enter still opens the first wedding; a row
+ * that has gone (filtered out) falls back to the first row the same way.
  *
  * ## Why the trigger lives in this file
  *
@@ -87,7 +91,8 @@ export function Palette({
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [weddings, setWeddings] = useState<WeddingSummary[] | null>(null)
-  const [active, setActive] = useState(0)
+  // The highlighted row's `Row.id`, or null for "the first row". By identity -- see "Sections".
+  const [activeId, setActiveId] = useState<string | null>(null)
 
   const listId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
@@ -97,7 +102,7 @@ export function Palette({
   const close = useCallback(() => {
     setOpen(false)
     setQuery('')
-    setActive(0)
+    setActiveId(null)
     triggerRef.current?.focus()
   }, [])
 
@@ -131,10 +136,8 @@ export function Palette({
     if (!open || weddings !== null) return
     let live = true
     void paletteWeddings().then((rows) => {
-      if (!live) return
-      setWeddings(rows)
-      // The rows above the highlight just changed -- see "Sections" in the doc comment.
-      setActive(0)
+      // The rows above the highlight change here; it is held by id, so it stays on its row.
+      if (live) setWeddings(rows)
     })
     return () => {
       live = false
@@ -178,7 +181,14 @@ export function Palette({
     { key: 'sections', title: sections?.name ?? '', rows: sectionRows },
   ].filter((g) => g.rows.length > 0)
 
-  const clamped = Math.min(active, Math.max(rows.length - 1, 0))
+  const clamped = Math.max(
+    rows.findIndex((r) => r.id === activeId),
+    0,
+  )
+  const step = (by: number) => {
+    if (rows.length === 0) return
+    setActiveId(rows[(clamped + by + rows.length) % rows.length]?.id ?? null)
+  }
 
   const choose = (row: Row | undefined) => {
     if (!row) return
@@ -191,12 +201,12 @@ export function Palette({
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault()
-      setActive((i) => (rows.length === 0 ? 0 : (i + 1) % rows.length))
+      step(1)
       return
     }
     if (e.key === 'ArrowUp') {
       e.preventDefault()
-      setActive((i) => (rows.length === 0 ? 0 : (i - 1 + rows.length) % rows.length))
+      step(-1)
       return
     }
     if (e.key === 'Enter') {
@@ -252,7 +262,7 @@ export function Palette({
                 value={query}
                 onChange={(e) => {
                   setQuery(e.target.value)
-                  setActive(0)
+                  setActiveId(null)
                 }}
                 onKeyDown={onKeyDown}
                 placeholder={labels.placeholder}
@@ -304,7 +314,7 @@ export function Palette({
                               e.preventDefault()
                               choose(row)
                             }}
-                            onMouseEnter={() => setActive(i)}
+                            onMouseEnter={() => setActiveId(row.id)}
                             className={cx(
                               'flex cursor-pointer items-center gap-2.5 rounded-[calc(var(--radius)-2px)] px-2 py-2 text-sm',
                               i === clamped ? 'bg-muted text-foreground' : 'text-muted-foreground',

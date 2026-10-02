@@ -74,6 +74,8 @@ describe('QuickAdd', () => {
     await user.type(line(), 'Second{Enter}')
     expect(createTaskAction).toHaveBeenCalledTimes(2)
     expect(createTaskAction).toHaveBeenLastCalledWith('w1', { ...EMPTY_FORM, title: 'Second' })
+    // Said while the first is still out, so the wait below is for it to go and not vacuous.
+    expect(screen.getByText('Toevoegen…')).toBeInTheDocument()
     resolveFirst({ ok: true, taskId: 't1' })
     await waitFor(() => expect(screen.queryByText('Toevoegen…')).toBeNull())
     expect(line()).toHaveValue('')

@@ -25,7 +25,11 @@ under "2026-09-21, by spec 0003".
   in the phone drawer -- the sidebar lists weddings only, and the open wedding's row keeps its
   `aria-current` and stripe. The sections live in the tab strip under the wedding's heading, and
   in the palette, which lists the open wedding's eight sections as a group headed by its name,
-  after the weddings and filtered by the same query. Still none for a wedding not in the list.)*
+  after the weddings and filtered by the same query. Still none for a wedding not in the list.
+  The highlight is held by row, not by index: a section the planner arrowed to while the weddings
+  were loading stays highlighted when they land above it, and Enter opens that section. Untouched,
+  the highlight is the first row, so Enter with nothing typed still opens the first wedding.
+  (Batch B review, 2026-10-02; the batch A fix sent it back to the first wedding.))*
 - Colour is a dot or a stripe, never text and never behind text (spec 0003) -- except the viewer's own run-sheet rows, 12% into `--card` (spec 0004, 2026-09-24).
 - Rail: initials chip per wedding, aria-label on every target. Phone: the same sidebar in the drawer.
 - The middle of the sidebar scrolls; collapse and account stay put.

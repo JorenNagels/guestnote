@@ -149,6 +149,7 @@ export type RunSheetError =
   | 'vendor'
   | 'owner'
   | 'shift'
+  | 'shiftCrosses'
   | 'notFound'
   | 'failed'
 
@@ -255,4 +256,30 @@ export function shiftPreview(
     from: i.startsAt,
     to: shiftClock(i.startsAt, deltaMin),
   }))
+}
+
+/**
+ * Whether shifting `itemId` by `deltaMin` would start it before the item above it, which the
+ * repo refuses as `shiftCrossesPrevious` (spec 0009 B2): the rows would keep their order, but the
+ * clock would read everything shifted as the next day. Same rule as the repo's function of that
+ * name, held twice because this file may import only types from `@guestnote/db` -- if the two
+ * drift, the repo still refuses, and the cost is an error after the press instead of before it.
+ *
+ * The gap is measured modulo a day (00:10 after 23:30 is 40 minutes, as the sheet reads it), so a
+ * forward shift never crosses and a wrap past midnight stays allowed. An equal start is allowed:
+ * two items starting together read as the same day, and that is a real plan. The first item of
+ * the list has nothing above it.
+ */
+export function shiftCrossesPrevious(
+  items: readonly { readonly id: string; readonly startsAt: string }[],
+  itemId: string,
+  deltaMin: number,
+): boolean {
+  const at = items.findIndex((i) => i.id === itemId)
+  if (at < 1) return false
+  const before = clockToMinutes(items[at - 1]?.startsAt ?? '')
+  const first = clockToMinutes(items[at]?.startsAt ?? '')
+  if (before === null || first === null) return false
+  const gap = (((first - before) % DAY) + DAY) % DAY
+  return gap + deltaMin < 0
 }

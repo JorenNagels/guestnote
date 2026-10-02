@@ -43,6 +43,11 @@ Nothing here contradicts spec 0003. Prototype range: `design-system/planner-prot
 - **Vendor picker** lists this wedding's `wedding_vendors` by vendor name. S3 fills them; until then it is
   empty and the field says so. A line stores the `wedding_vendor_id`, and the server reads that row under
   `withTenant` for this wedding before saving (spec 0003, parent-read rule).
+  *(Amended 2026-10-02, batch B review: only a CHANGED vendor is checked. A vendor removed from the
+  wedding since stays on the line, and the line's other fields -- the in-place amounts above all,
+  which send the vendor back as it was -- still save; before this, every save of such a line
+  failed "vendor not found". Naming a removed vendor anew is still refused. The run sheet has
+  followed the same rule since S9.)*
 - **Payments.** One row per payment: payee (vendor of the line, else the line label), line and category,
   due date, status, amount. Status is **Paid**, **Due** or **Overdue**. Overdue means unpaid and the due
   date is before today's civil date in the wedding's timezone, read from the real clock on each render.

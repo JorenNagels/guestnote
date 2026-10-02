@@ -8,6 +8,7 @@ import {
   parseRunSheetForm,
   parseShiftMinutes,
   shiftClock,
+  shiftCrossesPrevious,
   shiftPreview,
   splitDuration,
 } from './run-sheet.ts'
@@ -234,5 +235,24 @@ describe('shifting the rest of the day (spec 0009 B2)', () => {
       { id: 'd', title: 'Last song', from: '00:30', to: '23:30' },
     ])
     expect(shiftPreview(items, 'gone', 15)).toEqual([])
+  })
+
+  it('says when a backward shift would start the item before the one above it', () => {
+    const items = [
+      { id: 'a', startsAt: '15:30' },
+      { id: 'b', startsAt: '19:00' },
+      { id: 'c', startsAt: '23:50' },
+      { id: 'd', startsAt: '00:30' },
+    ]
+    expect(shiftCrossesPrevious(items, 'b', -211)).toBe(true)
+    // A tie is two things at once, which the sheet reads as the same day.
+    expect(shiftCrossesPrevious(items, 'b', -210)).toBe(false)
+    // Across midnight the gap is the 40 minutes the sheet reads, not -1400.
+    expect(shiftCrossesPrevious(items, 'd', -40)).toBe(false)
+    expect(shiftCrossesPrevious(items, 'd', -41)).toBe(true)
+    // Forward never crosses, even wrapping past midnight; the first item has nothing above it.
+    expect(shiftCrossesPrevious(items, 'c', 720)).toBe(false)
+    expect(shiftCrossesPrevious(items, 'a', -720)).toBe(false)
+    expect(shiftCrossesPrevious(items, 'gone', -720)).toBe(false)
   })
 })

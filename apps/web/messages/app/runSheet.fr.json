@@ -115,7 +115,8 @@
     "notFound": "Cet élément ou ce mariage n'existe plus. Actualisez la page.",
     "failed": "L'enregistrement n'a pas abouti. Rien n'a été modifié. Réessayez dans un instant.",
     "owner": "Choisissez quelqu'un de l'équipe qui travaille sur ce mariage.",
-    "shift": "Indiquez un nombre de minutes entier, de -720 à 720, sauf 0."
+    "shift": "Indiquez un nombre de minutes entier, de -720 à 720, sauf 0.",
+    "shiftCrosses": "Cet élément commencerait alors avant le précédent. Décalez-le moins, ou déplacez-le."
   },
   "error": {
     "title": "Le déroulé n'a pas pu être chargé",

@@ -22,12 +22,25 @@ erna op": chips −15, +5, +15, +30 min and a custom whole number of minutes (�
 refused in place). Once a step is chosen it lists every item that moves, the old time struck
 through and the new one beside it, wrapped on the 24-hour clock. One button, "N onderdelen
 verschuiven", counts this item and every one after it **by position** in the same day, and
-`shiftRunSheetTimes` moves exactly those in one statement (`starts_at + interval`, which wraps
+`shiftRunSheetTimes` moves exactly those in one transaction (`starts_at + interval`, which wraps
 like the sheet's own midnight reading); length and order never change, and other days are not
 touched. It is its own action, not part of Save, and the sheet stays open afterwards with the
 start field updated and "N onderdelen verschoven" in a status line, so unsaved edits in the form
-survive. A shift can make the sheet read a new midnight rollover (14:30 moved to 13:30 after a
-14:00 reads as `+1`); the preview shows bare times and does not predict that.
+survive.
+
+*(Amended 2026-10-02, batch B review.)* The sentence that stood here -- "a shift can make the
+sheet read a new midnight rollover (14:30 moved to 13:30 after a 14:00 reads as `+1`); the
+preview does not predict that" -- described a bug, not a choice: the whole rest of the day then
+read as the next day. A backward shift that would start the item **before** the one above it is
+now refused, in the sheet before the press (the button is disabled, the field is invalid, and
+"Dan begint dit onderdeel vóór het vorige. Verschuif minder ver of verplaats het." stands under
+it, with the preview still shown) and in the repo as `shiftCrossesPrevious`. The gap to the item
+above is read modulo a day, as the sheet reads it, so 00:30 after 23:50 may come back 40 minutes
+and no further. An **equal** start is allowed: it is two things at once, which the sheet already
+reads as the same day. A forward shift, wrapping past midnight or not, is always allowed. The
+first item of a day has nothing above it and may move anywhere. And the shift writes the order
+it read as positions before it moves a time, so rows that shared a position (the seed's) no
+longer re-sort by their new clocks -- a tail moved past midnight used to jump to the top.
 
 ## Behaviour
 

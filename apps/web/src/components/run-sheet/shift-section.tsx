@@ -7,7 +7,12 @@ import { InlineError } from '@guestnote/ui/inline-error'
 import { useTranslations } from 'next-intl'
 import { useId, useState, useTransition } from 'react'
 import { shiftRunSheetFrom } from '../../app/pro/(app)/weddings/[id]/run-sheet/actions.ts'
-import { parseShiftMinutes, type RunSheetError, shiftPreview } from '../../lib/run-sheet.ts'
+import {
+  parseShiftMinutes,
+  type RunSheetError,
+  shiftCrossesPrevious,
+  shiftPreview,
+} from '../../lib/run-sheet.ts'
 import { Hint } from '../money/form-bits.tsx'
 
 /** The common slips, in the order a planner reaches for them (spec 0009 B2). */
@@ -54,7 +59,16 @@ export function ShiftSection({
   // The count is known before a delta is: it is "this and everything after", whatever the step.
   const count = shiftPreview(items, itemId, 0).length
   const preview = delta === null ? [] : shiftPreview(items, itemId, delta)
-  const invalid = (text.trim() !== '' && delta === null) || error === 'shift'
+  // A backward shift past the item above is refused before the press, with the same rule the
+  // repo applies; the preview stays on show, so the planner sees which time is the problem.
+  const crosses = delta !== null && shiftCrossesPrevious(items, itemId, delta)
+  const fieldError: RunSheetError | null =
+    (text.trim() !== '' && delta === null) || error === 'shift'
+      ? 'shift'
+      : crosses || error === 'shiftCrosses'
+        ? 'shiftCrosses'
+        : null
+  const invalid = fieldError !== null
   if (count === 0) return null
 
   const choose = (value: string) => {
@@ -115,7 +129,7 @@ export function ShiftSection({
         errorId="item-shift-error"
       />
       <Hint id="item-shift-hint">{t('customHint')}</Hint>
-      {invalid && <InlineError id="item-shift-error">{te('shift')}</InlineError>}
+      {fieldError && <InlineError id="item-shift-error">{te(fieldError)}</InlineError>}
 
       {preview.length > 0 && (
         <ul aria-label={t('preview')} className="mt-4 space-y-1.5 text-sm">
@@ -138,7 +152,7 @@ export function ShiftSection({
         <Button
           variant="secondary"
           onClick={shift}
-          disabled={delta === null}
+          disabled={delta === null || crosses}
           busy={pending}
           busyLabel={t('submitting')}
         >

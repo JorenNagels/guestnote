@@ -407,15 +407,67 @@ describe('shiftRunSheetTimes (spec 0009 B2)', () => {
   })
 
   it('wraps backwards too, and an assigned member may shift', async () => {
-    const r = await shiftRunSheetTimes(WeddingScope.of(h.db, member, F.orgA, A1), LAST, -60)
-    expect(r).toEqual({ ok: true, value: { id: LAST, moved: 1 } })
+    const r = await shiftRunSheetTimes(WeddingScope.of(h.db, member, F.orgA, A1), CAKE, -60)
+    expect(r).toEqual({ ok: true, value: { id: CAKE, moved: 2 } })
+    expect(await clocks()).toEqual([
+      'Ceremony 15:30',
+      'Dinner 19:00',
+      'Cake 22:50',
+      'Last song 23:30',
+      'Brunch 20:00',
+    ])
+  })
+
+  it('refuses a backward shift that starts the item before the one above it, and allows a tie', async () => {
+    const scope = WeddingScope.of(h.db, owner, F.orgA, A1)
+    // Dinner 19:00 to 14:55 would sit under a 15:30 ceremony, and the clock would read the
+    // whole tail as the next day. Nothing moves.
+    expect(await shiftRunSheetTimes(scope, DINNER, -245)).toEqual({
+      ok: false,
+      reason: 'shiftCrossesPrevious',
+    })
+    // Across midnight the gap is the 40 minutes it reads as, not -1400: 00:30 may come back to
+    // the cake's 23:50 and no further.
+    expect(await shiftRunSheetTimes(scope, LAST, -41)).toEqual({
+      ok: false,
+      reason: 'shiftCrossesPrevious',
+    })
     expect(await clocks()).toEqual([
       'Ceremony 15:30',
       'Dinner 19:00',
       'Cake 23:50',
-      'Last song 23:30',
+      'Last song 00:30',
       'Brunch 20:00',
     ])
+
+    // An equal start is two things at once, which the sheet already reads as the same day.
+    expect((await shiftRunSheetTimes(scope, LAST, -40)).ok).toBe(true)
+    expect((await shiftRunSheetTimes(scope, DINNER, -210)).ok).toBe(true)
+    expect(await clocks()).toEqual([
+      'Ceremony 15:30',
+      'Dinner 15:30',
+      'Cake 20:20',
+      'Last song 20:20',
+      'Brunch 20:00',
+    ])
+  })
+
+  it('pins the order on tied positions, so a tail shifted past midnight stays where it was', async () => {
+    // The seed's shape: every row at position 0, so the clock breaks the tie and 00:30 reads
+    // first. Shifting Dinner by five hours puts it at 00:00, which a clock tie-break would sort
+    // to the top; the shift must write the order it read before it moves a time.
+    await seedExec(`update run_sheet_items set position = 0 where event_id = $1`, [F.eventA1])
+    const scope = WeddingScope.of(h.db, owner, F.orgA, A1)
+    const r = await shiftRunSheetTimes(scope, DINNER, 300)
+    expect(r).toEqual({ ok: true, value: { id: DINNER, moved: 2 } })
+    const day = ((await getRunSheet(scope))?.items ?? []).filter((i) => i.eventId === F.eventA1)
+    expect(day.map((i) => `${i.title} ${i.startsAt}`)).toEqual([
+      'Last song 00:30',
+      'Ceremony 15:30',
+      'Dinner 00:00',
+      'Cake 04:50',
+    ])
+    expect(day.map((i) => i.position)).toEqual([0, 1, 2, 3])
   })
 
   it('cuts the tail by reading order when the rows share a position', async () => {
@@ -453,7 +505,7 @@ describe('shiftRunSheetTimes (spec 0009 B2)', () => {
       F.runItemA1,
       30,
     )
-    expect(own.ok).toBe(false)
+    expect(own).toEqual({ ok: false, reason: 'itemNotFound' })
     expect((await clocks())[0]).toBe('Ceremony 15:30')
     expect(await clocks(A2)).toEqual(['First dance 21:00'])
   })

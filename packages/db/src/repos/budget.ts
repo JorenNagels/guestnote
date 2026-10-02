@@ -212,7 +212,27 @@ export async function updateBudgetLine(
 
   return withTenant(db, principal, async (tx): Promise<MoneyResult> => {
     if (!(await readMoneyContext(tx, weddingId))) return fail('notFound')
-    if (input.weddingVendorId && !(await vendorExists(tx, weddingId, input.weddingVendorId))) {
+    // An unchanged vendor is not re-checked, the rule `updateRunSheetItem` follows: the vendor
+    // may have been removed from the wedding since, and refusing would lock every other edit to
+    // the line -- an in-place amount save sends the vendor back as it was (spec 0009 B3).
+    // Rejected: dropping the vendor from the line on save, which would rewrite history the
+    // planner did not touch.
+    const [current] = await tx
+      .select({ weddingVendorId: budgetLines.weddingVendorId })
+      .from(budgetLines)
+      .where(
+        and(
+          eq(budgetLines.id, lineId),
+          eq(budgetLines.weddingId, weddingId),
+          isNull(budgetLines.deletedAt),
+        ),
+      )
+    if (!current) return fail('lineNotFound')
+    if (
+      input.weddingVendorId &&
+      input.weddingVendorId !== current.weddingVendorId &&
+      !(await vendorExists(tx, weddingId, input.weddingVendorId))
+    ) {
       return fail('vendorNotFound')
     }
     // `weddingId` is in the where, not just the id: an unpinned owner's principal is org-wide, so

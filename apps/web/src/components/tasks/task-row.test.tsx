@@ -8,6 +8,27 @@ vi.mock('../../app/pro/(app)/weddings/[id]/tasks/actions.ts', () => ({
   setTaskDoneAction: (...a: unknown[]) => setTaskDoneAction(...a),
 }))
 
+// `scroll` is a prop the real Link keeps to itself: it decides what the router does on a click,
+// and jsdom has no router and no scrolling to observe. The stub prints it, so what is asserted
+// is that the row asks for the right thing; that Next honours `scroll={false}` is Next's.
+vi.mock('next/link', () => ({
+  default: ({
+    href,
+    scroll,
+    children,
+    className,
+  }: {
+    href: string
+    scroll?: boolean
+    children: React.ReactNode
+    className?: string
+  }) => (
+    <a href={href} data-scroll={String(scroll)} className={className}>
+      {children}
+    </a>
+  ),
+}))
+
 const { TaskRowView } = await import('./task-row.tsx')
 
 const TODAY = '2027-03-10'
@@ -33,6 +54,26 @@ describe('TaskRowView', () => {
       '/weddings/w1/tasks/t1',
     )
     expect(screen.getByText('Planner')).toBeInTheDocument()
+  })
+
+  it('keeps the scroll for the checklist panel link, and scrolls to the top for the task page', () => {
+    view({ id: 't1', weddingId: 'w1' })
+    expect(screen.getByRole('link', { name: /Book the DJ/ })).toHaveAttribute('data-scroll', 'true')
+
+    render(
+      <WithMessages>
+        <ul>
+          <TaskRowView
+            task={task({ id: 't2', title: 'Order flowers', weddingId: 'w1' })}
+            today={TODAY}
+            href="/weddings/w1/tasks?task=t2"
+          />
+        </ul>
+      </WithMessages>,
+    )
+    const panel = screen.getByRole('link', { name: /Order flowers/ })
+    expect(panel).toHaveAttribute('href', '/weddings/w1/tasks?task=t2')
+    expect(panel).toHaveAttribute('data-scroll', 'false')
   })
 
   it('shows an overdue date with the words, not only a colour', () => {

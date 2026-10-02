@@ -67,12 +67,14 @@ type ViewProps = {
   mainDay: { label: string; date: string | null }
   studioName: string
   locale: string
+  selectedEventId: string | null
+  items: { id: string; eventId: string }[]
 }
 
-async function renderPage(): Promise<ViewProps> {
+async function renderPage(query: { event?: string | string[] } = {}): Promise<ViewProps> {
   const el = await RunSheetPage({
     params: Promise.resolve({ id: WID }),
-    searchParams: Promise.resolve({}),
+    searchParams: Promise.resolve(query),
   })
   return el.props as ViewProps
 }
@@ -108,6 +110,28 @@ describe('the run-sheet page', () => {
     // `locale_default` is free text; asking next-intl for `de` would find no messages at all.
     getRunSheet.mockResolvedValue({ locale: 'de', items: [], vendors: [], owners: [] })
     expect((await renderPage()).mainDay.label).toBe('Trouwdag')
+  })
+
+  it("hands the view the selected event's items only, the first event when none is asked for", async () => {
+    // `getRunSheet` reads every event of the wedding in one round trip; the page cuts it.
+    listWeddingEvents.mockResolvedValue([{ id: 'e1' }, { id: 'e2' }])
+    getRunSheet.mockResolvedValue({
+      locale: 'nl',
+      items: [
+        { id: 'a', eventId: 'e1' },
+        { id: 'b', eventId: 'e2' },
+        { id: 'c', eventId: 'e1' },
+      ],
+      vendors: [],
+      owners: [],
+    })
+    const second = await renderPage({ event: 'e2' })
+    expect(second.selectedEventId).toBe('e2')
+    expect(second.items.map((i) => i.id)).toEqual(['b'])
+
+    const first = await renderPage()
+    expect(first.selectedEventId).toBe('e1')
+    expect(first.items.map((i) => i.id)).toEqual(['a', 'c'])
   })
 
   it('names the studio the request is in, not the first one the user belongs to', async () => {

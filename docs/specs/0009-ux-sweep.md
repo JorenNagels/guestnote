@@ -97,6 +97,10 @@ digests, guest list) are **not** in this spec; each needs its own `/feature`.
 - It moves this item and every item after it **by position** in the same event, in one
   transaction. Times wrap past midnight (the sheet already reads an earlier time after a later one
   as the next day); length and order do not change.
+- *(Amended 2026-10-02, batch B review.)* A backward shift that would start the item before the
+  one above it is refused -- the sheet would read the rest of the day as the next one -- with
+  "Dan begint dit onderdeel vóór het vorige. Verschuif minder ver of verplaats het." An equal
+  start is allowed; so is every forward shift.
 
 ### B3. The budget reads like a sheet (report 10)
 

@@ -96,6 +96,8 @@ export type RunSheetFailure =
   | 'vendorNotFound'
   | 'itemNotFound'
   | 'ownerNotFound'
+  /** A backward shift would start the item before the one above it (spec 0009 B2). */
+  | 'shiftCrossesPrevious'
 
 export type RunSheetResult = Result<{ readonly id: string }, RunSheetFailure>
 
@@ -492,8 +494,43 @@ export async function moveRunSheetItem(
 export const RUN_SHEET_MAX_SHIFT_MIN = 720
 
 /**
+ * Whether shifting an item that starts at `first` by `deltaMin` would put it before `before`, the
+ * item above it -- read the way the sheet reads it, where an earlier clock after a later one is
+ * the next day. The tail moves together, so the gap between `before` and `first` is the only one
+ * a shift changes; if it went negative, the 24-hour clock would read the rest of the day as `+1`
+ * (`firstRolloverIndex`), which is not what the planner meant by "start 20 minutes earlier".
+ *
+ * The gap is measured modulo a day, so a pair that already crosses midnight (23:30 then 00:10)
+ * has a gap of 40 and not -1400. A forward shift only widens it, so a wrap past midnight is
+ * always allowed. An equal start is allowed: two items starting together is how the sheet
+ * already reads a tie (strict `<` in `firstRolloverIndex`), and it is a real plan -- the
+ * photographer and the videographer both at 14:00. A forward shift that pushes the gap past a
+ * whole day is not caught here: no sheet can say that today (a gap of 24 hours or more reads as
+ * less on every row, not just a shifted one), and it takes an item already 12 hours after the
+ * one above it.
+ *
+ * `apps/web/src/lib/run-sheet.ts` holds the same rule for the preview, because a client file may
+ * import only types from this package.
+ */
+export function shiftCrossesPrevious(before: string, first: string, deltaMin: number): boolean {
+  const a = clockMinutes(before)
+  const b = clockMinutes(first)
+  if (a === null || b === null) return false
+  const gap = (((b - a) % DAY_MIN) + DAY_MIN) % DAY_MIN
+  return gap + deltaMin < 0
+}
+
+const DAY_MIN = 24 * 60
+
+/** Minutes after midnight for `HH:MM` (or `HH:MM:SS`), or `null` for anything else. */
+function clockMinutes(clock: string): number | null {
+  const m = /^(\d{2}):(\d{2})/.exec(clock)
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null
+}
+
+/**
  * "The ceremony starts 20 minutes late": moves `itemId` and every item after it in the same event
- * by `deltaMin` minutes, in one statement (spec 0009 B2). The answer is how many rows moved.
+ * by `deltaMin` minutes, in one transaction (spec 0009 B2). The answer is how many rows moved.
  *
  * "After" is by `position`, the reading order, and not by the clock: on a sheet that runs past
  * midnight, 00:30 comes after 23:00, and a clock comparison would leave it behind. Order and
@@ -505,6 +542,11 @@ export const RUN_SHEET_MAX_SHIFT_MIN = 720
  * sheet's own reading (`schema/events.ts`), so 23:50 + 15 is 00:05 and the list marks it `+1`.
  * The arithmetic stays in SQL so a read-modify-write cannot race a concurrent edit of the same
  * row between the select and the update.
+ *
+ * A backward shift that would start the item before the one above it is refused with
+ * `shiftCrossesPrevious` (the rule is on that function): the rows would keep their order, but the
+ * clock would read the whole tail as the next day. The first item of an event has nothing above
+ * it and may move anywhere.
  *
  * The item is read under the transaction for THIS wedding first (the parent-read rule): the
  * org-wide owner's policy admits a sibling wedding's row, and `itemNotFound` is the answer for it.
@@ -539,9 +581,22 @@ export async function shiftRunSheetTimes(
 
     // The tail is cut from the read order and not from `position >= this one's`: the seed's rows
     // all share position 0, and `ORDER`'s tie-break is what decides which of them come after.
-    const order = (await slotsOf(tx, weddingId, eventId)).map((s) => s.id)
-    const tail = order.slice(order.indexOf(itemId))
+    const slots = await slotsOf(tx, weddingId, eventId)
+    const order = slots.map((s) => s.id)
+    const at = order.indexOf(itemId)
+    const tail = order.slice(at)
 
+    const before = slots[at - 1]
+    const first = slots[at]
+    if (before && first && shiftCrossesPrevious(before.startsAt, first.startsAt, deltaMin)) {
+      return fail('shiftCrossesPrevious')
+    }
+
+    // Pin the order BEFORE the times move. On tied positions the order is decided by `startsAt`,
+    // so a tail shifted past midnight would otherwise sort to the top of the list on the next
+    // read -- the order would change, which is the one thing a shift promises it does not do.
+    // Rejected: a `position >=` cut plus no rewrite, which is only right once no ties remain.
+    await writeOrder(tx, weddingId, order, positions(slots))
     await tx
       .update(runSheetItems)
       .set({

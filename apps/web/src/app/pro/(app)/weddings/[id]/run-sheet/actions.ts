@@ -37,6 +37,7 @@ function refusal(reason: RunSheetFailure): RunSheetError {
   if (reason === 'eventNotFound') return 'event'
   if (reason === 'vendorNotFound') return 'vendor'
   if (reason === 'ownerNotFound') return 'owner'
+  if (reason === 'shiftCrossesPrevious') return 'shiftCrosses'
   return 'notFound'
 }
 

@@ -271,6 +271,45 @@ describe('BudgetView', () => {
       expect(document.activeElement).toBe(button)
     })
 
+    it('a line with no spent amount and no vendor sends both back empty, not as zero or a stray id', async () => {
+      view([line({ id: 'b', label: 'Flowers', category: 'Decor', estimateCents: 50_000 })])
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Change the allocated amount of Flowers' }),
+      )
+      const input = screen.getByLabelText('Allocated amount of Flowers')
+      fireEvent.change(input, { target: { value: '600' } })
+      fireEvent.keyDown(input, { key: 'Enter' })
+      await waitFor(() => expect(saveBudgetLine).toHaveBeenCalledTimes(1))
+      expect(saveBudgetLine).toHaveBeenCalledWith(W, 'b', {
+        category: 'Decor',
+        label: 'Flowers',
+        estimate: '600',
+        actual: '',
+        weddingVendorId: '',
+      })
+    })
+
+    it('leaving for another control keeps focus there, saved or unchanged', async () => {
+      view([castle()])
+      const spent = screen.getByRole('button', { name: 'Change the spent amount of Castle' })
+
+      // Unchanged: the planner clicked the amount, then moved on without typing.
+      fireEvent.click(screen.getByRole('button', { name: 'Change the allocated amount of Castle' }))
+      act(() => spent.focus())
+      expect(screen.queryByLabelText('Allocated amount of Castle')).toBeNull()
+      expect(document.activeElement).toBe(spent)
+
+      // Changed: the blur saves, and the save's return must not pull focus back to this amount.
+      fireEvent.click(screen.getByRole('button', { name: 'Change the allocated amount of Castle' }))
+      fireEvent.change(screen.getByLabelText('Allocated amount of Castle'), {
+        target: { value: '1300' },
+      })
+      await act(async () => spent.focus())
+      await waitFor(() => expect(saveBudgetLine).toHaveBeenCalledTimes(1))
+      await waitFor(() => expect(screen.queryByLabelText('Allocated amount of Castle')).toBeNull())
+      expect(document.activeElement).toBe(spent)
+    })
+
     it('says it is saving while the action runs, and leaving then is not a second save', async () => {
       let finish: (v: { ok: true }) => void = () => {}
       saveBudgetLine.mockReturnValue(
