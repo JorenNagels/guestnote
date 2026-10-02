@@ -24,7 +24,21 @@ Nothing here contradicts spec 0003. Prototype range: `design-system/planner-prot
   Lines group by category. A category row shows its lines' count, a spent bar and a paid bar, allocated
   and spent. Click a category to open its lines. A line is: category, label, estimate, actual (optional),
   vendor (optional). A line whose actual is above its estimate says "over" with the difference.
-- Add and edit a line in a side sheet. Delete asks once, in the sheet. Deleting a line hides it, and its
+  *(Amended 2026-10-02, spec 0009 B3: every category starts open, including one that appears after
+  a save; the view tracks the categories the planner closed. One text button above the table,
+  **Alles dichtklappen**, closes them all, and reads **Alles openklappen** while any is shut. Each
+  category toggle keeps its own `aria-expanded`.)*
+- Add and edit a line in a side sheet. Delete asks once, in the sheet.
+  *(Amended 2026-10-02, spec 0009 B3: a line's allocated and spent amounts are also edited where
+  they stand (`inline-amount.tsx`). The amount is a button, "Toegekend bedrag van {label}
+  wijzigen", described by the amount it shows; it becomes an input holding `centsToInput` of the
+  value. Enter or leaving the field saves, Escape puts the button back without saving, and an
+  unchanged value writes nothing. Spent may be emptied (no final amount yet). It calls the same
+  `saveBudgetLine` with the line's other fields as the page read them, so there is no second
+  action to authorise; the cost is the sheet's own, a concurrent change to another field is
+  written back. While saving the input is read-only and says "Opslaan…"; a refused value keeps
+  the input and the draft with the error under it. The totals follow from `revalidateMoney`.
+  Everything else on a line is still edited in the sheet.)* Deleting a line hides it, and its
   payments with it (the line is soft-deleted; nothing is destroyed).
 - **Vendor picker** lists this wedding's `wedding_vendors` by vendor name. S3 fills them; until then it is
   empty and the field says so. A line stores the `wedding_vendor_id`, and the server reads that row under

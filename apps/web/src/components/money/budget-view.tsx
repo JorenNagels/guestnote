@@ -1,7 +1,7 @@
 'use client'
 
 import type { BudgetLine, BudgetPayment, VendorOption } from '@guestnote/db'
-import { Button } from '@guestnote/ui/button'
+import { Button, LinkButton } from '@guestnote/ui/button'
 import { Card } from '@guestnote/ui/card'
 import {
   Table,
@@ -13,7 +13,16 @@ import {
 } from '@guestnote/ui/table'
 import { useTranslations } from 'next-intl'
 import { Fragment, useState } from 'react'
-import { budgetTotals, formatCents, groupByCategory, moneyLocale } from '../../lib/money.ts'
+import { saveBudgetLine } from '../../app/pro/(app)/weddings/[id]/budget/actions.ts'
+import {
+  budgetTotals,
+  centsToInput,
+  formatCents,
+  groupByCategory,
+  moneyLocale,
+} from '../../lib/money.ts'
+import type { MoneyError } from '../../lib/money-types.ts'
+import { InlineAmount } from './inline-amount.tsx'
 import { LineSheet } from './line-sheet.tsx'
 import { MoneySwitch } from './money-switch.tsx'
 
@@ -39,7 +48,11 @@ export function BudgetView({
   vendors: VendorOption[]
 }) {
   const t = useTranslations('app.money.budget')
-  const [open, setOpen] = useState<ReadonlySet<string>>(new Set())
+  // The categories the planner CLOSED, not the ones open (spec 0009 B3: every category starts
+  // open, because a budget is read like a sheet, top to bottom). Tracking the closed ones means a
+  // category that appears after a save -- a new line in a new category -- arrives open too; an
+  // `open` set seeded from today's categories would leave it shut.
+  const [closed, setClosed] = useState<ReadonlySet<string>>(new Set())
   const [sheet, setSheet] = useState<SheetState>(null)
 
   const eur = (cents: number) => formatCents(cents, locale)
@@ -53,13 +66,39 @@ export function BudgetView({
   const paidTotal = groups.reduce((sum, g) => sum + g.paidCents, 0)
   const categories = groups.map((g) => g.category)
 
+  const allOpen = categories.every((c) => !closed.has(c))
+
   const toggle = (category: string) =>
-    setOpen((prev) => {
+    setClosed((prev) => {
       const next = new Set(prev)
       if (next.has(category)) next.delete(category)
       else next.add(category)
       return next
     })
+
+  /**
+   * One amount saved from the table. It reuses `saveBudgetLine` with the line's other fields as
+   * this page last read them, rather than a narrower "set one amount" action: one action means one
+   * parse and one authorisation path for a line, not two to keep in step. The cost is the sheet's
+   * own: a field someone else changed since this page loaded is written back as it was here.
+   */
+  const saveAmount =
+    (line: BudgetLine, field: 'estimate' | 'actual') =>
+    async (draft: string): Promise<MoneyError | null> => {
+      const result = await saveBudgetLine(weddingId, line.id, {
+        category: line.category,
+        label: line.label,
+        estimate: field === 'estimate' ? draft : centsToInput(line.estimateCents, locale),
+        actual:
+          field === 'actual'
+            ? draft
+            : line.actualCents === null
+              ? ''
+              : centsToInput(line.actualCents, locale),
+        weddingVendorId: line.weddingVendorId ?? '',
+      })
+      return result.ok ? null : result.error
+    }
 
   return (
     <div className="mx-auto max-w-5xl px-6 pt-6 pb-8">
@@ -109,7 +148,15 @@ export function BudgetView({
             />
           </dl>
 
-          <div className="mt-5">
+          <div className="mt-5 flex justify-end">
+            <LinkButton
+              onClick={() => setClosed(allOpen ? new Set(categories) : new Set())}
+              className="h-9 px-3"
+            >
+              {allOpen ? t('collapseAll') : t('expandAll')}
+            </LinkButton>
+          </div>
+          <div className="mt-1">
             <Table caption={t('tableCaption')}>
               <TableHead>
                 <tr>
@@ -123,7 +170,7 @@ export function BudgetView({
               </TableHead>
               <TableBody>
                 {groups.map((g) => {
-                  const expanded = open.has(g.category)
+                  const expanded = !closed.has(g.category)
                   const over = g.totals.remainingCents < 0
                   const spentShare = share(g.totals.spentCents, g.totals.allocatedCents)
                   const paidShare = share(g.paidCents, g.totals.allocatedCents)
@@ -250,7 +297,14 @@ export function BudgetView({
                               </TableCell>
                               <TableCell className="hidden sm:table-cell" />
                               <TableCell numeric className="text-muted-foreground text-[12.5px]">
-                                {eur(line.estimateCents)}
+                                <InlineAmount
+                                  buttonLabel={t('editAllocated', { label: line.label })}
+                                  inputLabel={t('allocatedOf', { label: line.label })}
+                                  initial={centsToInput(line.estimateCents, locale)}
+                                  save={saveAmount(line, 'estimate')}
+                                >
+                                  {eur(line.estimateCents)}
+                                </InlineAmount>
                               </TableCell>
                               <TableCell
                                 numeric
@@ -258,18 +312,31 @@ export function BudgetView({
                                   above ? 'text-st-alert-fg text-[12.5px]' : 'text-[12.5px]'
                                 }
                               >
-                                {line.actualCents === null ? (
-                                  <span
-                                    role="img"
-                                    aria-label={t('noActual')}
-                                    title={t('noActual')}
-                                    className="text-muted-foreground"
-                                  >
-                                    –
-                                  </span>
-                                ) : (
-                                  eur(line.actualCents)
-                                )}
+                                <InlineAmount
+                                  buttonLabel={t('editSpent', { label: line.label })}
+                                  inputLabel={t('spentOf', { label: line.label })}
+                                  initial={
+                                    line.actualCents === null
+                                      ? ''
+                                      : centsToInput(line.actualCents, locale)
+                                  }
+                                  save={saveAmount(line, 'actual')}
+                                >
+                                  {line.actualCents === null ? (
+                                    <>
+                                      <span
+                                        aria-hidden="true"
+                                        title={t('noActual')}
+                                        className="text-muted-foreground"
+                                      >
+                                        –
+                                      </span>
+                                      <span className="sr-only">{t('noActual')}</span>
+                                    </>
+                                  ) : (
+                                    eur(line.actualCents)
+                                  )}
+                                </InlineAmount>
                               </TableCell>
                             </tr>
                           )

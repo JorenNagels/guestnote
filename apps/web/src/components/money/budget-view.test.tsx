@@ -1,5 +1,5 @@
 import type { BudgetLine, BudgetPayment } from '@guestnote/db'
-import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { BudgetView } from './budget-view.tsx'
 import { renderWithCopy } from './test-support.tsx'
@@ -104,7 +104,11 @@ describe('BudgetView', () => {
     expect(screen.getByText('€300.00 over budget')).toBeTruthy()
   })
 
-  it('a category opens onto its lines, with vendor and the difference from the estimate', () => {
+  /**
+   * Spec 0009 B3: every category starts open, so the lines are on show without a click, and the
+   * category's own toggle still closes it and says so in `aria-expanded`.
+   */
+  it('every category starts open on its lines, with vendor and the difference from the estimate', () => {
     view([
       line({
         id: 'a',
@@ -113,15 +117,40 @@ describe('BudgetView', () => {
         actualCents: 130_000,
         vendorName: 'Kasteel Ooidonk',
       }),
+      line({ id: 'b', label: 'Roses', category: 'Flowers' }),
     ])
-    expect(screen.queryByText('Castle')).toBeNull()
-    const toggle = screen.getByRole('button', { name: 'Show or hide the lines of Venue' })
-    expect(toggle.getAttribute('aria-expanded')).toBe('false')
-    fireEvent.click(toggle)
-    expect(toggle.getAttribute('aria-expanded')).toBe('true')
     expect(screen.getByText('Castle')).toBeTruthy()
+    expect(screen.getByText('Roses')).toBeTruthy()
     expect(screen.getByText(/Kasteel Ooidonk/)).toBeTruthy()
     expect(screen.getByText(/€300\.00 above the estimate/)).toBeTruthy()
+    const toggle = screen.getByRole('button', { name: 'Show or hide the lines of Venue' })
+    expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    fireEvent.click(toggle)
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByText('Castle')).toBeNull()
+    expect(screen.getByText('Roses')).toBeTruthy()
+  })
+
+  it('one control above the table closes every category, then opens them all again', () => {
+    view([
+      line({ id: 'a', label: 'Castle' }),
+      line({ id: 'b', label: 'Roses', category: 'Flowers' }),
+    ])
+    const toggles = () =>
+      screen
+        .getAllByRole('button', { name: /^Show or hide/ })
+        .map((b) => b.getAttribute('aria-expanded'))
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse all' }))
+    expect(toggles()).toEqual(['false', 'false'])
+    expect(screen.queryByText('Castle')).toBeNull()
+    expect(screen.queryByText('Roses')).toBeNull()
+    // The label says what the next click will do: with anything still shut, that is opening.
+    fireEvent.click(screen.getByRole('button', { name: 'Show or hide the lines of Flowers' }))
+    expect(screen.queryByRole('button', { name: 'Collapse all' })).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Expand all' }))
+    expect(toggles()).toEqual(['true', 'true'])
+    expect(screen.getByText('Castle')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Collapse all' })).toBeTruthy()
   })
 
   it('paid is counted only from payments that were paid', () => {
@@ -171,7 +200,6 @@ describe('BudgetView', () => {
 
   it('editing starts from the saved amounts, and delete asks once before it acts', async () => {
     view([line({ id: 'a', label: 'Castle', estimateCents: 123_450, actualCents: 5 })])
-    fireEvent.click(screen.getByRole('button', { name: 'Show or hide the lines of Venue' }))
     fireEvent.click(screen.getByRole('button', { name: 'Edit Castle' }))
     expect((screen.getByLabelText('Allocated amount (€)') as HTMLInputElement).value).toBe(
       '1234.50',
@@ -195,5 +223,153 @@ describe('BudgetView', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add a line' }))
     expect(screen.getByRole('option', { name: 'Kasteel Ooidonk' })).toBeTruthy()
     expect(screen.queryByText(/No vendors on this wedding yet/)).toBeNull()
+  })
+
+  describe('amounts edited where they stand (spec 0009 B3)', () => {
+    const castle = () =>
+      line({
+        id: 'a',
+        label: 'Castle',
+        category: 'Venue',
+        estimateCents: 123_450,
+        actualCents: 100_000,
+        weddingVendorId: 'v1',
+        vendorName: 'Kasteel Ooidonk',
+      })
+    const describedBy = (el: HTMLElement) =>
+      document.getElementById(el.getAttribute('aria-describedby') ?? '')?.textContent
+
+    it('the amount is a button naming the line, and becomes an input holding the value to type', () => {
+      view([castle()])
+      const button = screen.getByRole('button', { name: 'Change the allocated amount of Castle' })
+      // The amount stays readable to a screen reader, as the button's description.
+      expect(describedBy(button)).toBe('€1,234.50')
+      fireEvent.click(button)
+      const input = screen.getByLabelText('Allocated amount of Castle') as HTMLInputElement
+      expect(input.value).toBe('1234.50')
+      expect(document.activeElement).toBe(input)
+      expect(screen.queryByRole('dialog')).toBeNull()
+    })
+
+    it('Enter saves the whole line, the other fields unchanged, and puts the button back', async () => {
+      view([castle()])
+      fireEvent.click(screen.getByRole('button', { name: 'Change the allocated amount of Castle' }))
+      const input = screen.getByLabelText('Allocated amount of Castle')
+      fireEvent.change(input, { target: { value: '1.500,00' } })
+      fireEvent.keyDown(input, { key: 'Enter' })
+      await waitFor(() => expect(saveBudgetLine).toHaveBeenCalledTimes(1))
+      expect(saveBudgetLine).toHaveBeenCalledWith(W, 'a', {
+        category: 'Venue',
+        label: 'Castle',
+        estimate: '1.500,00',
+        actual: '1000.00',
+        weddingVendorId: 'v1',
+      })
+      const button = await screen.findByRole('button', {
+        name: 'Change the allocated amount of Castle',
+      })
+      expect(document.activeElement).toBe(button)
+    })
+
+    it('says it is saving while the action runs, and leaving then is not a second save', async () => {
+      let finish: (v: { ok: true }) => void = () => {}
+      saveBudgetLine.mockReturnValue(
+        new Promise((r) => {
+          finish = r
+        }),
+      )
+      view([castle()])
+      fireEvent.click(screen.getByRole('button', { name: 'Change the spent amount of Castle' }))
+      const input = screen.getByLabelText('Spent amount of Castle')
+      fireEvent.change(input, { target: { value: '900' } })
+      fireEvent.keyDown(input, { key: 'Enter' })
+      expect((await screen.findByRole('status')).textContent).toBe('Saving…')
+      expect(input.getAttribute('aria-busy')).toBe('true')
+      // The planner clicks elsewhere mid-save: the input is still there, and its blur is not a
+      // second write of the same draft.
+      fireEvent.blur(input)
+      expect(saveBudgetLine).toHaveBeenCalledTimes(1)
+      await act(async () => finish({ ok: true }))
+      expect(screen.queryByRole('status')).toBeNull()
+      expect(screen.queryByLabelText('Spent amount of Castle')).toBeNull()
+    })
+
+    it('Escape puts the amount back without saving', () => {
+      view([castle()])
+      fireEvent.click(screen.getByRole('button', { name: 'Change the allocated amount of Castle' }))
+      const input = screen.getByLabelText('Allocated amount of Castle')
+      fireEvent.change(input, { target: { value: '9' } })
+      // A browser may fire blur as the focused input is removed; jsdom does not, and a blur on a
+      // detached node never reaches React. One outer `act` holds the re-render back, so the blur
+      // lands while the input is still mounted -- the case the `settled` ref exists for.
+      act(() => {
+        fireEvent.keyDown(input, { key: 'Escape' })
+        fireEvent.blur(input)
+      })
+      expect(screen.queryByLabelText('Allocated amount of Castle')).toBeNull()
+      expect(saveBudgetLine).not.toHaveBeenCalled()
+      expect(document.activeElement).toBe(
+        screen.getByRole('button', { name: 'Change the allocated amount of Castle' }),
+      )
+    })
+
+    it('leaving the field saves it', async () => {
+      view([castle()])
+      fireEvent.click(screen.getByRole('button', { name: 'Change the spent amount of Castle' }))
+      const input = screen.getByLabelText('Spent amount of Castle')
+      fireEvent.change(input, { target: { value: '1100' } })
+      fireEvent.blur(input)
+      await waitFor(() => expect(saveBudgetLine).toHaveBeenCalledTimes(1))
+      expect(saveBudgetLine.mock.calls[0]?.[2]).toMatchObject({
+        estimate: '1234.50',
+        actual: '1100',
+      })
+      await waitFor(() => expect(screen.queryByLabelText('Spent amount of Castle')).toBeNull())
+    })
+
+    it('leaving an unchanged field writes nothing', () => {
+      view([castle()])
+      fireEvent.click(screen.getByRole('button', { name: 'Change the spent amount of Castle' }))
+      fireEvent.blur(screen.getByLabelText('Spent amount of Castle'))
+      expect(screen.queryByLabelText('Spent amount of Castle')).toBeNull()
+      expect(saveBudgetLine).not.toHaveBeenCalled()
+    })
+
+    it('spent may be emptied: no final amount yet', async () => {
+      view([castle()])
+      fireEvent.click(screen.getByRole('button', { name: 'Change the spent amount of Castle' }))
+      const input = screen.getByLabelText('Spent amount of Castle')
+      fireEvent.change(input, { target: { value: '' } })
+      fireEvent.keyDown(input, { key: 'Enter' })
+      await waitFor(() => expect(saveBudgetLine).toHaveBeenCalledTimes(1))
+      expect(saveBudgetLine.mock.calls[0]?.[2]).toMatchObject({ estimate: '1234.50', actual: '' })
+    })
+
+    it('an empty spent amount opens as an empty input, and is described as not yet known', () => {
+      view([line({ id: 'a', label: 'Castle' })])
+      const button = screen.getByRole('button', { name: 'Change the spent amount of Castle' })
+      expect(describedBy(button)).toContain('No final amount yet')
+      fireEvent.click(button)
+      expect((screen.getByLabelText('Spent amount of Castle') as HTMLInputElement).value).toBe('')
+    })
+
+    it('a refused value keeps the input and the draft, and says why under it', async () => {
+      saveBudgetLine.mockResolvedValue({ ok: false, error: 'estimate' })
+      view([castle()])
+      fireEvent.click(screen.getByRole('button', { name: 'Change the allocated amount of Castle' }))
+      const input = screen.getByLabelText('Allocated amount of Castle') as HTMLInputElement
+      fireEvent.change(input, { target: { value: '-4' } })
+      fireEvent.keyDown(input, { key: 'Enter' })
+      const alert = await screen.findByRole('alert')
+      expect(alert.textContent).toContain('Enter an amount')
+      expect(screen.getByLabelText('Allocated amount of Castle')).toBe(input)
+      expect(input.value).toBe('-4')
+      expect(input.getAttribute('aria-invalid')).toBe('true')
+      expect(input.getAttribute('aria-describedby')).toBe(alert.id)
+      // Still open for the fix: the next Enter is a second try, not swallowed.
+      fireEvent.change(input, { target: { value: '4' } })
+      fireEvent.keyDown(input, { key: 'Enter' })
+      await waitFor(() => expect(saveBudgetLine).toHaveBeenCalledTimes(2))
+    })
   })
 })
