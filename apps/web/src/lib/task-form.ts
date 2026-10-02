@@ -19,6 +19,13 @@ export type TaskFormValues = {
   title: string
   notes: string
   assigneeRole: TaskAssigneeRole
+  /**
+   * The staff member a planner task goes to (spec 0009 C1), or `''` to leave it to the repo: a new
+   * task then goes to whoever saves it, an edit keeps who has it. Ignored when the owner is the
+   * couple. One field beside `assigneeRole`, not a union of the two, because the pills post one
+   * value and a form state is a bag of strings until `parseTaskForm` makes it an input.
+   */
+  assigneeUserId: string
   visibility: TaskVisibility
   dueKind: 'none' | 'offset' | 'date'
   /** A whole number as typed, always non-negative. The direction is `offsetDirection`. */
@@ -30,7 +37,8 @@ export type TaskFormValues = {
   date: string
 }
 
-export type TaskFormError = 'title' | 'notes' | 'offset' | 'date' | 'anchorGone'
+/** `owner` is an assignee who is not, or no longer, staff on this wedding (spec 0009 C1). */
+export type TaskFormError = 'title' | 'notes' | 'owner' | 'offset' | 'date' | 'anchorGone'
 
 /** One entry in the "Telt vanaf" select: a live event of this wedding. */
 export type TaskAnchorOption = { id: string; label: string; startsOn: string }
@@ -46,6 +54,7 @@ export const EMPTY_FORM: TaskFormValues = {
   title: '',
   notes: '',
   assigneeRole: 'planner',
+  assigneeUserId: '',
   visibility: 'shared',
   dueKind: 'none',
   offsetDays: '',
@@ -78,6 +87,16 @@ export function parseTaskForm(
   const notes = typeof v.notes === 'string' ? v.notes.trim() : ''
   if (notes.length > NOTES_MAX) return { ok: false, error: 'notes' }
 
+  const assigneeRole = v.assigneeRole === 'couple' ? 'couple' : 'planner'
+  // Shape only, as for the anchor below: whether this person is staff on THIS wedding is the
+  // repo's read, the check that holds for a hand-built POST. A couple task drops it, because the
+  // repo refuses to build a couple task that names a user.
+  const assignee =
+    assigneeRole === 'planner' && typeof v.assigneeUserId === 'string'
+      ? v.assigneeUserId.trim()
+      : ''
+  if (assignee !== '' && !isUuid(assignee)) return { ok: false, error: 'owner' }
+
   let due: TaskDue = { kind: 'none' }
   if (v.dueKind === 'offset') {
     const days = offsetFromForm(
@@ -105,7 +124,8 @@ export function parseTaskForm(
       // Anything that is not the literal 'internal' is shared: the wire can send any string, and
       // the column has a CHECK, so an unknown value would otherwise surface as a database error.
       visibility: v.visibility === 'internal' ? 'internal' : 'shared',
-      assigneeRole: v.assigneeRole === 'couple' ? 'couple' : 'planner',
+      assigneeRole,
+      ...(assignee === '' ? {} : { assigneeUserId: assignee }),
       due,
     },
   }
@@ -117,6 +137,7 @@ export function formFromTask(task: {
   notes: string | null
   visibility: TaskVisibility
   assigneeRole: TaskAssigneeRole | null
+  assigneeUserId: string | null
   dueOffsetDays: number | null
   anchorEventId?: string | null
   dueDate: string | null
@@ -127,6 +148,7 @@ export function formFromTask(task: {
     notes: task.notes ?? '',
     visibility: task.visibility,
     assigneeRole: task.assigneeRole ?? 'planner',
+    assigneeUserId: task.assigneeRole === 'couple' ? '' : (task.assigneeUserId ?? ''),
   }
   if (task.dueOffsetDays !== null) {
     return {

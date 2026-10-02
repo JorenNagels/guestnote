@@ -13,12 +13,19 @@ vi.mock('../../app/pro/(app)/weddings/[id]/tasks/actions.ts', () => ({
 const { Checklist } = await import('./checklist.tsx')
 
 const TODAY = '2027-03-10'
+const ME = '018f0000-0000-7000-8000-0000000000d1'
+const BEN = '018f0000-0000-7000-8000-0000000000d2'
 const show = (tasks: ReturnType<typeof task>[], filter: Filter = 'all') =>
   render(
     <WithMessages>
       <Checklist
         weddingId="w1"
         weddingDate="2027-06-12"
+        staff={[
+          { id: ME, name: 'Anna' },
+          { id: BEN, name: 'Ben' },
+        ]}
+        viewerId={ME}
         tasks={tasks}
         filter={filter}
         today={TODAY}
@@ -115,6 +122,42 @@ describe('Checklist', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Annuleren' }))
     expect(screen.queryByRole('form', { name: 'Nieuwe taak' })).toBeNull()
     expect(screen.getByRole('textbox', { name: 'Taak toevoegen' })).toHaveValue('Book the DJ')
+  })
+
+  describe('Mijn taken (spec 0009 C1)', () => {
+    const team = [
+      task({ id: 'm1', title: 'Mine open', assigneeUserId: ME }),
+      task({ id: 'm2', title: 'Mine done', assigneeUserId: ME, status: 'done' }),
+      task({ id: 'b1', title: 'Ben open', assigneeUserId: BEN }),
+      task({ id: 'c1', title: 'Couple open', assigneeRole: 'couple', assigneeUserId: null }),
+    ]
+
+    it("shows only the viewer's own tasks, done ones included, and counts them", () => {
+      show(team, 'mine')
+      const nav = screen.getByRole('navigation', { name: 'Filter' })
+      const mine = within(nav).getByRole('link', { name: /Mijn taken/ })
+      expect(mine).toHaveTextContent('2')
+      expect(mine).toHaveAttribute('aria-current', 'page')
+      expect(mine).toHaveAttribute('href', '/weddings/w1/tasks?filter=mine')
+      expect(screen.getByText('Mine open')).toBeInTheDocument()
+      expect(screen.getByText('Mine done')).toBeInTheDocument()
+      expect(screen.queryByText('Ben open')).toBeNull()
+      expect(screen.queryByText('Couple open')).toBeNull()
+    })
+
+    it('counts the viewer only, whichever filter is open', () => {
+      show(team)
+      const nav = screen.getByRole('navigation', { name: 'Filter' })
+      expect(within(nav).getByRole('link', { name: /Mijn taken/ })).toHaveTextContent('2')
+      expect(within(nav).getByRole('link', { name: /Alles/ })).toHaveTextContent('4')
+    })
+
+    it('starts the full form on the viewer, from the team it was given', () => {
+      show(team)
+      fireEvent.click(screen.getByRole('button', { name: 'Meer opties…' }))
+      expect(screen.getByRole('radio', { name: 'Anna (jij)' })).toBeChecked()
+      expect(screen.getByRole('radio', { name: 'Ben' })).not.toBeChecked()
+    })
   })
 
   it('opens a task beside the list, keeping the filter', () => {

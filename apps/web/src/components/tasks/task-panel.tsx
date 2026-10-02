@@ -1,6 +1,6 @@
 'use client'
 
-import type { TaskCommentRow, TaskRow } from '@guestnote/db'
+import type { TaskAssignee, TaskCommentRow, TaskRow } from '@guestnote/db'
 import { Sheet } from '@guestnote/ui/sheet'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
@@ -32,6 +32,8 @@ export function TaskPanel({
   coupleUserIds,
   weddingDate,
   events,
+  staff,
+  viewerId,
   today,
   closeHref,
 }: {
@@ -40,6 +42,8 @@ export function TaskPanel({
   coupleUserIds: readonly string[]
   weddingDate: string | null
   events: readonly TaskAnchorOption[]
+  staff: readonly TaskAssignee[]
+  viewerId: string
   today: string
   /** The checklist as it was behind the panel: the same filter, no `task`. */
   closeHref: string
@@ -58,7 +62,15 @@ export function TaskPanel({
       title={t('panel.title')}
       closeLabel={t('panel.close')}
     >
-      <TaskDetail task={task} weddingDate={weddingDate} events={events} today={today} inPanel />
+      <TaskDetail
+        task={task}
+        weddingDate={weddingDate}
+        events={events}
+        staff={staff}
+        viewerId={viewerId}
+        today={today}
+        inPanel
+      />
       <Comments
         weddingId={task.weddingId}
         taskId={task.id}

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { EMPTY_FORM, type TaskFormValues } from '../../lib/task-form.ts'
 import { WithMessages } from './intl.test-util.tsx'
@@ -14,12 +14,19 @@ const { TaskForm } = await import('./task-form.tsx')
 
 const onDone = vi.fn()
 const onCancel = vi.fn()
+const ME = '018f0000-0000-7000-8000-0000000000d1'
+const BEN = '018f0000-0000-7000-8000-0000000000d2'
+const STAFF = [
+  { id: ME, name: 'Anna' },
+  { id: BEN, name: 'Ben' },
+]
 const form = (
   props: {
     weddingDate?: string | null
     initial?: TaskFormValues
     taskId?: string
     events?: { id: string; label: string; startsOn: string }[]
+    currentAssignee?: { id: string; name: string } | null
   } = {},
 ) =>
   render(
@@ -30,6 +37,9 @@ const form = (
         weddingDate={props.weddingDate === undefined ? '2027-06-12' : props.weddingDate}
         initial={props.initial ?? EMPTY_FORM}
         events={props.events ?? []}
+        staff={STAFF}
+        viewerId={ME}
+        currentAssignee={props.currentAssignee ?? null}
         onDone={onDone}
         onCancel={onCancel}
       />
@@ -103,7 +113,11 @@ describe('TaskForm', () => {
     type('Taak', 'New')
     fireEvent.click(screen.getByRole('button', { name: 'Taak bewaren' }))
     await waitFor(() =>
-      expect(updateTaskAction).toHaveBeenCalledWith('w1', 't9', { ...EMPTY_FORM, title: 'New' }),
+      expect(updateTaskAction).toHaveBeenCalledWith('w1', 't9', {
+        ...EMPTY_FORM,
+        title: 'New',
+        assigneeUserId: ME,
+      }),
     )
     expect(createTaskAction).not.toHaveBeenCalled()
   })
@@ -113,6 +127,90 @@ describe('TaskForm', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Annuleren' }))
     expect(onCancel).toHaveBeenCalled()
     expect(createTaskAction).not.toHaveBeenCalled()
+  })
+
+  describe('the owner is a person on the team (spec 0009 C1)', () => {
+    const owners = () =>
+      within(screen.getByRole('group', { name: 'Eigenaar' })).getAllByRole('radio')
+    const save = () => fireEvent.click(screen.getByRole('button', { name: 'Taak bewaren' }))
+
+    it('offers one pill per staff member and Koppel, and a new task starts on the viewer', () => {
+      form()
+      expect(owners().map((r) => r.closest('label')?.textContent)).toEqual([
+        'Anna (jij)',
+        'Ben',
+        'Koppel',
+      ])
+      expect(screen.getByRole('radio', { name: 'Anna (jij)' })).toBeChecked()
+    })
+
+    it('gives the task to the colleague picked', async () => {
+      form({ initial: { ...EMPTY_FORM, title: 'Florist' } })
+      fireEvent.click(screen.getByRole('radio', { name: 'Ben' }))
+      save()
+      await waitFor(() => expect(onDone).toHaveBeenCalled())
+      expect(createTaskAction).toHaveBeenCalledWith('w1', {
+        ...EMPTY_FORM,
+        title: 'Florist',
+        assigneeRole: 'planner',
+        assigneeUserId: BEN,
+      })
+    })
+
+    it('sends no person with a couple task, even after one was picked', async () => {
+      form({ initial: { ...EMPTY_FORM, title: 'Vows' } })
+      fireEvent.click(screen.getByRole('radio', { name: 'Ben' }))
+      fireEvent.click(screen.getByRole('radio', { name: 'Koppel' }))
+      save()
+      await waitFor(() => expect(onDone).toHaveBeenCalled())
+      expect(createTaskAction).toHaveBeenCalledWith('w1', {
+        ...EMPTY_FORM,
+        title: 'Vows',
+        assigneeRole: 'couple',
+        assigneeUserId: '',
+      })
+    })
+
+    it('keeps the current assignee chosen when editing, not the viewer', () => {
+      form({
+        taskId: 't9',
+        initial: { ...EMPTY_FORM, title: 'Cake', assigneeUserId: BEN },
+        currentAssignee: { id: BEN, name: 'Ben' },
+      })
+      expect(screen.getByRole('radio', { name: 'Ben' })).toBeChecked()
+      expect(owners()).toHaveLength(3)
+    })
+
+    it('shows an assignee who has left the wedding, by name, and keeps them on save', async () => {
+      const GONE = '018f0000-0000-7000-8000-0000000000d9'
+      form({
+        taskId: 't9',
+        initial: { ...EMPTY_FORM, title: 'Cake', assigneeUserId: GONE },
+        currentAssignee: { id: GONE, name: 'Cas' },
+      })
+      expect(screen.getByRole('radio', { name: 'Cas' })).toBeChecked()
+      save()
+      await waitFor(() =>
+        expect(updateTaskAction).toHaveBeenCalledWith('w1', 't9', {
+          ...EMPTY_FORM,
+          title: 'Cake',
+          assigneeUserId: GONE,
+        }),
+      )
+    })
+
+    it('says to pick someone on the team when the server refuses the person', async () => {
+      createTaskAction.mockResolvedValue({ ok: false, error: 'owner' })
+      form({ initial: { ...EMPTY_FORM, title: 'Florist' } })
+      save()
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'Kies iemand van het team dat aan deze bruiloft werkt.',
+      )
+      expect(screen.getByRole('group', { name: 'Eigenaar' })).toHaveAttribute(
+        'aria-invalid',
+        'true',
+      )
+    })
   })
 
   describe('counting from another day (spec 0004)', () => {
@@ -134,7 +232,11 @@ describe('TaskForm', () => {
       fireEvent.change(screen.getByLabelText('Telt vanaf'), { target: { value: 'e1' } })
       fireEvent.click(screen.getByRole('button', { name: 'Taak bewaren' }))
       await waitFor(() => expect(onDone).toHaveBeenCalled())
-      expect(createTaskAction).toHaveBeenCalledWith('w1', { ...offset, anchorEventId: 'e1' })
+      expect(createTaskAction).toHaveBeenCalledWith('w1', {
+        ...offset,
+        anchorEventId: 'e1',
+        assigneeUserId: ME,
+      })
     })
 
     it('says where to add days when the wedding has no events', () => {

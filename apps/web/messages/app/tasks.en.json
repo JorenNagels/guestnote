@@ -15,6 +15,7 @@
   "filtersLabel": "Filter",
   "filters": {
     "all": "All",
+    "mine": "My tasks",
     "open": "Open",
     "overdue": "Overdue",
     "internal": "Internal",
@@ -71,6 +72,7 @@
     "titlePlaceholder": "What needs doing?",
     "notes": "Notes",
     "owner": "Owner",
+    "ownerMe": "{name} (you)",
     "visibility": "Visibility",
     "dueHeading": "Due",
     "dueNone": "No date",
@@ -94,6 +96,7 @@
   "errors": {
     "title": "Give the task a title of at most 200 characters.",
     "notes": "The notes are too long (4000 characters at most).",
+    "owner": "Pick someone on the team who works on this wedding.",
     "offset": "Enter a number of days, a whole number up to 3650.",
     "date": "Pick a valid date.",
     "comment": "Write a comment of at most 4000 characters.",

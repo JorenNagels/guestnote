@@ -192,7 +192,7 @@ describe('a run-sheet row owner', () => {
     expect(ids((await getRunSheet(WeddingScope.of(h.db, owner, F.orgA, A2)))?.owners)).toEqual(
       [F.staffA, F.staffDual].sort(),
     )
-    // Cannot discriminate `eligibleOwners`' `assignedStaff` branch: without it the org-wide query
+    // Cannot discriminate `eligibleWeddingStaff`' `assignedStaff` branch: without it the org-wide query
     // runs under the member's pinned principal, and RLS (`own_memberships`) returns their own rows
     // and nobody else's -- the same answer. Measured 2026-09-24 by deleting the branch. The branch
     // stays so the repo does not lean on the policy alone for who a member may name.

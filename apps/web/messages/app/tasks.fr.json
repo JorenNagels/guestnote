@@ -15,6 +15,7 @@
   "filtersLabel": "Filtre",
   "filters": {
     "all": "Tout",
+    "mine": "Mes tâches",
     "open": "Ouvertes",
     "overdue": "En retard",
     "internal": "Interne",
@@ -71,6 +72,7 @@
     "titlePlaceholder": "Que faut-il faire ?",
     "notes": "Notes",
     "owner": "Responsable",
+    "ownerMe": "{name} (vous)",
     "visibility": "Visibilité",
     "dueHeading": "Échéance",
     "dueNone": "Sans date",
@@ -94,6 +96,7 @@
   "errors": {
     "title": "Donnez un titre à la tâche, de 200 caractères au plus.",
     "notes": "Les notes sont trop longues (4000 caractères au plus).",
+    "owner": "Choisissez quelqu'un de l'équipe qui travaille sur ce mariage.",
     "offset": "Indiquez un nombre de jours, un entier jusqu'à 3650.",
     "date": "Choisissez une date valide.",
     "comment": "Écrivez un commentaire de 4000 caractères au plus.",

@@ -1,5 +1,6 @@
 'use client'
 
+import type { TaskAssignee } from '@guestnote/db'
 import { Button } from '@guestnote/ui/button'
 import { Field } from '@guestnote/ui/field'
 import { InlineError } from '@guestnote/ui/inline-error'
@@ -33,6 +34,9 @@ export function TaskForm({
   taskId,
   weddingDate,
   events = [],
+  staff,
+  viewerId,
+  currentAssignee = null,
   initial,
   onDone,
   onCancel,
@@ -43,6 +47,12 @@ export function TaskForm({
   weddingDate: string | null
   /** The wedding's live events, date order: what an offset may count from besides the main day. */
   events?: readonly TaskAnchorOption[]
+  /** Who a task can be given to: `listTaskAssignees`, the run sheet's owner list (spec 0009 C1). */
+  staff: readonly TaskAssignee[]
+  /** The signed-in user: the default owner of a new task, and the one marked "(jij)". */
+  viewerId: string
+  /** The task's assignee when editing, so one `staff` no longer lists can still be shown. */
+  currentAssignee?: TaskAssignee | null
   initial: TaskFormValues
   onDone: () => void
   onCancel: () => void
@@ -50,7 +60,14 @@ export function TaskForm({
   const t = useTranslations('app.tasks')
   const format = useFormatter()
   const uid = useId()
-  const [values, setValues] = useState(initial)
+  // A planner task with nobody named yet -- a new one, or one from "Meer opties…" -- starts on the
+  // signed-in user, which is who the repo would give it to anyway; the pill makes that visible
+  // instead of leaving the owner to be discovered after saving.
+  const [values, setValues] = useState(() =>
+    initial.assigneeRole === 'planner' && initial.assigneeUserId === ''
+      ? { ...initial, assigneeUserId: viewerId }
+      : initial,
+  )
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
   const set = <K extends keyof TaskFormValues>(key: K, value: TaskFormValues[K]) =>
@@ -58,6 +75,20 @@ export function TaskForm({
 
   const errorId = `${uid}-error`
   const editing = taskId !== undefined
+
+  // An assignee `staff` does not list is kept as a pill of its own, by name, as the run sheet keeps
+  // its owner: somebody taken off the wedding, or a colleague a `member` cannot name. Saving an
+  // unrelated field then leaves them on the task, and the repo checks only a change. Not labelled
+  // as having left: for a `member` it is usually a colleague who has not.
+  const kept =
+    currentAssignee && !staff.some((s) => s.id === currentAssignee.id) ? [currentAssignee] : []
+  const owners: ReadonlyArray<readonly [string, string]> = [
+    ...[...staff, ...kept].map(
+      (s) => [s.id, s.id === viewerId ? t('form.ownerMe', { name: s.name }) : s.name] as const,
+    ),
+    [COUPLE, t('row.couple')],
+  ]
+  const owner = values.assigneeRole === 'couple' ? COUPLE : values.assigneeUserId
 
   // The resolved date is shown while typing: an offset alone ("-42") tells a planner nothing
   // until it is a date on a calendar.
@@ -125,12 +156,17 @@ export function TaskForm({
         <Choice
           legend={t('form.owner')}
           name={`${uid}-owner`}
-          value={values.assigneeRole}
-          onChange={(v) => set('assigneeRole', v)}
-          options={[
-            ['planner', t('row.planner')],
-            ['couple', t('row.couple')],
-          ]}
+          value={owner}
+          onChange={(v) =>
+            setValues((prev) =>
+              v === COUPLE
+                ? { ...prev, assigneeRole: 'couple', assigneeUserId: '' }
+                : { ...prev, assigneeRole: 'planner', assigneeUserId: v },
+            )
+          }
+          options={owners}
+          invalid={error === 'owner'}
+          errorId={errorId}
         />
         <Choice
           legend={t('form.visibility')}
@@ -249,6 +285,12 @@ export function TaskForm({
 }
 
 /**
+ * The couple's pill in the owner group, beside the staff ids. Not a uuid, so it cannot collide with
+ * one; the form maps it back to `assigneeRole: 'couple'` before anything is posted.
+ */
+const COUPLE = 'couple'
+
+/**
  * A radio group drawn as a row of pills. Native radios, visually hidden, so the arrow keys, the
  * group name and the `checked` state all come from the browser rather than from ARIA written by
  * hand here.
@@ -260,6 +302,8 @@ function Choice<V extends string>({
   value,
   onChange,
   options,
+  invalid = false,
+  errorId,
 }: {
   legend: string
   legendHidden?: boolean
@@ -267,9 +311,11 @@ function Choice<V extends string>({
   value: V
   onChange: (value: V) => void
   options: ReadonlyArray<readonly [V, string]>
+  invalid?: boolean
+  errorId?: string
 }) {
   return (
-    <fieldset>
+    <fieldset aria-invalid={invalid || undefined} aria-describedby={invalid ? errorId : undefined}>
       <legend className={legendHidden ? 'sr-only' : 'mb-1.5 text-sm font-medium'}>{legend}</legend>
       <div className="flex flex-wrap gap-1.5">
         {options.map(([optionValue, text]) => (

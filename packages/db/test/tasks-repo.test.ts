@@ -6,6 +6,7 @@ import {
   createTasks,
   getTask,
   listAssignedTasks,
+  listTaskAssignees,
   listTaskComments,
   listTasks,
   type Memberships,
@@ -334,5 +335,105 @@ describe('listAssignedTasks', () => {
   it('leaves out done tasks', async () => {
     await completeTask(WeddingScope.of(h.db, member, F.orgA, F.weddingA1), F.taskA1Shared, true)
     expect(await listAssignedTasks(h.db, member, F.orgA)).toEqual([])
+  })
+})
+
+describe('giving a task to a person on the team (spec 0009 C1)', () => {
+  const a1 = () => WeddingScope.of(h.db, owner, F.orgA, F.weddingA1)
+  const ids = (xs: { id: string }[]) => xs.map((x) => x.id).sort()
+
+  it('offers the same people as the run sheet: owners, admins and assigned members', async () => {
+    expect(ids(await listTaskAssignees(a1()))).toEqual([F.staffA, F.staffDual, F.memberA].sort())
+    // memberA is not assigned to A2, so not offered there.
+    expect(ids(await listTaskAssignees(WeddingScope.of(h.db, owner, F.orgA, F.weddingA2)))).toEqual(
+      [F.staffA, F.staffDual].sort(),
+    )
+    expect(
+      ids(await listTaskAssignees(WeddingScope.of(h.db, member, F.orgA, F.weddingA1))),
+    ).toEqual([F.memberA])
+    expect(await listTaskAssignees(WeddingScope.of(h.db, couple, F.orgA, F.weddingA1))).toEqual([])
+  })
+
+  it('creates a task for a staff member, which then shows in their Today', async () => {
+    const t = unwrap(
+      await createTask(a1(), { title: 'Call the florist', assigneeUserId: F.memberA }),
+    )
+    expect(t).toMatchObject({ assigneeUserId: F.memberA, assigneeName: 'member@a.test' })
+    expect(titles(await listAssignedTasks(h.db, member, F.orgA))).toContain('Call the florist')
+  })
+
+  it('refuses a user who is not staff, another org, and a member not on this wedding', async () => {
+    for (const [weddingId, taskId, who] of [
+      [F.weddingA1, F.taskA1Shared, F.coupleA1],
+      [F.weddingA1, F.taskA1Shared, F.staffB],
+      [F.weddingA2, F.taskA2Shared, F.memberA],
+    ] as const) {
+      const scope = WeddingScope.of(h.db, owner, F.orgA, weddingId)
+      expect(await createTask(scope, { title: 'Nope', assigneeUserId: who })).toEqual({
+        ok: false,
+        reason: 'assigneeNotFound',
+      })
+      expect(
+        await updateTask(scope, taskId, { assigneeRole: 'planner', assigneeUserId: who }),
+      ).toEqual({ ok: false, reason: 'assigneeNotFound' })
+    }
+  })
+
+  it('refuses the whole batch when one item names somebody off the wedding', async () => {
+    const before = (await listTasks(a1())).length
+    expect(
+      await createTasks(a1(), [
+        { title: 'Fine', assigneeUserId: F.memberA },
+        { title: 'Not fine', assigneeUserId: F.staffB },
+      ]),
+    ).toEqual({ ok: false, reason: 'assigneeNotFound' })
+    expect(await listTasks(a1())).toHaveLength(before)
+  })
+
+  it('reassigns on update, and checks only a change', async () => {
+    const t = unwrap(await createTask(a1(), { title: 'Seating', assigneeRole: 'planner' }))
+    const id = t?.id ?? ''
+    const moved = unwrap(
+      await updateTask(a1(), id, { assigneeRole: 'planner', assigneeUserId: F.memberA }),
+    )
+    expect(moved?.assigneeUserId).toBe(F.memberA)
+    unwrap(await updateTask(a1(), id, { assigneeRole: 'planner', assigneeUserId: F.staffA }))
+    // A member can name only themselves, yet saves a colleague's task without changing who has it.
+    const asMember = WeddingScope.of(h.db, member, F.orgA, F.weddingA1)
+    const edited = unwrap(
+      await updateTask(asMember, id, {
+        title: 'Seating plan',
+        assigneeRole: 'planner',
+        assigneeUserId: F.staffA,
+      }),
+    )
+    expect(edited).toMatchObject({ title: 'Seating plan', assigneeUserId: F.staffA })
+    expect(
+      await updateTask(asMember, id, { assigneeRole: 'planner', assigneeUserId: F.staffDual }),
+    ).toEqual({ ok: false, reason: 'assigneeNotFound' })
+  })
+
+  it('keeps an assignee who has left the wedding until somebody else is chosen', async () => {
+    const t = unwrap(await createTask(a1(), { title: 'Menu', assigneeUserId: F.memberA }))
+    await seedExec('delete from wedding_members where user_id = $1 and wedding_id = $2', [
+      F.memberA,
+      F.weddingA1,
+    ])
+    const kept = unwrap(
+      await updateTask(a1(), t?.id ?? '', {
+        title: 'Menu tasting',
+        assigneeRole: 'planner',
+        assigneeUserId: F.memberA,
+      }),
+    )
+    expect(kept).toMatchObject({ title: 'Menu tasting', assigneeUserId: F.memberA })
+  })
+
+  it('leaves a couple task with no user, and will not build one that has both', async () => {
+    const t = unwrap(await createTask(a1(), { title: 'Vows', assigneeRole: 'couple' }))
+    expect(t?.assigneeUserId).toBeNull()
+    await expect(
+      createTask(a1(), { title: 'Vows', assigneeRole: 'couple', assigneeUserId: F.staffA }),
+    ).rejects.toThrow(/assigned to no user/)
   })
 })

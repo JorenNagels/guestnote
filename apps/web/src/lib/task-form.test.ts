@@ -65,6 +65,28 @@ describe('parseTaskForm', () => {
     })
   })
 
+  describe('the assignee (spec 0009 C1)', () => {
+    const U = '0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5c'
+
+    it('passes a picked person on a planner task, and nothing when none was picked', () => {
+      expect(ok({ assigneeUserId: U })).toMatchObject({
+        input: { assigneeRole: 'planner', assigneeUserId: U },
+      })
+      const none = ok({ assigneeUserId: '' })
+      expect(none.ok && 'assigneeUserId' in none.input).toBe(false)
+    })
+
+    it('drops the person from a couple task, which the repo would refuse to build', () => {
+      const r = ok({ assigneeRole: 'couple', assigneeUserId: U })
+      expect(r).toMatchObject({ ok: true, input: { assigneeRole: 'couple' } })
+      expect(r.ok && 'assigneeUserId' in r.input).toBe(false)
+    })
+
+    it('refuses a malformed id before it can reach the uuid cast', () => {
+      expect(ok({ assigneeUserId: 'x' })).toEqual({ ok: false, error: 'owner' })
+    })
+  })
+
   it('refuses a body that is not an object', () => {
     expect(parseTaskForm(null)).toEqual({ ok: false, error: 'title' })
     expect(parseTaskForm('x')).toEqual({ ok: false, error: 'title' })
@@ -78,7 +100,13 @@ describe('offsetFromForm', () => {
 })
 
 describe('formFromTask', () => {
-  const base = { title: 'T', notes: null, visibility: 'internal', assigneeRole: 'couple' } as const
+  const base = {
+    title: 'T',
+    notes: null,
+    visibility: 'internal',
+    assigneeRole: 'couple',
+    assigneeUserId: null,
+  } as const
 
   it('round-trips an offset, a fixed date and no date', () => {
     expect(formFromTask({ ...base, dueOffsetDays: -14, dueDate: '2027-05-01' })).toMatchObject({
@@ -97,6 +125,19 @@ describe('formFromTask', () => {
       date: '2027-05-01',
     })
     expect(formFromTask({ ...base, dueOffsetDays: null, dueDate: null }).dueKind).toBe('none')
+  })
+
+  it('reads the assignee back for a planner task, and none for a couple task', () => {
+    const U = '0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5c'
+    const none = { dueOffsetDays: null, dueDate: null }
+    expect(
+      formFromTask({ ...base, ...none, assigneeRole: 'planner', assigneeUserId: U }).assigneeUserId,
+    ).toBe(U)
+    expect(formFromTask({ ...base, ...none, assigneeUserId: U }).assigneeUserId).toBe('')
+    expect(
+      formFromTask({ ...base, ...none, assigneeRole: 'planner', assigneeUserId: null })
+        .assigneeUserId,
+    ).toBe('')
   })
 })
 
@@ -125,7 +166,13 @@ describe('the anchor (spec 0004)', () => {
   })
 
   it('reads the anchor back into the edit form', () => {
-    const base = { title: 'x', notes: null, visibility: 'shared', assigneeRole: 'planner' } as const
+    const base = {
+      title: 'x',
+      notes: null,
+      visibility: 'shared',
+      assigneeRole: 'planner',
+      assigneeUserId: null,
+    } as const
     expect(
       formFromTask({ ...base, dueOffsetDays: -14, dueDate: '2027-07-02', anchorEventId: E })
         .anchorEventId,

@@ -3,6 +3,8 @@ import { addDays, bucketOf, daysBetween, filterCounts, groupTasks, parseFilter }
 import { task } from './fixture.ts'
 
 const TODAY = '2027-03-10'
+const ME = '018f0000-0000-7000-8000-0000000000me'
+const COLLEAGUE = '018f0000-0000-7000-8000-0000000000co'
 
 describe('bucketOf', () => {
   it('puts yesterday in overdue and today in soon', () => {
@@ -31,8 +33,9 @@ describe('bucketOf', () => {
 })
 
 describe('parseFilter', () => {
-  it('accepts the five names and falls back to all', () => {
+  it('accepts the six names and falls back to all', () => {
     expect(parseFilter('overdue')).toBe('overdue')
+    expect(parseFilter('mine')).toBe('mine')
     expect(parseFilter('internal')).toBe('internal')
     expect(parseFilter('nonsense')).toBe('all')
     expect(parseFilter(undefined)).toBe('all')
@@ -46,16 +49,20 @@ describe('filterCounts', () => {
     task({ id: 'a', dueDate: '2027-03-01' }),
     task({ id: 'b', dueDate: '2027-04-01', visibility: 'internal' }),
     task({ id: 'c', status: 'done', dueDate: '2027-03-01', visibility: 'internal' }),
-    task({ id: 'd', dueDate: null }),
+    task({ id: 'd', dueDate: null, assigneeUserId: COLLEAGUE }),
+    task({ id: 'e', dueDate: null, assigneeUserId: ME, status: 'done' }),
+    task({ id: 'f', dueDate: null, assigneeUserId: ME }),
   ]
 
   it('counts the whole wedding per filter', () => {
-    expect(filterCounts(tasks, TODAY)).toEqual({
-      all: 4,
-      open: 3,
+    expect(filterCounts(tasks, TODAY, ME)).toEqual({
+      all: 6,
+      // Done ones too: 'e' is finished and still the viewer's.
+      mine: 2,
+      open: 4,
       overdue: 1,
       internal: 2,
-      shared: 2,
+      shared: 4,
     })
   })
 })
@@ -70,27 +77,40 @@ describe('groupTasks', () => {
   ]
 
   it('orders the buckets and drops the empty ones', () => {
-    expect(groupTasks(tasks, 'all', TODAY).map((g) => g.bucket)).toEqual([
+    expect(groupTasks(tasks, 'all', TODAY, ME).map((g) => g.bucket)).toEqual([
       'overdue',
       'soon',
       'later',
       'undated',
       'done',
     ])
-    expect(groupTasks(tasks.slice(0, 1), 'all', TODAY).map((g) => g.bucket)).toEqual(['overdue'])
+    expect(groupTasks(tasks.slice(0, 1), 'all', TODAY, ME).map((g) => g.bucket)).toEqual([
+      'overdue',
+    ])
   })
 
   it('applies the filter before grouping', () => {
-    const groups = groupTasks(tasks, 'open', TODAY)
+    const groups = groupTasks(tasks, 'open', TODAY, ME)
     expect(groups.map((g) => g.bucket)).not.toContain('done')
-    expect(groupTasks(tasks, 'overdue', TODAY).flatMap((g) => g.tasks.map((t) => t.id))).toEqual([
-      'late',
+    expect(
+      groupTasks(tasks, 'overdue', TODAY, ME).flatMap((g) => g.tasks.map((t) => t.id)),
+    ).toEqual(['late'])
+  })
+
+  it('narrows Mijn taken to the viewer, never a colleague or an unassigned task', () => {
+    const mixed = [
+      task({ id: 'mine', assigneeUserId: ME }),
+      task({ id: 'theirs', assigneeUserId: COLLEAGUE }),
+      task({ id: 'nobody', assigneeUserId: null }),
+    ]
+    expect(groupTasks(mixed, 'mine', TODAY, ME).flatMap((g) => g.tasks.map((t) => t.id))).toEqual([
+      'mine',
     ])
   })
 
   it('keeps the input order inside a bucket', () => {
     const two = [task({ id: 'x', dueDate: '2027-03-11' }), task({ id: 'y', dueDate: '2027-03-12' })]
-    expect(groupTasks(two, 'all', TODAY)[0]?.tasks.map((t) => t.id)).toEqual(['x', 'y'])
+    expect(groupTasks(two, 'all', TODAY, ME)[0]?.tasks.map((t) => t.id)).toEqual(['x', 'y'])
   })
 })
 

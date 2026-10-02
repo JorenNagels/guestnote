@@ -50,11 +50,16 @@ async function who(weddingId: string, ...ids: string[]) {
 const NOT_FOUND = { ok: false, error: 'notFound' } as const
 
 /**
- * The one write failure a planner can act on: the event the task counts from was removed while
- * the form was open (spec 0004). Everything else is the same 404 as before.
+ * The two write failures a planner can act on: the event the task counts from was removed while
+ * the form was open (spec 0004), or the person picked is not staff on this wedding -- taken off it
+ * while the form was open, or a hand-built POST (spec 0009 C1). Everything else is the same 404
+ * as before.
  */
-const writeFailure = (reason: TaskWriteFailure) =>
-  reason === 'anchorNotFound' ? ({ ok: false, error: 'anchorGone' } as const) : NOT_FOUND
+function writeFailure(reason: TaskWriteFailure) {
+  if (reason === 'anchorNotFound') return { ok: false, error: 'anchorGone' } as const
+  if (reason === 'assigneeNotFound') return { ok: false, error: 'owner' } as const
+  return NOT_FOUND
+}
 
 export async function createTaskAction(
   weddingId: string,

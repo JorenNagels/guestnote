@@ -20,7 +20,13 @@ import type { TaskRow } from '@guestnote/db'
 export const BUCKETS = ['overdue', 'soon', 'later', 'undated', 'done'] as const
 export type Bucket = (typeof BUCKETS)[number]
 
-export const FILTERS = ['all', 'open', 'overdue', 'internal', 'shared'] as const
+/**
+ * `mine` is spec 0009 C1's **Mijn taken**: tasks assigned to the signed-in user, done ones too, as
+ * every other filter here keeps them (they land in the Afgerond bucket). Second, after Alles,
+ * because it is the one a planner with a team opens most. Rejected: open only, which would make it
+ * the one filter whose count disagrees with what Alles shows for the same tasks.
+ */
+export const FILTERS = ['all', 'mine', 'open', 'overdue', 'internal', 'shared'] as const
 export type Filter = (typeof FILTERS)[number]
 
 /** How far ahead "soon" reaches, inclusive: today up to and including today + 14. */
@@ -61,10 +67,16 @@ export function parseFilter(value: unknown): Filter {
   return (FILTERS as readonly unknown[]).includes(v) ? (v as Filter) : 'all'
 }
 
-export function matchesFilter(task: TaskRow, filter: Filter, today: string): boolean {
+/**
+ * `me` is the signed-in user's id, an argument for the reason `today` is one: the page knows who
+ * is asking, and this file stays pure.
+ */
+export function matchesFilter(task: TaskRow, filter: Filter, today: string, me: string): boolean {
   switch (filter) {
     case 'all':
       return true
+    case 'mine':
+      return task.assigneeUserId === me
     case 'open':
       return isOpen(task)
     case 'overdue':
@@ -77,10 +89,21 @@ export function matchesFilter(task: TaskRow, filter: Filter, today: string): boo
 }
 
 /** Counts are always for the whole wedding, never the filtered view. */
-export function filterCounts(tasks: readonly TaskRow[], today: string): Record<Filter, number> {
-  const counts: Record<Filter, number> = { all: 0, open: 0, overdue: 0, internal: 0, shared: 0 }
+export function filterCounts(
+  tasks: readonly TaskRow[],
+  today: string,
+  me: string,
+): Record<Filter, number> {
+  const counts: Record<Filter, number> = {
+    all: 0,
+    mine: 0,
+    open: 0,
+    overdue: 0,
+    internal: 0,
+    shared: 0,
+  }
   for (const filter of FILTERS) {
-    counts[filter] = tasks.filter((t) => matchesFilter(t, filter, today)).length
+    counts[filter] = tasks.filter((t) => matchesFilter(t, filter, today, me)).length
   }
   return counts
 }
@@ -92,10 +115,15 @@ export type TaskGroup = { readonly bucket: Bucket; readonly tasks: TaskRow[] }
  * repo's `compareTasks` order, which `listTasks` already applied: this keeps it by walking the
  * input once and never sorting again.
  */
-export function groupTasks(tasks: readonly TaskRow[], filter: Filter, today: string): TaskGroup[] {
+export function groupTasks(
+  tasks: readonly TaskRow[],
+  filter: Filter,
+  today: string,
+  me: string,
+): TaskGroup[] {
   const groups = new Map<Bucket, TaskRow[]>(BUCKETS.map((b) => [b, []]))
   for (const task of tasks) {
-    if (matchesFilter(task, filter, today)) groups.get(bucketOf(task, today))?.push(task)
+    if (matchesFilter(task, filter, today, me)) groups.get(bucketOf(task, today))?.push(task)
   }
   return BUCKETS.map((bucket) => ({ bucket, tasks: groups.get(bucket) ?? [] })).filter(
     (g) => g.tasks.length > 0,

@@ -7,7 +7,8 @@ import { withTenant } from '../tenant.ts'
 import { fail, ok, type Result } from './result.ts'
 import type { WeddingScope } from './scope.ts'
 
-import { loadTask, personName, type TaskCommentRow, type TaskVisibility } from './tasks.ts'
+import { loadTask, type TaskCommentRow, type TaskVisibility } from './tasks.ts'
+import { personName } from './wedding-staff.ts'
 
 /**
  * A task's comment thread (spec 0003, S2), split out of `tasks.ts` (PR #1 review). Same callers,

@@ -15,6 +15,7 @@
   "filtersLabel": "Filter",
   "filters": {
     "all": "Alles",
+    "mine": "Mijn taken",
     "open": "Open",
     "overdue": "Te laat",
     "internal": "Intern",
@@ -71,6 +72,7 @@
     "titlePlaceholder": "Wat moet er gebeuren?",
     "notes": "Notities",
     "owner": "Eigenaar",
+    "ownerMe": "{name} (jij)",
     "visibility": "Zichtbaarheid",
     "dueHeading": "Deadline",
     "dueNone": "Geen datum",
@@ -94,6 +96,7 @@
   "errors": {
     "title": "Geef de taak een titel van hoogstens 200 tekens.",
     "notes": "De notities zijn te lang (maximaal 4000 tekens).",
+    "owner": "Kies iemand van het team dat aan deze bruiloft werkt.",
     "offset": "Vul een aantal dagen in, een geheel getal tot 3650.",
     "date": "Kies een geldige datum.",
     "comment": "Schrijf een reactie van hoogstens 4000 tekens.",

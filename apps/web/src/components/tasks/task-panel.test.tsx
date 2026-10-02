@@ -25,6 +25,8 @@ const show = () =>
         coupleUserIds={[]}
         weddingDate="2027-06-12"
         events={[]}
+        staff={[]}
+        viewerId="018f0000-0000-7000-8000-0000000000d1"
         today="2027-03-10"
         closeHref={CLOSE}
       />

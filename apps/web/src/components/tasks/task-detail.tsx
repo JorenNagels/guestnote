@@ -1,6 +1,6 @@
 'use client'
 
-import type { TaskRow } from '@guestnote/db'
+import type { TaskAssignee, TaskRow } from '@guestnote/db'
 import { Button } from '@guestnote/ui/button'
 import { InlineError } from '@guestnote/ui/inline-error'
 import { Pill } from '@guestnote/ui/pill'
@@ -28,12 +28,17 @@ export function TaskDetail({
   task,
   weddingDate,
   events = [],
+  staff,
+  viewerId,
   today,
   inPanel = false,
 }: {
   task: TaskRow
   weddingDate: string | null
   events?: readonly TaskAnchorOption[]
+  /** Who the edit form may give the task to (spec 0009 C1). */
+  staff: readonly TaskAssignee[]
+  viewerId: string
   today: string
   /**
    * Rendered in the checklist's side panel (spec 0009 B1). The panel has its own close button and
@@ -55,6 +60,11 @@ export function TaskDetail({
         taskId={task.id}
         weddingDate={weddingDate}
         events={events}
+        staff={staff}
+        viewerId={viewerId}
+        currentAssignee={
+          task.assigneeUserId ? { id: task.assigneeUserId, name: task.assigneeName ?? '' } : null
+        }
         initial={formFromTask(task)}
         onDone={() => setEditing(false)}
         onCancel={() => setEditing(false)}

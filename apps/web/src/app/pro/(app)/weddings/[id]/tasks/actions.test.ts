@@ -225,3 +225,34 @@ describe('a removed anchor (spec 0004)', () => {
     expect(revalidatePath).not.toHaveBeenCalled()
   })
 })
+
+describe('an assignee off the wedding (spec 0009 C1)', () => {
+  const STAFF = '018f0000-0000-7000-8000-0000000000b1'
+
+  it('passes the picked person to the repo, and drops it for a couple task', async () => {
+    await createTaskAction(WEDDING, { ...FORM, assigneeUserId: STAFF })
+    expect(createTask).toHaveBeenLastCalledWith(
+      expect.anything(),
+      expect.objectContaining({ assigneeRole: 'planner', assigneeUserId: STAFF }),
+    )
+    await createTaskAction(WEDDING, { ...FORM, assigneeRole: 'couple', assigneeUserId: STAFF })
+    expect(createTask.mock.lastCall?.[1]).not.toHaveProperty('assigneeUserId')
+  })
+
+  it('refuses a malformed id before the repo', async () => {
+    expect(await createTaskAction(WEDDING, { ...FORM, assigneeUserId: 'nope' })).toEqual({
+      ok: false,
+      error: 'owner',
+    })
+    expect(createTask).not.toHaveBeenCalled()
+  })
+
+  it('says to pick someone on the team when the repo refuses, and refreshes nothing', async () => {
+    createTask.mockResolvedValue({ ok: false, reason: 'assigneeNotFound' })
+    updateTask.mockResolvedValue({ ok: false, reason: 'assigneeNotFound' })
+    const form = { ...FORM, assigneeUserId: STAFF }
+    expect(await createTaskAction(WEDDING, form)).toEqual({ ok: false, error: 'owner' })
+    expect(await updateTaskAction(WEDDING, TASK, form)).toEqual({ ok: false, error: 'owner' })
+    expect(revalidatePath).not.toHaveBeenCalled()
+  })
+})

@@ -2,13 +2,17 @@ import { and, asc, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { newId } from '../id.ts'
 import { users } from '../schema/auth.ts'
 import { runSheetItems, weddingEvents } from '../schema/events.ts'
-import { orgMembers } from '../schema/orgs.ts'
 import { vendors, weddingVendors } from '../schema/vendors.ts'
-import { weddingMembers, weddings } from '../schema/weddings.ts'
-import { type MembershipPrincipal, type TenantDb, withTenant } from '../tenant.ts'
+import { weddings } from '../schema/weddings.ts'
+import { type TenantDb, withTenant } from '../tenant.ts'
 import { fail, ok, type Result } from './result.ts'
 import type { WeddingScope } from './scope.ts'
-import { personName } from './tasks.ts'
+import {
+  eligibleWeddingStaff,
+  isEligibleWeddingStaff,
+  personName,
+  type WeddingStaffMember,
+} from './wedding-staff.ts'
 
 /**
  * Slice S9 of docs/specs/0003-planner-app-screens.md: the run sheet, one list of items per event.
@@ -58,11 +62,11 @@ export type RunSheetItem = {
   readonly position: number
 }
 
-/** One entry in the owner picker: a staff member who may own a row on this wedding. */
-export type RunSheetOwner = {
-  readonly id: string
-  readonly name: string
-}
+/**
+ * One entry in the owner picker: a staff member who may own a row on this wedding. The same list
+ * the task form's assignee picker shows (`wedding-staff.ts`).
+ */
+export type RunSheetOwner = WeddingStaffMember
 
 /** One entry in the vendor picker. `id` is the `wedding_vendors` id. */
 export type RunSheetVendor = {
@@ -203,74 +207,10 @@ export async function getRunSheet(scope: WeddingScope): Promise<{
     return {
       items: rows.map((r) => ({ ...r, startsAt: r.startsAt.slice(0, 5) })),
       vendors: options,
-      owners: await eligibleOwners(tx, principal, weddingId),
+      owners: await eligibleWeddingStaff(tx, principal, weddingId),
       locale: wedding.locale,
     }
   })
-}
-
-/**
- * Who may own a row on this wedding, as far as THIS caller can know (spec 0004).
- *
- * Owner or admin: the org's owners and admins, plus every `member` with a `wedding_members` row on
- * this wedding -- readable to them through 0007's `org_staff_read`, the join `listTeam` makes.
- * A `member`: themselves only. Their transaction is pinned and RLS lets them read no one else's
- * membership, so a list of colleagues is not something this principal can build, and the spec
- * settled on "themselves or nobody" rather than a new policy or a definer function to get one.
- * That is about the picker only: the sheet itself names every row's owner, `users` having no
- * policy, the same exposure `tasks.assigneeName` already has within one wedding.
- */
-async function eligibleOwners(
-  tx: TenantDb,
-  principal: MembershipPrincipal,
-  weddingId: string,
-): Promise<RunSheetOwner[]> {
-  if (principal.kind === 'weddingMember') return []
-  if (principal.kind === 'assignedStaff') {
-    const me = await tx
-      .select({ id: users.id, name: personName })
-      .from(users)
-      .where(eq(users.id, principal.userId))
-    return me.map((r) => ({ id: r.id, name: r.name ?? '' }))
-  }
-  const rows = await tx
-    .selectDistinct({ id: users.id, name: personName })
-    .from(orgMembers)
-    .innerJoin(users, eq(users.id, orgMembers.userId))
-    .leftJoin(
-      weddingMembers,
-      // `editor` only: an assignment, not a member's own `couple` row (spec 0008).
-      and(
-        eq(weddingMembers.userId, orgMembers.userId),
-        eq(weddingMembers.weddingId, weddingId),
-        eq(weddingMembers.role, 'editor'),
-      ),
-    )
-    .where(
-      and(
-        eq(orgMembers.orgId, principal.orgId),
-        sql`(${orgMembers.role} in ('owner', 'admin') or ${weddingMembers.userId} is not null)`,
-      ),
-    )
-  return rows
-    .map((r) => ({ id: r.id, name: r.name ?? '' }))
-    .sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id))
-}
-
-/**
- * Whether `ownerUserId` may be written on a row of this wedding. `null` always may: nobody owns it.
- * The same set the picker showed, read again under the same transaction, because a Server
- * Function's arguments are whatever the client sent.
- */
-async function ownerAllowed(
-  tx: TenantDb,
-  principal: MembershipPrincipal,
-  weddingId: string,
-  ownerUserId: string | null,
-): Promise<boolean> {
-  if (ownerUserId === null) return true
-  const owners = await eligibleOwners(tx, principal, weddingId)
-  return owners.some((o) => o.id === ownerUserId)
 }
 
 async function liveWedding(tx: TenantDb, weddingId: string): Promise<boolean> {
@@ -378,7 +318,8 @@ export async function createRunSheetItem(
       return fail('vendorNotFound')
     }
     const ownerUserId = input.ownerUserId ?? null
-    if (!(await ownerAllowed(tx, principal, weddingId, ownerUserId))) return fail('ownerNotFound')
+    if (!(await isEligibleWeddingStaff(tx, principal, weddingId, ownerUserId)))
+      return fail('ownerNotFound')
 
     const slots = await slotsOf(tx, weddingId, eventId)
     const index = clockInsertIndex(
@@ -451,7 +392,7 @@ export async function updateRunSheetItem(
     const ownerUserId = input.ownerUserId === undefined ? existing.ownerUserId : input.ownerUserId
     if (
       ownerUserId !== existing.ownerUserId &&
-      !(await ownerAllowed(tx, principal, weddingId, ownerUserId))
+      !(await isEligibleWeddingStaff(tx, principal, weddingId, ownerUserId))
     ) {
       return fail('ownerNotFound')
     }

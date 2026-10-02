@@ -1,4 +1,4 @@
-import { getWedding, listWeddingEvents, WeddingScope } from '@guestnote/db'
+import { getWedding, listTaskAssignees, listWeddingEvents, WeddingScope } from '@guestnote/db'
 import { notFound } from 'next/navigation'
 import { Comments } from '../../../../../../../components/tasks/comments.tsx'
 import { TasksIntl } from '../../../../../../../components/tasks/provider.tsx'
@@ -36,9 +36,10 @@ export default async function TaskPage({
   const scope = WeddingScope.of(getDb(), memberships, orgId, id)
   const wedding = await getWedding(scope)
   if (!wedding) notFound()
-  const [thread, events] = await Promise.all([
+  const [thread, events, staff] = await Promise.all([
     loadTaskThread(scope, taskId),
     listWeddingEvents(scope),
+    listTaskAssignees(scope),
   ])
   if (!thread) notFound()
   const { task, comments, coupleUserIds } = thread
@@ -50,6 +51,8 @@ export default async function TaskPage({
           task={task}
           weddingDate={wedding.weddingDate}
           events={events.map(anchorOption)}
+          staff={staff}
+          viewerId={memberships.userId}
           today={todayCivil()}
         />
         <Comments

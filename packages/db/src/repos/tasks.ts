@@ -16,6 +16,12 @@ import { fail, ok, type Result } from './result.ts'
 import type { WeddingScope } from './scope.ts'
 import { staffPrincipal } from './staff-principal.ts'
 import { resolveTaskDueDate, taskDueColumns } from './task-dates.ts'
+import {
+  eligibleWeddingStaff,
+  isEligibleWeddingStaff,
+  personName,
+  type WeddingStaffMember,
+} from './wedding-staff.ts'
 
 /**
  * Slice S2 of docs/specs/0003-planner-app-screens.md: tasks. Their comments are `task-comments.ts`
@@ -123,8 +129,19 @@ export type TaskInput = {
   readonly notes?: string | null
   readonly visibility?: TaskVisibility
   readonly assigneeRole?: TaskAssigneeRole | null
+  /**
+   * The staff member a `planner` task is given to (spec 0009 C1): one of `listTaskAssignees`, which
+   * the write checks again. Absent, a new task goes to whoever creates it and an edit leaves the
+   * assignee as it is -- so the quick-add line and a template apply, which know nothing of the
+   * team, keep their old meaning. Meaningless on a `couple` task, which carries no user: passing
+   * one there throws, because the form never builds that shape and a caller that does has a bug.
+   */
+  readonly assigneeUserId?: string
   readonly due?: TaskDue
 }
+
+/** Somebody a task can be given to: a staff member who can work on this wedding. */
+export type TaskAssignee = WeddingStaffMember
 
 export type TaskPatch = Partial<TaskInput>
 
@@ -139,13 +156,6 @@ export function compareTasks(a: TaskRow, b: TaskRow): number {
 }
 
 // --------------------------------------------------------------------- plumbing ----
-
-/**
- * A person's display name. `users.name` is nullable on purpose (an invited staff member has no
- * name until they type one, see `schema/auth.ts`), and "Unknown" beside a comment from a
- * teammate the planner can see in the team list is worse than their address.
- */
-export const personName = sql<string | null>`coalesce(nullif(${users.name}, ''), ${users.email})`
 
 const TASK_SELECT = {
   id: tasks.id,
@@ -311,6 +321,18 @@ export async function getTask(scope: WeddingScope, taskId: string): Promise<Task
 }
 
 /**
+ * Who a task on this wedding can be given to (spec 0009 C1): the run sheet's "Verantwoordelijke"
+ * list, the same function, so the two pickers name the same people. `[]` when the caller may not
+ * see the wedding. A `member` gets themselves only -- `eligibleWeddingStaff` says why.
+ */
+export async function listTaskAssignees(scope: WeddingScope): Promise<TaskAssignee[]> {
+  const { db, weddingId } = scope
+  const principal = scope.principal
+  if (!principal) return []
+  return withTenant(db, principal, (tx) => eligibleWeddingStaff(tx, principal, weddingId))
+}
+
+/**
  * Open tasks assigned to this user across every wedding they may see, soonest first. What the
  * cross-wedding Today screen (S8) reads.
  *
@@ -360,23 +382,31 @@ export async function listAssignedTasks(
 
 // ----------------------------------------------------------------------- writes ----
 
+/**
+ * Who a task is assigned to after a write. A couple is not a `users` row the planner can pick, and a
+ * stale planner id on a couple task would put it in someone's "Mijn taken", so a couple task always
+ * clears it. A planner task gets the one asked for, else keeps the one it has, else goes to
+ * whoever is writing it -- which is what every planner task did before the picker existed.
+ */
 function assigneeFor(
   role: TaskAssigneeRole | null | undefined,
+  asked: string | undefined,
   existing: string | null,
   actingUserId: string,
 ): string | null {
-  // A couple is not a `users` row the planner can pick, and a stale planner id on a couple
-  // task would put it in someone's "assigned to me".
-  if (role === 'couple') return null
-  // A planner task belongs to whoever made it until a team picker exists (S6 owns the read).
-  if (role === 'planner') return existing ?? actingUserId
-  return existing
+  if (role === 'couple') {
+    if (asked !== undefined) throw new RangeError('tasks: a couple task is assigned to no user')
+    return null
+  }
+  if (role === 'planner') return asked ?? existing ?? actingUserId
+  return asked ?? existing
 }
 
 /**
  * One task, or `notFound` when the wedding is not reachable. Title is trimmed and must survive it.
+ * `assigneeNotFound` is an asked-for assignee who is not staff on this wedding (spec 0009 C1).
  */
-export type TaskWriteFailure = 'notFound' | 'anchorNotFound'
+export type TaskWriteFailure = 'notFound' | 'anchorNotFound' | 'assigneeNotFound'
 
 export async function createTask(
   scope: WeddingScope,
@@ -415,6 +445,13 @@ export async function createTasks(
     const anchors = await anchorDates(tx, weddingId, wanted)
     if (anchors.size !== wanted.length) return fail('anchorNotFound')
 
+    // Read once for the batch, and only when somebody was named: a template apply names nobody.
+    const asked = items.map((i) => i.assigneeUserId).filter((a) => a !== undefined)
+    if (asked.length > 0) {
+      const staff = new Set((await eligibleWeddingStaff(tx, principal, weddingId)).map((s) => s.id))
+      if (!asked.every((a) => staff.has(a))) return fail('assigneeNotFound')
+    }
+
     const values = items.map((item) => {
       const title = item.title.trim()
       if (!title) throw new RangeError('tasks: a task needs a title')
@@ -427,7 +464,7 @@ export async function createTasks(
         notes: item.notes?.trim() || null,
         visibility: item.visibility ?? 'shared',
         assigneeRole: role,
-        assigneeUserId: assigneeFor(role, null, principal.userId),
+        assigneeUserId: assigneeFor(role, item.assigneeUserId, null, principal.userId),
         createdBy: principal.userId,
         ...taskDueColumns(
           item.due ?? { kind: 'none' },
@@ -468,13 +505,21 @@ export async function updateTask(
     }
     if (patch.notes !== undefined) set.notes = patch.notes?.trim() || null
     if (patch.visibility !== undefined) set.visibility = patch.visibility
-    if (patch.assigneeRole !== undefined) {
-      set.assigneeRole = patch.assigneeRole
-      set.assigneeUserId = assigneeFor(
-        patch.assigneeRole,
-        current.task.assigneeUserId,
-        principal.userId,
-      )
+    if (patch.assigneeRole !== undefined || patch.assigneeUserId !== undefined) {
+      const role = patch.assigneeRole === undefined ? current.task.assigneeRole : patch.assigneeRole
+      const existing = current.task.assigneeUserId
+      // Checked only when it changes, as the run sheet checks its owner: an assignee who has since
+      // left the wedding stays on the tasks they had until somebody gives them to someone else,
+      // and a `member` editing a colleague's task can save it without being able to name them.
+      if (
+        patch.assigneeUserId !== undefined &&
+        patch.assigneeUserId !== existing &&
+        !(await isEligibleWeddingStaff(tx, principal, weddingId, patch.assigneeUserId))
+      ) {
+        return fail('assigneeNotFound')
+      }
+      set.assigneeRole = role
+      set.assigneeUserId = assigneeFor(role, patch.assigneeUserId, existing, principal.userId)
     }
     if (patch.due !== undefined) {
       // Re-read under a share lock rather than trusting `loadTask`'s join (see `weddingDateOf`).

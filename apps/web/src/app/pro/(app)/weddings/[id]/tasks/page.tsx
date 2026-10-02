@@ -1,4 +1,10 @@
-import { getWedding, listTasks, listWeddingEvents, WeddingScope } from '@guestnote/db'
+import {
+  getWedding,
+  listTaskAssignees,
+  listTasks,
+  listWeddingEvents,
+  WeddingScope,
+} from '@guestnote/db'
 import { notFound } from 'next/navigation'
 import { getTranslations } from 'next-intl/server'
 import { parseFilter } from '../../../../../../components/tasks/buckets.ts'
@@ -47,9 +53,10 @@ export default async function ChecklistPage({
   const wedding = await getWedding(scope)
   if (!wedding) notFound()
   const taskId = Array.isArray(query.task) ? query.task[0] : query.task
-  const [listed, events, thread] = await Promise.all([
+  const [listed, events, staff, thread] = await Promise.all([
     listTasks(scope),
     listWeddingEvents(scope),
+    listTaskAssignees(scope),
     taskId === undefined ? null : loadTaskThread(scope, taskId),
   ])
   // The list was read alongside the panel's task, so before the panel's read cleared the couple's
@@ -72,6 +79,8 @@ export default async function ChecklistPage({
           weddingId={wedding.id}
           weddingDate={wedding.weddingDate}
           events={anchors}
+          staff={staff}
+          viewerId={memberships.userId}
           tasks={tasks}
           filter={filter}
           today={today}
@@ -84,6 +93,8 @@ export default async function ChecklistPage({
             coupleUserIds={thread.coupleUserIds}
             weddingDate={wedding.weddingDate}
             events={anchors}
+            staff={staff}
+            viewerId={memberships.userId}
             today={today}
             closeHref={app.weddingTasks(wedding.id, { filter })}
           />

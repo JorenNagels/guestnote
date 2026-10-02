@@ -14,6 +14,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const getWedding = vi.fn()
 const listTasks = vi.fn()
 const listWeddingEvents = vi.fn()
+const listTaskAssignees = vi.fn()
 const loadTaskThread = vi.fn()
 const notFound = vi.fn(() => {
   throw new Error('NEXT_NOT_FOUND')
@@ -24,6 +25,7 @@ vi.mock('@guestnote/db', async (orig) => ({
   getWedding: (...a: unknown[]) => getWedding(...a),
   listTasks: (...a: unknown[]) => listTasks(...a),
   listWeddingEvents: (...a: unknown[]) => listWeddingEvents(...a),
+  listTaskAssignees: (...a: unknown[]) => listTaskAssignees(...a),
 }))
 vi.mock('../../../../../../lib/db.ts', () => ({ getDb: () => ({}) }))
 vi.mock('../../../../../../lib/principal.ts', () => ({
@@ -39,8 +41,16 @@ vi.mock('../../../../../../components/tasks/provider.tsx', () => ({
   TasksIntl: ({ children }: { children: React.ReactNode }) => children,
 }))
 vi.mock('../../../../../../components/tasks/checklist.tsx', () => ({
-  Checklist: ({ tasks }: { tasks: { id: string; coupleUnread: boolean }[] }) => (
-    <ul>
+  Checklist: ({
+    tasks,
+    staff,
+    viewerId,
+  }: {
+    tasks: { id: string; coupleUnread: boolean }[]
+    staff: { name: string }[]
+    viewerId: string
+  }) => (
+    <ul data-testid="list" data-viewer={viewerId} data-staff={staff.map((s) => s.name).join(',')}>
       {tasks.map((t) => (
         <li key={t.id} data-testid="row" data-unread={String(t.coupleUnread)} />
       ))}
@@ -72,6 +82,10 @@ beforeEach(() => {
   getWedding.mockResolvedValue({ id: WID, weddingDate: '2027-06-12' })
   listTasks.mockResolvedValue([TASK, { id: 'other', coupleUnread: true }])
   listWeddingEvents.mockResolvedValue([])
+  listTaskAssignees.mockResolvedValue([
+    { id: 'u1', name: 'Anna' },
+    { id: 'u2', name: 'Ben' },
+  ])
   loadTaskThread.mockResolvedValue({ task: TASK, comments: [], coupleUserIds: [] })
 })
 
@@ -103,5 +117,14 @@ describe('the checklist page with ?task=', () => {
     expect(loadTaskThread).not.toHaveBeenCalled()
     expect(screen.queryByRole('dialog')).toBeNull()
     expect(screen.getAllByTestId('row').map((r) => r.dataset.unread)).toEqual(['true', 'true'])
+  })
+})
+
+describe('the team behind the checklist (spec 0009 C1)', () => {
+  it('hands the checklist the signed-in user and who a task can be given to', async () => {
+    await renderPage({ filter: 'mine' })
+    const list = screen.getByTestId('list')
+    expect(list).toHaveAttribute('data-viewer', 'u1')
+    expect(list).toHaveAttribute('data-staff', 'Anna,Ben')
   })
 })

@@ -1,6 +1,6 @@
 'use client'
 
-import type { TaskRow } from '@guestnote/db'
+import type { TaskAssignee, TaskRow } from '@guestnote/db'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
@@ -27,6 +27,8 @@ export function Checklist({
   weddingId,
   weddingDate,
   events = [],
+  staff,
+  viewerId,
   tasks,
   filter,
   today,
@@ -35,6 +37,10 @@ export function Checklist({
   weddingDate: string | null
   /** What a new task may count from besides the main day (spec 0004). */
   events?: readonly TaskAnchorOption[]
+  /** Who a new task may be given to (spec 0009 C1). */
+  staff: readonly TaskAssignee[]
+  /** The signed-in user: what **Mijn taken** filters on, and a new task's default owner. */
+  viewerId: string
   tasks: TaskRow[]
   filter: Filter
   today: string
@@ -45,8 +51,8 @@ export function Checklist({
   // What the line held when the full form was cancelled, so backing out does not lose the typing.
   const [carried, setCarried] = useState('')
 
-  const counts = filterCounts(tasks, today)
-  const groups = groupTasks(tasks, filter, today)
+  const counts = filterCounts(tasks, today, viewerId)
+  const groups = groupTasks(tasks, filter, today, viewerId)
   const base = app.weddingTasks(weddingId)
 
   return (
@@ -65,6 +71,8 @@ export function Checklist({
           weddingId={weddingId}
           weddingDate={weddingDate}
           events={events}
+          staff={staff}
+          viewerId={viewerId}
           initial={adding}
           onDone={() => setAdding(null)}
           onCancel={() => {

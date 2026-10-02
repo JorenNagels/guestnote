@@ -14,6 +14,20 @@ loaded by `lib/task-thread.ts`, the task page's own loader; an unknown or foreig
 Closing replaces the URL without `task`. `/weddings/<id>/tasks/<taskId>` stays for Today, the
 overview and email. The rows below that say otherwise (New task, Empty) are superseded.
 
+**Amended 2026-10-02, spec 0009 C1:** a task is given to a person. The form's owner choice is one
+pill per staff member who can work on this wedding -- `listTaskAssignees`, the same
+`eligibleWeddingStaff` list the run sheet's "Verantwoordelijke" uses, now in
+`packages/db/src/repos/wedding-staff.ts` -- with the signed-in user marked "(jij)", then
+**Koppel**. A new task from the form starts on the signed-in user; the quick-add line names nobody
+and the repo gives the task to whoever made it, as before. A couple task carries no user. The
+repo re-reads the list under `withTenant` and refuses anyone else (`assigneeNotFound`, shown as
+"Kies iemand van het team dat aan deze bruiloft werkt."), but only when the assignee changes: an
+assignee who has since left the wedding keeps their tasks, shows as a pill of their own by name
+when the task is edited, and stays on it when an unrelated field is saved. A `member` can name
+only themselves, as on the run sheet. The checklist gets a **Mijn taken** filter, second after
+Alles: the tasks assigned to the signed-in user, done ones included like every other filter, with
+its count. The Behaviour rows on Filter and Form fields below are superseded where they differ.
+
 Checklist, task detail and comments for one wedding. Owner, admin and assigned `member` only;
 `editor` and `couple` reach none of it (spec 0003, Permissions). Prototype: `Guestnote Planner.dc.html`
 lines 692 to 941. Routes: `/weddings/<id>/tasks` and `/weddings/<id>/tasks/<taskId>`.
