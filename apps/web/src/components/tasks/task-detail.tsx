@@ -29,11 +29,18 @@ export function TaskDetail({
   weddingDate,
   events = [],
   today,
+  inPanel = false,
 }: {
   task: TaskRow
   weddingDate: string | null
   events?: readonly TaskAnchorOption[]
   today: string
+  /**
+   * Rendered in the checklist's side panel (spec 0009 B1). The panel has its own close button and
+   * the checklist is still behind it, so the "back to the checklist" link would be a second way
+   * out that navigates instead of closing.
+   */
+  inPanel?: boolean
 }) {
   const t = useTranslations('app.tasks')
   const format = useFormatter()
@@ -80,24 +87,26 @@ export function TaskDetail({
 
   return (
     <div>
-      <Link
-        href={app.weddingTasks(task.weddingId)}
-        className="text-muted-foreground mb-4 inline-flex items-center gap-1 text-[0.78rem] hover:underline"
-      >
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-          className="size-3.5"
+      {!inPanel && (
+        <Link
+          href={app.weddingTasks(task.weddingId)}
+          className="text-muted-foreground mb-4 inline-flex items-center gap-1 text-[0.78rem] hover:underline"
         >
-          <path d="M15 6l-6 6 6 6" />
-        </svg>
-        {t('detail.back')}
-      </Link>
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            className="size-3.5"
+          >
+            <path d="M15 6l-6 6 6 6" />
+          </svg>
+          {t('detail.back')}
+        </Link>
+      )}
 
       <div className="border-border bg-card rounded-[var(--radius-container)] border">
         <div className="flex items-center gap-3 px-4 py-3.5">

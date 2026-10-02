@@ -1,22 +1,27 @@
 'use client'
 
 import type { TaskRow } from '@guestnote/db'
-import { Button } from '@guestnote/ui/button'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { app } from '../../lib/routes.ts'
-import { EMPTY_FORM, type TaskAnchorOption } from '../../lib/task-form.ts'
+import type { TaskAnchorOption, TaskFormValues } from '../../lib/task-form.ts'
 import { FILTERS, type Filter, filterCounts, groupTasks } from './buckets.ts'
+import { QuickAdd } from './quick-add.tsx'
 import { TaskForm } from './task-form.tsx'
 import { TaskRowView } from './task-row.tsx'
 
 /**
- * The checklist screen: filter pills, the inline new-task form, then one card per due bucket.
+ * The checklist screen: the quick-add line, filter pills, then one card per due bucket.
  *
  * The filter is a link to `?filter=`, not state, so a filtered list can be sent to somebody and
  * the back button undoes a filter. `filter` and `today` arrive as props for the same reason
  * `buckets.ts` takes `today`: the server reads the clock once.
+ *
+ * Since spec 0009 B1 a row opens its task beside the list, at `?task=` with the filter kept, and
+ * the full form opens only from "Meer opties…" on the quick-add line. The toolbar's "Nieuwe taak"
+ * button went: with the line always at the top it was a second door to the same form, and the
+ * empty state now points at the line instead of at a button.
  */
 export function Checklist({
   weddingId,
@@ -35,7 +40,10 @@ export function Checklist({
   today: string
 }) {
   const t = useTranslations('app.tasks')
-  const [adding, setAdding] = useState(false)
+  // The full form's starting values while it is open, from "Meer opties…"; `null` shows the line.
+  const [adding, setAdding] = useState<TaskFormValues | null>(null)
+  // What the line held when the full form was cancelled, so backing out does not lose the typing.
+  const [carried, setCarried] = useState('')
 
   const counts = filterCounts(tasks, today)
   const groups = groupTasks(tasks, filter, today)
@@ -43,12 +51,35 @@ export function Checklist({
 
   return (
     <div>
+      {adding === null ? (
+        <QuickAdd
+          weddingId={weddingId}
+          initialTitle={carried}
+          onMore={(initial) => {
+            setCarried('')
+            setAdding(initial)
+          }}
+        />
+      ) : (
+        <TaskForm
+          weddingId={weddingId}
+          weddingDate={weddingDate}
+          events={events}
+          initial={adding}
+          onDone={() => setAdding(null)}
+          onCancel={() => {
+            setCarried(adding.title)
+            setAdding(null)
+          }}
+        />
+      )}
+
       <div className="mb-4 flex flex-wrap items-center gap-1.5">
         <nav aria-label={t('filtersLabel')} className="flex flex-wrap items-center gap-1.5">
           {FILTERS.map((f) => (
             <Link
               key={f}
-              href={f === 'all' ? base : `${base}?filter=${f}`}
+              href={app.weddingTasks(weddingId, { filter: f })}
               aria-current={f === filter ? 'page' : undefined}
               className={
                 f === filter
@@ -61,36 +92,12 @@ export function Checklist({
             </Link>
           ))}
         </nav>
-        <span className="flex-1" />
-        {!adding && (
-          <Button
-            variant="secondary"
-            onClick={() => setAdding(true)}
-            className="h-8! w-auto! rounded-full px-3.5! text-[0.78rem]"
-          >
-            {t('newTask')}
-          </Button>
-        )}
       </div>
 
-      {adding && (
-        <TaskForm
-          weddingId={weddingId}
-          weddingDate={weddingDate}
-          events={events}
-          initial={EMPTY_FORM}
-          onDone={() => setAdding(false)}
-          onCancel={() => setAdding(false)}
-        />
-      )}
-
-      {tasks.length === 0 && !adding && (
+      {tasks.length === 0 && adding === null && (
         <div className="border-border bg-card rounded-[var(--radius-container)] border px-6 py-10 text-center">
           <p className="text-sm font-semibold">{t('empty.title')}</p>
           <p className="text-muted-foreground mx-auto mt-1 max-w-sm text-sm">{t('empty.body')}</p>
-          <Button onClick={() => setAdding(true)} className="mx-auto mt-4 w-auto!">
-            {t('newTask')}
-          </Button>
         </div>
       )}
 
@@ -122,7 +129,12 @@ export function Checklist({
           </div>
           <ul className="border-border bg-card overflow-hidden rounded-[var(--radius-container)] border">
             {group.tasks.map((task) => (
-              <TaskRowView key={task.id} task={task} today={today} />
+              <TaskRowView
+                key={task.id}
+                task={task}
+                today={today}
+                href={app.weddingTasks(weddingId, { filter, task: task.id })}
+              />
             ))}
           </ul>
         </section>

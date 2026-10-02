@@ -18,7 +18,19 @@ import { VisibilityTag } from './visibility-tag.tsx'
  * The overdue state is the red date AND the words ("3 days overdue"): the prototype's own note
  * is that these lists are printed in black and white.
  */
-export function TaskRowView({ task, today }: { task: Task; today: string }) {
+export function TaskRowView({
+  task,
+  today,
+  href,
+}: {
+  task: Task
+  today: string
+  /**
+   * Where the title goes. The checklist passes its own URL with `?task=` (spec 0009 B1), so the
+   * task opens beside the list; the overview leaves it out and links to the task page.
+   */
+  href?: string
+}) {
   const t = useTranslations('app.tasks')
   const format = useFormatter()
   const [failed, setFailed] = useState(false)
@@ -39,7 +51,10 @@ export function TaskRowView({ task, today }: { task: Task; today: string }) {
           onFail={() => setFailed(true)}
         />
         <Link
-          href={app.weddingTask(task.weddingId, task.id)}
+          href={href ?? app.weddingTask(task.weddingId, task.id)}
+          // Opening the panel is the same page with one more parameter; scrolling to the top
+          // would lose the row the planner just clicked, which is where they will look on close.
+          scroll={href === undefined}
           className="min-w-0 flex-1 py-0.5 hover:underline"
         >
           <span className="flex items-center gap-1.5 text-[0.84rem]">

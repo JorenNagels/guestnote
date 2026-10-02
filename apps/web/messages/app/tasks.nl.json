@@ -1,6 +1,17 @@
 {
   "title": "Checklist",
-  "newTask": "Nieuwe taak",
+  "quickAdd": {
+    "label": "Taak toevoegen",
+    "placeholder": "Taak toevoegen…",
+    "add": "Toevoegen",
+    "adding": "Toevoegen…",
+    "dueLegend": "Deadline",
+    "none": "Geen datum",
+    "chip": "−{days} d",
+    "chipLabel": "{days} dagen voor de trouwdag",
+    "more": "Meer opties…",
+    "notAdded": "Niet toegevoegd: {title}."
+  },
   "filtersLabel": "Filter",
   "filters": {
     "all": "Alles",
@@ -18,7 +29,7 @@
   },
   "empty": {
     "title": "Nog geen taken",
-    "body": "Voeg de eerste taak toe, of pas later een sjabloon toe."
+    "body": "Typ hierboven je eerste taak en druk op Enter, of pas later een sjabloon toe."
   },
   "filterEmpty": {
     "title": "Geen taken voor dit filter",
@@ -115,5 +126,9 @@
     "unknownAuthor": "Onbekend",
     "utc": "{date} UTC",
     "couple": "Koppel"
+  },
+  "panel": {
+    "title": "Taak",
+    "close": "Sluiten"
   }
 }

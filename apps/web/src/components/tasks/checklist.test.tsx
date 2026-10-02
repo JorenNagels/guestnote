@@ -95,20 +95,41 @@ describe('Checklist', () => {
     )
   })
 
-  it('shows the empty state with one button, which opens the form', () => {
+  it('points the empty state at the quick-add line, with no second button', () => {
     show([])
     expect(screen.getByText('Nog geen taken')).toBeInTheDocument()
-    const buttons = screen.getAllByRole('button', { name: 'Nieuwe taak' })
-    fireEvent.click(buttons[0] as HTMLElement)
-    expect(screen.getByRole('form', { name: 'Nieuwe taak' })).toBeInTheDocument()
-    expect(screen.queryByText('Nog geen taken')).toBeNull()
+    expect(screen.getByText(/Typ hierboven je eerste taak/)).toBeInTheDocument()
+    expect(screen.getByRole('form', { name: 'Taak toevoegen' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Nieuwe taak' })).toBeNull()
   })
 
-  it('opens the form from the toolbar and closes it on cancel', () => {
+  it('opens the full form from "Meer opties" with the typed title, and gives it back on cancel', () => {
     show(many)
-    fireEvent.click(screen.getByRole('button', { name: 'Nieuwe taak' }))
+    fireEvent.change(screen.getByRole('textbox', { name: 'Taak toevoegen' }), {
+      target: { value: 'Book the DJ' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Meer opties…' }))
     expect(screen.getByRole('form', { name: 'Nieuwe taak' })).toBeInTheDocument()
+    expect(screen.getByLabelText('Taak')).toHaveValue('Book the DJ')
+    expect(screen.queryByRole('form', { name: 'Taak toevoegen' })).toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Annuleren' }))
-    expect(screen.queryByRole('form')).toBeNull()
+    expect(screen.queryByRole('form', { name: 'Nieuwe taak' })).toBeNull()
+    expect(screen.getByRole('textbox', { name: 'Taak toevoegen' })).toHaveValue('Book the DJ')
+  })
+
+  it('opens a task beside the list, keeping the filter', () => {
+    show(many, 'internal')
+    expect(screen.getByRole('link', { name: /Soon one/ })).toHaveAttribute(
+      'href',
+      '/weddings/w1/tasks?filter=internal&task=2',
+    )
+  })
+
+  it('leaves the default filter out of a row link', () => {
+    show(many)
+    expect(screen.getByRole('link', { name: /Late one/ })).toHaveAttribute(
+      'href',
+      '/weddings/w1/tasks?task=1',
+    )
   })
 })

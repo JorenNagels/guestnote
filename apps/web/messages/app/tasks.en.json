@@ -1,6 +1,17 @@
 {
   "title": "Checklist",
-  "newTask": "New task",
+  "quickAdd": {
+    "label": "Add a task",
+    "placeholder": "Add a task…",
+    "add": "Add",
+    "adding": "Adding…",
+    "dueLegend": "Due",
+    "none": "No date",
+    "chip": "−{days} d",
+    "chipLabel": "{days} days before the wedding day",
+    "more": "More options…",
+    "notAdded": "Not added: {title}."
+  },
   "filtersLabel": "Filter",
   "filters": {
     "all": "All",
@@ -18,7 +29,7 @@
   },
   "empty": {
     "title": "No tasks yet",
-    "body": "Add the first task, or apply a template later."
+    "body": "Type your first task above and press Enter, or apply a template later."
   },
   "filterEmpty": {
     "title": "No tasks for this filter",
@@ -115,5 +126,9 @@
     "unknownAuthor": "Unknown",
     "utc": "{date} UTC",
     "couple": "Couple"
+  },
+  "panel": {
+    "title": "Task",
+    "close": "Close"
   }
 }

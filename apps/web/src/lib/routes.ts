@@ -39,7 +39,18 @@ export const app = {
   weddingSettings: (weddingId: string) => `/weddings/${weddingId}/settings`,
   // `tasks` and not `checklist`: the path predates the screen name and the route already
   // existed in this file. The nav label is what the planner reads; the path they rarely do.
-  weddingTasks: (weddingId: string) => `/weddings/${weddingId}/tasks`,
+  /**
+   * The checklist, optionally filtered and with one task open in the side panel (spec 0009 B1).
+   * `filter` first and `task` second, so the open task's URL reads as "this list, and this one
+   * in it". `'all'` is the default filter and is left out, so the unfiltered list has one URL.
+   */
+  weddingTasks: (weddingId: string, query: { filter?: string; task?: string } = {}) => {
+    const q = new URLSearchParams()
+    if (query.filter && query.filter !== 'all') q.set('filter', query.filter)
+    if (query.task) q.set('task', query.task)
+    const s = q.toString()
+    return `/weddings/${weddingId}/tasks${s ? `?${s}` : ''}`
+  },
   weddingTask: (weddingId: string, taskId: string) => `/weddings/${weddingId}/tasks/${taskId}`,
   weddingBudget: (weddingId: string) => `/weddings/${weddingId}/budget`,
   weddingPayments: (weddingId: string) => `/weddings/${weddingId}/payments`,

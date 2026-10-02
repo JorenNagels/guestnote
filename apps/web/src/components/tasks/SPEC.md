@@ -2,6 +2,18 @@
 
 **Date:** 2026-09-21 · **Status:** Built 2026-09-21 · **Parent:** `docs/specs/0003-planner-app-screens.md`
 
+**Amended 2026-10-02, spec 0009 B1:** the checklist opens with a quick-add line ("Taak
+toevoegen…"): Enter creates the task with `EMPTY_FORM` plus the title and a sticky date chip
+(Geen datum, −90 d, −30 d, −7 d, as days before the main day), clears the line at once and keeps
+focus, so a second title can be typed while the first saves. A refusal shows under the line and
+puts the text back if the line is still empty, otherwise it names the title that did not go in.
+"Meer opties…" opens the full form with the typed title and the chip; cancelling it gives the
+title back to the line. The toolbar's "Nieuwe taak" button is gone and the empty state points at
+the line. A row opens its task in a side sheet at `?task=<id>` (the filter kept beside it),
+loaded by `lib/task-thread.ts`, the task page's own loader; an unknown or foreign id is no panel.
+Closing replaces the URL without `task`. `/weddings/<id>/tasks/<taskId>` stays for Today, the
+overview and email. The rows below that say otherwise (New task, Empty) are superseded.
+
 Checklist, task detail and comments for one wedding. Owner, admin and assigned `member` only;
 `editor` and `couple` reach none of it (spec 0003, Permissions). Prototype: `Guestnote Planner.dc.html`
 lines 692 to 941. Routes: `/weddings/<id>/tasks` and `/weddings/<id>/tasks/<taskId>`.

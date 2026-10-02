@@ -1,12 +1,4 @@
-import {
-  getCoupleAccess,
-  getTask,
-  getWedding,
-  listTaskComments,
-  listWeddingEvents,
-  markCoupleActivitySeen,
-  WeddingScope,
-} from '@guestnote/db'
+import { getWedding, listWeddingEvents, WeddingScope } from '@guestnote/db'
 import { notFound } from 'next/navigation'
 import { Comments } from '../../../../../../../components/tasks/comments.tsx'
 import { TasksIntl } from '../../../../../../../components/tasks/provider.tsx'
@@ -14,6 +6,7 @@ import { TaskDetail } from '../../../../../../../components/tasks/task-detail.ts
 import { getDb } from '../../../../../../../lib/db.ts'
 import { currentMemberships, currentOrgId } from '../../../../../../../lib/principal.ts'
 import { anchorOption } from '../../../../../../../lib/task-form.ts'
+import { loadTaskThread } from '../../../../../../../lib/task-thread.ts'
 import { todayCivil } from '../../../../../../../lib/tminus.ts'
 import { isUuid } from '../../../../../../../lib/uuid.ts'
 
@@ -23,6 +16,10 @@ import { isUuid } from '../../../../../../../lib/uuid.ts'
  * A task that is not in this wedding is a 404 and not a 403, for the reason the checklist page
  * gives: `getTask` answers `null` for "no such task", "in another wedding" and "you may not see
  * this wedding" alike, and the page must not be able to tell them apart.
+ *
+ * Since spec 0009 B1 the checklist opens the same task in a side panel (`?task=`); this page stays
+ * for links from Today and from email. Both load through `loadTaskThread`, so they read the task
+ * the same way.
  */
 export default async function TaskPage({
   params,
@@ -39,17 +36,12 @@ export default async function TaskPage({
   const scope = WeddingScope.of(getDb(), memberships, orgId, id)
   const wedding = await getWedding(scope)
   if (!wedding) notFound()
-  const task = await getTask(scope, taskId)
-  if (!task) notFound()
-  const [comments, events, couple] = await Promise.all([
-    listTaskComments(scope, taskId),
+  const [thread, events] = await Promise.all([
+    loadTaskThread(scope, taskId),
     listWeddingEvents(scope),
-    getCoupleAccess(scope),
-    // Spec 0008: opening the task is reading what the couple did, so the dot clears here, on
-    // the render, rather than through a second request from the browser. A write on a GET, like
-    // the invite page's accept; it only ever moves `staff_seen_at` forward.
-    task.coupleUnread ? markCoupleActivitySeen(scope, { kind: 'task', id: taskId }) : null,
   ])
+  if (!thread) notFound()
+  const { task, comments, coupleUserIds } = thread
 
   return (
     <div className="mx-auto max-w-3xl px-6 pt-6 pb-8">
@@ -65,7 +57,7 @@ export default async function TaskPage({
           taskId={taskId}
           visibility={task.visibility}
           comments={comments}
-          coupleUserIds={couple?.partners.map((p) => p.userId) ?? []}
+          coupleUserIds={coupleUserIds}
         />
       </TasksIntl>
     </div>

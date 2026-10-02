@@ -1,6 +1,17 @@
 {
   "title": "Checklist",
-  "newTask": "Nouvelle tâche",
+  "quickAdd": {
+    "label": "Ajouter une tâche",
+    "placeholder": "Ajouter une tâche…",
+    "add": "Ajouter",
+    "adding": "Ajout…",
+    "dueLegend": "Échéance",
+    "none": "Sans date",
+    "chip": "−{days} j",
+    "chipLabel": "{days} jours avant le jour du mariage",
+    "more": "Plus d'options…",
+    "notAdded": "Non ajoutée : {title}."
+  },
   "filtersLabel": "Filtre",
   "filters": {
     "all": "Tout",
@@ -18,7 +29,7 @@
   },
   "empty": {
     "title": "Pas encore de tâches",
-    "body": "Ajoutez la première tâche, ou appliquez un modèle plus tard."
+    "body": "Saisissez votre première tâche ci-dessus et appuyez sur Entrée, ou appliquez un modèle plus tard."
   },
   "filterEmpty": {
     "title": "Aucune tâche pour ce filtre",
@@ -115,5 +126,9 @@
     "unknownAuthor": "Inconnu",
     "utc": "{date} UTC",
     "couple": "Couple"
+  },
+  "panel": {
+    "title": "Tâche",
+    "close": "Fermer"
   }
 }
