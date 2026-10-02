@@ -322,7 +322,7 @@
       "empty": "Aucun mariage pour l'instant. Le premier que vous créez apparaîtra ici.",
       "search": {
         "label": "Trouver un mariage",
-        "placeholder": "Nom du couple",
+        "placeholder": "Couple ou lieu",
         "submit": "Rechercher"
       },
       "views": {

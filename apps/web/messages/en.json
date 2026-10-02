@@ -322,7 +322,7 @@
       "empty": "No weddings yet. The first one you create shows up here.",
       "search": {
         "label": "Find a wedding",
-        "placeholder": "Couple’s name",
+        "placeholder": "Couple or venue",
         "submit": "Search"
       },
       "views": {

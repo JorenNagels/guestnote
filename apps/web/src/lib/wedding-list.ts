@@ -27,9 +27,8 @@ export type WeddingView = (typeof WEDDING_VIEWS)[number]
 export const DEFAULT_VIEW: WeddingView = 'upcoming'
 
 /**
- * What the helper needs of a row. `venue` is optional because `WeddingSummary` does not carry it
- * yet (the column is in `WeddingDetail` only): the match below already reads it, so widening the
- * repo's `SUMMARY` by the one column makes venue search work with no change here.
+ * What the helper needs of a row. `venue` stays optional so the tests' rows can leave it out;
+ * the repo's `WeddingSummary` always carries it (null when unbooked).
  */
 export type ListedWedding = Pick<WeddingSummary, 'coupleDisplayName' | 'weddingDate' | 'status'> & {
   readonly venue?: string | null

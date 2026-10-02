@@ -30,6 +30,8 @@ export type WeddingSummary = {
   readonly weddingDate: string | null
   /** `#RRGGBB` upper-case, or null. The sidebar's dot; never text (spec 0003). */
   readonly color: string | null
+  /** Free text, or null. In the summary since spec 0009 C3: the weddings list searches it. */
+  readonly venue: string | null
 }
 
 const SUMMARY = {
@@ -39,6 +41,7 @@ const SUMMARY = {
   coupleDisplayName: weddings.coupleDisplayName,
   weddingDate: weddings.weddingDate,
   color: weddings.color,
+  venue: weddings.venue,
 }
 
 /**
@@ -191,14 +194,12 @@ export type WeddingInput = {
  * migration 0013 a `couple` cannot).
  */
 export type WeddingDetail = WeddingSummary & {
-  readonly venue: string | null
   readonly headcount: number | null
   readonly notes: string | null
 }
 
 const DETAIL = {
   ...SUMMARY,
-  venue: weddings.venue,
   headcount: weddings.headcount,
   notes: weddings.notes,
 }

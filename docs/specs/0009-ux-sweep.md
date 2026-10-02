@@ -136,9 +136,8 @@ digests, guest list) are **not** in this spec; each needs its own `/feature`.
   date last; Alle is Komend, then Voorbij, then Gearchiveerd, each in its own order. The counts
   follow the search, so they say where the matches are. An unknown `view` is Komend; an empty
   search offers "Zoekopdracht wissen"; an org with no weddings keeps its one sentence, with no
-  search box. **Venue is not searched yet:** `WeddingSummary` does not carry `venue`, and the
-  read was left alone; the matcher already reads `venue`, so adding it to the repo's `SUMMARY` is
-  the whole change (plus `test:db`). Until then the box says "Naam van het koppel".
+  search box. Venue is searched through `WeddingSummary.venue`, which the repo's `SUMMARY` gained
+  for this (it used to be in `WeddingDetail` only); the box says "Koppel of locatie".
 
 ### C4. Undo instead of "are you sure" (report 08, 13b)
 

@@ -113,6 +113,7 @@ const wedding = (over: Partial<WeddingSummary>): WeddingSummary => ({
   coupleDisplayName: 'W',
   weddingDate: null,
   color: null,
+  venue: null,
   ...over,
 })
 
