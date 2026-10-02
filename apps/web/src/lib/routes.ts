@@ -27,7 +27,18 @@ export const app = {
    * screen splits the sidebar's active state, and nothing had linked to it yet.
    */
   today: () => '/',
-  weddings: () => '/weddings',
+  /**
+   * The weddings list, optionally on one view and searched (spec 0009 C3). The default view
+   * (`upcoming`) and an empty query are left out, so the plain list has one URL, as
+   * `weddingTasks` does for its `all` filter.
+   */
+  weddings: (query: { view?: string; q?: string } = {}) => {
+    const s = new URLSearchParams()
+    if (query.view && query.view !== 'upcoming') s.set('view', query.view)
+    if (query.q) s.set('q', query.q)
+    const qs = s.toString()
+    return `/weddings${qs ? `?${qs}` : ''}`
+  },
   /**
    * A static segment beside `[id]`, which is why it needs no reservation: Next matches a
    * static segment before a dynamic one, so `/weddings/new` never reaches `[id]`. The cost

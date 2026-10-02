@@ -320,6 +320,26 @@
       "title": "Bruiloften",
       "dateUnknown": "Datum nog niet vastgelegd",
       "empty": "Nog geen bruiloften. Zodra er een is aangemaakt, staat ze hier.",
+      "search": {
+        "label": "Zoek een bruiloft",
+        "placeholder": "Naam van het koppel",
+        "submit": "Zoeken"
+      },
+      "views": {
+        "label": "Weergave",
+        "upcoming": "Komend",
+        "past": "Voorbij",
+        "archived": "Gearchiveerd",
+        "all": "Alle"
+      },
+      "emptyView": {
+        "upcoming": "Geen komende bruiloften.",
+        "past": "Nog geen voorbije bruiloften.",
+        "archived": "Niets gearchiveerd.",
+        "all": "Geen bruiloften."
+      },
+      "noMatch": "Geen bruiloft gevonden voor “{query}”.",
+      "clearSearch": "Zoekopdracht wissen",
       "noOrg": "Je bent aangemeld, maar hoort nog bij geen enkele organisatie.",
       "noOrgHint": "Planners kunnen hun eigen studio starten via Start je studio op de aanmeldpagina. Koppels en leveranciers krijgen toegang via de link van hun planner.",
       "status": {

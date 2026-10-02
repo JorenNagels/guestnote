@@ -129,6 +129,16 @@ digests, guest list) are **not** in this spec; each needs its own `/feature`.
   (default: not archived, date today or later or no date), **Voorbij**, **Gearchiveerd**, **Alle**,
   with counts. `?view=` and `?q=` in the URL. Komend sorts by date ascending with no date last;
   Voorbij descending.
+- *(Amended 2026-10-02, spec 0009 C3, as built)* The search is a GET form and the views are
+  links, so both work without JavaScript; `lib/wedding-list.ts` filters and sorts the list
+  `listWeddings` already returns. Matching ignores case and accents, word by word. "Today" is the
+  Brussels civil date, and a wedding on today is Komend. Gearchiveerd sorts by date descending, no
+  date last; Alle is Komend, then Voorbij, then Gearchiveerd, each in its own order. The counts
+  follow the search, so they say where the matches are. An unknown `view` is Komend; an empty
+  search offers "Zoekopdracht wissen"; an org with no weddings keeps its one sentence, with no
+  search box. **Venue is not searched yet:** `WeddingSummary` does not carry `venue`, and the
+  read was left alone; the matcher already reads `venue`, so adding it to the repo's `SUMMARY` is
+  the whole change (plus `test:db`). Until then the box says "Naam van het koppel".
 
 ### C4. Undo instead of "are you sure" (report 08, 13b)
 

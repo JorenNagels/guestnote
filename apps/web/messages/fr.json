@@ -320,6 +320,26 @@
       "title": "Mariages",
       "dateUnknown": "Date pas encore fixée",
       "empty": "Aucun mariage pour l'instant. Le premier que vous créez apparaîtra ici.",
+      "search": {
+        "label": "Trouver un mariage",
+        "placeholder": "Nom du couple",
+        "submit": "Rechercher"
+      },
+      "views": {
+        "label": "Affichage",
+        "upcoming": "À venir",
+        "past": "Passés",
+        "archived": "Archivés",
+        "all": "Tous"
+      },
+      "emptyView": {
+        "upcoming": "Aucun mariage à venir.",
+        "past": "Aucun mariage passé pour l’instant.",
+        "archived": "Rien d’archivé.",
+        "all": "Aucun mariage."
+      },
+      "noMatch": "Aucun mariage trouvé pour « {query} ».",
+      "clearSearch": "Effacer la recherche",
       "noOrg": "Vous êtes connecté, mais vous n'appartenez encore à aucune organisation.",
       "noOrgHint": "Les wedding planners peuvent créer leur propre studio via « Lancez votre studio » sur la page de connexion. Les couples et prestataires accèdent via le lien envoyé par leur planner.",
       "status": {

@@ -320,6 +320,26 @@
       "title": "Weddings",
       "dateUnknown": "No date set yet",
       "empty": "No weddings yet. The first one you create shows up here.",
+      "search": {
+        "label": "Find a wedding",
+        "placeholder": "Couple’s name",
+        "submit": "Search"
+      },
+      "views": {
+        "label": "View",
+        "upcoming": "Upcoming",
+        "past": "Past",
+        "archived": "Archived",
+        "all": "All"
+      },
+      "emptyView": {
+        "upcoming": "No upcoming weddings.",
+        "past": "No past weddings yet.",
+        "archived": "Nothing archived.",
+        "all": "No weddings."
+      },
+      "noMatch": "No wedding found for “{query}”.",
+      "clearSearch": "Clear search",
       "noOrg": "You are signed in, but you do not belong to an organisation yet.",
       "noOrgHint": "Planners can start their own studio from Start your studio on the sign-in page. Couples and vendors get access through the link their planner sent.",
       "status": {

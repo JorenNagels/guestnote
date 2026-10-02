@@ -1,9 +1,18 @@
 import { listWeddings, type WeddingSummary } from '@guestnote/db'
+import { cx } from '@guestnote/ui/cx'
 import Link from 'next/link'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { getDb } from '../../../../lib/db.ts'
 import { currentMemberships, currentOrgId } from '../../../../lib/principal.ts'
 import { app } from '../../../../lib/routes.ts'
+import { todayCivil } from '../../../../lib/tminus.ts'
+import {
+  parseQuery,
+  parseView,
+  WEDDING_VIEWS,
+  type WeddingView,
+  weddingList,
+} from '../../../../lib/wedding-list.ts'
 
 /**
  * The wedding list. **The first screen in this application to read tenant data.**
@@ -29,13 +38,26 @@ import { app } from '../../../../lib/routes.ts'
  * see nothing, which is exactly the property that makes the difference unobservable.
  * The two are told apart only by whether an organisation resolved at all, which is
  * information the user already has about themselves.
+ *
+ * ## Search and views live in the URL (spec 0009 C3)
+ *
+ * `?q=` from a GET form and `?view=` from plain links, filtered here by `lib/wedding-list.ts`.
+ * So the list works with no JavaScript, Back undoes a search, and "the past weddings matching
+ * Janssens" is a link a planner can send. Rejected: a client-side filter as the vendor directory
+ * has -- it filters as you type, but the query dies on every navigation, and coming back to the
+ * list from a wedding is exactly when a planner wants it still there.
  */
-export default async function WeddingsPage() {
-  const [memberships, orgId, t, locale] = await Promise.all([
+export default async function WeddingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ view?: string | string[]; q?: string | string[] }>
+}) {
+  const [memberships, orgId, t, locale, params] = await Promise.all([
     currentMemberships(),
     currentOrgId(),
     getTranslations('app'),
     getLocale(),
+    searchParams,
   ])
 
   // The layout above guarantees a session; memberships can still be empty. This branch is
@@ -62,16 +84,64 @@ export default async function WeddingsPage() {
   // blank org line for exactly the person the switcher could strand there -- fixed in
   // 5efc96a by naming it from `currentOrgs()`, and now the concern of `(app)/layout.tsx`
   // rather than of every page that happens to want a header.
-  const rows = await listWeddings(getDb(), memberships, orgId)
+  const all = await listWeddings(getDb(), memberships, orgId)
 
-  return (
-    <Page title={t('weddings.title')}>
-      {rows.length === 0 ? (
+  // An org with no weddings at all keeps its one sentence: no search box and no views over
+  // nothing, which would read as "your search found nothing" to somebody who has not searched.
+  if (all.length === 0) {
+    return (
+      <Page title={t('weddings.title')}>
         <p className="text-muted-foreground max-w-prose text-sm leading-relaxed">
           {t('weddings.empty')}
         </p>
+      </Page>
+    )
+  }
+
+  const view = parseView(params.view)
+  const query = parseQuery(params.q)
+  const { rows, counts } = weddingList(all, { view, query, today: todayCivil() })
+
+  return (
+    <Page title={t('weddings.title')}>
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        <ViewLinks
+          view={view}
+          query={query}
+          counts={counts}
+          label={t('weddings.views.label')}
+          names={{
+            upcoming: t('weddings.views.upcoming'),
+            past: t('weddings.views.past'),
+            archived: t('weddings.views.archived'),
+            all: t('weddings.views.all'),
+          }}
+        />
+        <SearchForm
+          view={view}
+          query={query}
+          label={t('weddings.search.label')}
+          placeholder={t('weddings.search.placeholder')}
+          submit={t('weddings.search.submit')}
+        />
+      </div>
+
+      {rows.length === 0 ? (
+        <div className="mt-6">
+          <p className="text-muted-foreground max-w-prose text-sm leading-relaxed">
+            {query ? t('weddings.noMatch', { query }) : t(`weddings.emptyView.${view}`)}
+          </p>
+          {query ? (
+            <Link
+              href={app.weddings({ view })}
+              className="focus-visible:outline-ring mt-3 inline-block rounded-sm text-sm font-medium underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2"
+            >
+              {t('weddings.clearSearch')}
+            </Link>
+          ) : null}
+        </div>
       ) : (
-        <ul className="divide-border bg-card divide-y overflow-hidden rounded-[var(--radius-container)] border">
+        <ul className="divide-border bg-card mt-6 divide-y overflow-hidden rounded-[var(--radius-container)] border">
           {rows.map((w) => (
             <li key={w.id}>
               <Link
@@ -119,6 +189,98 @@ function Page({ title, children }: { title: string; children: React.ReactNode })
       </header>
       <div className="mt-7">{children}</div>
     </div>
+  )
+}
+
+/**
+ * The four views, as links with counts. Links and not tabs: each is its own URL, the page is
+ * server-rendered per view, and a `tablist` would promise arrow-key panel switching that a
+ * navigation does not do -- the same call `components/money/money-switch.tsx` makes. Each link
+ * keeps the query, so switching view searches the other bucket for the same name.
+ */
+function ViewLinks({
+  view,
+  query,
+  counts,
+  label,
+  names,
+}: {
+  view: WeddingView
+  query: string
+  counts: Readonly<Record<WeddingView, number>>
+  label: string
+  names: Readonly<Record<WeddingView, string>>
+}) {
+  return (
+    <nav aria-label={label}>
+      <ul className="m-0 flex list-none flex-wrap items-center gap-1 p-0 text-sm">
+        {WEDDING_VIEWS.map((key) => {
+          const current = key === view
+          return (
+            <li key={key}>
+              <Link
+                href={app.weddings({ view: key, q: query })}
+                aria-current={current ? 'page' : undefined}
+                className={cx(
+                  'focus-visible:outline-ring inline-flex items-baseline gap-1.5 rounded-[var(--radius)] px-2.5 py-1.5 focus-visible:outline-2',
+                  current
+                    ? 'bg-muted text-foreground font-semibold'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {/* The space is for the accessible name, "Komend 2" rather than "Komend2"; the
+                    flex gap already spaces it on screen, where a lone space is dropped. */}
+                {names[key]}{' '}
+                <span className="text-muted-foreground text-xs tabular-nums">{counts[key]}</span>
+              </Link>
+            </li>
+          )
+        })}
+      </ul>
+    </nav>
+  )
+}
+
+/**
+ * A GET form, so it needs no JavaScript and leaves `?q=` in the URL. The view rides along as a
+ * hidden field because a form submit replaces the whole query string; without it, searching on
+ * *Voorbij* would land on *Komend*. Left out on the default view so the URL stays the plain one.
+ * The landmark is the `<search>` element rather than `role="search"` on the form: Biome's
+ * `useSemanticElements` refuses the role where the element exists.
+ */
+function SearchForm({
+  view,
+  query,
+  label,
+  placeholder,
+  submit,
+}: {
+  view: WeddingView
+  query: string
+  label: string
+  placeholder: string
+  submit: string
+}) {
+  return (
+    <search>
+      <form action={app.weddings()} method="get" className="flex min-w-0 gap-2">
+        {view === 'upcoming' ? null : <input type="hidden" name="view" value={view} />}
+        <input
+          type="search"
+          name="q"
+          defaultValue={query}
+          aria-label={label}
+          placeholder={placeholder}
+          className="h-[var(--control-h)] w-56 min-w-0 rounded-[var(--radius)] border border-[var(--input)] bg-transparent px-3 text-sm"
+        />
+        <button
+          type="submit"
+          className="text-foreground hover:bg-muted focus-visible:outline-ring inline-flex h-[var(--control-h)] cursor-pointer items-center rounded-[var(--radius)] border border-[var(--input)] px-3 text-xs font-medium focus-visible:outline-2"
+        >
+          {submit}
+        </button>
+      </form>
+    </search>
   )
 }
 
