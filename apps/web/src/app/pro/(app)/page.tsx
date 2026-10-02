@@ -1,9 +1,17 @@
-import { listAssignedTasks, listWeddings, principalForOrg } from '@guestnote/db'
+import { listAssignedTasks, listDuePayments, listWeddings, principalForOrg } from '@guestnote/db'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getFormatter, getTranslations } from 'next-intl/server'
+import { addDays } from '../../../components/tasks/buckets.ts'
 import { TasksIntl } from '../../../components/tasks/provider.tsx'
-import { orderWeddings, todaySections, weddingLoads } from '../../../components/today/sections.ts'
+import { PaymentList } from '../../../components/today/payment-list.tsx'
+import {
+  orderWeddings,
+  todayQuiet,
+  todaySections,
+  WEEK_DAYS,
+  weddingLoads,
+} from '../../../components/today/sections.ts'
 import { TaskList } from '../../../components/today/task-list.tsx'
 import { WeddingCard } from '../../../components/today/wedding-card.tsx'
 import { getDb } from '../../../lib/db.ts'
@@ -26,13 +34,13 @@ import { todayCivil } from '../../../lib/tminus.ts'
  * decide whether to OFFER "new wedding" to an empty list. That is a button, not a permission:
  * `createWedding` checks for itself and returns `null` for a member.
  *
- * ## Two reads in parallel
+ * ## Three reads in parallel
  *
- * `listWeddings` and `listAssignedTasks` are independent, and for a member each is one
- * transaction per assigned wedding, in turn. Running the two at once puts two transactions in
- * flight, not `2N`: the sequencing INSIDE each is what `repos/weddings.ts` argues for and is left
- * alone. The layout is running `listWeddings` for the sidebar at the same moment, so three at
- * most.
+ * `listWeddings`, `listAssignedTasks` and `listDuePayments` (spec 0009 C2) are independent, and
+ * for a member each is one transaction per assigned wedding, in turn. Running the three at once
+ * puts three transactions in flight, not `3N`: the sequencing INSIDE each is what
+ * `repos/weddings.ts` argues for and is left alone. The layout is running `listWeddings` for the
+ * sidebar at the same moment, so four at most.
  */
 export default async function TodayPage() {
   const [memberships, orgId, t, format] = await Promise.all([
@@ -75,16 +83,18 @@ export default async function TodayPage() {
 
   const db = getDb()
   const today = todayCivil()
-  const [allWeddings, assigned] = await Promise.all([
+  const [allWeddings, assigned, duePayments] = await Promise.all([
     listWeddings(db, memberships, orgId),
     listAssignedTasks(db, memberships, orgId),
+    // Late, or due by the end of the same week the task list's "Deze week" reaches.
+    listDuePayments(db, memberships, orgId, addDays(today, WEEK_DAYS)),
   ])
 
   const weddings = orderWeddings(allWeddings, today)
   const loads = weddingLoads(assigned, today)
   const sections = todaySections(assigned, today)
   const canCreate = principalForOrg(memberships, orgId) !== null
-  const allClear = sections.needsYou.length + sections.dueWeek.length + sections.next.length === 0
+  const quiet = todayQuiet(sections, duePayments.length)
 
   return (
     <div className="mx-auto max-w-4xl px-6 py-8">
@@ -135,12 +145,13 @@ export default async function TodayPage() {
             ))}
           </ul>
 
-          {allClear ? (
+          {quiet !== 'none' ? (
             // One sentence instead of three empty boxes: with nothing in any list, three headings
-            // that each say "nothing" is the same answer given three times.
+            // that each say "nothing" is the same answer given three times. With a payment due,
+            // the sentence speaks for the tasks only (`todayQuiet` has the reason).
             <section className="border-border bg-card mt-7 rounded-[var(--radius-container)] border px-5 py-5">
               <p role="status" className="text-sm">
-                {t('allClear')}
+                {t(quiet === 'all' ? 'allClear' : 'tasksClear')}
               </p>
             </section>
           ) : (
@@ -174,6 +185,10 @@ export default async function TodayPage() {
               {t('undated', { count: sections.undated })}
             </p>
           )}
+
+          {/* After the task lists, not above them: those are the reader's own work, and this is
+              the book's money -- an owner sees every wedding's here. Renders nothing when empty. */}
+          <PaymentList payments={duePayments} today={today} />
         </>
       )}
     </div>

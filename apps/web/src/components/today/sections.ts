@@ -50,6 +50,25 @@ export function todaySections(tasks: readonly AssignedTaskRow[], today: string):
   }
 }
 
+/**
+ * Which "nothing" sentence Today shows (spec 0009 C2), given its task lists and how many payments
+ * are due.
+ *
+ *   `all`    nothing in any task list and no payment due: the one all-clear sentence, as before.
+ *   `tasks`  the task lists are empty but a payment is due: the payments, under a sentence that
+ *            says only the TASKS are clear. The all-clear line ("nothing open for today or this
+ *            week") would be false with a payment sitting under it, and three empty task boxes
+ *            are what that line exists to replace.
+ *   `none`   tasks to show: the three lists, and the payments when there are any.
+ */
+export type TodayQuiet = 'all' | 'tasks' | 'none'
+
+export function todayQuiet(sections: TodaySections, duePayments: number): TodayQuiet {
+  const tasks = sections.needsYou.length + sections.dueWeek.length + sections.next.length
+  if (tasks > 0) return 'none'
+  return duePayments === 0 ? 'all' : 'tasks'
+}
+
 export type WeddingLoad = { readonly overdue: number; readonly open: number }
 
 /**

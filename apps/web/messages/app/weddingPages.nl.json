@@ -20,7 +20,18 @@
       "guestsUnknown": "Nog niet ingevuld",
       "guestsKnown": "Volgens de planner",
       "lateNone": "Niets te laat",
-      "lateSome": "{count} te laat"
+      "lateSome": "{count} te laat",
+      "budgetLeft": "Budget over",
+      "budgetTooMuch": "{amount} te veel",
+      "budgetOf": "van {amount} toegekend",
+      "budgetNone": "Nog geen budget",
+      "nextPayment": "Volgende betaling",
+      "nextPaymentNone": "Niets open",
+      "nextPaymentLate": "{date} · {days, plural, one {# dag} other {# dagen}} te laat",
+      "vendorsBooked": "Leveranciers geboekt",
+      "vendorsNone": "Nog geen leveranciers",
+      "vendorsAll": "Allemaal geboekt",
+      "vendorsOpen": "{count} nog niet geboekt"
     },
     "tasks": {
       "title": "Volgende taken",

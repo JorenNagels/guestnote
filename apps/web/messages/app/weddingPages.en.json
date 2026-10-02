@@ -20,7 +20,18 @@
       "guestsUnknown": "Not filled in yet",
       "guestsKnown": "As the planner says",
       "lateNone": "Nothing late",
-      "lateSome": "{count} late"
+      "lateSome": "{count} late",
+      "budgetLeft": "Budget left",
+      "budgetTooMuch": "{amount} over",
+      "budgetOf": "of {amount} allocated",
+      "budgetNone": "No budget yet",
+      "nextPayment": "Next payment",
+      "nextPaymentNone": "Nothing open",
+      "nextPaymentLate": "{date} · {days, plural, one {# day} other {# days}} late",
+      "vendorsBooked": "Vendors booked",
+      "vendorsNone": "No vendors yet",
+      "vendorsAll": "All booked",
+      "vendorsOpen": "{count} not booked yet"
     },
     "tasks": {
       "title": "Next tasks",

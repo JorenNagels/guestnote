@@ -8,9 +8,17 @@
   "sections": {
     "needsYou": "Vandaag voor jou",
     "dueWeek": "Deze week",
-    "next": "Hierna"
+    "next": "Hierna",
+    "payments": "Betalingen"
   },
   "count": "{count, plural, one {# taak} other {# taken}}",
+  "paymentCount": "{count, plural, one {# betaling} other {# betalingen}}",
+  "paymentWhen": {
+    "today": "Vandaag te betalen",
+    "in": "Over {count, plural, one {# dag} other {# dagen}}",
+    "late": "{count, plural, one {# dag te laat} other {# dagen te laat}}"
+  },
+  "tasksClear": "Geen taken voor vandaag of deze week.",
   "empty": {
     "needsYou": "Niets dat vandaag aandacht vraagt.",
     "dueWeek": "Niets gepland voor de komende zeven dagen.",

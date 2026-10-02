@@ -1,9 +1,12 @@
 import { and, asc, eq, isNull, sql } from 'drizzle-orm'
 import type { Db } from '../client.ts'
 import { newId } from '../id.ts'
+import { budgetLines, payments } from '../schema/money.ts'
 import { tasks } from '../schema/tasks.ts'
+import { weddingVendors } from '../schema/vendors.ts'
 import { type WEDDING_STATUSES, weddings } from '../schema/weddings.ts'
 import { withTenant } from '../tenant.ts'
+import { readMoneyContext } from './budget.ts'
 import { type Memberships, principalForOrg, principalForWedding } from './memberships.ts'
 import { insertDefaultBoard } from './moodboards.ts'
 import { fail, ok, type Result } from './result.ts'
@@ -364,4 +367,96 @@ export async function getWeddingTaskCounts(scope: WeddingScope): Promise<Wedding
   const total = row?.total ?? 0
   const done = row?.done ?? 0
   return { total, done, open: total - done, overdue: row?.overdue ?? 0 }
+}
+
+/**
+ * What the overview's money and vendor figures need (spec 0009 C2). `null` for no standing or a
+ * wedding that is gone; the page has 404ed on `getWeddingDetail` by then, so `null` only ever
+ * leaves the three figures out.
+ *
+ * ## One summary read, and not `getBudget` + `getPayments` + `getWeddingVendors`
+ *
+ * Those three would answer it, but between them they are three transactions and ten queries --
+ * the studio's whole vendor directory and a correlated payment sum per vendor among them -- to
+ * draw three numbers. This is one transaction, run beside the overview's other reads.
+ *
+ * What it does NOT do is total the budget in SQL. The lines come back as rows and the page runs
+ * `budgetTotals` (`apps/web/src/lib/money.ts`) over them, the function the budget screen uses,
+ * so "spent" cannot mean one thing there and another here. A wedding has tens of lines.
+ *
+ * Every query names `weddingId` itself: an owner's principal is org-wide, and RLS alone would
+ * admit every wedding in the org (the header of `tasks.ts` has the argument).
+ */
+export type WeddingGlance = {
+  /** `nl`, `en` or `fr`: how the amounts are written, as on the money screens. */
+  readonly locale: string
+  /** IANA name; decides whether the next payment is late. Free text, see `MoneyContext`. */
+  readonly timezone: string
+  /** Live lines only, in no order: they are summed, never listed. */
+  readonly lines: readonly {
+    readonly category: string
+    readonly estimateCents: number
+    readonly actualCents: number | null
+  }[]
+  /** The earliest unpaid payment on a live line, late or not; `null` when nothing is open. */
+  readonly nextPayment: { readonly dueOn: string; readonly amountCents: number } | null
+  /**
+   * Live wedding vendors, counted per status. Per status and not as "booked of N", so the rule
+   * that a declined vendor is not part of N is decided once, in `vendorProgress`
+   * (`apps/web/src/components/wedding/glance.ts`), where a unit test reaches it -- rather than in
+   * a `filter` clause here that only the database suite could.
+   */
+  readonly vendorStatuses: readonly { readonly status: string; readonly count: number }[]
+}
+
+export async function getWeddingGlance(scope: WeddingScope): Promise<WeddingGlance | null> {
+  const { db, weddingId } = scope
+  const principal = scope.principal
+  if (!principal) return null
+
+  return withTenant(db, principal, async (tx) => {
+    const wedding = await readMoneyContext(tx, weddingId)
+    if (!wedding) return null
+
+    const lines = await tx
+      .select({
+        category: budgetLines.category,
+        estimateCents: budgetLines.estimateCents,
+        actualCents: budgetLines.actualCents,
+      })
+      .from(budgetLines)
+      .where(and(eq(budgetLines.weddingId, weddingId), isNull(budgetLines.deletedAt)))
+
+    // Through the line, as both money screens read: a soft-deleted line keeps its payments and
+    // the join is what hides them. The order is the one `getPayments` gives its unpaid rows.
+    const [next] = await tx
+      .select({ dueOn: payments.dueOn, amountCents: payments.amountCents })
+      .from(payments)
+      .innerJoin(budgetLines, eq(budgetLines.id, payments.budgetLineId))
+      .where(
+        and(
+          eq(payments.weddingId, weddingId),
+          isNull(payments.paidAt),
+          isNull(budgetLines.deletedAt),
+        ),
+      )
+      .orderBy(asc(payments.dueOn), asc(payments.id))
+      .limit(1)
+
+    // No join to `vendors`: the vendor screen keeps showing a linked vendor after it is archived
+    // in the directory, so it counts here too.
+    const vendorStatuses = await tx
+      .select({ status: weddingVendors.status, count: sql<number>`count(*)::int` })
+      .from(weddingVendors)
+      .where(and(eq(weddingVendors.weddingId, weddingId), isNull(weddingVendors.deletedAt)))
+      .groupBy(weddingVendors.status)
+
+    return {
+      locale: wedding.locale,
+      timezone: wedding.timezone,
+      lines,
+      nextPayment: next ?? null,
+      vendorStatuses,
+    }
+  })
 }

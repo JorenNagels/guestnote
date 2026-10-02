@@ -1,7 +1,7 @@
 import type { AssignedTaskRow, WeddingSummary } from '@guestnote/db'
 import { describe, expect, it } from 'vitest'
 import { task } from '../tasks/fixture.ts'
-import { orderWeddings, todaySections, weddingLoads } from './sections.ts'
+import { orderWeddings, todayQuiet, todaySections, weddingLoads } from './sections.ts'
 
 const TODAY = '2026-09-21'
 
@@ -146,5 +146,28 @@ describe('orderWeddings', () => {
       'past-new',
       'past-old',
     ])
+  })
+})
+
+describe('todayQuiet', () => {
+  const sections = (tasks: AssignedTaskRow[]) => todaySections(tasks, TODAY)
+
+  it('is all clear only with no task in any list and no payment due', () => {
+    expect(todayQuiet(sections([]), 0)).toBe('all')
+  })
+
+  it('says only the tasks are clear when a payment is due', () => {
+    expect(todayQuiet(sections([]), 1)).toBe('tasks')
+  })
+
+  // One case per list, so each of the three counts is seen to matter on its own.
+  it('is not quiet when any one task list has a row, payments or not', () => {
+    expect(todayQuiet(sections([row({ dueDate: TODAY })]), 0)).toBe('none')
+    expect(todayQuiet(sections([row({ dueDate: '2026-09-25' })]), 0)).toBe('none')
+    expect(todayQuiet(sections([row({ dueDate: '2026-12-01' })]), 2)).toBe('none')
+  })
+
+  it('does not count undated tasks, which no list shows', () => {
+    expect(todayQuiet(sections([row({ dueDate: null })]), 0)).toBe('all')
   })
 })

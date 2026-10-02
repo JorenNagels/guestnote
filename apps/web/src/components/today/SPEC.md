@@ -31,6 +31,17 @@ item "until P16 existed"; its amendments table records that it now does.
 - Open tasks with no date (including offset tasks on a wedding with no date) are not listed; a
   single line under the lists says how many there are, so they do not vanish without a word.
 - A tick that fails shows the row's inline error and the box snaps back.
+- **Betalingen** *(Amended 2026-10-02, spec 0009 C2)*: unpaid payments on live lines that are late
+  or due up to today + 7 (the Brussels civil date, the same window as *Deze week*), across every
+  wedding the user may see, soonest first. Read with `listDuePayments`, shaped exactly like
+  `listAssignedTasks`: owner and admin one org-wide transaction, a `member` one per assigned
+  wedding in turn. Weddings are not filtered by status, as the task lists are not: an archived
+  wedding with an open payment is money still owed. Each row is one link to that wedding's
+  payments: colour dot, payee (vendor, else the line), couple, amount in the reader's locale, and
+  "Vandaag te betalen" / "Over n dagen" / "n dagen te laat" (late also in the warning colour).
+  Placed after the task lists. With nothing due the section renders nothing, heading included.
+  With no tasks in any list but a payment due, the all-clear line becomes "Geen taken voor
+  vandaag of deze week." above the payments (`todayQuiet`), because "niets open" would be false.
 
 ## States
 

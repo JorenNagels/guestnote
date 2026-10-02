@@ -47,6 +47,15 @@ wedding 448-545 of `design-system/planner-prototype/Guestnote Planner.dc.html`.
   with `due_at` in the past (a template task with only an offset has no instant yet, so it is not
   counted). The "next five tasks" list of the prototype was left for S2, which owns the tasks repo;
   it is built since 2026-09-24 (see "Built, and where it differs").
+  *(Amended 2026-10-02, spec 0009 C2: seven figures. Three more after Guests, each a link (the
+  label, stretched over the card) to its screen: **Budget over** -- allocated minus spent by
+  `budgetTotals`, "€ x te veel" in the warning colour when negative, "–" and "Nog geen budget"
+  with no lines; **Volgende betaling** -- amount and date of the earliest unpaid payment on a
+  live line, "n dagen te laat" in the warning colour when it is late in the wedding's zone (due
+  today is not late), "–" and "Niets open" when nothing is; **Leveranciers geboekt** -- "4 / 7",
+  booked over every live wedding vendor except declined (`glance.ts`'s `vendorProgress`). Amounts
+  are in the wedding's locale, as on the money screens. One extra read, `getWeddingGlance`, one
+  transaction in parallel with the others, instead of the three screens' own reads.)*
 - **New wedding** `/weddings/new`: couple, main day, venue, guests, colour, stage (default Concept).
   Owner/admin only; anyone else sees a plain sentence. On success: redirect to the overview. The
   slug is made from the couple name (`marie-en-thomas`), reserved words and names under three

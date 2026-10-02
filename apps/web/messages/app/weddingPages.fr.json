@@ -20,7 +20,18 @@
       "guestsUnknown": "Pas encore renseigné",
       "guestsKnown": "Selon le planner",
       "lateNone": "Rien en retard",
-      "lateSome": "{count} en retard"
+      "lateSome": "{count} en retard",
+      "budgetLeft": "Budget restant",
+      "budgetTooMuch": "{amount} de trop",
+      "budgetOf": "sur {amount} alloués",
+      "budgetNone": "Pas encore de budget",
+      "nextPayment": "Prochain paiement",
+      "nextPaymentNone": "Rien en attente",
+      "nextPaymentLate": "{date} · {days, plural, one {# jour} other {# jours}} de retard",
+      "vendorsBooked": "Prestataires réservés",
+      "vendorsNone": "Pas encore de prestataires",
+      "vendorsAll": "Tous réservés",
+      "vendorsOpen": "{count, plural, one {# pas encore réservé} other {# pas encore réservés}}"
     },
     "tasks": {
       "title": "Prochaines tâches",

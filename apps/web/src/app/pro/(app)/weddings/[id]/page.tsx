@@ -2,6 +2,7 @@ import {
   COUPLE_MAX,
   getCoupleAccess,
   getWeddingDetail,
+  getWeddingGlance,
   getWeddingTaskCounts,
   listTasks,
   listWeddingEvents,
@@ -15,8 +16,10 @@ import { InviteCard } from '../../../../../components/couple/invite-card.tsx'
 import { inviteCardCopy } from '../../../../../components/couple/labels.ts'
 import { TasksIntl } from '../../../../../components/tasks/provider.tsx'
 import { TaskRowView } from '../../../../../components/tasks/task-row.tsx'
+import { vendorProgress } from '../../../../../components/wedding/glance.ts'
 import { formatCivilDate } from '../../../../../lib/civil-date.ts'
 import { getDb } from '../../../../../lib/db.ts'
+import { budgetTotals, civilToday, daysBetween, formatCents } from '../../../../../lib/money.ts'
 import { currentMemberships, currentOrgId } from '../../../../../lib/principal.ts'
 import { app } from '../../../../../lib/routes.ts'
 import { daysUntil, todayCivil } from '../../../../../lib/tminus.ts'
@@ -24,8 +27,9 @@ import { isUuid } from '../../../../../lib/uuid.ts'
 import { inviteCoupleAction, resendCoupleInviteAction } from './couple/actions.ts'
 
 /**
- * A wedding's landing screen: four figures, the next events, and the planner's own notes.
- * Spec 0003, slice S1.
+ * A wedding's landing screen: seven figures, the next events, and the planner's own notes.
+ * Spec 0003, slice S1; the budget, next-payment and vendor figures are spec 0009 C2, and each of
+ * those three links to the screen it summarises, so "where are we?" is one click from "why?".
  *
  * ## `null` is a 404, and never a 403
  *
@@ -70,13 +74,16 @@ export default async function WeddingPage({ params }: { params: Promise<{ id: st
   // have to re-derive that order in SQL and could disagree with the checklist about which five
   // come first. Cost: every live task row of one wedding on each overview render, which for a
   // real wedding is tens to low hundreds.
-  const [counts, events, tasks, couple] = await Promise.all([
+  const [counts, events, tasks, couple, glance] = await Promise.all([
     getWeddingTaskCounts(scope),
     listWeddingEvents(scope),
     listTasks(scope),
     // Spec 0008: the invite card, while no partner has accepted. `null` for anyone who may not
     // invite (the repo decides), which simply leaves the card out.
     getCoupleAccess(scope),
+    // Spec 0009 C2: one transaction for the three money and vendor figures. The repo argues
+    // why it is a summary read and not the three screens' own reads.
+    getWeddingGlance(scope),
   ])
   const nextTasks = tasks.filter((task) => task.status !== 'done').slice(0, NEXT_TASKS)
   const today = todayCivil()
@@ -85,6 +92,16 @@ export default async function WeddingPage({ params }: { params: Promise<{ id: st
   const upcoming = events.filter((e) => (daysUntil(e.startsOn) ?? -1) >= 0)
   const shown = upcoming.slice(0, NEXT_EVENTS)
   const percent = counts.total === 0 ? 0 : Math.round((counts.done / counts.total) * 100)
+
+  // Amounts in the wedding's own locale, as the budget and payment screens write them, so the
+  // figure here and the total one click away read the same.
+  const eur = (cents: number) => formatCents(cents, glance?.locale ?? locale)
+  const totals = glance ? budgetTotals(glance.lines) : null
+  const over = totals !== null && totals.remainingCents < 0
+  const vendors = glance ? vendorProgress(glance.vendorStatuses) : null
+  const next = glance?.nextPayment ?? null
+  // Late in the wedding's zone, the way the payments screen decides it: due today is not late.
+  const daysLate = glance && next ? daysBetween(next.dueOn, civilToday(glance.timezone)) : 0
 
   return (
     <div className="mx-auto max-w-5xl px-6 pb-8">
@@ -121,6 +138,57 @@ export default async function WeddingPage({ params }: { params: Promise<{ id: st
               value={wedding.headcount === null ? '–' : String(wedding.headcount)}
               sub={wedding.headcount === null ? t('stats.guestsUnknown') : t('stats.guestsKnown')}
             />
+            {glance && totals && vendors ? (
+              <>
+                <Stat
+                  label={t('stats.budgetLeft')}
+                  href={app.weddingBudget(id)}
+                  value={
+                    glance.lines.length === 0
+                      ? '–'
+                      : over
+                        ? t('stats.budgetTooMuch', { amount: eur(-totals.remainingCents) })
+                        : eur(totals.remainingCents)
+                  }
+                  sub={
+                    glance.lines.length === 0
+                      ? t('stats.budgetNone')
+                      : t('stats.budgetOf', { amount: eur(totals.allocatedCents) })
+                  }
+                  valueWarn={over}
+                  money
+                />
+                <Stat
+                  label={t('stats.nextPayment')}
+                  href={app.weddingPayments(id)}
+                  value={next ? eur(next.amountCents) : '–'}
+                  sub={
+                    !next
+                      ? t('stats.nextPaymentNone')
+                      : daysLate > 0
+                        ? t('stats.nextPaymentLate', {
+                            date: formatCivilDate(locale, next.dueOn),
+                            days: daysLate,
+                          })
+                        : formatCivilDate(locale, next.dueOn)
+                  }
+                  warn={daysLate > 0}
+                  money
+                />
+                <Stat
+                  label={t('stats.vendorsBooked')}
+                  href={app.weddingVendors(id)}
+                  value={vendors.counted === 0 ? '–' : `${vendors.booked} / ${vendors.counted}`}
+                  sub={
+                    vendors.counted === 0
+                      ? t('stats.vendorsNone')
+                      : vendors.booked === vendors.counted
+                        ? t('stats.vendorsAll')
+                        : t('stats.vendorsOpen', { count: vendors.counted - vendors.booked })
+                  }
+                />
+              </>
+            ) : null}
           </dl>
 
           {couple && couple.partners.length === 0 ? (
@@ -241,26 +309,54 @@ export default async function WeddingPage({ params }: { params: Promise<{ id: st
   )
 }
 
+/**
+ * One figure. With `href` the whole card is a link to the screen behind the figure, drawn as a
+ * stretched link: the anchor is the label inside `<dt>` and its `::after` covers the card.
+ * Rejected: making the card itself the `<a>` -- a `<dl>` may hold only `dt`, `dd` and a wrapping
+ * `div`, and an `<a>` around both would cost the term/definition pairing a screen reader uses.
+ * The link's name is the label ("Volgende betaling"), which is also where it goes.
+ *
+ * `money` sets the figure smaller: "€ 11.760,00 te veel" in the 21px mono of a count runs past
+ * a 8.5rem card. `valueWarn` colours the figure itself, for a value whose words already say what
+ * is wrong ("te veel"), where `warn` colours the line beneath it.
+ */
 function Stat({
   label,
   value,
   sub,
   percent,
   warn = false,
+  valueWarn = false,
+  money = false,
+  href,
 }: {
   label: string
   value: string
   sub: string
   percent?: number | undefined
   warn?: boolean
+  valueWarn?: boolean
+  money?: boolean
+  href?: string
 }) {
   return (
-    <Card className="px-[15px] py-[13px]">
+    <Card className={`px-[15px] py-[13px] ${href ? 'hover:bg-muted/50 relative' : ''}`}>
       <dt className="text-muted-foreground text-[11px] font-semibold tracking-[0.08em] uppercase">
-        {label}
+        {href ? (
+          <Link
+            href={href}
+            className="focus-visible:after:outline-ring after:absolute after:inset-0 after:rounded-[var(--radius-container)] focus-visible:outline-none focus-visible:after:outline-2 focus-visible:after:-outline-offset-2"
+          >
+            {label}
+          </Link>
+        ) : (
+          label
+        )}
       </dt>
       <dd className="m-0">
-        <span className="mt-2 block font-mono text-[21px] font-semibold tracking-tight tabular-nums">
+        <span
+          className={`mt-2 block font-mono font-semibold tracking-tight tabular-nums ${money ? 'text-[17px] leading-snug' : 'text-[21px]'} ${valueWarn ? 'text-destructive' : ''}`}
+        >
           {value}
         </span>
         {percent === undefined ? null : (

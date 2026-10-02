@@ -8,9 +8,17 @@
   "sections": {
     "needsYou": "Needs you today",
     "dueWeek": "Due this week",
-    "next": "Coming up"
+    "next": "Coming up",
+    "payments": "Payments"
   },
   "count": "{count, plural, one {# task} other {# tasks}}",
+  "paymentCount": "{count, plural, one {# payment} other {# payments}}",
+  "paymentWhen": {
+    "today": "Due today",
+    "in": "Due in {count, plural, one {# day} other {# days}}",
+    "late": "{count, plural, one {# day late} other {# days late}}"
+  },
+  "tasksClear": "No tasks for today or this week.",
   "empty": {
     "needsYou": "Nothing needs your attention today.",
     "dueWeek": "Nothing planned for the next seven days.",

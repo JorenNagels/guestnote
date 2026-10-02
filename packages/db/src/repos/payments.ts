@@ -1,12 +1,16 @@
-import { and, asc, eq, isNull, sql } from 'drizzle-orm'
+import { and, asc, eq, isNull, lte, sql } from 'drizzle-orm'
+import type { Db } from '../client.ts'
 import { newId } from '../id.ts'
 import { budgetLines, payments } from '../schema/money.ts'
 import { vendors, weddingVendors } from '../schema/vendors.ts'
+import { weddings } from '../schema/weddings.ts'
 import type { TenantDb } from '../tenant.ts'
 import { withTenant } from '../tenant.ts'
 import { type MoneyContext, type MoneyResult, readMoneyContext } from './budget.ts'
+import { type Memberships, principalForOrg } from './memberships.ts'
 import { fail, ok } from './result.ts'
 import type { WeddingScope } from './scope.ts'
+import { staffPrincipal } from './staff-principal.ts'
 
 /**
  * Slice S4 of docs/specs/0003-planner-app-screens.md: the payment schedule.
@@ -90,6 +94,94 @@ export async function getPayments(scope: WeddingScope): Promise<PaymentsData | n
 
     return { wedding, payments: rows, lines }
   })
+}
+
+/** An unpaid payment and the wedding it is owed on, for the cross-wedding Today screen. */
+export type DuePaymentRow = {
+  readonly id: string
+  readonly weddingId: string
+  readonly weddingName: string
+  /** `#RRGGBB` or null: the wedding's dot, never text (spec 0003). */
+  readonly weddingColor: string | null
+  readonly lineLabel: string
+  readonly vendorName: string | null
+  /** `YYYY-MM-DD`, a civil date. */
+  readonly dueOn: string
+  readonly amountCents: number
+}
+
+/**
+ * Unpaid payments due on or before `through` (`YYYY-MM-DD`), across every wedding this user may
+ * see, soonest first: Today's Betalingen section (spec 0009 C2). The overdue ones are simply the
+ * earliest; there is no lower bound, so a payment three months late is still on the list.
+ *
+ * `through` is an argument, not "today + 7" worked out here, for the reason the header gives:
+ * what today is depends on a clock and a zone, and the page reads both once and hands them down.
+ *
+ * Two shapes, exactly as `listAssignedTasks` and for its reason:
+ *
+ *   owner / admin  ONE transaction, org-wide.
+ *   member         ONE TRANSACTION PER ASSIGNED WEDDING, awaited in turn: `assignedStaff` must
+ *                  pin `app.wedding_id`, and N transactions at once on a pool sized for ordinary
+ *                  request concurrency is how one page starves the rest (`repos/weddings.ts`).
+ *
+ * `staffPrincipal` and not `principalForWedding` on the member path: a couple or an outside editor
+ * has a wedding membership too, and the money tables are staff-only (`budget.ts`'s header). Not
+ * filtered on the wedding's status, as `listAssignedTasks` is not: an archived wedding with a
+ * payment still open is money still owed, and hiding it is the failure, not showing it.
+ */
+export async function listDuePayments(
+  db: Db,
+  m: Memberships,
+  orgId: string,
+  through: string,
+): Promise<DuePaymentRow[]> {
+  const due = and(
+    isNull(payments.paidAt),
+    lte(payments.dueOn, through),
+    isNull(budgetLines.deletedAt),
+    isNull(weddings.deletedAt),
+  )
+  const select = (tx: TenantDb) =>
+    tx
+      .select({
+        id: payments.id,
+        weddingId: payments.weddingId,
+        weddingName: weddings.coupleDisplayName,
+        weddingColor: weddings.color,
+        lineLabel: budgetLines.label,
+        vendorName: vendors.name,
+        dueOn: payments.dueOn,
+        amountCents: payments.amountCents,
+      })
+      .from(payments)
+      // Through the live line, as every money read: a soft-deleted line keeps its payments, and
+      // this join is what hides them.
+      .innerJoin(budgetLines, eq(budgetLines.id, payments.budgetLineId))
+      .innerJoin(weddings, eq(weddings.id, payments.weddingId))
+      .leftJoin(weddingVendors, eq(weddingVendors.id, budgetLines.weddingVendorId))
+      .leftJoin(vendors, eq(vendors.id, weddingVendors.vendorId))
+
+  const orgWide = principalForOrg(m, orgId)
+  if (orgWide) {
+    return withTenant(db, orgWide, (tx) =>
+      select(tx).where(due).orderBy(asc(payments.dueOn), asc(payments.id)),
+    )
+  }
+
+  const out: DuePaymentRow[] = []
+  for (const assignment of m.weddings) {
+    const principal = staffPrincipal(m, orgId, assignment.weddingId)
+    if (!principal) continue
+    // The `weddingId` clause is redundant under the pin -- deleting it left every test green,
+    // measured 2026-10-02 -- and stays for the reason `listWeddings` gives for its own.
+    const rows = await withTenant(db, principal, (tx) =>
+      select(tx).where(and(due, eq(payments.weddingId, assignment.weddingId))),
+    )
+    out.push(...rows)
+  }
+  // The org-wide path sorts in Postgres; this one cannot, so it sorts here, in the same order.
+  return out.sort((a, b) => a.dueOn.localeCompare(b.dueOn) || a.id.localeCompare(b.id))
 }
 
 /**

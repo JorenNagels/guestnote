@@ -47,6 +47,7 @@ afterAll(() => {
  */
 const getWeddingDetail = vi.fn()
 const getWeddingTaskCounts = vi.fn()
+const getWeddingGlance = vi.fn()
 const listWeddingEvents = vi.fn()
 const listTasks = vi.fn()
 const currentMemberships = vi.fn()
@@ -62,6 +63,7 @@ vi.mock('@guestnote/db', async (orig) => ({
   ...(await orig<typeof import('@guestnote/db')>()),
   getWeddingDetail: (...a: unknown[]) => getWeddingDetail(...a),
   getWeddingTaskCounts: (...a: unknown[]) => getWeddingTaskCounts(...a),
+  getWeddingGlance: (...a: unknown[]) => getWeddingGlance(...a),
   listWeddingEvents: (...a: unknown[]) => listWeddingEvents(...a),
   listTasks: (...a: unknown[]) => listTasks(...a),
   // Spec 0008's invite card has its own tests (`components/couple`); here it is absent.
@@ -104,6 +106,13 @@ vi.mock('next-intl/server', () => ({
       'tasks.title': 'Volgende taken',
       'tasks.open': 'Naar de checklist',
       'tasks.empty': 'Geen openstaande taken.',
+      'stats.budgetLeft': 'Budget over',
+      'stats.budgetNone': 'Nog geen budget',
+      'stats.nextPayment': 'Volgende betaling',
+      'stats.nextPaymentNone': 'Niets open',
+      'stats.vendorsBooked': 'Leveranciers geboekt',
+      'stats.vendorsNone': 'Nog geen leveranciers',
+      'stats.vendorsAll': 'Allemaal geboekt',
     })[key] ?? (values ? `${key} ${JSON.stringify(values)}` : key),
 }))
 
@@ -124,6 +133,13 @@ const WEDDING = {
 }
 const WID = '0190a1b2-c3d4-7e5f-8a9b-0c1d2e3f4a5b'
 const COUNTS = { total: 0, open: 0, done: 0, overdue: 0 }
+const GLANCE = {
+  locale: 'nl',
+  timezone: 'Europe/Brussels',
+  lines: [] as { category: string; estimateCents: number; actualCents: number | null }[],
+  nextPayment: null as { dueOn: string; amountCents: number } | null,
+  vendorStatuses: [] as { status: string; count: number }[],
+}
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -134,6 +150,7 @@ beforeEach(() => {
   currentOrgId.mockResolvedValue('org-a')
   getWeddingDetail.mockResolvedValue(WEDDING)
   getWeddingTaskCounts.mockResolvedValue(COUNTS)
+  getWeddingGlance.mockResolvedValue(GLANCE)
   listWeddingEvents.mockResolvedValue([])
   listTasks.mockResolvedValue([])
 })
@@ -225,6 +242,164 @@ describe('a wedding the principal can see', () => {
   })
 })
 
+/**
+ * Spec 0009 C2. The figures are found by their label: the label is the link, inside the `<dt>`,
+ * and the `<dd>` beside it holds the value and the line under it. `Intl` writes a no-break space
+ * between `€` and the amount, which is folded to a plain one so the expectations read as written.
+ */
+describe('the money and vendor figures', () => {
+  const plain = (s: string | null | undefined) => (s ?? '').replace(/ /g, ' ')
+  const figure = (label: string) => {
+    const dd = screen.getByText(label).closest('dt')?.nextElementSibling
+    return { value: dd?.firstElementChild, text: plain(dd?.textContent) }
+  }
+  const line = (estimateCents: number, actualCents: number | null) => ({
+    category: 'Catering',
+    estimateCents,
+    actualCents,
+  })
+
+  it('shows what is left of the budget, and links to the budget', async () => {
+    getWeddingGlance.mockResolvedValue({
+      ...GLANCE,
+      // A line with no actual has spent nothing: 30 000 allocated, 10 000 spent.
+      lines: [line(2_500_000, 1_000_000), line(500_000, null)],
+    })
+    await renderPage()
+    const { text, value } = figure('Budget over')
+    expect(text).toContain('€ 20.000,00')
+    expect(text).toContain('stats.budgetOf {"amount":"€ 30.000,00"}')
+    expect(value).not.toHaveClass('text-destructive')
+    expect(screen.getByRole('link', { name: 'Budget over' })).toHaveAttribute(
+      'href',
+      `/weddings/${WID}/budget`,
+    )
+  })
+
+  it('says by how much the budget is overspent, in words and in the warning colour', async () => {
+    getWeddingGlance.mockResolvedValue({ ...GLANCE, lines: [line(100_000, 220_000)] })
+    await renderPage()
+    const { text, value } = figure('Budget over')
+    expect(text).toContain('stats.budgetTooMuch {"amount":"€ 1.200,00"}')
+    expect(value).toHaveClass('text-destructive')
+  })
+
+  it('is not over budget when spent equals allocated', async () => {
+    getWeddingGlance.mockResolvedValue({ ...GLANCE, lines: [line(100_000, 100_000)] })
+    await renderPage()
+    const { text, value } = figure('Budget over')
+    expect(text).toContain('€ 0,00')
+    expect(value).not.toHaveClass('text-destructive')
+  })
+
+  it('says there is no budget yet rather than a zero', async () => {
+    await renderPage()
+    const { text } = figure('Budget over')
+    expect(text).toContain('–')
+    expect(text).toContain('Nog geen budget')
+  })
+
+  it('writes amounts in the wedding locale, not the screen locale', async () => {
+    getWeddingGlance.mockResolvedValue({
+      ...GLANCE,
+      locale: 'en',
+      lines: [line(2_000_000, null)],
+    })
+    await renderPage()
+    expect(figure('Budget over').text).toContain('€20,000.00')
+  })
+
+  it('shows the next payment with its date, and links to the payments', async () => {
+    getWeddingGlance.mockResolvedValue({
+      ...GLANCE,
+      nextPayment: { dueOn: '2027-06-20', amountCents: 504_000 },
+    })
+    await renderPage()
+    const { text } = figure('Volgende betaling')
+    expect(text).toContain('€ 5.040,00')
+    expect(text).toContain('20 juni 2027')
+    expect(text).not.toContain('nextPaymentLate')
+    expect(screen.getByRole('link', { name: 'Volgende betaling' })).toHaveAttribute(
+      'href',
+      `/weddings/${WID}/payments`,
+    )
+  })
+
+  it('says how late a late payment is, in words and in the warning colour', async () => {
+    getWeddingGlance.mockResolvedValue({
+      ...GLANCE,
+      nextPayment: { dueOn: '2027-05-29', amountCents: 1_000 },
+    })
+    await renderPage()
+    const sub = screen.getByText('stats.nextPaymentLate {"date":"29 mei 2027","days":3}')
+    expect(sub).toHaveClass('text-destructive')
+  })
+
+  it('does not call a payment due today late', async () => {
+    getWeddingGlance.mockResolvedValue({
+      ...GLANCE,
+      nextPayment: { dueOn: '2027-06-01', amountCents: 1_000 },
+    })
+    await renderPage()
+    expect(screen.getByText('1 juni 2027')).not.toHaveClass('text-destructive')
+  })
+
+  it('says nothing is open when no payment is', async () => {
+    await renderPage()
+    const { text } = figure('Volgende betaling')
+    expect(text).toContain('–')
+    expect(text).toContain('Niets open')
+  })
+
+  it('counts vendors booked over all but the declined, and links to the vendors', async () => {
+    getWeddingGlance.mockResolvedValue({
+      ...GLANCE,
+      vendorStatuses: [
+        { status: 'booked', count: 4 },
+        { status: 'quoted', count: 3 },
+        { status: 'declined', count: 2 },
+      ],
+    })
+    await renderPage()
+    const { text } = figure('Leveranciers geboekt')
+    expect(text).toContain('4 / 7')
+    expect(text).toContain('stats.vendorsOpen {"count":3}')
+    expect(screen.getByRole('link', { name: 'Leveranciers geboekt' })).toHaveAttribute(
+      'href',
+      `/weddings/${WID}/vendors`,
+    )
+  })
+
+  it('says when every vendor is booked, and when there are none', async () => {
+    getWeddingGlance.mockResolvedValue({
+      ...GLANCE,
+      vendorStatuses: [
+        { status: 'booked', count: 2 },
+        { status: 'declined', count: 1 },
+      ],
+    })
+    const { unmount } = await renderPage()
+    expect(figure('Leveranciers geboekt').text).toContain('2 / 2')
+    expect(screen.getByText('Allemaal geboekt')).toBeInTheDocument()
+    unmount()
+
+    getWeddingGlance.mockResolvedValue(GLANCE)
+    await renderPage()
+    expect(figure('Leveranciers geboekt').text).toContain('–')
+    expect(screen.getByText('Nog geen leveranciers')).toBeInTheDocument()
+  })
+
+  it('leaves the three figures out when the glance read returns nothing', async () => {
+    getWeddingGlance.mockResolvedValue(null)
+    await renderPage()
+    expect(screen.queryByText('Budget over')).toBeNull()
+    expect(screen.queryByText('Volgende betaling')).toBeNull()
+    expect(screen.queryByText('Leveranciers geboekt')).toBeNull()
+    // The four figures that do not depend on it are still there.
+    expect(screen.getByText('Dagen te gaan')).toBeInTheDocument()
+  })
+})
+
 describe('the next tasks', () => {
   // `listTasks` returns the checklist's order already; the page must keep it, not re-sort.
   it('says there are none, and still links to the checklist', async () => {
@@ -306,6 +481,7 @@ describe('a wedding the principal cannot see', () => {
     // And it reads nothing else about the wedding it has just refused to show.
     expect(getWeddingTaskCounts).not.toHaveBeenCalled()
     expect(listWeddingEvents).not.toHaveBeenCalled()
+    expect(getWeddingGlance).not.toHaveBeenCalled()
   })
 
   it('does not leak the wedding id it was asked about', async () => {
