@@ -8,7 +8,6 @@
     "emptyTitle": "No vendors yet",
     "emptyBody": "Add a vendor once and use them on every wedding.",
     "emptyReadOnly": "The list has no vendors yet. An owner or admin of the studio can add them.",
-    "noResults": "No vendors match this search.",
     "caption": "The studio's vendors",
     "colVendor": "Vendor",
     "colCategory": "Category",
@@ -17,6 +16,14 @@
     "edit": "Edit",
     "editAria": "Edit {name}",
     "readOnly": "You can view the list. Only owners and admins change it."
+  },
+  "filters": {
+    "category": "Filter by category",
+    "all": "All",
+    "status": "Filter by status",
+    "allStatuses": "All statuses",
+    "noMatch": "No vendors match these filters.",
+    "clear": "Clear filters"
   },
   "form": {
     "titleNew": "New vendor",

@@ -12,6 +12,14 @@ import {
 } from '../../app/pro/(app)/vendors/actions.ts'
 import { useToast } from '../toast/toast-provider.tsx'
 import { Monogram, SmallButton, undoAnswer } from './controls.tsx'
+import { CategoryChips, NoMatch } from './filter-chips.tsx'
+import {
+  activeCategory,
+  categoryFacets,
+  type FilterLabels,
+  inCategory,
+  useUrlFilters,
+} from './filters.ts'
 import { type FormLabels, VendorForm } from './vendor-form.tsx'
 
 export type DirectoryLabels = {
@@ -21,7 +29,6 @@ export type DirectoryLabels = {
   emptyTitle: string
   emptyBody: string
   emptyReadOnly: string
-  noResults: string
   caption: string
   colVendor: string
   colCategory: string
@@ -31,6 +38,7 @@ export type DirectoryLabels = {
   /** Template with `{name}`. Filled here, because a function cannot cross the server boundary. */
   editAria: string
   readOnly: string
+  filters: FilterLabels
   form: FormLabels
 }
 
@@ -44,9 +52,10 @@ export function matchesQuery(v: VendorRow, query: string): boolean {
 }
 
 /**
- * The org's vendor directory. Search is client-side over the whole list: a studio's directory
- * is hundreds of rows at the very most, and a round trip per keystroke loses to a
- * spreadsheet's Ctrl+F, which is the bar (CLAUDE.md).
+ * The org's vendor directory. Search and the category chips are client-side over the whole list:
+ * a studio's directory is hundreds of rows at the very most, and a round trip per keystroke loses
+ * to a spreadsheet's Ctrl+F, which is the bar (CLAUDE.md). Both live in the URL as `?q=` and
+ * `?category=` (`useUrlFilters`), so coming back to the list finds them as they were left.
  *
  * `canWrite` only decides what is drawn. The actions and the policies decide what is allowed.
  */
@@ -59,9 +68,13 @@ export function DirectoryView({
   canWrite: boolean
   labels: DirectoryLabels
 }) {
-  const [query, setQuery] = useState('')
+  const [filters, setFilters] = useUrlFilters(['q', 'category'])
   const [sheet, setSheet] = useState<Sheet | null>(null)
-  const shown = useMemo(() => vendors.filter((v) => matchesQuery(v, query)), [vendors, query])
+  const query = filters.q
+  const searched = useMemo(() => vendors.filter((v) => matchesQuery(v, query)), [vendors, query])
+  const facets = useMemo(() => categoryFacets(vendors, searched), [vendors, searched])
+  const category = activeCategory(facets, filters.category)
+  const shown = searched.filter((v) => inCategory(v, category))
   const close = () => setSheet(null)
   const toast = useToast()
 
@@ -87,7 +100,7 @@ export function DirectoryView({
             aria-label={labels.searchLabel}
             placeholder={labels.searchPlaceholder}
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => setFilters({ q: e.target.value })}
             className="bg-transparent h-[var(--control-h)] min-w-0 flex-1 basis-56 rounded-[var(--radius)] border border-[var(--input)] px-3 text-sm sm:max-w-sm"
           />
         )}
@@ -101,6 +114,15 @@ export function DirectoryView({
         )}
       </div>
 
+      <CategoryChips
+        className="mb-4"
+        facets={facets}
+        active={category}
+        total={searched.length}
+        labels={labels.filters}
+        onChange={(label) => setFilters({ category: label })}
+      />
+
       {vendors.length === 0 ? (
         <Card className="text-center">
           <p className="text-sm font-semibold">{labels.emptyTitle}</p>
@@ -109,7 +131,7 @@ export function DirectoryView({
           </p>
         </Card>
       ) : shown.length === 0 ? (
-        <p className="text-muted-foreground py-8 text-center text-sm">{labels.noResults}</p>
+        <NoMatch labels={labels.filters} onClear={() => setFilters({ q: '', category: '' })} />
       ) : (
         <Table caption={labels.caption}>
           <TableHead>

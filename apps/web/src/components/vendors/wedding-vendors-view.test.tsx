@@ -8,6 +8,11 @@ import { ToastProvider } from '../toast/toast-provider.tsx'
 import { weddingLabels } from './labels.ts'
 import { WeddingVendorsView } from './wedding-vendors-view.tsx'
 
+// Reads what the test put in the address bar, as the router hands a page on a reload.
+vi.mock('next/navigation', () => ({
+  useSearchParams: () => new URLSearchParams(window.location.search),
+}))
+
 const setFullRunSheet = vi.fn()
 const removeVendor = vi.fn()
 const restoreVendor = vi.fn()
@@ -218,5 +223,89 @@ describe('the sheet: removing from the wedding (spec 0009 C4)', () => {
     await waitFor(() =>
       expect(toast()).toHaveTextContent('This vendor is already on this wedding.'),
     )
+  })
+})
+
+/**
+ * The wedding list's filters: category chips and a status select, each counting what the other
+ * lets through, both in the URL. The status control in each ROW is "Status of {name}"; the filter
+ * is "Filter by status", so the two cannot be confused here.
+ */
+describe('filtering the wedding list', () => {
+  const LINKED = [
+    vendor({ id: 'wv1', name: 'Traiteur A', category: 'Catering', status: 'booked' }),
+    vendor({
+      id: 'wv2',
+      vendorId: 'v2',
+      name: 'Traiteur B',
+      category: 'Catering',
+      status: 'quoted',
+    }),
+    vendor({ id: 'wv3', vendorId: 'v3', name: 'DJ Bert', category: 'Music', status: 'quoted' }),
+  ]
+  const names = () => LINKED.map((v) => v.name).filter((n) => screen.queryByText(n))
+  const statusFilter = () => screen.getByRole('combobox', { name: 'Filter by status' })
+  const chips = () => within(screen.getByRole('group', { name: 'Filter by category' }))
+  const at = (url: string) => window.history.replaceState(null, '', url)
+
+  beforeEach(() => at('/weddings/w1/vendors'))
+
+  it('lists every status with how many rows the category chips let through', () => {
+    view(LINKED)
+    fireEvent.click(chips().getByRole('button', { name: 'Catering 2' }))
+    expect(
+      within(statusFilter())
+        .getAllByRole('option')
+        .map((o) => o.textContent),
+    ).toEqual([
+      'All statuses (2)',
+      'Considering (0)',
+      'Contacted (0)',
+      'Quote received (1)',
+      'Booked (1)',
+      'Declined (0)',
+    ])
+  })
+
+  it('narrows to a status, recounts the chips, and puts it in the URL', async () => {
+    view(LINKED)
+    fireEvent.change(statusFilter(), { target: { value: 'quoted' } })
+    expect(names()).toEqual(['Traiteur B', 'DJ Bert'])
+    expect(
+      chips()
+        .getAllByRole('button')
+        .map((b) => b.textContent),
+    ).toEqual(['All 2', 'Catering 1', 'Music 1'])
+    await waitFor(() => expect(window.location.search).toBe('?status=quoted'))
+  })
+
+  it('starts from the URL, both filters at once', () => {
+    at('/weddings/w1/vendors?category=catering&status=quoted')
+    view(LINKED)
+    expect(names()).toEqual(['Traiteur B'])
+    expect(statusFilter()).toHaveValue('quoted')
+  })
+
+  it('ignores a status that is not one', () => {
+    at('/weddings/w1/vendors?status=lost')
+    view(LINKED)
+    expect(names()).toHaveLength(3)
+    expect(statusFilter()).toHaveValue('')
+  })
+
+  it('says when nothing matches, and Clear filters brings every row back', async () => {
+    at('/weddings/w1/vendors?category=Music&status=booked')
+    view(LINKED)
+    expect(screen.queryByRole('table')).toBeNull()
+    expect(screen.getByText('No vendors match these filters.')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
+    expect(names()).toHaveLength(3)
+    await waitFor(() => expect(window.location.search).toBe(''))
+  })
+
+  it('draws no filters over a single vendor', () => {
+    view([vendor({})])
+    expect(screen.queryByRole('combobox', { name: 'Filter by status' })).toBeNull()
+    expect(screen.queryByRole('group', { name: 'Filter by category' })).toBeNull()
   })
 })

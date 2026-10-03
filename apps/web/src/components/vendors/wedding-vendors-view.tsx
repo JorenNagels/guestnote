@@ -14,6 +14,14 @@ import {
 import { formatCents } from '../../lib/money.ts'
 import { VENDOR_STATUSES, type VendorActionResult } from '../../lib/vendor-input.ts'
 import { type ErrorLabels, errorText, Monogram, SELECT_CLASS, SmallButton } from './controls.tsx'
+import { CategoryChips, NoMatch } from './filter-chips.tsx'
+import {
+  activeCategory,
+  categoryFacets,
+  type FilterLabels,
+  inCategory,
+  useUrlFilters,
+} from './filters.ts'
 import { STATUS_TONE, type StatusLabels, type VendorStatus } from './status.tsx'
 import { type FormLabels, VendorForm } from './vendor-form.tsx'
 import type { ManageLinkLabels } from './vendor-link-controls.tsx'
@@ -65,6 +73,7 @@ export type WeddingLabels = {
   removeNote: string
   statuses: StatusLabels
   errors: ErrorLabels
+  filters: FilterLabels
   form: FormLabels
   manageLink: ManageLinkLabels
 }
@@ -79,6 +88,11 @@ export type WeddingLabels = {
  *
  * The status control is a real `<select>` dressed as the status pill. The word is the state
  * (never colour alone), and a native select is one tap on a phone with nothing to build.
+ *
+ * Above the table, `?category=` chips and a `?status=` select narrow it (`filters.ts`). No search
+ * box: a wedding has a few dozen vendors at most, and the chips already cut that to a handful.
+ * A row whose status is changed away from the filtered one leaves the table at once, as in any
+ * filtered list; the counts say where it went.
  */
 export function WeddingVendorsView({
   weddingId,
@@ -101,6 +115,16 @@ export function WeddingVendorsView({
 }) {
   const [editing, setEditing] = useState<WeddingVendorRow | null>(null)
   const [creating, setCreating] = useState(false)
+  const [filters, setFilters] = useUrlFilters(['category', 'status'])
+
+  // Each control counts over what the OTHER one lets through, so a number is always how many
+  // rows that choice would show.
+  const status = VENDOR_STATUSES.find((s) => s === filters.status) ?? null
+  const byStatus = linked.filter((v) => status === null || v.status === status)
+  const facets = categoryFacets(linked, byStatus)
+  const category = activeCategory(facets, filters.category)
+  const byCategory = linked.filter((v) => inCategory(v, category))
+  const shown = byStatus.filter((v) => inCategory(v, category))
 
   const candidates = useMemo(() => {
     const taken = new Set(linked.map((l) => l.vendorId))
@@ -123,30 +147,56 @@ export function WeddingVendorsView({
           </p>
         </Card>
       ) : (
-        <Table caption={labels.caption}>
-          <TableHead>
-            <tr>
-              <TableHeaderCell>{labels.colVendor}</TableHeaderCell>
-              <TableHeaderCell>{labels.colCategory}</TableHeaderCell>
-              <TableHeaderCell>{labels.colContact}</TableHeaderCell>
-              <TableHeaderCell>{labels.colStatus}</TableHeaderCell>
-              <TableHeaderCell className="text-right">{labels.colOutstanding}</TableHeaderCell>
-              <TableHeaderCell className="text-right">{labels.colActions}</TableHeaderCell>
-            </tr>
-          </TableHead>
-          <TableBody>
-            {linked.map((v) => (
-              <Row
-                key={v.id}
-                weddingId={weddingId}
-                vendor={v}
-                locale={locale}
-                labels={labels}
-                onEdit={() => setEditing(v)}
+        <>
+          {(linked.length > 1 || status !== null) && (
+            <div className="mb-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <CategoryChips
+                facets={facets}
+                active={category}
+                total={byStatus.length}
+                labels={labels.filters}
+                onChange={(label) => setFilters({ category: label })}
               />
-            ))}
-          </TableBody>
-        </Table>
+              <StatusFilter
+                value={status}
+                rows={byCategory}
+                labels={labels}
+                onChange={(next) => setFilters({ status: next ?? '' })}
+              />
+            </div>
+          )}
+          {shown.length === 0 ? (
+            <NoMatch
+              labels={labels.filters}
+              onClear={() => setFilters({ category: '', status: '' })}
+            />
+          ) : (
+            <Table caption={labels.caption}>
+              <TableHead>
+                <tr>
+                  <TableHeaderCell>{labels.colVendor}</TableHeaderCell>
+                  <TableHeaderCell>{labels.colCategory}</TableHeaderCell>
+                  <TableHeaderCell>{labels.colContact}</TableHeaderCell>
+                  <TableHeaderCell>{labels.colStatus}</TableHeaderCell>
+                  <TableHeaderCell className="text-right">{labels.colOutstanding}</TableHeaderCell>
+                  <TableHeaderCell className="text-right">{labels.colActions}</TableHeaderCell>
+                </tr>
+              </TableHead>
+              <TableBody>
+                {shown.map((v) => (
+                  <Row
+                    key={v.id}
+                    weddingId={weddingId}
+                    vendor={v}
+                    locale={locale}
+                    labels={labels}
+                    onEdit={() => setEditing(v)}
+                  />
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </>
       )}
 
       {editing && (
@@ -167,6 +217,44 @@ export function WeddingVendorsView({
         />
       )}
     </div>
+  )
+}
+
+/**
+ * The status filter, a native select like the row's own status control: five fixed statuses do
+ * not need a second row of chips, and a select is one tap on a phone. Every status is listed,
+ * with its count even at zero -- unlike the categories this list is closed, so "Booked (0)" is
+ * an answer and not noise.
+ */
+function StatusFilter({
+  value,
+  rows,
+  labels,
+  onChange,
+}: {
+  value: VendorStatus | null
+  /** The rows the category chips let through, which is what the counts count. */
+  rows: readonly WeddingVendorRow[]
+  labels: WeddingLabels
+  onChange: (value: VendorStatus | null) => void
+}) {
+  const count = (s: VendorStatus) => rows.filter((r) => r.status === s).length
+  return (
+    <select
+      aria-label={labels.filters.status}
+      value={value ?? ''}
+      onChange={(e) => onChange(VENDOR_STATUSES.find((s) => s === e.target.value) ?? null)}
+      className={`${SELECT_CLASS} ml-auto`}
+    >
+      <option value="">
+        {labels.filters.allStatuses} ({rows.length})
+      </option>
+      {VENDOR_STATUSES.map((s) => (
+        <option key={s} value={s}>
+          {labels.statuses[s]} ({count(s)})
+        </option>
+      ))}
+    </select>
   )
 }
 

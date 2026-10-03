@@ -44,8 +44,9 @@ import {
  * `?q=` from a GET form and `?view=` from plain links, filtered here by `lib/wedding-list.ts`.
  * So the list works with no JavaScript, Back undoes a search, and "the past weddings matching
  * Janssens" is a link a planner can send. Rejected: a client-side filter as the vendor directory
- * has -- it filters as you type, but the query dies on every navigation, and coming back to the
- * list from a wedding is exactly when a planner wants it still there.
+ * had -- it filtered as you type, but the query died on every navigation, and coming back to the
+ * list from a wedding is exactly when a planner wants it still there. (The directory has since,
+ * 2026-10-04, mirrored its filters into the URL instead -- `components/vendors/filters.ts`.)
  */
 export default async function WeddingsPage({
   searchParams,

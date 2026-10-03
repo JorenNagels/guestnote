@@ -1,5 +1,6 @@
 import type { ErrorLabels } from './controls.tsx'
 import type { DirectoryLabels } from './directory-view.tsx'
+import type { FilterLabels } from './filters.ts'
 import type { StatusLabels } from './status.tsx'
 import type { FormLabels } from './vendor-form.tsx'
 import type { ManageLinkLabels } from './vendor-link-controls.tsx'
@@ -41,6 +42,17 @@ function statuses(t: Translate): StatusLabels {
   }
 }
 
+function filters(t: Translate): FilterLabels {
+  return {
+    category: t('filters.category'),
+    all: t('filters.all'),
+    status: t('filters.status'),
+    allStatuses: t('filters.allStatuses'),
+    noMatch: t('filters.noMatch'),
+    clear: t('filters.clear'),
+  }
+}
+
 export function formLabels(t: Translate): FormLabels {
   return {
     titleNew: t('form.titleNew'),
@@ -70,7 +82,6 @@ export function directoryLabels(t: Translate): DirectoryLabels {
     emptyTitle: t('directory.emptyTitle'),
     emptyBody: t('directory.emptyBody'),
     emptyReadOnly: t('directory.emptyReadOnly'),
-    noResults: t('directory.noResults'),
     caption: t('directory.caption'),
     colVendor: t('directory.colVendor'),
     colCategory: t('directory.colCategory'),
@@ -79,6 +90,7 @@ export function directoryLabels(t: Translate): DirectoryLabels {
     edit: t('directory.edit'),
     editAria: raw(t, 'directory.editAria'),
     readOnly: t('directory.readOnly'),
+    filters: filters(t),
     form: formLabels(t),
   }
 }
@@ -154,6 +166,7 @@ export function weddingLabels(t: Translate, t10: Translate): WeddingLabels {
     noBoards: t('wedding.noBoards'),
     statuses: statuses(t),
     errors: errors(t),
+    filters: filters(t),
     form: formLabels(t),
     manageLink: manageLinkLabels(t10),
   }

@@ -10,6 +10,11 @@ per-wedding link (`wedding_vendors`).
 **Directory, `/vendors`** (`app.vendors()`)
 - One table for the whole org: vendor, category, contact (email, phone), notes hint, Edit.
 - A search box filters the rows on name, category, email and phone as you type. No round trip.
+  *(Amended 2026-10-04: category chips under the search -- **Alle** and one chip per category some
+  vendor has, spellings folded by case and spaces, alphabetical, each with the count the search
+  leaves it. Both live in the URL (`?q=`, `?category=`), mirrored with `history.replaceState`, so a
+  reload or coming back to the list keeps them; `filters.ts` says why not links. Nothing matching
+  shows "Geen leveranciers voor deze filters." with **Filters wissen**. No chips with one category.)*
 - `owner` and `admin` add, edit and archive. `member` reads only: no Add button, no Edit. The
   action refuses a member too; RLS is the third layer.
 - Archive is a soft delete (`deleted_at`). A wedding that already uses the vendor keeps showing it.
@@ -34,6 +39,9 @@ per-wedding link (`wedding_vendors`).
   owner and admin only, a `member`'s undo works for two minutes after the removal and is then
   refused with the `forbidden` sentence; an owner or admin may restore at any time.)*
 - Statuses: `considering`, `contacted`, `quoted`, `booked`, `declined`. Words on a pill, never colour alone.
+- *(Amended 2026-10-04)* Above the table, from two vendors on: the same category chips, and a status
+  select listing every status with its count (`?category=`, `?status=`). Each counts what the other
+  lets through. No search box: a wedding's list is short.
 - `editor` and `couple` get a 404: no new table is readable by them (spec 0003).
 
 **Rules that are easy to get wrong**
@@ -77,7 +85,7 @@ per-wedding link (`wedding_vendors`).
 | Empty | "Nog geen leveranciers" and, for owner/admin, an Add button | "Nog geen leveranciers op deze bruiloft", the add row still shown |
 | One / many | table; search filters | table |
 | Nothing to add | n/a | the picker says every vendor is already on this wedding |
-| Search finds nothing | "Geen resultaten" | n/a |
+| Filters find nothing | "Geen leveranciers voor deze filters." + Filters wissen | same |
 | Loading | `loading.tsx` on both routes | same |
 | Error | inline message under the form or row; the list stays | same |
 | Read-only (`member`) | no Add, no Edit | no "New vendor"; Add from directory still works |

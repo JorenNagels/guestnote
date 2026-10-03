@@ -8,7 +8,6 @@
     "emptyTitle": "Pas encore de prestataires",
     "emptyBody": "Ajoutez un prestataire une seule fois et utilisez-le sur chaque mariage.",
     "emptyReadOnly": "La liste ne contient pas encore de prestataires. Un propriétaire ou un administrateur du bureau peut en ajouter.",
-    "noResults": "Aucun prestataire ne correspond à cette recherche.",
     "caption": "Les prestataires du bureau",
     "colVendor": "Prestataire",
     "colCategory": "Catégorie",
@@ -17,6 +16,14 @@
     "edit": "Modifier",
     "editAria": "Modifier {name}",
     "readOnly": "Vous pouvez consulter la liste. Seuls les propriétaires et les administrateurs la modifient."
+  },
+  "filters": {
+    "category": "Filtrer par catégorie",
+    "all": "Tous",
+    "status": "Filtrer par statut",
+    "allStatuses": "Tous les statuts",
+    "noMatch": "Aucun prestataire ne correspond à ces filtres.",
+    "clear": "Effacer les filtres"
   },
   "form": {
     "titleNew": "Nouveau prestataire",

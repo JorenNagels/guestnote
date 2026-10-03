@@ -8,7 +8,6 @@
     "emptyTitle": "Nog geen leveranciers",
     "emptyBody": "Voeg een leverancier één keer toe en gebruik hem op elke bruiloft.",
     "emptyReadOnly": "Er staan nog geen leveranciers in de lijst. Een beheerder van het bureau kan ze toevoegen.",
-    "noResults": "Geen leveranciers gevonden voor deze zoekopdracht.",
     "caption": "Leveranciers van het bureau",
     "colVendor": "Leverancier",
     "colCategory": "Categorie",
@@ -17,6 +16,14 @@
     "edit": "Bewerken",
     "editAria": "{name} bewerken",
     "readOnly": "Je kunt de lijst bekijken. Alleen eigenaars en beheerders passen ze aan."
+  },
+  "filters": {
+    "category": "Filter op categorie",
+    "all": "Alle",
+    "status": "Filter op status",
+    "allStatuses": "Alle statussen",
+    "noMatch": "Geen leveranciers voor deze filters.",
+    "clear": "Filters wissen"
   },
   "form": {
     "titleNew": "Nieuwe leverancier",
