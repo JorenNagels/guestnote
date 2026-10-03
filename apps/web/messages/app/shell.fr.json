@@ -20,13 +20,6 @@
     "task": "Tâche",
     "template": "Modèle"
   },
-  "countdown": {
-    "untilOne": "Encore {days} jour",
-    "untilOther": "Encore {days} jours",
-    "today": "C'est le grand jour",
-    "sinceOne": "Il y a {days} jour",
-    "sinceOther": "Il y a {days} jours"
-  },
   "comingSoon": {
     "title": "Bientôt disponible",
     "body": "Cet écran est encore en construction."

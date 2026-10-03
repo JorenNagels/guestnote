@@ -14,8 +14,9 @@ under "2026-09-21, by spec 0003".
   member sees neither. The org head shows the studio's logo in place of the monogram when one is
   set, falling back to the monogram if it fails to load. One banner slot sits above the page --
   the demo banner while billing is off, the trial banner once it is on.)*
-- A wedding row: colour dot (neutral when `color` is null), couple name, `T-42 · 3 okt`. The
-  countdown is computed in the browser from `wedding_date` as a civil date (UTC midnight), with
+- A wedding row: colour dot (neutral when `color` is null), couple name, `Over 42 dagen · 3 okt`
+  *(amended 2026-10-04: was `T-42 · 3 okt`, replaced by words at the user's request; see
+  `lib/tminus.ts`)*. The countdown is computed in the browser from `wedding_date` as a civil date (UTC midnight), with
   "today" taken from the Brussels calendar day. Archived: the word `Gearchiveerd`, no countdown.
   No date: `Nog geen datum`. Archived rows sort last.
 - The row of the wedding you are inside is `aria-current="true"` with a stripe in its colour and
@@ -39,7 +40,7 @@ under "2026-09-21, by spec 0003".
 ## States
 
 Empty (no weddings: only *Nieuwe bruiloft*), one, many (scrolls), no date, archived, past date
-(`T+n`), today (`T-0`), no colour, expanded, rail, phone drawer, compact and comfortable density.
+(`3 dagen geleden`), today (`Vandaag`), no colour, expanded, rail, phone drawer, compact and comfortable density.
 No loading state: the list is server-rendered by the layout.
 
 ## Copy

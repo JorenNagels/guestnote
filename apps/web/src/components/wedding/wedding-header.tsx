@@ -2,7 +2,7 @@ import type { WeddingDetail } from '@guestnote/db'
 import { Pill, type PillTone } from '@guestnote/ui/pill'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { formatCivilDate } from '../../lib/civil-date.ts'
-import { daysUntil, formatTMinus } from '../../lib/tminus.ts'
+import { daysUntil, formatCountdown } from '../../lib/tminus.ts'
 
 /**
  * The top of every wedding screen: a colour dot, the couple, the date with its countdown, the
@@ -57,8 +57,10 @@ export async function WeddingHeader({
             <time dateTime={wedding.weddingDate} className="tabular-nums">
               {formatCivilDate(locale, wedding.weddingDate)}
             </time>
+            {/* In brackets and lower case: it reads as a gloss on the date beside it,
+                "12 juni 2027 (over 11 dagen)", where a capital would start a second sentence. */}
             {days === null ? null : (
-              <span className="font-mono text-xs tabular-nums">{formatTMinus(days)}</span>
+              <span className="tabular-nums">({formatCountdown(days, locale, true)})</span>
             )}
           </>
         ) : (

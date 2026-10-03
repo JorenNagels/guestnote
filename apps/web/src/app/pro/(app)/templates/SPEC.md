@@ -14,7 +14,8 @@ through S2's `createTasks` (`packages/db/src/repos/tasks.ts`), unchanged.
 
 **Editor, `/templates/[templateId]`** (`app.template(id)`)
 - Head: name, description. Owner and admin get Edit, Duplicate, Delete (Delete asks once).
-- Items table, in `position` order: order arrows, offset (`T-180` = 180 days before, `T+3` = after),
+- Items table, in `position` order: order arrows, offset in words (`180 dagen ervoor`,
+  `3 dagen erna`, `Op de dag zelf`; *amended 2026-10-04*, was `T-180` / `T+3`),
   title, owner (planner or couple), an "Alleen intern" pill for internal items, and **Becomes**: the date
   that offset gives for the wedding picked in the apply panel.
 - Add an item in one row under the table (title, days, before or after, owner, shared or internal;

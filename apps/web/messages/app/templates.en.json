@@ -45,6 +45,11 @@
       "couple": "Couple"
     },
     "internal": "Internal only",
+    "offset": {
+      "onDay": "On the day",
+      "before": "{days, plural, one {# day} other {# days}} before",
+      "after": "{days, plural, one {# day} other {# days}} after"
+    },
     "rule": {
       "onDay": "On the wedding day",
       "before": "{days, plural, one {# day} other {# days}} before the wedding date",

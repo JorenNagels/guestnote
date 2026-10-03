@@ -20,13 +20,6 @@
     "task": "Taak",
     "template": "Sjabloon"
   },
-  "countdown": {
-    "untilOne": "Nog {days} dag",
-    "untilOther": "Nog {days} dagen",
-    "today": "Vandaag is het zover",
-    "sinceOne": "{days} dag geleden",
-    "sinceOther": "{days} dagen geleden"
-  },
   "comingSoon": {
     "title": "Binnenkort",
     "body": "Dit scherm is nog in aanbouw."

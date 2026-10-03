@@ -88,6 +88,9 @@ all nullable. The status stays `draft|live|archived`; the prototype's "Booked" i
 **Sidebar shows T‑minus per wedding, no unread count.** T‑minus is computed from
 `wedding_date`. Unread needs a read-state table and one transaction per wedding for a `member`
 (the reason spec 0001 refused a badge). Rejected for now, not forever.
+*(Amended 2026-10-04, at the user's request: the countdown is no longer written `T‑42`. It is
+words, the same phrase everywhere — "Over 42 dagen", "Morgen", "Vandaag", "3 dagen geleden" —
+and template offsets read "180 dagen ervoor". Spec 0009 records the change.)*
 
 **Vendors are an org directory plus a per-wedding link.** `vendors` is per org and reused;
 `wedding_vendors` holds status and notes per wedding.

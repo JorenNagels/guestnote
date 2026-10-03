@@ -1,5 +1,5 @@
 /**
- * Days until a wedding, for the sidebar's countdown.
+ * Days until a wedding, for the countdown in the sidebar, on Today and in the wedding header.
  *
  * `weddings.wedding_date` is a `date` -- a civil date, the same day to the couple in Brussels
  * or in Bali (the schema says so, and `weddings/[id]/page.tsx` formats it in UTC for that
@@ -53,12 +53,37 @@ export function daysUntil(weddingDate: string | null, now: Date = new Date()): n
 }
 
 /**
- * The compact label: `T-42` before the day, `T-0` on it, `T+3` after. Not translated, like
- * `⌘K` -- it is notation, and the accessible phrase beside it (`app.shell.countdown.*`) is
- * what a screen reader gets. ASCII hyphen: the prototype's non-breaking U+2011 is missing from
- * some fallback fonts and renders as a box, and the row is `whitespace-nowrap` anyway.
+ * The countdown in words: "Over 42 dagen", "Morgen", "Vandaag", "3 dagen geleden" -- "In 42
+ * days" and "Dans 42 jours" in the other two locales. One form everywhere it is shown (the
+ * sidebar row, the Today card, the wedding header), so a planner reads the same phrase for the
+ * same wedding wherever she meets it, and the visible text is the accessible text.
+ *
+ * This replaced the `T-42` / `T-0` / `T+3` notation on 2026-10-04, at the user's request: it is
+ * jargon a couple or a new planner has to learn, and it needed a second, screen-reader-only
+ * phrase beside it, so every site carried two strings that could drift apart.
+ *
+ * `Intl.RelativeTimeFormat` with `numeric: 'auto'`, not message-catalogue templates: it gets the
+ * plural right in every locale and names the near days ("morgen", "overmorgen", "gisteren") for
+ * nothing, and it is in the browser already, so the sidebar -- a client component -- carries no
+ * ICU runtime for it. The cost is that the wording is CLDR's rather than ours, and that a
+ * browser's ICU could phrase a day differently from Node's; the sidebar's node is
+ * `suppressHydrationWarning` for the midnight case already, which covers that too.
+ *
+ * Days only, never weeks or months: tasks fall due on days, and "over 5 maanden" would make a
+ * 140-day and a 160-day wedding read the same while every due date under them differs.
+ *
+ * `inline` is for a phrase set inside other text (the header puts it after the date, in
+ * brackets), where CLDR's lower case is right. Everywhere else the phrase starts its own line,
+ * so its first letter is raised.
  */
-export function formatTMinus(days: number): string {
-  if (days < 0) return `T+${-days}`
-  return `T-${days}`
+const RELATIVE = new Map<string, Intl.RelativeTimeFormat>()
+
+export function formatCountdown(days: number, locale: string, inline = false): string {
+  let format = RELATIVE.get(locale)
+  if (format === undefined) {
+    format = new Intl.RelativeTimeFormat(locale, { numeric: 'auto' })
+    RELATIVE.set(locale, format)
+  }
+  const phrase = format.format(days, 'day')
+  return inline ? phrase : phrase.charAt(0).toLocaleUpperCase(locale) + phrase.slice(1)
 }

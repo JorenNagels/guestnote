@@ -15,7 +15,7 @@ import {
   updateTemplateAction,
 } from '../../app/pro/(app)/templates/[templateId]/actions.ts'
 import { app } from '../../lib/routes.ts'
-import { addDaysCivil, formatOffset } from '../../lib/template-preview.ts'
+import { addDaysCivil } from '../../lib/template-preview.ts'
 import { formatDate } from '../tasks/format.ts'
 import { SmallButton } from '../vendors/controls.tsx'
 import { ApplyPanel, type WeddingOption } from './apply-panel.tsx'
@@ -173,10 +173,10 @@ export function TemplateEditor({
                   )}
                   <TableCell>
                     <span
-                      className="font-mono text-xs whitespace-nowrap tabular-nums"
-                      title={ruleText(t, item.dueOffsetDays)}
+                      className="text-xs whitespace-nowrap tabular-nums"
+                      title={offsetText(t, 'rule', item.dueOffsetDays)}
                     >
-                      {formatOffset(item.dueOffsetDays)}
+                      {offsetText(t, 'offset', item.dueOffsetDays)}
                     </span>
                   </TableCell>
                   <TableCell>
@@ -244,7 +244,18 @@ export function TemplateEditor({
   )
 }
 
-function ruleText(t: ReturnType<typeof useTranslations>, offset: number): string {
-  if (offset === 0) return t('editor.rule.onDay')
-  return t(offset < 0 ? 'editor.rule.before' : 'editor.rule.after', { days: Math.abs(offset) })
+/**
+ * An offset in words, two lengths: `offset` is the column ("300 dagen ervoor"), `rule` the full
+ * sentence in its `title` ("300 dagen voor de trouwdatum"). This replaced the `T-300` / `T+3`
+ * notation on 2026-10-04, at the user's request -- planners read it, and nobody had to learn it.
+ */
+function offsetText(
+  t: ReturnType<typeof useTranslations>,
+  form: 'offset' | 'rule',
+  offset: number,
+): string {
+  if (offset === 0) return t(`editor.${form}.onDay`)
+  return t(offset < 0 ? `editor.${form}.before` : `editor.${form}.after`, {
+    days: Math.abs(offset),
+  })
 }

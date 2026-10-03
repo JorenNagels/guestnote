@@ -24,7 +24,7 @@ In-page ARIA tabs (`role="tab"`), controlled with `value` and `onValueChange` or
 
 ## Badge
 
-A count or short code in a mono chip (`neutral | accent | primary`), for the "12" on a tab or the "T-42" in the sidebar. It carries no status meaning; use `Pill` for that.
+A count or short code in a mono chip (`neutral | accent | primary`), for the "12" on a tab. It carries no status meaning; use `Pill` for that.
 
 ## Card
 

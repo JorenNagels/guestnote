@@ -10,7 +10,7 @@ const TONES: Record<BadgeTone, string> = {
 }
 
 /**
- * A number or a short code in a chip: the "12" on a tab, the "T-42" in the sidebar.
+ * A number or a short code in a chip: the "12" on a tab.
  *
  * Not a `Pill`. A Pill says a state in words and carries a status colour; a Badge is
  * tabular mono, has no dot and no status meaning, so a count never reads as a warning.

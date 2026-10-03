@@ -46,7 +46,7 @@ describe('WeddingHeader', () => {
     expect(screen.getByRole('heading', { name: 'Els & Jan' })).toBeInTheDocument()
     expect(screen.getByText('Live')).toBeInTheDocument()
     expect(screen.getByText(/12 juni 2027/)).toBeInTheDocument()
-    expect(screen.getByText('T-11')).toBeInTheDocument()
+    expect(screen.getByText('(over 11 dagen)')).toBeInTheDocument()
     expect(screen.getByText('Kasteel van Gaasbeek')).toBeInTheDocument()
   })
 
@@ -66,15 +66,15 @@ describe('WeddingHeader', () => {
     await renderHeader({ weddingDate: null, venue: null })
     expect(screen.getByText('Nog geen datum')).toBeInTheDocument()
     expect(screen.getByText('Nog geen locatie')).toBeInTheDocument()
-    expect(screen.queryByText(/^T[-+]/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/dagen|vandaag|morgen|gisteren/)).not.toBeInTheDocument()
   })
 
-  it('shows no countdown for an archived wedding, and counts past days as T+n otherwise', async () => {
+  it('shows no countdown for an archived wedding, and counts past days back otherwise', async () => {
     const { unmount } = await renderHeader({ status: 'archived' })
-    expect(screen.queryByText(/^T[-+]/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/dagen|vandaag|morgen|gisteren/)).not.toBeInTheDocument()
     unmount()
-    await renderHeader({ weddingDate: '2027-05-30' })
-    expect(screen.getByText('T+2')).toBeInTheDocument()
+    await renderHeader({ weddingDate: '2027-05-29' })
+    expect(screen.getByText('(3 dagen geleden)')).toBeInTheDocument()
   })
 
   it('carries an eyebrow when a screen passes one', async () => {

@@ -99,11 +99,6 @@ export default async function AppShellLayout({ children }: { children: ReactNode
   // planner with no org has nothing to list. `listWeddings` derives its own principal from
   // `memberships` and scopes through RLS, so this is not a place the layout decides anything --
   // an org the user has no standing in returns `[]`, indistinguishable from an empty one.
-  // `.raw`, not a formatted read: these four are templates with a `{days}` the browser fills
-  // in per row, and formatting them here throws FORMATTING_ERROR for the missing variable.
-  // Found in the browser, not by a test -- the component tests hand the labels in as props, so
-  // nothing there can see how the layout produces them.
-  const raw = (key: string) => String(shellT.raw(key))
 
   // The logo (spec 0005) beside the weddings, not after them: both need only `orgId`.
   // `studioSettings` answers for any staff of the org -- every member's sidebar shows the logo
@@ -204,11 +199,6 @@ export default async function AppShellLayout({ children }: { children: ReactNode
         row: {
           noDate: shellT('nav.noDate'),
           archived: t('weddings.status.archived'),
-          today: shellT('countdown.today'),
-          untilOne: raw('countdown.untilOne'),
-          untilOther: raw('countdown.untilOther'),
-          sinceOne: raw('countdown.sinceOne'),
-          sinceOther: raw('countdown.sinceOther'),
         },
         collapse: t('nav.collapse'),
         expand: t('nav.expand'),

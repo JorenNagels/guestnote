@@ -87,15 +87,40 @@ beforeEach(() => {
 })
 
 describe('the plan table', () => {
-  it('shows the T-minus offset, the internal pill, and the resolved date for the picked wedding', () => {
+  it('shows the offset in words, the internal pill, and the resolved date for the picked wedding', () => {
     editor()
-    expect(screen.getByText('T-300')).toBeInTheDocument()
-    expect(screen.getByText('T-240')).toBeInTheDocument()
+    expect(screen.getByText('300 dagen ervoor')).toHaveAttribute(
+      'title',
+      '300 dagen voor de trouwdatum',
+    )
+    expect(screen.getByText('240 dagen ervoor')).toBeInTheDocument()
     // `selector: 'span'` and not the bare string: the add-item row's visibility <option> carries
     // the identical Dutch text, and the two must not collide in one assertion.
     expect(screen.getByText('Alleen intern', { selector: 'span' })).toBeInTheDocument()
     // -300 days from 2027-07-31, the same case the repo test proves.
     expect(screen.getByText(/4 okt\.? 2026/)).toBeInTheDocument()
+  })
+
+  it('says the day itself, and days after it, with the singular', () => {
+    const at = (id: string, dueOffsetDays: number, position: number) =>
+      ({
+        id,
+        title: `Task ${id}`,
+        dueOffsetDays,
+        visibility: 'shared',
+        assigneeRole: 'planner',
+        position,
+      }) as const
+    editor({
+      template: {
+        ...TEMPLATE,
+        items: [at('a', 0, 0), at('b', 1, 1), at('c', 3, 2), at('d', -1, 3)],
+      },
+    })
+    expect(screen.getByText('Op de dag zelf')).toBeInTheDocument()
+    expect(screen.getByText('1 dag erna')).toBeInTheDocument()
+    expect(screen.getByText('3 dagen erna')).toBeInTheDocument()
+    expect(screen.getByText('1 dag ervoor')).toBeInTheDocument()
   })
 
   it('shows "-" and no date when no wedding is picked', () => {

@@ -18,7 +18,8 @@ item "until P16 existed"; its amendments table records that it now does.
   stands behind. (This used to say `due_at` goes stale when a wedding moves; spec 0004 closed that.)
   "Today" is the Brussels civil date, read once by `todayCivil()` and passed down.
 - **Header.** Title *Vandaag*, the long date, and how many active weddings the user sees.
-- **Wedding cards.** One per active (not archived) wedding: colour dot, couple, date, `T-42`, and
+- **Wedding cards.** One per active (not archived) wedding: colour dot, couple, date, the countdown
+  in words (`Over 42 dagen`; *amended 2026-10-04*, was `T-42`), and
   the load ("2 te laat · 5 open"). Load counts the user's own open tasks in that wedding, not the
   wedding's whole checklist: that would cost another read per wedding and would trust `due_at`. Order: on
   or after today by date, then no date, then past weddings that are not archived yet. A card links to the wedding overview.
@@ -59,7 +60,8 @@ item "until P16 existed"; its amendments table records that it now does.
 ## Copy
 
 `apps/web/messages/app/today.{nl,en,fr}.json` under `app.today`. The row also reads `app.tasks` (due labels, tick
-box, visibility pill) and the cards read `app.shell.countdown`. NL first.
+box, visibility pill). The cards' countdown needs no copy since 2026-10-04: `Intl.RelativeTimeFormat`
+words it (`lib/tminus.ts`), and `app.shell.countdown` is gone. NL first.
 
 ## Routes and shared files
 

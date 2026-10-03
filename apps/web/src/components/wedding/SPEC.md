@@ -39,7 +39,8 @@ wedding 448-545 of `design-system/planner-prototype/Guestnote Planner.dc.html`.
   **Geld / Money / Argent** (`app.shell.nav.money`), current on both segments and linking to the
   budget; the money pages switch between themselves. With the sidebar's section rows gone, the
   strip is the wedding's one menu.)*
-- **Header** (`wedding-header.tsx`): colour dot, couple name, date with `T-42`, venue, status pill,
+- **Header** (`wedding-header.tsx`): colour dot, couple name, date with its countdown in
+  brackets (`12 juni 2027 (over 42 dagen)`; *amended 2026-10-04*, was `T-42`), venue, status pill,
   then the strip.
 - **Overview** `/weddings/[id]`: four figures (days to go, open tasks with the late count, done of
   total with a bar, guests), the next events (from today on, five at most), and the internal notes

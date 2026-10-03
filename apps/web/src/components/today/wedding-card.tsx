@@ -2,7 +2,7 @@ import type { WeddingSummary } from '@guestnote/db'
 import Link from 'next/link'
 import { getFormatter, getLocale, getTranslations } from 'next-intl/server'
 import { app } from '../../lib/routes.ts'
-import { daysUntil, formatTMinus } from '../../lib/tminus.ts'
+import { daysUntil, formatCountdown } from '../../lib/tminus.ts'
 import { formatDate } from '../tasks/format.ts'
 import type { WeddingLoad } from './sections.ts'
 
@@ -61,15 +61,8 @@ export async function WeddingCard({
         )}
       </span>
       <span className="border-border mt-3 flex items-baseline justify-between gap-2 border-t pt-2.5">
-        <span className="font-mono text-[1.15rem] font-semibold tracking-tight tabular-nums">
-          {days === null ? (
-            <span aria-hidden="true">–</span>
-          ) : (
-            <>
-              <span aria-hidden="true">{formatTMinus(days)}</span>
-              <span className="sr-only">{countdownPhrase(days, locale, shell)}</span>
-            </>
-          )}
+        <span className="text-[0.95rem] font-semibold tabular-nums">
+          {days === null ? <span aria-hidden="true">–</span> : formatCountdown(days, locale)}
         </span>
         <span
           className={
@@ -83,20 +76,4 @@ export async function WeddingCard({
       </span>
     </Link>
   )
-}
-
-/**
- * The spoken form of `T-42`. `PluralRules` chooses between the two templates, as in
- * `nav/wedding-row.tsx`: the shell's countdown strings are `{days}` templates, not ICU plurals,
- * because they cross into a client bundle there and an ICU runtime is not worth one choice.
- */
-function countdownPhrase(
-  days: number,
-  locale: string,
-  shell: Awaited<ReturnType<typeof getTranslations>>,
-): string {
-  if (days === 0) return shell('countdown.today')
-  const one = new Intl.PluralRules(locale).select(Math.abs(days)) === 'one'
-  const key = days > 0 ? (one ? 'untilOne' : 'untilOther') : one ? 'sinceOne' : 'sinceOther'
-  return shell(`countdown.${key}`, { days: Math.abs(days) })
 }

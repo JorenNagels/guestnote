@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { daysUntil, formatTMinus, todayCivil } from './tminus.ts'
+import { daysUntil, formatCountdown, todayCivil } from './tminus.ts'
 
 /**
  * Noon UTC is 13:00 or 14:00 in Brussels, so every `now` below is the same civil day in both
@@ -47,11 +47,29 @@ describe('daysUntil', () => {
   })
 })
 
-describe('formatTMinus', () => {
-  it('reads T-n before the day, T-0 on it and T+n after', () => {
-    expect(formatTMinus(42)).toBe('T-42')
-    expect(formatTMinus(0)).toBe('T-0')
-    expect(formatTMinus(-3)).toBe('T+3')
+describe('formatCountdown', () => {
+  it('says the days in words, ahead of the day, on it and after it', () => {
+    expect(formatCountdown(42, 'nl')).toBe('Over 42 dagen')
+    expect(formatCountdown(0, 'nl')).toBe('Vandaag')
+    expect(formatCountdown(-3, 'nl')).toBe('3 dagen geleden')
+  })
+
+  it('names the near days instead of counting one', () => {
+    // `numeric: 'always'` would say "over 1 dag" and "1 dag geleden".
+    expect(formatCountdown(1, 'nl')).toBe('Morgen')
+    expect(formatCountdown(-1, 'nl')).toBe('Gisteren')
+  })
+
+  it('speaks the locale it is given, with its plurals', () => {
+    expect(formatCountdown(42, 'en')).toBe('In 42 days')
+    expect(formatCountdown(42, 'fr')).toBe('Dans 42 jours')
+    expect(formatCountdown(-1, 'fr')).toBe('Hier')
+    expect(formatCountdown(-3, 'en')).toBe('3 days ago')
+  })
+
+  it('keeps the lower case when the phrase sits inside other text', () => {
+    expect(formatCountdown(42, 'nl', true)).toBe('over 42 dagen')
+    expect(formatCountdown(0, 'fr', true)).toBe('aujourd’hui')
   })
 })
 

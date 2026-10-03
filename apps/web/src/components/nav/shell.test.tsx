@@ -114,11 +114,6 @@ const LABELS: ShellLabels = {
   row: {
     noDate: 'Nog geen datum',
     archived: 'Gearchiveerd',
-    today: 'Vandaag is het zover',
-    untilOne: 'Nog {days} dag',
-    untilOther: 'Nog {days} dagen',
-    sinceOne: '{days} dag geleden',
-    sinceOther: '{days} dagen geleden',
   },
   collapse: 'Zijbalk inklappen',
   expand: 'Zijbalk uitklappen',
@@ -617,19 +612,17 @@ describe('the wedding rows', () => {
   })
 
   /**
-   * The countdown, end to end through the row: 2026-11-02 is 42 days after 2026-09-21. The
-   * spoken form is asserted separately because the visible `T-42` is `aria-hidden` -- a screen
-   * reader must not be handed "T dash forty-two".
+   * The countdown, end to end through the row: 2026-11-02 is 42 days after 2026-09-21. It is
+   * words and nothing else -- the visible text is the spoken text, so there is no `aria-hidden`
+   * notation beside an `sr-only` phrase any more, and the link's name carries it.
    */
-  it('shows T-minus and the short date, and speaks it as words', () => {
+  it('says the countdown in words, beside the short date', () => {
     renderShell({ weddings: [ELS] })
     const row = screen.getByRole('link', { name: /Els & Jan/ })
-    expect(within(row).getByText('T-42')).toHaveAttribute('aria-hidden', 'true')
-    expect(within(row).getByText('Nog 42 dagen')).toBeInTheDocument()
-    expect(row).toHaveTextContent(/2 nov/)
+    expect(row).toHaveAccessibleName(/Over 42 dagen · 2 nov/)
   })
 
-  it('counts up after the day, says the day itself, and keeps the singular', () => {
+  it('counts back after the day, and names today and tomorrow', () => {
     renderShell({
       weddings: [
         { ...ELS, id: 'a', name: 'Aa', date: '2026-09-18' },
@@ -637,12 +630,9 @@ describe('the wedding rows', () => {
         { ...ELS, id: 'c', name: 'Cc', date: '2026-09-22' },
       ],
     })
-    expect(within(screen.getByRole('link', { name: /Aa/ })).getByText('T+3')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Aa/ })).toHaveTextContent('3 dagen geleden')
-    expect(within(screen.getByRole('link', { name: /Bb/ })).getByText('T-0')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /Bb/ })).toHaveTextContent('Vandaag is het zover')
-    expect(screen.getByRole('link', { name: /Cc/ })).toHaveTextContent('Nog 1 dag')
-    expect(screen.getByRole('link', { name: /Cc/ })).not.toHaveTextContent('Nog 1 dagen')
+    expect(screen.getByRole('link', { name: /Aa/ })).toHaveTextContent('3 dagen geleden ·')
+    expect(screen.getByRole('link', { name: /Bb/ })).toHaveTextContent('Vandaag ·')
+    expect(screen.getByRole('link', { name: /Cc/ })).toHaveTextContent('Morgen ·')
   })
 
   /**
@@ -786,8 +776,9 @@ describe('the open wedding in the sidebar', () => {
       'aria-label',
       'Mira & Tom',
     )
-    // The rail has no room to write the countdown out; it must not leak into the name.
-    expect(screen.getByRole('link', { name: 'Mira & Tom' })).not.toHaveTextContent('T-')
+    // The rail has no room to write the countdown out; it must not leak into the name. Els, not
+    // Mira: Mira has no date, so she would have no countdown to leak.
+    expect(screen.getByRole('link', { name: 'Els & Jan' })).not.toHaveTextContent('dagen')
     // The chip is the only thing a sighted user reads on the rail. Two initials, split on the
     // `&`, so the pair reads `MT` and not `M` or `Mi`. Its `aria-hidden` and the `sr-only` name
     // beside it cannot be discriminated by any assertion here -- the `aria-label` above wins the

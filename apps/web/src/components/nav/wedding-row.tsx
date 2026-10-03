@@ -3,7 +3,7 @@
 import { cx } from '@guestnote/ui/cx'
 import Link from 'next/link'
 import { app } from '../../lib/routes.ts'
-import { daysUntil, formatTMinus } from '../../lib/tminus.ts'
+import { daysUntil, formatCountdown } from '../../lib/tminus.ts'
 
 export type ShellWedding = {
   id: string
@@ -15,15 +15,10 @@ export type ShellWedding = {
   color: string | null
 }
 
+/** The countdown itself needs no label: `formatCountdown` words it from the locale. */
 export type WeddingRowLabels = {
   noDate: string
   archived: string
-  today: string
-  /** `{days}` is replaced. Two forms, because plural rules are picked here, not by ICU. */
-  untilOne: string
-  untilOther: string
-  sinceOne: string
-  sinceOther: string
 }
 
 /**
@@ -48,26 +43,8 @@ function initials(name: string): string {
     .join('')
 }
 
-function phrase(days: number, locale: string, labels: WeddingRowLabels): string {
-  if (days === 0) return labels.today
-  // `PluralRules` and not a message-format plural: the labels cross the server/client line as
-  // plain strings, and pulling an ICU runtime into the sidebar for one `one`/`other` choice
-  // would put it in every dashboard page's client bundle. All three locales here have exactly
-  // those two categories for cardinals.
-  const one = new Intl.PluralRules(locale).select(Math.abs(days)) === 'one'
-  const template =
-    days > 0
-      ? one
-        ? labels.untilOne
-        : labels.untilOther
-      : one
-        ? labels.sinceOne
-        : labels.sinceOther
-  return template.replace('{days}', String(Math.abs(days)))
-}
-
 /**
- * One wedding in the sidebar: a colour dot, the couple's name, and `T-42 · 12 jun`.
+ * One wedding in the sidebar: a colour dot, the couple's name, and `Over 42 dagen · 12 jun`.
  *
  * ## Colour is a dot and a stripe, never text and never behind text
  *
@@ -182,19 +159,18 @@ export function WeddingRow({
         </span>
         <span
           suppressHydrationWarning
-          className="text-muted-foreground mt-px block truncate font-mono text-[0.6875rem] leading-tight tabular-nums"
+          className="text-muted-foreground mt-px block truncate text-[0.6875rem] leading-tight tabular-nums"
         >
           {/* Checked first: an archived wedding's countdown is not a countdown -- a year-old
-              `T+400` beside a live one is noise, and the status word says what the planner
-              needs. */}
+              "400 dagen geleden" beside a live one is noise, and the status word says what the
+              planner needs. */}
           {archived ? (
             labels.archived
           ) : days === null || short === null ? (
             labels.noDate
           ) : (
             <>
-              <span aria-hidden="true">{formatTMinus(days)}</span>
-              <span className="sr-only">{phrase(days, locale, labels)}</span>
+              {formatCountdown(days, locale)}
               {' · '}
               {short}
             </>

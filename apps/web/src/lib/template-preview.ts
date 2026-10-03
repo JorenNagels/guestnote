@@ -17,9 +17,3 @@ export function addDaysCivil(date: string | null, days: number): string | null {
   if (Number.isNaN(ms) || new Date(ms).toISOString().slice(0, 10) !== date) return null
   return new Date(ms + days * DAY_MS).toISOString().slice(0, 10)
 }
-
-/** The compact T-minus notation: `T-180` before the day, `T-0` on it, `T+3` after. */
-export function formatOffset(dueOffsetDays: number): string {
-  if (dueOffsetDays > 0) return `T+${dueOffsetDays}`
-  return `T-${Math.abs(dueOffsetDays)}`
-}

@@ -45,6 +45,11 @@
       "couple": "Koppel"
     },
     "internal": "Alleen intern",
+    "offset": {
+      "onDay": "Op de dag zelf",
+      "before": "{days, plural, one {# dag} other {# dagen}} ervoor",
+      "after": "{days, plural, one {# dag} other {# dagen}} erna"
+    },
     "rule": {
       "onDay": "Op de trouwdag",
       "before": "{days, plural, one {# dag} other {# dagen}} voor de trouwdatum",

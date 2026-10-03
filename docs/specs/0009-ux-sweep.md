@@ -181,6 +181,20 @@ digests, guest list) are **not** in this spec; each needs its own `/feature`.
   Undo for another try. **Moodboard boards keep their confirmation:** `moodboards` has no
   `deleted_at`, so a board delete is hard, like run-sheet items and payments.
 
+## Amendment 2026-10-04 — no more `T-42`
+
+*(Amended 2026-10-04, at the user's request.)* The `T-n` / `T+n` notation is gone from every
+screen. The countdown is words, one phrase wherever it appears — the sidebar row
+(`Over 42 dagen · 12 jun`), the Today card (`Over 42 dagen`) and the wedding header, where it sits
+after the date in brackets and lower case (`12 juni 2027 (over 42 dagen)`). Near days are named
+(`Morgen`, `Overmorgen`, `Vandaag`, `Gisteren`) and past ones count back (`3 dagen geleden`); an
+archived wedding still shows `Gearchiveerd` and no countdown. EN and FR follow
+(`In 42 days`, `Dans 42 jours`). The phrase is `Intl.RelativeTimeFormat` with `numeric: 'auto'`
+(`lib/tminus.ts` argues why, and why days and never weeks or months), so `app.shell.countdown`
+was removed and the screen-reader-only twin of each `T-42` went with it: the visible text is now
+the spoken text. Template offsets read the same way — `300 dagen ervoor`, `3 dagen erna`,
+`Op de dag zelf` — with the full rule kept in the `title`.
+
 ## Done means
 
 - `npm run check` green after every batch; `npm run test:db` green for any batch touching
