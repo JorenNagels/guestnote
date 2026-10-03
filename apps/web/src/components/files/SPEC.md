@@ -39,6 +39,11 @@ portal is a separate spec.
   "click to edit" is visible.
 - Image URLs are signed at render and last 5 minutes. A page left open longer shows broken tiles
   until it is refreshed. Accepted: the alternative is a proxy route that streams every image.
+- *(Amended 2026-10-04, spec 0007's note of that date:)* a board also takes **PDF and the six
+  Office formats**, still `kind = 'image'`. A document is a tile with a file icon, its type and
+  size, and keeps its extension in its caption. **Every tile opens** with a URL signed at the
+  click: an image or a PDF in a new tab, an Office file as a download (`open-item.ts`). The
+  "Afbeelding" in the remove toast is gone, since the item may not be one.
 
 **Upload order** (both screens): Server Function checks membership, validates, signs, creates a row
 that is invisible until confirmed -> browser PUTs to the URL -> Server Function confirms -> refresh.

@@ -37,15 +37,16 @@
     "emptyTitle": "No images yet",
     "emptyBody": "Add photos of flowers, tables, dresses or venues. Click a caption to change it.",
     "upload": {
-      "button": "Add images",
-      "hint": "Drop images here. JPEG, PNG, WebP, GIF, HEIC or AVIF up to 25 MB."
+      "button": "Add files",
+      "hint": "Drop images or documents here. Photos, PDF, Word, Excel or PowerPoint up to 25 MB."
     },
     "tileRemove": "Remove",
-    "tileRemoved": "Image “{name}” removed.",
+    "tileRemoved": "“{name}” removed.",
     "tileCancel": "Cancel",
     "aria": {
       "remove": "Remove {name}",
-      "caption": "Edit the caption of {name}"
+      "caption": "Edit the caption of {name}",
+      "open": "Open {name}"
     },
     "captionField": "Caption",
     "captionSave": "Save",
@@ -79,7 +80,8 @@
         "isDefault": "The first board cannot be deleted. You can rename it."
       },
       "empty": "No images on this board yet."
-    }
+    },
+    "openFailed": "This file cannot be opened right now. Try again."
   },
   "uploading": "Uploading…",
   "dismiss": "Dismiss",

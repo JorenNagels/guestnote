@@ -3,6 +3,7 @@ import { createStorage } from './index.ts'
 import {
   ALLOWED_CONTENT_TYPES,
   DEFAULT_MAX_BYTES,
+  INLINE_CONTENT_TYPES,
   LOGO_MAX_BYTES,
   PRESIGN_EXPIRES_SECONDS,
 } from './limits.ts'
@@ -119,14 +120,33 @@ describe('presignUpload', () => {
   })
 
   describe('content type', () => {
-    it('accepts a document as a file and refuses it as an image', async () => {
+    it('accepts a PDF under both kinds, since a moodboard holds documents (2026-10-04)', async () => {
       const storage = createStorage({ transport: fake().transport })
-      expect((await storage.presignUpload(upload({ kind: 'file' }))).ok).toBe(true)
-      expect(await storage.presignUpload(upload({ kind: 'image' }))).toMatchObject({
-        ok: false,
-        failure: 'typeNotAllowed',
-      })
+      for (const kind of ['file', 'image'] as const) {
+        expect((await storage.presignUpload(upload({ kind }))).ok).toBe(true)
+      }
     })
+
+    it.each([
+      ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+      ['application/vnd.ms-excel'],
+      ['application/vnd.openxmlformats-officedocument.presentationml.presentation'],
+    ])('accepts the Office type %s on a moodboard', async (contentType) => {
+      const storage = createStorage({ transport: fake().transport })
+      expect((await storage.presignUpload(upload({ kind: 'image', contentType }))).ok).toBe(true)
+    })
+
+    it.each([['text/plain'], ['text/csv']])(
+      'keeps %s to the Files screen: a file, never a moodboard item',
+      async (contentType) => {
+        const storage = createStorage({ transport: fake().transport })
+        expect((await storage.presignUpload(upload({ kind: 'file', contentType }))).ok).toBe(true)
+        expect(await storage.presignUpload(upload({ kind: 'image', contentType }))).toMatchObject({
+          ok: false,
+          failure: 'typeNotAllowed',
+        })
+      },
+    )
 
     it('accepts an image under both kinds', async () => {
       const storage = createStorage({ transport: fake().transport })
@@ -184,12 +204,18 @@ describe('presignDownload', () => {
     const { transport, gets } = fake()
     const storage = createStorage({ transport, now: () => NOW })
 
-    const result = await storage.presignDownload({ scope, key, filename: 'quote.pdf' })
+    const result = await storage.presignDownload({
+      scope,
+      key,
+      filename: 'quote.pdf',
+      contentType: 'application/pdf',
+    })
 
     expect(gets).toEqual([
       {
         key,
         contentDisposition: `attachment; filename="quote.pdf"; filename*=UTF-8''quote.pdf`,
+        contentType: 'application/pdf',
         expiresInSeconds: PRESIGN_EXPIRES_SECONDS,
         signingDate: NOW,
       },
@@ -201,29 +227,70 @@ describe('presignDownload', () => {
     })
   })
 
-  it('passes inline through when asked', async () => {
+  // What a browser is told about an object: `[stored type, asked for] -> [served type, disposition]`.
+  // An image and a PDF open in place; an Office file is saved however it was asked for; a type no
+  // kind accepts -- an object this package never PUT -- is opaque bytes to be saved, never HTML.
+  it.each([
+    ['image/png', 'inline', 'image/png', 'inline'],
+    ['application/pdf', 'inline', 'application/pdf', 'inline'],
+    ['Application/PDF; x=y', 'inline', 'application/pdf', 'inline'],
+    ['application/pdf', 'attachment', 'application/pdf', 'attachment'],
+    [
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'inline',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'attachment',
+    ],
+    ['text/plain', 'inline', 'text/plain', 'attachment'],
+    ['text/html', 'inline', 'application/octet-stream', 'attachment'],
+    ['image/svg+xml', 'inline', 'application/octet-stream', 'attachment'],
+    ['', 'inline', 'application/octet-stream', 'attachment'],
+  ] as const)('serves a stored %j asked %s as %s, %s', async (stored, asked, type, disposition) => {
     const { transport, gets } = fake()
     await createStorage({ transport }).presignDownload({
       scope,
       key,
-      filename: 'a.png',
-      disposition: 'inline',
+      filename: 'a',
+      contentType: stored,
+      disposition: asked,
     })
-    expect(gets[0]?.contentDisposition).toMatch(/^inline; /)
+    expect(gets[0]?.contentType).toBe(type)
+    expect(gets[0]?.contentDisposition.startsWith(`${disposition}; `)).toBe(true)
+  })
+
+  it('opens only images and PDF in place', () => {
+    expect([...INLINE_CONTENT_TYPES].sort()).toEqual(
+      [
+        ...ALLOWED_CONTENT_TYPES.image.filter((t) => t.startsWith('image/')),
+        'application/pdf',
+      ].sort(),
+    )
   })
 
   it("throws on another tenant's key and never reaches the transport", async () => {
     const { transport, gets } = fake()
     const foreign = `${ORG}/0190a0a0-0000-7000-8000-000000000009/${FILE}`
     await expect(
-      createStorage({ transport }).presignDownload({ scope, key: foreign, filename: 'x.pdf' }),
+      createStorage({ transport }).presignDownload({
+        scope,
+        key: foreign,
+        filename: 'x.pdf',
+        contentType: 'application/pdf',
+      }),
     ).rejects.toThrow(/is not an object of org/)
     expect(gets).toHaveLength(0)
   })
 
   it('maps a transport failure to unavailable', async () => {
     const storage = createStorage({ transport: fake({ ok: false, detail: 'boom' }).transport })
-    expect(await storage.presignDownload({ scope, key, filename: 'x.pdf' })).toEqual({
+    expect(
+      await storage.presignDownload({
+        scope,
+        key,
+        filename: 'x.pdf',
+        contentType: 'application/pdf',
+      }),
+    ).toEqual({
       ok: false,
       failure: 'unavailable',
       detail: 'boom',

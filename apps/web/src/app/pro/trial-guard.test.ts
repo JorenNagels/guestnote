@@ -47,7 +47,8 @@ const ALLOWLIST: Record<string, readonly string[]> = {
   // Spec 0008: clearing the unread dot is a read receipt, not studio data.
   'weddings/[id]/couple/actions.ts': ['markCoupleSeen'],
   // Spec 0008: reading an image's thread (and clearing its dot) is a read.
-  'weddings/[id]/moodboard/actions.ts': ['imageCommentsAction'],
+  // ...and opening a board item is the same presigned GET as `downloadFile` (2026-10-04).
+  'weddings/[id]/moodboard/actions.ts': ['imageCommentsAction', 'openMoodboardFile'],
 }
 
 const GUARD = 'await assertWritable('

@@ -129,7 +129,8 @@ export function createDevFiles(config: { dir: string; now?: () => Date }): DevFi
             method: 'GET',
             key: input.key,
             exp,
-            ct: '',
+            // The response type, signed like S3's `response-content-type`; empty for a logo.
+            ct: input.contentType ?? '',
             cl: '',
             cd: input.contentDisposition,
           }),
@@ -176,7 +177,8 @@ export function createDevFiles(config: { dir: string; now?: () => Date }): DevFi
         return new Response(new Uint8Array(body), {
           status: 200,
           headers: {
-            'Content-Type': type,
+            // What the URL was signed for wins over what the PUT stored, as on S3.
+            'Content-Type': signed.ct || type,
             'Content-Disposition': signed.cd,
             'Cache-Control': 'private, no-store',
             // Uploaded content is untrusted; never let a browser guess a more dangerous type.

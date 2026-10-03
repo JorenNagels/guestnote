@@ -36,5 +36,6 @@
   "fullEmpty": "Rien de prévu pour l’instant.",
   "download": "Télécharger",
   "close": "Fermer",
-  "openImage": "Agrandir {name}"
+  "openImage": "Agrandir {name}",
+  "openFile": "Ouvrir {name}"
 }

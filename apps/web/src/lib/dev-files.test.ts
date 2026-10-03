@@ -45,10 +45,11 @@ const put = (query: URLSearchParams, body: string, type = 'image/png', key = KEY
     new Request('http://x/', { method: 'PUT', body, headers: { 'content-type': type } }),
   )
 
-async function signedGet(cd = 'inline; filename="a.png"') {
+async function signedGet(cd = 'inline; filename="a.png"', contentType?: string) {
   const r = await dev.transport.presignGet({
     key: KEY,
     contentDisposition: cd,
+    ...(contentType ? { contentType } : {}),
     expiresInSeconds: 300,
     signingDate: NOW,
   })
@@ -66,6 +67,17 @@ describe('dev files', () => {
     expect(res.headers.get('content-type')).toBe('image/png')
     expect(res.headers.get('content-disposition')).toBe('inline; filename="a.png"')
     expect(res.headers.get('x-content-type-options')).toBe('nosniff')
+  })
+
+  it('serves the type the GET was signed for over the stored one, as S3 does', async () => {
+    await put(await signedPut(), 'abcd')
+    const q = await signedGet('attachment; filename="a"', 'application/octet-stream')
+    const res = await dev.get(KEY, q)
+    expect(res.headers.get('content-type')).toBe('application/octet-stream')
+
+    // ...and that type is under the signature, so the holder cannot swap it for HTML.
+    q.set('ct', 'text/html')
+    expect((await dev.get(KEY, q)).status).toBe(403)
   })
 
   it('refuses a body of a different Content-Type, as S3 does', async () => {

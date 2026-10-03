@@ -37,15 +37,16 @@
     "emptyTitle": "Nog geen afbeeldingen",
     "emptyBody": "Voeg foto’s toe van bloemen, tafels, jurken of locaties. Klik op een bijschrift om het aan te passen.",
     "upload": {
-      "button": "Afbeeldingen toevoegen",
-      "hint": "Sleep afbeeldingen hierheen. JPEG, PNG, WebP, GIF, HEIC of AVIF tot 25 MB."
+      "button": "Bestanden toevoegen",
+      "hint": "Sleep afbeeldingen of documenten hierheen. Foto’s, PDF, Word, Excel of PowerPoint tot 25 MB."
     },
     "tileRemove": "Verwijderen",
-    "tileRemoved": "Afbeelding “{name}” verwijderd.",
+    "tileRemoved": "“{name}” verwijderd.",
     "tileCancel": "Annuleren",
     "aria": {
       "remove": "{name} verwijderen",
-      "caption": "Bijschrift van {name} aanpassen"
+      "caption": "Bijschrift van {name} aanpassen",
+      "open": "{name} openen"
     },
     "captionField": "Bijschrift",
     "captionSave": "Opslaan",
@@ -79,7 +80,8 @@
         "isDefault": "Het eerste bord kan niet worden verwijderd. Geef het gerust een andere naam."
       },
       "empty": "Nog geen afbeeldingen op dit bord."
-    }
+    },
+    "openFailed": "Dit bestand kan nu niet worden geopend. Probeer het opnieuw."
   },
   "uploading": "Bezig met uploaden…",
   "dismiss": "Sluiten",

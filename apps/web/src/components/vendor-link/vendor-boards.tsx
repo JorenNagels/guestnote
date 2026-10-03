@@ -2,18 +2,26 @@
 
 import { Button } from '@guestnote/ui/button'
 import { type KeyboardEvent, useRef, useState } from 'react'
+import { isImageType } from '../../lib/board-items.ts'
 import type { VendorBoard } from '../../lib/vendor-boards.ts'
+import { DocPreview } from '../files/doc-preview.tsx'
+import { formatSize } from '../files/format.ts'
+import { openItem } from '../files/open-item.ts'
 
 export type VendorBoardLabels = {
   download: string
   close: string
   /** `{name}`: the caption. */
   open: string
+  /** `{name}`: the caption of a document, which opens in a tab or downloads (2026-10-04). */
+  openFile: string
 }
 
 export type VendorBoardActions = {
   refresh(): Promise<Readonly<Record<string, string>> | null>
   download(fileId: string): Promise<string | null>
+  /** Signed `inline` now: a PDF opens in a tab; an Office file comes back `attachment`. */
+  open(fileId: string): Promise<string | null>
 }
 
 /**
@@ -33,15 +41,21 @@ const FRESH_MS = 60_000
  * link's own token; the server re-checks the link, so a revoked one returns `null` and the tiles
  * stay on their fallback. A tile that fails on a fresh URL falls back at once: caption and a
  * download button, which is how a HEIC shows on a browser that cannot draw it.
+ *
+ * A document on the board (2026-10-04) has no render-time URL and nothing to refresh: it is drawn
+ * as an icon with its type and size, and tapping it signs one through the token and opens it --
+ * a PDF in a new tab, an Office file as a download (`files/open-item.ts`).
  */
 export function VendorBoards({
   boards,
   labels,
   actions,
+  locale,
 }: {
   boards: readonly VendorBoard[]
   labels: VendorBoardLabels
   actions: VendorBoardActions
+  locale: string
 }) {
   const [urls, setUrls] = useState<Readonly<Record<string, string | null>>>(() =>
     Object.fromEntries(boards.flatMap((b) => b.images.map((i) => [i.id, i.url]))),
@@ -94,7 +108,16 @@ export function VendorBoards({
                   key={image.id}
                   className="border-border bg-background overflow-hidden rounded-[var(--radius-container)] border"
                 >
-                  {broken ? (
+                  {!isImageType(image.mime) ? (
+                    <button
+                      type="button"
+                      aria-label={labels.openFile.replace('{name}', () => image.name)}
+                      onClick={() => void openItem(image.mime, () => actions.open(image.id))}
+                      className="block w-full cursor-pointer"
+                    >
+                      <DocPreview mime={image.mime} size={formatSize(image.sizeBytes, locale)} />
+                    </button>
+                  ) : broken ? (
                     <div className="bg-muted flex aspect-[4/3] flex-col items-center justify-center gap-2 px-2 text-center">
                       <span className="text-xs break-words">{image.name}</span>
                       <Button variant="secondary" onClick={() => void download(image.id)}>

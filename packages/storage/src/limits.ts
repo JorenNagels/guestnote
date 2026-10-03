@@ -43,6 +43,22 @@ const IMAGE_TYPES = [
   'image/avif',
 ] as const
 
+/**
+ * What a moodboard holds besides images, since 2026-10-04: a venue's floor plan, a florist's
+ * quote, a mood deck from the couple. PDF and the six Office formats, and nothing else -- not
+ * the Files screen's `text/plain` or `text/csv`, which nobody pins to a board, and never a type
+ * a browser renders as a document of its own (see `ALLOWED_CONTENT_TYPES`).
+ */
+const MOODBOARD_DOCUMENT_TYPES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+] as const
+
 const DOCUMENT_TYPES = [
   'application/pdf',
   'text/plain',
@@ -68,7 +84,12 @@ const DOCUMENT_TYPES = [
  * that changes.
  */
 export const ALLOWED_CONTENT_TYPES: Readonly<Record<UploadKind, readonly string[]>> = {
-  image: IMAGE_TYPES,
+  // The moodboard's kind. Named when a board held images only, and still called `image`
+  // because `files.kind`, `files_moodboard_kind_check`, `files.link_read` (0012) and every
+  // `couple_*` image function (0013) key on that value -- renaming it is a migration across
+  // two security-relevant ones for a word. Widened to documents 2026-10-04 (spec 0007, amended):
+  // a PDF on a board reaches a vendor link or the couple through exactly the same policies.
+  image: [...IMAGE_TYPES, ...MOODBOARD_DOCUMENT_TYPES],
   // A planner drops a photo into Files as readily as into the moodboard.
   file: [...DOCUMENT_TYPES, ...IMAGE_TYPES],
   // Spec 0005: the three every browser draws. Not GIF (a moving logo in a sidebar), not HEIC
@@ -86,4 +107,42 @@ export const ALLOWED_CONTENT_TYPES: Readonly<Record<UploadKind, readonly string[
  */
 export function normaliseContentType(raw: string): string {
   return (raw.split(';')[0] ?? '').trim().toLowerCase()
+}
+
+/**
+ * Every type any kind accepts. A GET for anything outside it is served as
+ * `application/octet-stream` and `attachment` (`servedAs`).
+ */
+const ANY_ALLOWED: ReadonlySet<string> = new Set(Object.values(ALLOWED_CONTENT_TYPES).flat())
+
+/**
+ * The types a browser may show **in place**: the raster images, and PDF. Everything else is
+ * served `attachment` however the caller asked, so a Word file opened from a moodboard is
+ * saved rather than handed to a renderer.
+ *
+ * PDF is the one document here, because "click the floor plan, see the floor plan" is the point
+ * of putting it on a board. A PDF can carry script, but the browser's PDF viewer runs it (where it
+ * runs it at all) in its own sandbox, not as the page's origin -- and in a deployed environment
+ * the origin is the bucket's, which holds no session. Rejected: `text/plain` inline, which some
+ * browsers still sniff without `X-Content-Type-Options`, a header a presigned S3 GET cannot set.
+ * `image/svg+xml` and `text/html` cannot get here: no kind accepts them.
+ */
+export const INLINE_CONTENT_TYPES: readonly string[] = [...IMAGE_TYPES, 'application/pdf']
+
+/**
+ * The `Content-Type` and disposition a GET is signed with, from the row's stored type and the
+ * caller's wish. Signed as `response-content-type`, so S3 answers with this and not with whatever
+ * metadata the object carries: an object written by anything other than this package's PUT (a
+ * console upload, a seed) still cannot come back as `text/html`.
+ */
+export function servedAs(
+  storedType: string,
+  wanted: 'inline' | 'attachment',
+): { readonly contentType: string; readonly disposition: 'inline' | 'attachment' } {
+  const type = normaliseContentType(storedType)
+  if (!ANY_ALLOWED.has(type)) {
+    return { contentType: 'application/octet-stream', disposition: 'attachment' }
+  }
+  const inline = wanted === 'inline' && INLINE_CONTENT_TYPES.includes(type)
+  return { contentType: type, disposition: inline ? 'inline' : 'attachment' }
 }

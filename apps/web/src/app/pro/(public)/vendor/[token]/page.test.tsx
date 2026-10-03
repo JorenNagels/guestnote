@@ -31,11 +31,17 @@ vi.mock('../../../../../lib/vendor-boards.ts', () => ({
 }))
 const refreshBoardImages = vi.fn()
 const boardImageDownload = vi.fn()
+const boardFileOpen = vi.fn()
 vi.mock('./actions.ts', () => ({
+  boardFileOpen: (...a: unknown[]) => boardFileOpen(...a),
   refreshBoardImages: (...a: unknown[]) => refreshBoardImages(...a),
   boardImageDownload: (...a: unknown[]) => boardImageDownload(...a),
 }))
-type VendorActions = { refresh(): Promise<unknown>; download(id: string): Promise<unknown> }
+type VendorActions = {
+  refresh(): Promise<unknown>
+  download(id: string): Promise<unknown>
+  open(id: string): Promise<unknown>
+}
 vi.mock('next-intl/server', () => ({
   getLocale: async () => 'nl',
   getTranslations: async () =>
@@ -185,7 +191,7 @@ describe('the full day and the shared boards', () => {
     expect(html).not.toContain('timelineEmpty')
   })
 
-  it('binds the page token into both board actions', async () => {
+  it('binds the page token into every board action', async () => {
     vendorBoards.mockResolvedValue([{ id: 'b1', name: 'Fotograaf', images: [] }])
     const el = await render('the-token')
     const find = (node: unknown): { props: { actions: VendorActions } } | null => {
@@ -204,8 +210,10 @@ describe('the full day and the shared boards', () => {
     const boards = find(el)
     await boards?.props.actions.refresh()
     await boards?.props.actions.download('f1')
+    await boards?.props.actions.open('f3')
     expect(refreshBoardImages).toHaveBeenCalledWith('the-token')
     expect(boardImageDownload).toHaveBeenCalledWith('the-token', 'f1')
+    expect(boardFileOpen).toHaveBeenCalledWith('the-token', 'f3')
   })
 
   it('reads the boards for the lookup, and renders none when nothing is shared', async () => {

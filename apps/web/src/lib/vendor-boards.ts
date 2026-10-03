@@ -6,6 +6,7 @@ import {
   type VendorLinkLookup,
 } from '@guestnote/db'
 import { hashBearerToken } from './bearer-token.ts'
+import { isImageType } from './board-items.ts'
 import { getDb } from './db.ts'
 import { signObject } from './wedding-files.ts'
 
@@ -33,10 +34,16 @@ import { signObject } from './wedding-files.ts'
  * but `live` -- the same single `if` the page makes -- before a principal exists.
  */
 
+/** One item of a shared board: an image, or since 2026-10-04 a PDF or an Office file. */
 export type VendorImage = {
   readonly id: string
   readonly name: string
-  /** Inline, five minutes; `null` when signing failed and the tile shows its fallback. */
+  readonly mime: string
+  readonly sizeBytes: number
+  /**
+   * Inline, five minutes; `null` when signing failed and the tile shows its fallback. Always
+   * `null` for a document, which is drawn as an icon and signed when opened (`vendorFileUrl`).
+   */
   readonly url: string | null
 }
 export type VendorBoard = {
@@ -80,7 +87,9 @@ export async function vendorBoards(lookup: VendorLinkLookup): Promise<VendorBoar
         b.images.map(async (i) => ({
           id: i.id,
           name: i.name,
-          url: await signObject(scope, i, 'inline'),
+          mime: i.mime,
+          sizeBytes: i.sizeBytes,
+          url: isImageType(i.mime) ? await signObject(scope, i, 'inline') : null,
         })),
       ),
     })),
@@ -104,15 +113,21 @@ export async function refreshVendorBoardUrls(
   return urls
 }
 
-/** One image as a download (`attachment`), if the link can still see it. */
-export async function vendorImageDownloadUrl(
+/**
+ * One item, if the link can still see it: `attachment` for the Download button, `inline` to open
+ * it (2026-10-04) -- which the storage seam honours for an image or a PDF only, and signs as
+ * `attachment` for an Office file. Found among the boards the link reads under `link_read`, so a
+ * file id from anywhere else -- another vendor's board, the Files screen -- signs nothing.
+ */
+export async function vendorFileUrl(
   token: unknown,
   fileId: unknown,
+  disposition: 'inline' | 'attachment',
 ): Promise<string | null> {
   if (typeof fileId !== 'string') return null
   const lookup = await liveVendorLink(token)
   if (!lookup) return null
-  const image = (await shared(lookup)).flatMap((b) => b.images).find((i) => i.id === fileId)
-  if (!image) return null
-  return signObject({ orgId: lookup.orgId, weddingId: lookup.weddingId }, image, 'attachment')
+  const item = (await shared(lookup)).flatMap((b) => b.images).find((i) => i.id === fileId)
+  if (!item) return null
+  return signObject({ orgId: lookup.orgId, weddingId: lookup.weddingId }, item, disposition)
 }

@@ -257,7 +257,13 @@ describe('confirmUpload / remove / rename / visibility', () => {
 })
 
 describe('downloadUrl', () => {
-  const row = { id: FILE, kind: 'file', name: 'Contract.pdf', storageKey: KEY }
+  const row = {
+    id: FILE,
+    kind: 'file',
+    name: 'Contract.pdf',
+    storageKey: KEY,
+    mime: 'application/pdf',
+  }
 
   it('signs only what the tenant read returned', async () => {
     repo.getFile.mockResolvedValue(null)
@@ -270,7 +276,13 @@ describe('downloadUrl', () => {
     repo.getFile.mockResolvedValue(row)
     expect(await downloadUrl(WEDDING, FILE)).toBe('https://get.example/a')
     expect(storage.presignDownload).toHaveBeenLastCalledWith(
-      expect.objectContaining({ disposition: 'attachment', key: KEY, filename: 'Contract.pdf' }),
+      expect.objectContaining({
+        disposition: 'attachment',
+        key: KEY,
+        filename: 'Contract.pdf',
+        // The row's type goes with it: the seam signs it as the response's Content-Type.
+        contentType: 'application/pdf',
+      }),
     )
 
     repo.getFile.mockResolvedValue({ ...row, kind: 'image' })
@@ -289,7 +301,7 @@ describe('downloadUrl', () => {
 
 describe('a row whose key the storage seam rejects', () => {
   // The dev seed writes `seed/<org>/<wedding>/<n>` keys; `presignDownload` throws on them.
-  const bad = { id: 'x', kind: 'image', name: 'Seed', storageKey: 'seed/x/y/5' }
+  const bad = { id: 'x', kind: 'image', name: 'Seed', storageKey: 'seed/x/y/5', mime: 'image/png' }
 
   it('is one dead download, not an error', async () => {
     repo.getFile.mockResolvedValue(bad)
@@ -298,7 +310,7 @@ describe('a row whose key the storage seam rejects', () => {
   })
 
   it('is one placeholder tile, and the rest of the board still loads', async () => {
-    const good = { id: 'g', kind: 'image', name: 'Good', storageKey: KEY }
+    const good = { id: 'g', kind: 'image', name: 'Good', storageKey: KEY, mime: 'image/jpeg' }
     repo.listFiles.mockResolvedValue([bad, good])
     storage.presignDownload
       .mockRejectedValueOnce(new Error('key not in scope'))
@@ -316,8 +328,8 @@ describe('listWeddingImages', () => {
   })
 
   it('signs each image inline, and leaves url null where signing failed', async () => {
-    const a = { id: 'a', kind: 'image', name: 'A', storageKey: KEY }
-    const b = { id: 'b', kind: 'image', name: 'B', storageKey: KEY }
+    const a = { id: 'a', kind: 'image', name: 'A', storageKey: KEY, mime: 'image/png' }
+    const b = { id: 'b', kind: 'image', name: 'B', storageKey: KEY, mime: 'image/heic' }
     repo.listFiles.mockResolvedValue([a, b])
     storage.presignDownload
       .mockResolvedValueOnce({ ok: true, url: 'https://get.example/a' })
@@ -331,5 +343,17 @@ describe('listWeddingImages', () => {
     expect(storage.presignDownload).toHaveBeenCalledWith(
       expect.objectContaining({ disposition: 'inline' }),
     )
+  })
+
+  it('signs no URL for a document on the board: it is drawn as an icon and signed per click', async () => {
+    const pdf = { id: 'p', kind: 'image', name: 'Plan', storageKey: KEY, mime: 'application/pdf' }
+    const img = { id: 'i', kind: 'image', name: 'Roos', storageKey: KEY, mime: 'image/png' }
+    repo.listFiles.mockResolvedValue([pdf, img])
+    storage.presignDownload.mockResolvedValue({ ok: true, url: 'https://get.example/i' })
+
+    const tiles = await listWeddingImages(WEDDING, BOARD)
+
+    expect(tiles?.map((t) => t.url)).toEqual([null, 'https://get.example/i'])
+    expect(storage.presignDownload).toHaveBeenCalledTimes(1)
   })
 })

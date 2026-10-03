@@ -1,10 +1,14 @@
 'use client'
 
 import { Button } from '@guestnote/ui/button'
+import { InlineError } from '@guestnote/ui/inline-error'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { BOARD_ACCEPT, isImageType } from '../../../lib/board-items.ts'
 import type { Done, StartUpload } from '../../../lib/wedding-files.ts'
+import { DocPreview } from '../../files/doc-preview.tsx'
 import { withoutExtension } from '../../files/format.ts'
+import { openItem } from '../../files/open-item.ts'
 import { uploadFile } from '../../files/upload.ts'
 import { UploadZone, type UploadZoneLabels } from '../../files/upload-zone.tsx'
 import { CommentThread, type ThreadComment, type ThreadCopy } from '../comment-thread.tsx'
@@ -13,6 +17,8 @@ import { countLabel } from './portal-tasks.tsx'
 export type PortalTile = {
   readonly id: string
   readonly name: string
+  /** An image, or since 2026-10-04 a PDF or an Office file, drawn as an icon. */
+  readonly mime: string
   readonly url: string | null
   /** "Toegevoegd door Anna", already filled, or null for the planner's own images. */
   readonly addedBy: string | null
@@ -24,6 +30,9 @@ export type PortalBoardCopy = {
   readonly empty: string
   readonly remove: string
   readonly imageUnavailable: string
+  /** `{name}`: the open control on a tile. */
+  readonly open: string
+  readonly openFailed: string
   readonly upload: UploadZoneLabels
   readonly comments: { readonly none: string; readonly one: string; readonly other: string }
   readonly thread: ThreadCopy
@@ -34,7 +43,9 @@ export type PortalBoardCopy = {
  * each image its comment thread. The couple deletes only what they added. On an archived
  * wedding (`readOnly`) there is no upload, no delete and no comment box -- only the looking.
  *
- * `<img>` and not `next/image`, for the reason `files/moodboard-screen.tsx` gives.
+ * `<img>` and not `next/image`, for the reason `files/moodboard-screen.tsx` gives. Every tile
+ * opens, as on the planner's board (2026-10-04): an image or a PDF in a new tab, an Office file as
+ * a download, each with a URL signed at the tap.
  */
 export function PortalBoard({
   tiles,
@@ -54,6 +65,7 @@ export function PortalBoard({
     }): Promise<StartUpload>
     confirm(fileId: string): Promise<Done>
     remove(fileId: string): Promise<boolean>
+    open(fileId: string): Promise<string | null>
     thread(fileId: string): Promise<ThreadComment[] | null>
     comment(fileId: string, body: string): Promise<boolean>
     removeComment(commentId: string): Promise<boolean>
@@ -62,6 +74,12 @@ export function PortalBoard({
   const router = useRouter()
   const [open, setOpen] = useState<{ id: string; comments: ThreadComment[] } | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
+  const [failed, setFailed] = useState<string | null>(null)
+
+  const openTile = async (t: PortalTile) => {
+    setFailed(null)
+    if (!(await openItem(t.mime, () => actions.open(t.id)))) setFailed(t.id)
+  }
 
   const reload = async (fileId: string) => {
     const list = await actions.thread(fileId)
@@ -73,13 +91,19 @@ export function PortalBoard({
       {!readOnly && (
         <div className="mb-4 print:hidden">
           <UploadZone
-            accept="image/*"
+            accept={BOARD_ACCEPT}
             labels={copy.upload}
             onDone={() => router.refresh()}
             upload={(file) =>
               uploadFile(
                 file,
-                { name: withoutExtension(file.name) || file.name, visibility: 'shared' },
+                {
+                  // As on the planner's board: a document keeps its extension.
+                  name: isImageType(file.type)
+                    ? withoutExtension(file.name) || file.name
+                    : file.name,
+                  visibility: 'shared',
+                },
                 { start: actions.start, confirm: actions.confirm },
               )
             }
@@ -97,22 +121,32 @@ export function PortalBoard({
               key={t.id}
               className="border-border bg-background flex flex-col overflow-hidden rounded-[var(--radius-container)] border"
             >
-              {t.url ? (
-                // biome-ignore lint/performance/noImgElement: see the component comment
-                <img
-                  src={t.url}
-                  alt={t.name}
-                  loading="lazy"
-                  className="bg-muted aspect-[4/3] w-full object-cover"
-                />
-              ) : (
-                <div className="bg-muted text-muted-foreground grid aspect-[4/3] place-items-center px-2 text-center text-xs">
-                  {copy.imageUnavailable}
-                </div>
-              )}
+              <button
+                type="button"
+                aria-label={copy.open.replace('{name}', () => t.name)}
+                onClick={() => void openTile(t)}
+                className="block w-full cursor-pointer"
+              >
+                {!isImageType(t.mime) ? (
+                  <DocPreview mime={t.mime} />
+                ) : t.url ? (
+                  // biome-ignore lint/performance/noImgElement: see the component comment
+                  <img
+                    src={t.url}
+                    alt={t.name}
+                    loading="lazy"
+                    className="bg-muted block aspect-[4/3] w-full object-cover"
+                  />
+                ) : (
+                  <span className="bg-muted text-muted-foreground grid aspect-[4/3] place-items-center px-2 text-center text-xs">
+                    {copy.imageUnavailable}
+                  </span>
+                )}
+              </button>
               <div className="flex flex-1 flex-col gap-1.5 p-2.5">
                 <p className="text-[12.5px] leading-snug break-words">{t.name}</p>
                 {t.addedBy && <p className="text-muted-foreground text-[11.5px]">{t.addedBy}</p>}
+                {failed === t.id && <InlineError>{copy.openFailed}</InlineError>}
                 <button
                   type="button"
                   aria-expanded={open?.id === t.id}

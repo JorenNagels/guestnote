@@ -37,15 +37,16 @@
     "emptyTitle": "Aucune image pour l’instant",
     "emptyBody": "Ajoutez des photos de fleurs, de tables, de robes ou de lieux. Cliquez sur une légende pour la modifier.",
     "upload": {
-      "button": "Ajouter des images",
-      "hint": "Déposez des images ici. JPEG, PNG, WebP, GIF, HEIC ou AVIF jusqu’à 25 Mo."
+      "button": "Ajouter des fichiers",
+      "hint": "Déposez des images ou des documents ici. Photos, PDF, Word, Excel ou PowerPoint jusqu’à 25 Mo."
     },
     "tileRemove": "Supprimer",
-    "tileRemoved": "Image « {name} » supprimée.",
+    "tileRemoved": "« {name} » supprimé.",
     "tileCancel": "Annuler",
     "aria": {
       "remove": "Supprimer {name}",
-      "caption": "Modifier la légende de {name}"
+      "caption": "Modifier la légende de {name}",
+      "open": "Ouvrir {name}"
     },
     "captionField": "Légende",
     "captionSave": "Enregistrer",
@@ -79,7 +80,8 @@
         "isDefault": "Le premier tableau ne peut pas être supprimé. Vous pouvez le renommer."
       },
       "empty": "Aucune image sur ce tableau pour l’instant."
-    }
+    },
+    "openFailed": "Ce fichier ne peut pas être ouvert pour le moment. Réessayez."
   },
   "uploading": "Envoi en cours…",
   "dismiss": "Fermer",

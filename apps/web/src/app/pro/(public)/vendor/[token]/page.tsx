@@ -8,7 +8,7 @@ import { getDb } from '../../../../../lib/db.ts'
 import { formatDuration } from '../../../../../lib/run-sheet.ts'
 import { logoUrl } from '../../../../../lib/studio-logo.ts'
 import { vendorBoards } from '../../../../../lib/vendor-boards.ts'
-import { boardImageDownload, refreshBoardImages } from './actions.ts'
+import { boardFileOpen, boardImageDownload, refreshBoardImages } from './actions.ts'
 
 /**
  * `app.guestnote.be/vendor/<token>` -- spec 0003, S10. The one screen a vendor with no
@@ -148,10 +148,13 @@ export default async function VendorLinkPage({ params }: { params: Promise<{ tok
               download: t('download'),
               close: t('close'),
               open: String(t.raw('openImage')),
+              openFile: String(t.raw('openFile')),
             }}
+            locale={locale}
             actions={{
               refresh: refreshBoardImages.bind(null, token),
               download: boardImageDownload.bind(null, token),
+              open: boardFileOpen.bind(null, token),
             }}
           />
         )}

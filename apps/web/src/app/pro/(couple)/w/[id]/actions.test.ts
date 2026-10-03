@@ -10,7 +10,9 @@ const coupleSetTaskDone = vi.fn()
 const coupleAddTaskComment = vi.fn()
 const coupleAddFileComment = vi.fn()
 const coupleDeleteImage = vi.fn()
+const coupleFileUrl = vi.fn()
 vi.mock('../../../../../lib/couple.ts', () => ({
+  coupleFileUrl: (...a: unknown[]) => coupleFileUrl(...a),
   currentCouple: (id: unknown) => currentCouple(id),
   writable: (c: { home: { status: string } }) => c.home.status === 'live',
   startCoupleUpload: vi.fn(),
@@ -33,7 +35,9 @@ vi.mock('@guestnote/db', () => ({
   coupleTaskComments: vi.fn(),
 }))
 
-const { addImageComment, addTaskComment, deleteImage, tickTask } = await import('./actions.ts')
+const { addImageComment, addTaskComment, deleteImage, openBoardFile, tickTask } = await import(
+  './actions.ts'
+)
 
 const W = '018f0000-0000-7000-8000-0000000000aa'
 const T = '018f0000-0000-7000-8000-000000000001'
@@ -58,6 +62,8 @@ describe('the couple Server Functions', () => {
     expect(await addTaskComment(W, T, 'hoi')).toBe(false)
     expect(await addImageComment(W, T, 'hoi')).toBe(false)
     expect(await deleteImage(W, T)).toBe(false)
+    expect(await openBoardFile(W, T, T)).toBeNull()
+    expect(coupleFileUrl).not.toHaveBeenCalled()
     for (const f of [
       coupleSetTaskDone,
       coupleAddTaskComment,
@@ -82,5 +88,15 @@ describe('the couple Server Functions', () => {
     expect(coupleAddTaskComment).not.toHaveBeenCalled()
     expect(await addTaskComment(W, T, '  Welke DJ?  ')).toBe(true)
     expect(coupleAddTaskComment).toHaveBeenCalledWith({}, COUPLE.principal, T, 'Welke DJ?')
+  })
+})
+
+describe('openBoardFile (2026-10-04)', () => {
+  it("hands the resolved couple, never the caller's word, to the board lookup", async () => {
+    currentCouple.mockResolvedValue(COUPLE)
+    coupleFileUrl.mockResolvedValue('https://get/x')
+    expect(await openBoardFile(W, 'board', 'file')).toBe('https://get/x')
+    expect(currentCouple).toHaveBeenCalledWith(W)
+    expect(coupleFileUrl).toHaveBeenCalledWith(COUPLE, 'board', 'file')
   })
 })

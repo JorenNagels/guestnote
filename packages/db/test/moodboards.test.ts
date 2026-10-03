@@ -489,9 +489,37 @@ describe('the repo', () => {
       {
         id: F.boardA1Photo,
         name: 'Fotograaf',
-        images: [{ id: F.imageA1Photo, name: 'Golden hour.jpg', storageKey: 'a/a1/golden' }],
+        images: [
+          {
+            id: F.imageA1Photo,
+            name: 'Golden hour.jpg',
+            storageKey: 'a/a1/golden',
+            mime: 'image/jpeg',
+            sizeBytes: 700000,
+          },
+        ],
       },
     ])
+  })
+
+  it('a PDF on a shared board reaches the link through the same policy, typed (2026-10-04)', async () => {
+    // A board item is any `kind = 'image'` row: `files.link_read` keys on the kind, never on the
+    // type, so widening the moodboard's allow-list needed no policy change. This pins that.
+    const pdfId = newId()
+    await seedExec(
+      `insert into files (id, org_id, wedding_id, kind, name, storage_key, size_bytes, mime,
+                          moodboard_id)
+         values ($1, $2, $3, 'image', 'Plattegrond.pdf', $4, 1234, 'application/pdf', $5)`,
+      [pdfId, F.orgA, F.weddingA1, `a/a1/${pdfId}`, F.boardA1Photo],
+    )
+    const [board] = await listSharedBoards(h.db, link)
+    expect(board?.images.find((i) => i.id === pdfId)).toEqual({
+      id: pdfId,
+      name: 'Plattegrond.pdf',
+      storageKey: `a/a1/${pdfId}`,
+      mime: 'application/pdf',
+      sizeBytes: 1234,
+    })
   })
 
   it('getVendorLinkView: the switch on over an empty sheet is still the whole day, just empty', async () => {

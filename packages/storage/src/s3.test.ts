@@ -93,5 +93,20 @@ describe('presignGet', () => {
     )
     expect(url.searchParams.get('X-Amz-Expires')).toBe('300')
     expect(url.searchParams.has('x-amz-checksum-mode')).toBe(false)
+    // No type asked for (a logo): S3 answers with the stored one.
+    expect(url.searchParams.has('response-content-type')).toBe(false)
+  })
+
+  it('signs the content type into the query when one is given', async () => {
+    const url = await urlOf(
+      transport.presignGet({
+        key: KEY,
+        contentDisposition: `inline; filename="q.pdf"`,
+        contentType: 'application/pdf',
+        expiresInSeconds: 300,
+        signingDate,
+      }),
+    )
+    expect(url.searchParams.get('response-content-type')).toBe('application/pdf')
   })
 })

@@ -15,6 +15,8 @@
  * What a file is *for*, which decides which content types are accepted.
  *
  * Mirrors `files.kind` in spec 0003: `image` is the moodboard, `file` is the Files screen.
+ * (Since 2026-10-04 a moodboard item may also be a PDF or an Office file; the kind kept its name,
+ * and `limits.ts` says why.)
  * `logo` is a studio's logo (spec 0005), the one kind that belongs to no wedding.
  */
 export type UploadKind = 'file' | 'image' | 'logo'
@@ -104,9 +106,16 @@ export type DownloadRequest = {
   /** `files.name`. Sanitised into the `Content-Disposition` header. */
   readonly filename: string
   /**
+   * `files.mime`. Signed into the URL as the response's `Content-Type`, so what the browser is
+   * told is decided here and not by the object's metadata; a type no kind accepts is served as
+   * `application/octet-stream` (`servedAs` in `limits.ts`). Required, so no GET can forget it.
+   */
+  readonly contentType: string
+  /**
    * `inline` lets the browser render an image or PDF in place; `attachment` forces a save.
    * Defaults to `attachment`, which is the safe direction: an uploaded file is untrusted
-   * content, and a browser will not execute something it was told to download.
+   * content, and a browser will not execute something it was told to download. `inline` is a
+   * request, not an order: for any type outside `INLINE_CONTENT_TYPES` it is signed `attachment`.
    */
   readonly disposition?: 'inline' | 'attachment'
 }
@@ -169,6 +178,11 @@ export type PresignGetInput = {
   readonly key: string
   /** A finished `Content-Disposition` header value. */
   readonly contentDisposition: string
+  /**
+   * The `Content-Type` the response must carry, overriding the stored one. Absent for a brand
+   * object, which has no row to read a type from and whose PUT already pinned it to the logo list.
+   */
+  readonly contentType?: string
   readonly expiresInSeconds: number
   readonly signingDate: Date
 }

@@ -36,5 +36,6 @@
   "fullEmpty": "Nothing planned yet.",
   "download": "Download",
   "close": "Close",
-  "openImage": "Enlarge {name}"
+  "openImage": "Enlarge {name}",
+  "openFile": "Open {name}"
 }

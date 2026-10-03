@@ -323,10 +323,17 @@ export async function insertDefaultBoard(
 export type SharedBoard = {
   readonly id: string
   readonly name: string
+  /**
+   * The board's items. Named `images` from before 2026-10-04, when a board could also start
+   * holding PDFs and Office files; `mime` says which a row is, and `sizeBytes` is for the tile.
+   * Both are columns of the same `files` row `link_read` already grants -- no policy changed.
+   */
   readonly images: readonly {
     readonly id: string
     readonly name: string
     readonly storageKey: string
+    readonly mime: string
+    readonly sizeBytes: number
   }[]
 }
 
@@ -359,6 +366,8 @@ export async function listSharedBoards(
         id: files.id,
         name: files.name,
         storageKey: files.storageKey,
+        mime: files.mime,
+        sizeBytes: files.sizeBytes,
         moodboardId: files.moodboardId,
       })
       .from(files)
@@ -380,7 +389,13 @@ export async function listSharedBoards(
       ...b,
       images: images
         .filter((i) => i.moodboardId === b.id)
-        .map(({ id, name, storageKey }) => ({ id, name, storageKey })),
+        .map(({ id, name, storageKey, mime, sizeBytes }) => ({
+          id,
+          name,
+          storageKey,
+          mime,
+          sizeBytes,
+        })),
     }))
   })
 }

@@ -12,15 +12,26 @@ const BOARDS: VendorBoard[] = [
     id: 'b1',
     name: 'Fotograaf',
     images: [
-      { id: 'f1', name: 'Golden hour', url: 'https://get/f1?v1' },
-      { id: 'f2', name: 'Tables', url: 'https://get/f2?v1' },
+      { id: 'f1', name: 'Golden hour', mime: 'image/jpeg', sizeBytes: 1, url: 'https://get/f1?v1' },
+      { id: 'f2', name: 'Tables', mime: 'image/png', sizeBytes: 1, url: 'https://get/f2?v1' },
+      // 2026-10-04: a document. No URL at render; opened through the token when tapped.
+      { id: 'f3', name: 'Floor plan.pdf', mime: 'application/pdf', sizeBytes: 1536, url: null },
     ],
   },
 ]
-const LABELS = { download: 'Download', close: 'Close', open: 'Enlarge {name}' }
+const LABELS = {
+  download: 'Download',
+  close: 'Close',
+  open: 'Enlarge {name}',
+  openFile: 'Open {name}',
+}
 
 let now = 1_000_000
-let actions: { refresh: ReturnType<typeof vi.fn>; download: ReturnType<typeof vi.fn> }
+let actions: {
+  refresh: ReturnType<typeof vi.fn>
+  download: ReturnType<typeof vi.fn>
+  open: ReturnType<typeof vi.fn>
+}
 
 beforeEach(() => {
   now = 1_000_000
@@ -28,6 +39,7 @@ beforeEach(() => {
   actions = {
     refresh: vi.fn(async () => ({ f1: 'https://get/f1?v2', f2: 'https://get/f2?v2' })),
     download: vi.fn(async () => null),
+    open: vi.fn(async () => 'https://get/f3?inline'),
   }
 })
 afterEach(() => vi.restoreAllMocks())
@@ -38,6 +50,7 @@ const view = () =>
       boards={BOARDS}
       labels={LABELS}
       actions={actions as unknown as VendorBoardActions}
+      locale="en"
     />,
   )
 const img = (name: string) => screen.getByRole('img', { name })
@@ -135,5 +148,32 @@ describe('download', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Download' }))
     })
     expect(actions.download).toHaveBeenCalledWith('f2')
+  })
+})
+
+describe('a document on the board (2026-10-04)', () => {
+  it('is drawn as its type and size, not as an image or a fallback tile', () => {
+    view()
+    const tile = screen.getByRole('button', { name: 'Open Floor plan.pdf' })
+    expect(tile).toHaveTextContent('PDF')
+    expect(tile).toHaveTextContent('1.5 KB')
+    expect(screen.getAllByRole('img')).toHaveLength(2)
+    // Not mistaken for a broken image: no fallback Download button for it.
+    expect(screen.queryByRole('button', { name: 'Download' })).toBeNull()
+  })
+
+  it('opens in a new tab with a URL signed through the token at the tap', async () => {
+    const tab = { opener: window as unknown, location: { href: '' }, close: vi.fn() }
+    const open = vi.spyOn(window, 'open').mockImplementation(() => tab as unknown as Window)
+    view()
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Open Floor plan.pdf' }))
+    })
+    expect(open).toHaveBeenCalledWith('', '_blank')
+    expect(actions.open).toHaveBeenCalledWith('f3')
+    expect(tab.location.href).toBe('https://get/f3?inline')
+    expect(tab.opener).toBeNull()
+    // Never the lightbox: that is for images.
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 })

@@ -24,6 +24,7 @@ import { assertWritable } from '../../../../../../lib/trial.ts'
 import { isUuid } from '../../../../../../lib/uuid.ts'
 import {
   confirmUpload,
+  downloadUrl,
   removeWeddingFile,
   renameWeddingFile,
   restoreWeddingFile,
@@ -65,6 +66,16 @@ export async function removeImage(weddingId: string, fileId: string) {
 export async function restoreImage(weddingId: string, fileId: string) {
   await assertWritable(await currentOrgId())
   return restoreWeddingFile(weddingId, fileId)
+}
+
+/**
+ * A fresh URL to open one item of the board in (2026-10-04): an image or a PDF in a new tab, any
+ * other document as a download -- the storage seam picks which from the row's type. Signed per
+ * click, as every download is, because the tiles' render-time URLs die after five minutes and a
+ * planner keeps a board open longer than that. A read, so on the trial guard's allowlist.
+ */
+export async function openMoodboardFile(weddingId: string, fileId: string) {
+  return downloadUrl(weddingId, fileId)
 }
 
 export async function renameImage(weddingId: string, fileId: string, caption: string) {

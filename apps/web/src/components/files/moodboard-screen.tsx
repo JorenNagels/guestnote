@@ -4,13 +4,16 @@ import { LinkButton } from '@guestnote/ui/button'
 import { InlineError } from '@guestnote/ui/inline-error'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { BOARD_ACCEPT, isImageType } from '../../lib/board-items.ts'
 import type { BoardDone } from '../../lib/moodboards.ts'
 import type { Done, StartUpload } from '../../lib/wedding-files.ts'
 import { CommentThread, type ThreadComment, type ThreadCopy } from '../couple/comment-thread.tsx'
 import { PencilIcon } from '../nav/icons.tsx'
 import { useToast } from '../toast/toast-provider.tsx'
 import { type BoardActions, BoardBar, type BoardLabels, type Boards } from './board-bar.tsx'
+import { DocPreview } from './doc-preview.tsx'
 import { withoutExtension } from './format.ts'
+import { openItem } from './open-item.ts'
 import { uploadFile } from './upload.ts'
 import { UploadZone, type UploadZoneLabels } from './upload-zone.tsx'
 
@@ -18,8 +21,15 @@ export type MoodTile = {
   readonly id: string
   /** The caption. It is `files.name`, so the file's own name until somebody writes a better one. */
   readonly name: string
-  /** A signed GET that lives five minutes, or `null` when signing failed. */
+  /**
+   * A signed GET that lives five minutes, or `null` when signing failed -- and always `null` for
+   * a document, which is drawn as an icon (`DocPreview`) and signed when it is opened.
+   */
   readonly url: string | null
+  /** `files.mime`. An image, a PDF or an Office file since 2026-10-04 (`lib/board-items.ts`). */
+  readonly mime: string
+  /** Formatted for the planner's locale; shown under a document's icon. */
+  readonly size?: string | null | undefined
   /** Spec 0008: the couple's side of this image, when the caller may see it. */
   readonly couple?:
     | {
@@ -58,6 +68,8 @@ export type MoodboardActions = {
   rename(fileId: string, name: string): Promise<Done>
   /** To another board of the same wedding (spec 0007). */
   move(fileId: string, boardId: string): Promise<BoardDone>
+  /** A URL signed now, to open the item in (2026-10-04); `null` when it is gone. */
+  open(fileId: string): Promise<string | null>
 }
 
 export type MoodboardLabels = {
@@ -69,7 +81,9 @@ export type MoodboardLabels = {
   tileRemoved: string
   tileCancel: string
   /** A template: `{name}` is the caption, so each tile's buttons are distinct by name. */
-  aria: { remove: string; caption: string }
+  aria: { remove: string; caption: string; open: string }
+  /** Under a tile whose file could not be opened. */
+  openFailed: string
   captionField: string
   captionSave: string
   imageUnavailable: string
@@ -88,6 +102,8 @@ const fill = (template: string, name: string) => template.replace('{name}', () =
  * The moodboard: named boards (spec 0007), and on the current one image tiles -- add, remove,
  * caption, move to another board. A native board (spec 0003). Spec 0008 adds the couple's side
  * when the page passes `comments`: who added an image, the unread dot, and a comment thread.
+ * Since 2026-10-04 a tile may be a PDF or an Office file, drawn as an icon, and every tile opens:
+ * an image or a PDF in a new tab, anything else as a download (`open-item.ts`).
  *
  * Images are `<img>` and not `next/image`: `next.config.ts` turns the optimiser off (research/05
  * section 6), and the source is a signed URL that changes on every render, which would make
@@ -131,6 +147,15 @@ export function MoodboardScreen({
   const message = (code: string) => labels.errors[code] ?? labels.errors.unknown
 
   const others = boards.list.filter((b) => b.id !== boards.current)
+
+  // Not through `act`: opening changes nothing, so there is no refresh and no busy state, and
+  // `openItem` must reach `window.open` before its first await -- it is called synchronously here.
+  const open = async (t: MoodTile) => {
+    setErrors(({ [t.id]: _dropped, ...rest }) => rest)
+    if (!(await openItem(t.mime, () => actions.open(t.id)))) {
+      setErrors((e) => ({ ...e, [t.id]: labels.openFailed }))
+    }
+  }
 
   const act = async (id: string, work: () => Promise<Done | BoardDone>, onDone?: () => void) => {
     setBusy(id)
@@ -190,13 +215,19 @@ export function MoodboardScreen({
 
       <div className="mt-6">
         <UploadZone
-          accept="image/*"
+          accept={BOARD_ACCEPT}
           labels={labels.upload}
           onDone={() => router.refresh()}
           upload={(file) =>
             uploadFile(
               file,
-              { name: withoutExtension(file.name) || file.name, visibility: 'shared' },
+              {
+                // An image's caption drops its extension (`IMG_2031`); a document keeps it,
+                // because its name is also the name it is saved under, and a Word file saved
+                // without `.docx` will not open.
+                name: isImageType(file.type) ? withoutExtension(file.name) || file.name : file.name,
+                visibility: 'shared',
+              },
               { start: actions.start, confirm: actions.confirm },
             )
           }
@@ -223,19 +254,28 @@ export function MoodboardScreen({
                 key={t.id}
                 className="flex flex-col overflow-hidden rounded-[var(--radius-container)] border border-border bg-card"
               >
-                {t.url ? (
-                  // biome-ignore lint/performance/noImgElement: see the component comment
-                  <img
-                    src={t.url}
-                    alt={t.name}
-                    loading="lazy"
-                    className="aspect-[4/3] w-full border-b border-border bg-muted object-cover"
-                  />
-                ) : (
-                  <div className="text-muted-foreground bg-muted grid aspect-[4/3] place-items-center border-b border-border px-2 text-center text-xs">
-                    {labels.imageUnavailable}
-                  </div>
-                )}
+                <button
+                  type="button"
+                  aria-label={fill(labels.aria.open, t.name)}
+                  onClick={() => void open(t)}
+                  className="block w-full cursor-pointer border-b border-border"
+                >
+                  {!isImageType(t.mime) ? (
+                    <DocPreview mime={t.mime} size={t.size} />
+                  ) : t.url ? (
+                    // biome-ignore lint/performance/noImgElement: see the component comment
+                    <img
+                      src={t.url}
+                      alt={t.name}
+                      loading="lazy"
+                      className="block aspect-[4/3] w-full bg-muted object-cover"
+                    />
+                  ) : (
+                    <span className="text-muted-foreground bg-muted grid aspect-[4/3] place-items-center px-2 text-center text-xs">
+                      {labels.imageUnavailable}
+                    </span>
+                  )}
+                </button>
 
                 <div className="flex flex-1 flex-col gap-2 px-3 py-2.5">
                   {t.couple && comments && (t.couple.unread || t.couple.addedBy) && (

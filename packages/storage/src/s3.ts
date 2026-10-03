@@ -118,6 +118,9 @@ export function createS3Transport(config: S3TransportConfig): StorageTransport {
             // Overrides the header S3 answers with, per request. It is part of the signed
             // query, so the holder of the URL cannot swap `attachment` for `inline`.
             ResponseContentDisposition: input.contentDisposition,
+            // The same, for the type: S3 otherwise answers with the object's stored metadata.
+            // Signed too, so a holder cannot turn a PDF into `text/html` by editing the query.
+            ...(input.contentType ? { ResponseContentType: input.contentType } : {}),
           }),
           { expiresIn: input.expiresInSeconds, signingDate: input.signingDate },
         )

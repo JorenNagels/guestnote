@@ -13,6 +13,7 @@ import {
   restoreFile,
   setFileVisibility,
 } from '@guestnote/db'
+import { isImageType } from './board-items.ts'
 import { getStorage } from './storage.ts'
 import { isUuid } from './uuid.ts'
 import { currentWeddingScope } from './wedding-scope.ts'
@@ -207,9 +208,10 @@ export async function setWeddingFileVisibility(
  * A fresh presigned GET for one file, or `null` for anything the caller may not read.
  *
  * The row is read under `withTenant` first, and only a row that comes back gets a URL: the
- * package's key-in-scope check is the second lock, not the first. Images are served `inline`
- * so an `<img>` can draw them; everything else is `attachment`, which is the package's
- * default and the safe direction for untrusted content.
+ * package's key-in-scope check is the second lock, not the first. A Files-screen row is always
+ * `attachment` -- its button says Download. A moodboard item asks for `inline`, which is also the
+ * board's "open" (2026-10-04): the storage seam honours it for an image or a PDF only and signs
+ * anything else, a Word file say, as `attachment` (`servedAs` in `packages/storage/src/limits.ts`).
  */
 export async function downloadUrl(weddingId: unknown, fileId: unknown): Promise<string | null> {
   const ctx = await context(weddingId)
@@ -236,7 +238,7 @@ export async function downloadUrl(weddingId: unknown, fileId: unknown): Promise<
  */
 export async function signObject(
   ctx: { orgId: string; weddingId: string },
-  row: { readonly storageKey: string; readonly name: string },
+  row: { readonly storageKey: string; readonly name: string; readonly mime: string },
   disposition: 'inline' | 'attachment',
 ): Promise<string | null> {
   try {
@@ -244,6 +246,7 @@ export async function signObject(
       scope: { orgId: ctx.orgId, weddingId: ctx.weddingId },
       key: row.storageKey,
       filename: row.name,
+      contentType: row.mime,
       disposition,
     })
     return signed.ok ? signed.url : null
@@ -268,7 +271,10 @@ export async function listWeddingFiles(
 }
 
 export type ImageTile = FileRow & {
-  /** A 5 minute signed GET, or `null` when signing failed and the tile shows its placeholder. */
+  /**
+   * A 5 minute signed GET for an image, or `null` when signing failed and the tile shows its
+   * placeholder. Always `null` for a document, which is drawn as an icon and signed per click.
+   */
   readonly url: string | null
 }
 
@@ -278,6 +284,8 @@ export type ImageTile = FileRow & {
  * Signing is a local HMAC, so N images cost N cheap calls and no network. The URLs die after
  * five minutes (`packages/storage`), which `components/files/SPEC.md` accepts: a proxy route
  * that streams each image would keep them alive and put every moodboard view through a Lambda.
+ * A document (since 2026-10-04) gets no URL here: nothing draws it, and a bearer URL nobody uses
+ * is one more in the page for nothing. Opening it signs one at the click (`downloadUrl`).
  */
 export async function listWeddingImages(
   weddingId: unknown,
@@ -290,6 +298,9 @@ export async function listWeddingImages(
   if (!rows) return null
 
   return Promise.all(
-    rows.map(async (row) => ({ ...row, url: await signObject(ctx, row, 'inline') })),
+    rows.map(async (row) => ({
+      ...row,
+      url: isImageType(row.mime) ? await signObject(ctx, row, 'inline') : null,
+    })),
   )
 }

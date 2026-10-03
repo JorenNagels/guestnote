@@ -20,13 +20,28 @@ work here.
 | Moodboard images are `files` rows with `kind = 'image'`, one upload path, bytes in S3 | `packages/db/src/schema/files.ts:10-17`, `components/files/SPEC.md` (S5, built 2026-09-21) |
 | Moodboard images are always `visibility = 'shared'` | `weddings/[id]/moodboard/actions.ts:23-25` — held by the UI only; see `files.link_read` below |
 | Keys are `<orgId>/<weddingId>/<fileId>`, `assertKeyInScope` on every download | `packages/storage/src/keys.ts:20-56` |
-| Image types jpeg/png/webp/gif/heic/heif/avif, no SVG/HTML, 25 MiB | `packages/storage/src/limits.ts:15,35-78` |
+| Image types jpeg/png/webp/gif/heic/heif/avif, no SVG/HTML, 25 MiB *(widened 2026-10-04, see the note below)* | `packages/storage/src/limits.ts:15,35-78` |
 | A vendor reaches Guestnote through a signed link and the `link` principal; never an account | `vendor/SPEC.md`, `0008_vendor_link.sql`, research `09:242` |
 | `withTenant` leaves `app.org_id` unset for `link`; setting it would be the leak | `0008:14-48`, `tenant.ts:36-44` |
 | A `link` principal never gets a write policy | `0008:87`, `vendor/SPEC.md:70-71` |
 | The link is re-resolved from its hash on every request; policies do not re-check revocation | `tenant.ts:48-58` |
 | No new table is readable by a `couple` principal until the couple-portal spec | spec `0003:56-58` |
 | The vendor link never shows a row's `owner_user_id` | spec `0004:117-122` |
+
+> **2026-10-04 -- a board holds documents too.** Planners pin a venue's floor plan or a
+> florist's quote next to the pictures, and an image-only board sent that PDF back to WhatsApp.
+> The moodboard's allow-list (`ALLOWED_CONTENT_TYPES.image`) now also takes PDF and the six Word,
+> Excel and PowerPoint types -- not `text/plain` or `text/csv`, and still never SVG or HTML. The
+> kind stays `image`: `files_moodboard_kind_check`, `files.link_read` and the `couple_*`
+> functions key on the kind, not the type, so a document on a shared board reaches a vendor link
+> and the couple through exactly the policies above, **with no migration and no policy widened**
+> (`listSharedBoards` now also selects `mime` and `size_bytes`, columns of a row it could already
+> read). A document is drawn as an icon with its type and size, and every item opens with a URL
+> signed at the click, through the vendor link's token for a vendor: images and PDFs in a new tab
+> (the vendor's images still in the lightbox), Office files as a download. Every GET now signs
+> the row's type as the response `Content-Type`, and `inline` is honoured only for images and PDF;
+> anything else, and any type no kind accepts, is `attachment` (`servedAs` in `limits.ts`).
+> A fuller rethink of what a board is was deferred on purpose; this is the narrow change.
 
 ## Decisions taken here
 

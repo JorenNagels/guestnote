@@ -18,9 +18,24 @@ const push = vi.fn()
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh, push }) }))
 
 const TILES: MoodTile[] = [
-  { id: 'i1', name: 'Peonies', url: 'https://s3.example/p' },
-  { id: 'i2', name: 'Table', url: null },
+  { id: 'i1', name: 'Peonies', url: 'https://s3.example/p', mime: 'image/jpeg' },
+  { id: 'i2', name: 'Table', url: null, mime: 'image/png' },
 ]
+
+// 2026-10-04: a board holds documents too. No URL at render; it is signed when opened.
+const PLAN: MoodTile = {
+  id: 'd1',
+  name: 'Floor plan.pdf',
+  url: null,
+  mime: 'application/pdf',
+  size: '1.2 MB',
+}
+const QUOTE: MoodTile = {
+  id: 'd2',
+  name: 'Quote.xlsx',
+  url: null,
+  mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+}
 
 const ok = { ok: true } as const
 let actions: { [K in keyof MoodboardActions]: ReturnType<typeof vi.fn> }
@@ -66,6 +81,7 @@ beforeEach(() => {
     restore: vi.fn(async () => ok),
     rename: vi.fn(async () => ok),
     move: vi.fn(async () => ok),
+    open: vi.fn(async () => 'https://s3.example/get?sig'),
   }
   boardActions = {
     create: vi.fn(async () => ({ ok: true, id: 'b-new' })),
@@ -160,7 +176,7 @@ describe('remove', () => {
 
   // `String.replace` reads `$&` in a replacement STRING as "the match".
   it('names an image holding a replacement pattern as written', async () => {
-    view([{ id: 'i1', name: 'Bloem $& Co', url: null }])
+    view([{ id: 'i1', name: 'Bloem $& Co', url: null, mime: 'image/png' }])
     fireEvent.click(screen.getByRole('button', { name: 'Remove Bloem $& Co' }))
     await waitFor(() => expect(toast()).toHaveTextContent('Image “Bloem $& Co” removed.'))
   })
@@ -211,9 +227,82 @@ describe('add', () => {
     expect(actions.confirm).toHaveBeenCalledWith('new1')
   })
 
-  it('only offers images in the file picker', () => {
+  it('offers images, PDF and Office files in the picker, and never SVG', () => {
     view()
-    expect(screen.getByTestId('upload-input')).toHaveAttribute('accept', 'image/*')
+    const accept = screen.getByTestId('upload-input').getAttribute('accept')?.split(',') ?? []
+    expect(accept).toContain('image/jpeg')
+    expect(accept).toContain('application/pdf')
+    expect(accept).toContain(
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    )
+    expect(accept).not.toContain('image/svg+xml')
+  })
+
+  it("keeps a document's extension in its caption, which is also the name it is saved under", async () => {
+    view()
+    const pdf = new File(['%PDF'], 'Plattegrond zaal.pdf', { type: 'application/pdf' })
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('upload-input'), { target: { files: [pdf] } })
+    })
+    await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1))
+    expect(actions.start).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Plattegrond zaal.pdf', mime: 'application/pdf' }),
+    )
+  })
+})
+
+describe('documents and opening (2026-10-04)', () => {
+  type Tab = { opener: unknown; location: { href: string }; close: () => void }
+  let tab: Tab
+  beforeEach(() => {
+    tab = { opener: window, location: { href: '' }, close: vi.fn() }
+    vi.spyOn(window, 'open').mockImplementation(() => tab as unknown as Window)
+  })
+
+  it('draws a document as its type and size, never as a broken image', () => {
+    view([PLAN, ...TILES])
+    const button = screen.getByRole('button', { name: 'Open Floor plan.pdf' })
+    expect(button).toHaveTextContent('PDF')
+    expect(button).toHaveTextContent('1.2 MB')
+    expect(within(button).queryByRole('img')).toBeNull()
+    // The image beside it is still an image, and a document is not "Image not available".
+    expect(screen.getAllByRole('img')).toHaveLength(1)
+    expect(screen.getAllByText('Image not available')).toHaveLength(1)
+  })
+
+  it('opens a PDF in a new tab with a URL signed at the click', async () => {
+    view([PLAN])
+    fireEvent.click(screen.getByRole('button', { name: 'Open Floor plan.pdf' }))
+    expect(window.open).toHaveBeenCalledWith('', '_blank')
+    await waitFor(() => expect(tab.location.href).toBe('https://s3.example/get?sig'))
+    expect(actions.open).toHaveBeenCalledWith('d1')
+    expect(tab.opener).toBeNull()
+  })
+
+  it('opens an image the same way', async () => {
+    view()
+    fireEvent.click(screen.getByRole('button', { name: 'Open Peonies' }))
+    await waitFor(() => expect(actions.open).toHaveBeenCalledWith('i1'))
+    expect(window.open).toHaveBeenCalled()
+  })
+
+  it('opens no tab for an Office file: it is a download', async () => {
+    // Nothing signed, so jsdom is not asked to navigate (it cannot); `open-item.test.ts` pins the
+    // in-place download itself.
+    actions.open.mockResolvedValue(null)
+    view([QUOTE])
+    expect(screen.getByRole('button', { name: 'Open Quote.xlsx' })).toHaveTextContent('XLSX')
+    fireEvent.click(screen.getByRole('button', { name: 'Open Quote.xlsx' }))
+    await waitFor(() => expect(actions.open).toHaveBeenCalledWith('d2'))
+    expect(window.open).not.toHaveBeenCalled()
+  })
+
+  it('says so under the tile when the file could not be opened, and closes the blank tab', async () => {
+    actions.open.mockResolvedValue(null)
+    view([PLAN])
+    fireEvent.click(screen.getByRole('button', { name: 'Open Floor plan.pdf' }))
+    expect(await screen.findByText('Could not open this file.')).toBeInTheDocument()
+    expect(tab.close).toHaveBeenCalled()
   })
 })
 

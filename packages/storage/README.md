@@ -76,7 +76,8 @@ client must send the size it declared, which `File.size` always gives it.
 |---|---|---|
 | Size | 25 MiB, `maxBytes` overrides; a `logo` is capped at 2 MiB (`LOGO_MAX_BYTES`, since 2026-09-26) | Documents and phone photos. A guess, not a measurement |
 | URL life | 5 minutes, both directions | It is a bearer credential and cannot be revoked; a download link is minted per click |
-| Types | per `kind`, in `limits.ts` | No `image/svg+xml` and no `text/html`: both can carry script |
+| Types | per `kind`, in `limits.ts`; since 2026-10-04 the moodboard's `image` kind also takes PDF and Office files | No `image/svg+xml` and no `text/html`: both can carry script |
+| GET | the row's type signed as `response-content-type`; `inline` only for images and PDF (`servedAs`, since 2026-10-04) | An object's stored metadata never decides what a browser renders |
 
 Nothing scans content. `File.type` is the browser's guess from an extension, so the allow-list
 stops accidents and the cheap attack, not a determined one. Downloads default to

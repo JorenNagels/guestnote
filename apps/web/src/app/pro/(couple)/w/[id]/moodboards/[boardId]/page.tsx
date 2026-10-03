@@ -14,6 +14,7 @@ import {
   deleteImage,
   deleteImageComment,
   imageThread,
+  openBoardFile,
   startImage,
 } from '../../actions.ts'
 
@@ -59,6 +60,8 @@ export default async function CoupleBoardPage({
           empty: t('boardEmpty'),
           remove: t('deleteImage'),
           imageUnavailable: base.imageUnavailable,
+          open: base.aria.open,
+          openFailed: base.openFailed,
           upload: base.upload,
           comments: commentCounts(t),
           thread: threadCopy(t, ct),
@@ -67,6 +70,7 @@ export default async function CoupleBoardPage({
           start: startImage.bind(null, id, boardId),
           confirm: confirmImage.bind(null, id),
           remove: deleteImage.bind(null, id),
+          open: openBoardFile.bind(null, id, boardId),
           thread: imageThread.bind(null, id),
           comment: addImageComment.bind(null, id),
           removeComment: deleteImageComment.bind(null, id),

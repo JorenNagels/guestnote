@@ -11,6 +11,7 @@ import {
   LOGO_MAX_BYTES,
   normaliseContentType,
   PRESIGN_EXPIRES_SECONDS,
+  servedAs,
 } from './limits.ts'
 import type {
   BrandDeleteRequest,
@@ -41,8 +42,10 @@ export {
 export {
   ALLOWED_CONTENT_TYPES,
   DEFAULT_MAX_BYTES,
+  INLINE_CONTENT_TYPES,
   LOGO_MAX_BYTES,
   PRESIGN_EXPIRES_SECONDS,
+  servedAs,
 } from './limits.ts'
 export type { S3TransportConfig } from './s3.ts'
 export { createS3Transport } from './s3.ts'
@@ -140,13 +143,14 @@ export function createStorage(config: StorageConfig): Storage {
     async presignDownload(request: DownloadRequest): Promise<DownloadResult> {
       assertKeyInScope(request.scope, request.key)
 
+      // The type and the disposition are decided together, here, so no caller can ask for an
+      // inline Word file or an inline object of a type nothing accepts.
+      const served = servedAs(request.contentType, request.disposition ?? 'attachment')
       const signingDate = now()
       const signed = await config.transport.presignGet({
         key: request.key,
-        contentDisposition: contentDisposition(
-          request.disposition ?? 'attachment',
-          request.filename,
-        ),
+        contentDisposition: contentDisposition(served.disposition, request.filename),
+        contentType: served.contentType,
         expiresInSeconds: PRESIGN_EXPIRES_SECONDS,
         signingDate,
       })

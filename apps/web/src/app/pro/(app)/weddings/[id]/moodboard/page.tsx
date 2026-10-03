@@ -1,6 +1,7 @@
 import { getCoupleAccess, getWeddingVendors, imageCoupleInfo } from '@guestnote/db'
 import { notFound } from 'next/navigation'
-import { getTranslations } from 'next-intl/server'
+import { getLocale, getTranslations } from 'next-intl/server'
+import { formatSize } from '../../../../../../components/files/format.ts'
 import { moodboardLabels } from '../../../../../../components/files/labels.ts'
 import { MoodboardScreen } from '../../../../../../components/files/moodboard-screen.tsx'
 import { weddingBoards } from '../../../../../../lib/moodboards.ts'
@@ -13,6 +14,7 @@ import {
   deleteMoodboard,
   imageCommentsAction,
   moveMoodboardImage,
+  openMoodboardFile,
   removeImage,
   renameImage,
   renameMoodboard,
@@ -36,12 +38,13 @@ export default async function MoodboardPage({
   params: Promise<{ id: string }>
   searchParams: Promise<{ bord?: string | string[] }>
 }) {
-  const [{ id }, { bord }, t, ct, pt] = await Promise.all([
+  const [{ id }, { bord }, t, ct, pt, locale] = await Promise.all([
     params,
     searchParams,
     getTranslations('app.files'),
     getTranslations('app.couple.planner'),
     getTranslations('app.couple.portal'),
+    getLocale(),
   ])
 
   const [boards, scope] = await Promise.all([weddingBoards(id), currentWeddingScope(id)])
@@ -76,6 +79,8 @@ export default async function MoodboardPage({
           id: r.id,
           name: r.name,
           url: r.url,
+          mime: r.mime,
+          size: formatSize(r.sizeBytes, locale),
           couple: i && {
             unread: i.coupleUnread,
             addedBy: i.uploadedBy && partners.has(i.uploadedBy) ? i.uploaderName : null,
@@ -120,6 +125,7 @@ export default async function MoodboardPage({
         restore: restoreImage.bind(null, id),
         rename: renameImage.bind(null, id),
         move: moveMoodboardImage.bind(null, id),
+        open: openMoodboardFile.bind(null, id),
       }}
       boardActions={{
         create: createMoodboard.bind(null, id),

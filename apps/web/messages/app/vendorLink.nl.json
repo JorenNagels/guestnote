@@ -36,5 +36,6 @@
   "fullEmpty": "Nog niets gepland.",
   "download": "Download",
   "close": "Sluiten",
-  "openImage": "{name} vergroten"
+  "openImage": "{name} vergroten",
+  "openFile": "{name} openen"
 }

@@ -15,6 +15,7 @@ import { getLocale, getTranslations } from 'next-intl/server'
 import type { ThreadComment } from '../../../../../components/couple/comment-thread.tsx'
 import {
   confirmCoupleUpload,
+  coupleFileUrl,
   currentCouple,
   startCoupleUpload,
   writable,
@@ -157,6 +158,17 @@ export async function confirmImage(weddingId: string, fileId: string): Promise<D
   const r = await confirmCoupleUpload(c, fileId)
   if (r.ok) refresh(weddingId)
   return r
+}
+
+/** Opening an item of a shared board (2026-10-04): a read, signed per click. */
+export async function openBoardFile(
+  weddingId: string,
+  boardId: string,
+  fileId: string,
+): Promise<string | null> {
+  const c = await currentCouple(weddingId)
+  if (!c) return null
+  return coupleFileUrl(c, boardId, fileId)
 }
 
 export async function deleteImage(weddingId: string, fileId: string): Promise<boolean> {

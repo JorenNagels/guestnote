@@ -18,9 +18,7 @@ vi.mock('@guestnote/db', async (orig) => ({
 vi.mock('./db.ts', () => ({ getDb: () => ({}) }))
 vi.mock('./wedding-files.ts', () => ({ signObject: (...a: unknown[]) => signObject(...a) }))
 
-const { refreshVendorBoardUrls, vendorImageDownloadUrl, liveVendorLink } = await import(
-  './vendor-boards.ts'
-)
+const { refreshVendorBoardUrls, vendorFileUrl, liveVendorLink } = await import('./vendor-boards.ts')
 const { hashBearerToken } = await import('./bearer-token.ts')
 
 const LOOKUP = { orgId: 'o1', weddingId: 'w1', weddingVendorId: 'wv1', status: 'live' }
@@ -29,8 +27,10 @@ const BOARDS = [
     id: 'b1',
     name: 'Fotograaf',
     images: [
-      { id: 'f1', name: 'A', storageKey: 'o1/w1/f1' },
-      { id: 'f2', name: 'B', storageKey: 'o1/w1/f2' },
+      { id: 'f1', name: 'A', storageKey: 'o1/w1/f1', mime: 'image/jpeg', sizeBytes: 1 },
+      { id: 'f2', name: 'B', storageKey: 'o1/w1/f2', mime: 'image/png', sizeBytes: 1 },
+      // 2026-10-04: a document on the board. Nothing draws it, so nothing signs it at render.
+      { id: 'f3', name: 'Plan.pdf', storageKey: 'o1/w1/f3', mime: 'application/pdf', sizeBytes: 9 },
     ],
   },
 ]
@@ -77,6 +77,15 @@ describe('refreshVendorBoardUrls', () => {
     })
   })
 
+  it('signs no render-time URL for a document', async () => {
+    await refreshVendorBoardUrls('tok')
+    expect(signObject).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ id: 'f3' }),
+      expect.anything(),
+    )
+  })
+
   it('is null, and reads nothing, once the link is revoked', async () => {
     resolveVendorLinkByHash.mockResolvedValue({ ...LOOKUP, status: 'revoked' })
     expect(await refreshVendorBoardUrls('tok')).toBeNull()
@@ -85,19 +94,28 @@ describe('refreshVendorBoardUrls', () => {
   })
 })
 
-describe('vendorImageDownloadUrl', () => {
+describe('vendorFileUrl', () => {
   it('signs an attachment for an image the link can see', async () => {
-    expect(await vendorImageDownloadUrl('tok', 'f1')).toBe('https://get/o1/w1/f1?attachment')
+    expect(await vendorFileUrl('tok', 'f1', 'attachment')).toBe('https://get/o1/w1/f1?attachment')
+  })
+
+  it('signs a shared PDF to open, with its type, in the lookup scope', async () => {
+    expect(await vendorFileUrl('tok', 'f3', 'inline')).toBe('https://get/o1/w1/f3?inline')
+    expect(signObject).toHaveBeenCalledWith(
+      { orgId: 'o1', weddingId: 'w1' },
+      expect.objectContaining({ storageKey: 'o1/w1/f3', mime: 'application/pdf' }),
+      'inline',
+    )
   })
 
   it('signs nothing for a file id the link cannot see', async () => {
-    expect(await vendorImageDownloadUrl('tok', 'someone-elses')).toBeNull()
+    expect(await vendorFileUrl('tok', 'someone-elses', 'inline')).toBeNull()
     expect(signObject).not.toHaveBeenCalled()
   })
 
   it('signs nothing for a dead link', async () => {
     resolveVendorLinkByHash.mockResolvedValue(null)
-    expect(await vendorImageDownloadUrl('tok', 'f1')).toBeNull()
+    expect(await vendorFileUrl('tok', 'f1', 'inline')).toBeNull()
     expect(signObject).not.toHaveBeenCalled()
   })
 })

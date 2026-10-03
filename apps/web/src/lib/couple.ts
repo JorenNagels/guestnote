@@ -10,6 +10,7 @@ import {
   newId,
 } from '@guestnote/db'
 import { cache } from 'react'
+import { isImageType } from './board-items.ts'
 import { getDb } from './db.ts'
 import { currentSession } from './principal.ts'
 import { getStorage } from './storage.ts'
@@ -49,7 +50,9 @@ export const writable = (c: CoupleContext) => c.home.status === 'live'
 export type PortalImage = {
   readonly id: string
   readonly name: string
-  /** Inline, five minutes; `null` when signing failed. */
+  /** An image, or since 2026-10-04 a PDF or an Office file the planner put on the board. */
+  readonly mime: string
+  /** Inline, five minutes; `null` when signing failed, and always for a document. */
   readonly url: string | null
   readonly addedBy: string | null
   readonly isOwn: boolean
@@ -69,12 +72,32 @@ export async function portalBoardImages(c: CoupleContext, boardId: string): Prom
     rows.map(async (r) => ({
       id: r.id,
       name: r.name,
-      url: await signObject(scope, r, 'inline'),
+      mime: r.mime,
+      url: isImageType(r.mime) ? await signObject(scope, r, 'inline') : null,
       addedBy: r.byCouple ? r.uploaderName : null,
       isOwn: r.isOwn,
       commentCount: r.commentCount,
     })),
   )
+}
+
+/**
+ * A URL to open one item of a shared board in, signed at the click (2026-10-04): `inline`, which
+ * the storage seam keeps for an image or a PDF and turns into `attachment` for an Office file.
+ * The item is looked up through `couple_board_images` -- the same SECURITY DEFINER read the board
+ * page makes, with its sharing and module checks -- so an id that is not on this shared board
+ * signs nothing. `null` for that, as for a board id that is not a UUID.
+ */
+export async function coupleFileUrl(
+  c: CoupleContext,
+  boardId: unknown,
+  fileId: unknown,
+): Promise<string | null> {
+  if (!isUuid(boardId) || !isUuid(fileId)) return null
+  const rows = await coupleBoardImages(getDb(), c.principal, boardId)
+  const row = rows.find((r) => r.id === fileId)
+  if (!row) return null
+  return signObject({ orgId: c.principal.orgId, weddingId: c.principal.weddingId }, row, 'inline')
 }
 
 /**
