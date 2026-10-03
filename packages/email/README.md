@@ -78,7 +78,7 @@ reaches the deploy artefact; ADR 0004 records the check.
 The dev transport is the other loop, and it shows the real production render path:
 
 ```bash
-npm run dev               # then request a code at app.localhost:3000/login
+npm run dev               # then request a code at app.guestnote.localhost:3000/login
 open apps/web/.mail/*.html
 ```
 

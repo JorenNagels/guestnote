@@ -17,6 +17,11 @@ the monorepo root, so `apps/web/.env.local` is a symlink to the root file. That 
 copy of the database credentials rather than two. It is gitignored by the root `.env.*`
 rule. If `/api/health` reports `DATABASE_URL is not set`, the symlink is missing.
 
+**Signing in locally** is the real flow: email, then the code the console transport writes
+to `apps/web/.mail/`. `.claude/skills/dev-login` is the procedure Claude follows. A dev-only
+route that mints a session for a user id was considered and rejected on 2026-10-02. It
+would be a second way in, so the sign-in you look at locally would not be the one that ships.
+
 ## The hosts
 
 `guestnote.localhost` is the default and needs no DNS or `/etc/hosts`: Chrome, Edge and

@@ -39,12 +39,15 @@ email to disk, and you read the code from there -- the real flow, end to end.
    f=$(ls -t apps/web/.mail/*.txt | head -1); echo "$f"; grep -Eo '\b[0-9]{6}\b' "$f" | head -1
    ```
 
-   **Check the filename's timestamp and address before using it** -- the directory keeps
+   **Check the filename's timestamp and address before using it.** The directory keeps
    every old mail, and a stale code fails as "wrong code", which looks like an app bug.
-   The filename is `<ISO time, UTC>-<seq>-<address slug>.txt`.
+   Three wrong tries also destroy the live code (`maxCodeAttempts`, `core/auth/policy.ts`).
+   Filenames look like `2026-10-01T23-20-23-199Z-001-njoren-gmail-com.txt`: UTC time with
+   `:` and `.` turned into `-`, a per-process counter, then the address slug.
 4. Fill **"Code van zes cijfers"**, click **"Aanmelden"**. Codes expire in 5 minutes.
-5. You land on `/?welcome=passkey`. For a user with a studio the shell then offers to add a
-   passkey (`enrollment-prompt.tsx`). Dismiss it, because you can't complete WebAuthn from here.
+5. You land on `/?welcome=passkey`. For staff without a passkey the shell **may** offer to
+   add one (`enrollment-prompt.tsx`, only where a platform authenticator is reported). If it
+   does, dismiss it, because you can't complete WebAuthn from here.
 
 ## Several users at once
 
@@ -57,13 +60,14 @@ any address works with the console transport (SES sandbox would reject it). But 
 account belongs to nothing: the planner has to invite it (couple, staff) for it to see a
 wedding.
 
-## "Hoort nog bij geen enkele organisatie"
+## "Je bent aangemeld, maar hoort nog bij geen enkele organisatie."
 
 Signed in, but no org. Usually because **`npm run test:db` truncates the same Neon `dev`
-branch `npm run dev` serves** (`packages/db/README.md`), which wipes studios and
-memberships but not necessarily the user. Recover through the product: `/signup`
-("Start je studio") makes a studio and its owner. Tell the user you did, since it is their
-dev data.
+branch `npm run dev` serves** (`packages/db/README.md`). `reseed()` truncates `users` too,
+with every session, account and passkey. The old cookie then goes to `/login`, and signing in
+again registers a fresh account that belongs to nothing. Recover through the product:
+`/signup` ("Start je studio") makes a studio and its owner. Tell the user you did, since it is
+their dev data.
 
 ## Never
 
